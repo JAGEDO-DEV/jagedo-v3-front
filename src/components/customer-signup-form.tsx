@@ -56,10 +56,10 @@ export function CustomerSignupForm({
   const [countries, setCountries] = useState<any[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
-  const countyList =
-    formData.country.toLowerCase() == "kenya" ? Object.keys(counties) : [];
+  // const countyList =
+  //   formData.country.toLowerCase() == "kenya" ? Object.keys(counties) : [];
 
-  const subCountyList = (formData.country.toLowerCase() == "kenya" && formData.county) ? counties[formData.county as keyof typeof counties] || [] : [];
+  // const subCountyList = (formData.country.toLowerCase() == "kenya" && formData.county) ? counties[formData.county as keyof typeof counties] || [] : [];
 
   // OTP timer countdown effect
   useEffect(() => {
@@ -157,36 +157,36 @@ export function CustomerSignupForm({
           newErrors.otp = "Please enter a valid 6-digit code"
         }
         break
+      // case 6:
+      //   if (formData.accountType === "INDIVIDUAL") {
+      //     if (!formData.firstName) {
+      //       newErrors.firstName = "First name is required"
+      //     }
+      //     if (!formData.lastName) {
+      //       newErrors.lastName = "Last name is required"
+      //     }
+      //     if (!formData.gender) {
+      //       newErrors.gender = "Please select your gender"
+      //     }
+      //   } else if (formData.accountType === "ORGANIZATION") {
+      //     if (!formData.organizationName) {
+      //       newErrors.organizationName = "Organization name is required"
+      //     }
+      //     if (!formData.contactFirstName) {
+      //       newErrors.contactFirstName = "Contact person's first name is required"
+      //     }
+      //     if (!formData.contactLastName) {
+      //       newErrors.contactLastName = "Contact person's last name is required"
+      //     }
+      //   }
+      //   break
+      // case 7:
+      //   // Individual validation
+      //   if (!formData.country) newErrors.country = "Country is required";
+      //   if (!formData.town) newErrors.town = "Town is required";
+      //   if (!formData.estate) newErrors.estate = "Estate is required";
+      //   break
       case 6:
-        if (formData.accountType === "INDIVIDUAL") {
-          if (!formData.firstName) {
-            newErrors.firstName = "First name is required"
-          }
-          if (!formData.lastName) {
-            newErrors.lastName = "Last name is required"
-          }
-          if (!formData.gender) {
-            newErrors.gender = "Please select your gender"
-          }
-        } else if (formData.accountType === "ORGANIZATION") {
-          if (!formData.organizationName) {
-            newErrors.organizationName = "Organization name is required"
-          }
-          if (!formData.contactFirstName) {
-            newErrors.contactFirstName = "Contact person's first name is required"
-          }
-          if (!formData.contactLastName) {
-            newErrors.contactLastName = "Contact person's last name is required"
-          }
-        }
-        break
-      case 7:
-        // Individual validation
-        if (!formData.country) newErrors.country = "Country is required";
-        if (!formData.town) newErrors.town = "Town is required";
-        if (!formData.estate) newErrors.estate = "Estate is required";
-        break
-      case 8:
         if (!formData.password) {
           newErrors.password = "Password is required"
         } else if (formData.password.length < 8) {
@@ -291,28 +291,35 @@ export function CustomerSignupForm({
     }
   }
 
+  // const handleVerifyOTP = async () => {
+  //   setIsSubmitting(true)
+  //   try {
+  //     const data = {
+  //       email: formData.email,
+  //       phoneNumber: formData.phone,
+  //       otp: formData.otp,
+  //     }
+  //     const res = await verifyOtp(data)
+  //     if (res.data.success) {
+  //       toast.success("OTP verified successfully!")
+  //       setIsOtpVerified(true)
+  //     } else {
+  //       toast.error(`Failed To Verify OTP: ${res.data.message}`)
+  //     }
+  //   } catch (error: any) {
+  //     console.log(error)
+  //     toast.error(error.response?.data?.message || "An error occurred during verification")
+  //     setIsOtpVerified(false)
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
   const handleVerifyOTP = async () => {
     setIsSubmitting(true)
-    try {
-      const data = {
-        email: formData.email,
-        phoneNumber: formData.phone,
-        otp: formData.otp,
-      }
-      const res = await verifyOtp(data)
-      if (res.data.success) {
-        toast.success("OTP verified successfully!")
-        setIsOtpVerified(true)
-      } else {
-        toast.error(`Failed To Verify OTP: ${res.data.message}`)
-      }
-    } catch (error: any) {
-      console.log(error)
-      toast.error(error.response?.data?.message || "An error occurred during verification")
-      setIsOtpVerified(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    //TEMPORARY BYPASS: Directly verify without API
+    setIsOtpVerified(true);
+    toast.success("Bypassed verification for testing!");
+    setIsSubmitting(false);
   }
 
   // Reset OTP verification if OTP or method changes
@@ -470,7 +477,7 @@ export function CustomerSignupForm({
                   id="phone"
                   type="tel"
                   placeholder={countryCode === "+254" ? "7XXXXXXXX or 1XXXXXXXX" : "Phone number"}
-                  className="p-6 w-full outline-none focus:ring-0 border-0"
+                  className="w-full outline-none focus:ring-0 border-0 px-3"
                   value={formData.phone}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -687,265 +694,265 @@ export function CustomerSignupForm({
           </div>
         )
 
+      // case 6:
+      //   if (formData.accountType === "INDIVIDUAL") {
+      //     return (
+      //       <div className="space-y-6 animate-fade-in">
+      //         <div className="space-y-4">
+      //           {/* Logo */}
+      //           <div className="flex justify-center">
+      //             <img
+      //               src="/jagedologo.png"
+      //               alt="JaGedo Logo"
+      //               className="h-12 mb-6"
+      //             />
+      //           </div>
+      //           <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[20rem]">
+      //             <div className="flex justify-center pb-7">
+      //               <h2 className="text-xl font-semibold">Personal information</h2>
+      //             </div>
+      //             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      //               <div className="space-y-2">
+      //                 <Label htmlFor="firstName">First name</Label>
+      //                 <Input
+      //                   id="firstName"
+      //                   placeholder="Enter your first name"
+      //                   value={formData.firstName}
+      //                   onChange={(e) => updateFormData({ firstName: e.target.value })}
+      //                 />
+      //                 {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName}</p>}
+      //               </div>
+
+      //               <div className="space-y-2">
+      //                 <Label htmlFor="lastName">Last name</Label>
+      //                 <Input
+      //                   id="lastName"
+      //                   placeholder="Enter your last name"
+      //                   value={formData.lastName}
+      //                   onChange={(e) => updateFormData({ lastName: e.target.value })}
+      //                 />
+      //                 {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName}</p>}
+      //               </div>
+      //             </div>
+
+      //             <div className="space-y-2 mt-8">
+      //               <Label htmlFor="gender">Gender</Label>
+      //               <Select value={formData.gender} onValueChange={(value) => updateFormData({ gender: value })}>
+      //                 <SelectTrigger id="gender">
+      //                   <SelectValue placeholder="Select your gender" />
+      //                 </SelectTrigger>
+      //                 <SelectContent className="bg-white">
+      //                   <SelectItem value="male">Male</SelectItem>
+      //                   <SelectItem value="female">Female</SelectItem>
+      //                 </SelectContent>
+      //               </Select>
+      //               {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
+      //             </div>
+      //           </div>
+      //         </div>
+      //       </div>
+      //     )
+      //   } else {
+      //     return (
+      //       <div className="space-y-6 animate-fade-in">
+      //         <div className="space-y-4">
+      //           {/* Logo */}
+      //           <div className="flex justify-center">
+      //             <img
+      //               src="/jagedologo.png"
+      //               alt="JaGedo Logo"
+      //               className="h-12 mb-6"
+      //             />
+      //           </div>
+      //           <h2 className="text-xl font-semibold">Organizational Information</h2>
+      //           <div className="space-y-2">
+      //             <Input
+      //               id="organizationName"
+      //               placeholder="Enter organization name"
+      //               value={formData.organizationName}
+      //               onChange={(e) => updateFormData({ organizationName: e.target.value })}
+      //             />
+      //             {errors.organizationName && <p className="text-red-500 text-sm">{errors.organizationName}</p>}
+      //           </div>
+
+      //           <div className="pt-2">
+      //             <h3 className="text-md font-medium mb-3">Contact person details</h3>
+      //             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      //               <div className="space-y-2">
+      //                 <Input
+      //                   id="contactFirstName"
+      //                   placeholder="First name"
+      //                   value={formData.contactFirstName}
+      //                   onChange={(e) => updateFormData({ contactFirstName: e.target.value })}
+      //                 />
+      //                 {errors.contactFirstName && <p className="text-red-500 text-sm">{errors.contactFirstName}</p>}
+      //               </div>
+
+      //               <div className="space-y-2">
+      //                 <Input
+      //                   id="contactLastName"
+      //                   placeholder="Last name"
+      //                   value={formData.contactLastName}
+      //                   onChange={(e) => updateFormData({ contactLastName: e.target.value })}
+      //                 />
+      //                 {errors.contactLastName && <p className="text-red-500 text-sm">{errors.contactLastName}</p>}
+      //               </div>
+      //             </div>
+
+      //             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      //               <div className="space-y-2">
+      //                 <Label htmlFor="contactPhone">Phone number (optional)</Label>
+      //                 <div className="relative">
+      //                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+      //                   <Input
+      //                     id="contactPhone"
+      //                     type="tel"
+      //                     placeholder="Contact phone number"
+      //                     className="pl-10"
+      //                     value={formData.contactPhone}
+      //                     onChange={(e) => updateFormData({ contactPhone: e.target.value })}
+      //                   />
+      //                 </div>
+      //               </div>
+
+      //               <div className="space-y-2">
+      //                 <Label htmlFor="contactEmail">Email address (optional)</Label>
+      //                 <div className="relative">
+      //                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+      //                   <Input
+      //                     id="contactEmail"
+      //                     type="email"
+      //                     placeholder="Contact email address"
+      //                     className="pl-10"
+      //                     value={formData.contactEmail}
+      //                     onChange={(e) => updateFormData({ contactEmail: e.target.value })}
+      //                   />
+      //                 </div>
+      //               </div>
+      //             </div>
+      //             {errors.contactInfo && <p className="text-red-500 text-sm mt-2">{errors.contactInfo}</p>}
+      //           </div>
+      //         </div>
+      //       </div>
+      //     )
+      //   }
+
+      // case 7:
+      //   return (
+      //     <div className="font-roboto px-0 xs:p-8 bg-white mt-10 rounded-2xl w-full max-w-lg mx-auto">
+      //       {/* Section Title */}
+      //       {/* Logo */}
+      //       <div className="flex justify-center">
+      //         <img
+      //           src="/jagedologo.png"
+      //           alt="JaGedo Logo"
+      //           className="h-12 mb-6"
+      //         />
+      //       </div>
+      //       <h3 className="text-2xl font-semibold text-[rgb(0,0,122)] mt-10 xs:mt-0 mb-6 text-center">
+      //         Location Information
+      //       </h3>
+
+      //       {/* Country Selection */}
+      //       <div className="mb-4">
+      //         <Select
+      //           value={formData.country || ""}
+      //           onValueChange={(value) => updateFormData({ country: value })}
+      //           disabled={isLoadingCountries}
+      //         >
+      //           <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
+      //             <SelectValue placeholder={isLoadingCountries ? "Loading countries..." : "Select your country"} />
+      //           </SelectTrigger>
+      //           <SelectContent className="bg-white">
+      //             {Array.from(new Set(countries.map(country => country.name)))
+      //               .map((countryName) => (
+      //                 <SelectItem key={countryName} value={countryName}>
+      //                   {countryName}
+      //                 </SelectItem>
+      //               ))
+      //             }
+      //           </SelectContent>
+      //         </Select>
+      //         {errors.country && <p className="text-red-500 text-sm mt-1">{errors.country}</p>}
+      //       </div>
+
+      //       {/* County Input */}
+      //       {formData.country === "Kenya" && (
+      //         <div className="mb-4">
+      //           <Select
+      //             value={formData.county || ""}
+      //             onValueChange={(value) =>
+      //               updateFormData({ county: value, subCounty: "" })
+      //             }
+      //           >
+      //             <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
+      //               <SelectValue placeholder="Select your county" />
+      //             </SelectTrigger>
+      //             <SelectContent className="bg-white">
+      //               {countyList.map((countyName) => (
+      //                 <SelectItem key={countyName} value={countyName}>
+      //                   {countyName}
+      //                 </SelectItem>
+      //               ))}
+      //             </SelectContent>
+      //           </Select>
+      //           {errors.county && (
+      //             <p className="text-red-500 text-sm mt-1">{errors.county}</p>
+      //           )}
+      //         </div>
+      //       )}
+
+      //       {/* Sub-county Input */}
+      //       {formData.country === "Kenya" && formData.county && (
+      //         <div className="mb-4">
+      //           <Select
+      //             value={formData.subCounty || ""}
+      //             onValueChange={(value) => updateFormData({ subCounty: value })}
+      //           >
+      //             <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
+      //               <SelectValue placeholder="Select your sub-county" />
+      //             </SelectTrigger>
+      //             <SelectContent className="bg-white">
+      //               {subCountyList.map((sub) => (
+      //                 <SelectItem key={sub} value={sub}>
+      //                   {sub}
+      //                 </SelectItem>
+      //               ))}
+      //             </SelectContent>
+      //           </Select>
+      //           {errors.subCounty && (
+      //             <p className="text-red-500 text-sm mt-1">{errors.subCounty}</p>
+      //           )}
+      //         </div>
+      //       )}
+
+      //       {/* Town Input */}
+      //       <div className="mb-4">
+      //         <input
+      //           type="text"
+      //           placeholder="Town/City"
+      //           value={formData.town}
+      //           onChange={(e) => updateFormData({ town: e.target.value })}
+      //           className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
+      //         />
+      //         {errors.town && <p className="text-red-500 text-sm">{errors.town}</p>}
+      //       </div>
+
+      //       {/* Estate Input */}
+      //       <div className="mb-6">
+      //         <input
+      //           type="text"
+      //           placeholder="Estate/Village"
+      //           value={formData.estate}
+      //           onChange={(e) => updateFormData({ estate: e.target.value })}
+      //           className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
+      //         />
+      //         {errors.estate && <p className="text-red-500 text-sm">{errors.estate}</p>}
+      //       </div>
+      //     </div>
+      //   )
+
       case 6:
-        if (formData.accountType === "INDIVIDUAL") {
-          return (
-            <div className="space-y-6 animate-fade-in">
-              <div className="space-y-4">
-                {/* Logo */}
-                <div className="flex justify-center">
-                  <img
-                    src="/jagedologo.png"
-                    alt="JaGedo Logo"
-                    className="h-12 mb-6"
-                  />
-                </div>
-                <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[20rem]">
-                  <div className="flex justify-center pb-7">
-                    <h2 className="text-xl font-semibold">Personal information</h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First name</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="Enter your first name"
-                        value={formData.firstName}
-                        onChange={(e) => updateFormData({ firstName: e.target.value })}
-                      />
-                      {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last name</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Enter your last name"
-                        value={formData.lastName}
-                        onChange={(e) => updateFormData({ lastName: e.target.value })}
-                      />
-                      {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName}</p>}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-8">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={formData.gender} onValueChange={(value) => updateFormData({ gender: value })}>
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select your gender" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        } else {
-          return (
-            <div className="space-y-6 animate-fade-in">
-              <div className="space-y-4">
-                {/* Logo */}
-                <div className="flex justify-center">
-                  <img
-                    src="/jagedologo.png"
-                    alt="JaGedo Logo"
-                    className="h-12 mb-6"
-                  />
-                </div>
-                <h2 className="text-xl font-semibold">Organizational Information</h2>
-                <div className="space-y-2">
-                  <Input
-                    id="organizationName"
-                    placeholder="Enter organization name"
-                    value={formData.organizationName}
-                    onChange={(e) => updateFormData({ organizationName: e.target.value })}
-                  />
-                  {errors.organizationName && <p className="text-red-500 text-sm">{errors.organizationName}</p>}
-                </div>
-
-                <div className="pt-2">
-                  <h3 className="text-md font-medium mb-3">Contact person details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Input
-                        id="contactFirstName"
-                        placeholder="First name"
-                        value={formData.contactFirstName}
-                        onChange={(e) => updateFormData({ contactFirstName: e.target.value })}
-                      />
-                      {errors.contactFirstName && <p className="text-red-500 text-sm">{errors.contactFirstName}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Input
-                        id="contactLastName"
-                        placeholder="Last name"
-                        value={formData.contactLastName}
-                        onChange={(e) => updateFormData({ contactLastName: e.target.value })}
-                      />
-                      {errors.contactLastName && <p className="text-red-500 text-sm">{errors.contactLastName}</p>}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="contactPhone">Phone number (optional)</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-                        <Input
-                          id="contactPhone"
-                          type="tel"
-                          placeholder="Contact phone number"
-                          className="pl-10"
-                          value={formData.contactPhone}
-                          onChange={(e) => updateFormData({ contactPhone: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="contactEmail">Email address (optional)</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-                        <Input
-                          id="contactEmail"
-                          type="email"
-                          placeholder="Contact email address"
-                          className="pl-10"
-                          value={formData.contactEmail}
-                          onChange={(e) => updateFormData({ contactEmail: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {errors.contactInfo && <p className="text-red-500 text-sm mt-2">{errors.contactInfo}</p>}
-                </div>
-              </div>
-            </div>
-          )
-        }
-
-      case 7:
-        return (
-          <div className="font-roboto px-0 xs:p-8 bg-white mt-10 rounded-2xl w-full max-w-lg mx-auto">
-            {/* Section Title */}
-            {/* Logo */}
-            <div className="flex justify-center">
-              <img
-                src="/jagedologo.png"
-                alt="JaGedo Logo"
-                className="h-12 mb-6"
-              />
-            </div>
-            <h3 className="text-2xl font-semibold text-[rgb(0,0,122)] mt-10 xs:mt-0 mb-6 text-center">
-              Location Information
-            </h3>
-
-            {/* Country Selection */}
-            <div className="mb-4">
-              <Select
-                value={formData.country || ""}
-                onValueChange={(value) => updateFormData({ country: value })}
-                disabled={isLoadingCountries}
-              >
-                <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
-                  <SelectValue placeholder={isLoadingCountries ? "Loading countries..." : "Select your country"} />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {Array.from(new Set(countries.map(country => country.name)))
-                    .map((countryName) => (
-                      <SelectItem key={countryName} value={countryName}>
-                        {countryName}
-                      </SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-              {errors.country && <p className="text-red-500 text-sm mt-1">{errors.country}</p>}
-            </div>
-
-            {/* County Input */}
-            {formData.country === "Kenya" && (
-              <div className="mb-4">
-                <Select
-                  value={formData.county || ""}
-                  onValueChange={(value) =>
-                    updateFormData({ county: value, subCounty: "" })
-                  }
-                >
-                  <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
-                    <SelectValue placeholder="Select your county" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {countyList.map((countyName) => (
-                      <SelectItem key={countyName} value={countyName}>
-                        {countyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.county && (
-                  <p className="text-red-500 text-sm mt-1">{errors.county}</p>
-                )}
-              </div>
-            )}
-
-            {/* Sub-county Input */}
-            {formData.country === "Kenya" && formData.county && (
-              <div className="mb-4">
-                <Select
-                  value={formData.subCounty || ""}
-                  onValueChange={(value) => updateFormData({ subCounty: value })}
-                >
-                  <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
-                    <SelectValue placeholder="Select your sub-county" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {subCountyList.map((sub) => (
-                      <SelectItem key={sub} value={sub}>
-                        {sub}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.subCounty && (
-                  <p className="text-red-500 text-sm mt-1">{errors.subCounty}</p>
-                )}
-              </div>
-            )}
-
-            {/* Town Input */}
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Town/City"
-                value={formData.town}
-                onChange={(e) => updateFormData({ town: e.target.value })}
-                className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
-              />
-              {errors.town && <p className="text-red-500 text-sm">{errors.town}</p>}
-            </div>
-
-            {/* Estate Input */}
-            <div className="mb-6">
-              <input
-                type="text"
-                placeholder="Estate/Village"
-                value={formData.estate}
-                onChange={(e) => updateFormData({ estate: e.target.value })}
-                className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
-              />
-              {errors.estate && <p className="text-red-500 text-sm">{errors.estate}</p>}
-            </div>
-          </div>
-        )
-
-      case 8:
         return (
           <div className="space-y-6 animate-fade-in max-w-md mx-auto">
             {/* Logo and Title */}
@@ -982,6 +989,7 @@ export function CustomerSignupForm({
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
               </div>
 
               {/* Confirm Password Input */}
@@ -1009,6 +1017,7 @@ export function CustomerSignupForm({
                 {formData.confirmPassword && formData.password !== formData.confirmPassword && (
                   <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
                 )}
+                {(errors.confirmPassword) && (<p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>)}
               </div>
             </div>
 
@@ -1036,7 +1045,8 @@ export function CustomerSignupForm({
     }
   }
 
-  const isLastStep = currentStep === 8;
+  //const isLastStep = currentStep === 8;
+  const isLastStep = currentStep === 6;
 
   return (
     <form
@@ -1065,7 +1075,8 @@ export function CustomerSignupForm({
         <Button
           type="submit"
           className={`${isLastStep ? "bg-[#00a63e]" : "bg-[#00007a]"} hover:bg-opacity-90 min-w-[120px] text-white`}
-          disabled={isSubmitting || (currentStep === 5 && !isOtpVerified) || (currentStep === 3 && (!formData.phone)) || (isLastStep && !formData.agreeToTerms)}
+          //disabled={isSubmitting || (currentStep === 5 && !isOtpVerified) || (currentStep === 3 && (!formData.phone)) || (isLastStep && !formData.agreeToTerms)}
+          disabled={isSubmitting || (currentStep === 5 && !isOtpVerified) || (currentStep === 3 && (!formData.phone)) || (isLastStep && (!formData.password || !formData.agreeToTerms))}
         >
           {isSubmitting ? (
             <>

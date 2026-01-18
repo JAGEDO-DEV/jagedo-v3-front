@@ -38,11 +38,13 @@ export default function CustomerSignup() {
         subCounty: "",
         estate: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        agreeToTerms: false //mock for testing. Can be removed afterwards
     });
 
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 9 : 8;
+    //const totalSteps = formData.accountType === "ORGANIZATION" ? 9 : 8;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -111,22 +113,31 @@ export default function CustomerSignup() {
     const handleSubmit = async () => {
         const data = {
             email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            organizationName: formData.organizationName,
-            contactFirstName: formData.contactFirstName,
-            contactLastName: formData.contactLastName,
-            contactPhone: formData.contactPhone,
-            contactEmail: formData.contactEmail,
-            country: formData.country,
-            county: formData.county,
-            subCounty: formData.subCounty,
-            estate: formData.estate,
+            // firstName: formData.firstName,
+            // lastName: formData.lastName,
+            // organizationName: formData.organizationName,
+            // contactFirstName: formData.contactFirstName,
+            // contactLastName: formData.contactLastName,
+            // contactPhone: formData.contactPhone,
+            // contactEmail: formData.contactEmail,
+            // country: formData.country,
+            // county: formData.county,
+            // subCounty: formData.subCounty,
+            // estate: formData.estate,
             password: formData.password
         };
 
         try {
-            const response = await handleCompleteRegistration(data);
+            // commented out the API call for now to allow testing without backend
+            //const response = await handleCompleteRegistration(data);
+            const response = {
+                data: {
+                    success: true,
+                    message: "Mock account created successfully",
+                    user: { email: formData.email, role: "CUSTOMER" },
+                    accessToken: "fake_token_for_testing"
+                }
+            };
 
             if (response.data.success) {
                 toast.success("Account Created Successfully. Redirecting to login...");
