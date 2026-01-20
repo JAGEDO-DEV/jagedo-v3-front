@@ -29,7 +29,7 @@ export default function ProfessionalSignup() {
         otp: "",
         firstName: "",
         lastName: "",
-        gender: "",
+        gender: "male",
         organizationName: "",
         contactFirstName: "",
         contactLastName: "",
@@ -41,10 +41,11 @@ export default function ProfessionalSignup() {
         subCounty: "",
         estate: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        agreeToTerms: false
     });
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 10 : 9;
+    const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -86,19 +87,19 @@ export default function ProfessionalSignup() {
     const handleSubmit = async () => {
         const data = {
             email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            organizationName: formData.organizationName,
-            contactFirstName: formData.contactFirstName,
-            contactLastName: formData.contactLastName,
-            contactPhone: formData.contactPhone,
-            contactEmail: formData.contactEmail,
-            country: formData.country,
-            county: formData.county,
-            subCounty: formData.subCounty,
-            estate: formData.estate,
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
+            organizationName: formData.organizationName || "Pending",
+            contactFirstName: formData.contactFirstName || "Pending",
+            contactLastName: formData.contactLastName || "User",
+            contactPhone: formData.contactPhone || formData.phone,
+            contactEmail: formData.contactEmail || formData.email,
+            country: formData.country || "Kenya",
+            county: formData.county || "Pending",
+            subCounty: formData.subCounty || "Pending",
+            estate: formData.estate || "Pending",
             password: formData.password,
-            gender: formData.gender,
+            gender: formData.gender || "male",
             state: formData.country
         };
         try {
