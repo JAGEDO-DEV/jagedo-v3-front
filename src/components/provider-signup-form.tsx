@@ -97,15 +97,16 @@ export function ProviderSignupForm({
                     toast.error("Please enter a valid phone number starting with 7 or 1 and 9 digits long");
                     return false;
                 }
-                if (formData?.skills || formData?.profession) {
-                    if (!formData.nationalId) {
-                        toast.error("National ID is required");
-                        return false;
-                    } else if (formData.nationalId.length > 8) {
-                        toast.error("National ID must be 8 characters or less");
-                        return false;
-                    }
-                }
+                // if (formData?.skills || formData?.profession) {
+                //     if (!formData.nationalId) {
+                //         toast.error("National ID is required");
+                //         return false;
+                //     }
+                //      else if (formData.nationalId.length > 8) {
+                //         toast.error("National ID must be 8 characters or less");
+                //         return false;
+                //     }
+                // }
                 break;
             case 4:
                 if (!formData.otpMethod) {
@@ -264,30 +265,37 @@ export function ProviderSignupForm({
         }
     }
 
+    // const handleVerifyOTP = async () => {
+    //     setIsSubmitting(true);
+    //     try {
+    //         const data = {
+    //             email: formData.email,
+    //             phoneNumber: formData.phone,
+    //             otp: formData.otp
+    //         };
+    //         const res = await verifyOtp(data);
+    //         if (res.data.success) {
+    //             toast.success("OTP verified successfully!");
+    //             setIsOtpVerified(true);
+    //             handleContinue()
+    //         } else {
+    //             toast.error(`Failed To Verify OTP: ${res.data.message}`);
+    //         }
+    //     } catch (error: any) {
+    //         console.log(error);
+    //         toast.error(error.response?.data?.message || error.message || "Verification failed");
+    //         setIsOtpVerified(false);
+    //     } finally {
+    //         setIsSubmitting(false);
+    //     }
+    // };
     const handleVerifyOTP = async () => {
-        setIsSubmitting(true);
-        try {
-            const data = {
-                email: formData.email,
-                phoneNumber: formData.phone,
-                otp: formData.otp
-            };
-            const res = await verifyOtp(data);
-            if (res.data.success) {
-                toast.success("OTP verified successfully!");
-                setIsOtpVerified(true);
-                handleContinue()
-            } else {
-                toast.error(`Failed To Verify OTP: ${res.data.message}`);
-            }
-        } catch (error: any) {
-            console.log(error);
-            toast.error(error.response?.data?.message || error.message || "Verification failed");
-            setIsOtpVerified(false);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+        setIsSubmitting(true)
+        //TEMPORARY BYPASS: Directly verify without API
+        setIsOtpVerified(true);
+        toast.success("Bypassed verification for testing!");
+        setIsSubmitting(false);
+    }
 
     // OTP timer countdown effect
     useEffect(() => {
@@ -853,7 +861,7 @@ export function ProviderSignupForm({
                                 </p>
                             )}
                         </div>
-
+                        {/*
                         {(formData?.skills || formData?.profession) && (<div className="space-y-2 my-2">
                             <Label htmlFor="nationalId">National ID</Label>
                             <Input
@@ -869,7 +877,7 @@ export function ProviderSignupForm({
                                 }
                             />
                         </div>)}
-
+                        */}
                         {/* Display concatenated number (optional) */}
                         {formData.fullPhoneNumber && (
                             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
@@ -882,7 +890,9 @@ export function ProviderSignupForm({
                             </div>
                         )}
                     </div>
-                );
+                )
+                
+                
 
             case 4:
                 return (
@@ -1547,11 +1557,15 @@ export function ProviderSignupForm({
                     type="submit"
                     className={`${isLastStep ? "bg-[#00a63e]" : "bg-[#00007a]"
                         } hover:bg-opacity-90 min-w-[120px] text-white`}
-                    disabled={
-                        isSubmitting ||
-                        (currentStep === 4 && !isOtpVerified) ||
-                        (isLastStep && !formData.agreeToTerms)
-                    }
+                    // disabled={
+                    //     isSubmitting ||
+                    //     (currentStep === 5 && !isOtpVerified) ||
+                    //     (isLastStep && !formData.agreeToTerms)
+                    // }
+                    disabled={isSubmitting || 
+                        //(currentStep === 5 && !isOtpVerified) || 
+                        (currentStep === 3 && (!formData.phone)) || 
+                        (isLastStep && (!formData.password || !formData.agreeToTerms))}
                 >
                     {isSubmitting ? (
                         <>

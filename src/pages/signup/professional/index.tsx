@@ -45,7 +45,8 @@ export default function ProfessionalSignup() {
         agreeToTerms: false
     });
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
+    //const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -103,7 +104,15 @@ export default function ProfessionalSignup() {
             state: formData.country
         };
         try {
-            const response = await handleCompleteRegistration(data);
+            //const response = await handleCompleteRegistration(data);
+            const response = {
+                data: {
+                    success: true,
+                    message: "Account Created Successfully (Mock)",
+                    user: { email: formData.email, role: "PROFESSIONAL" },
+                    accessToken: "mock_token_123"
+                }
+             };
             if (response.data.success) {
                 toast.success("Account Created Successfully. Redirecting to login...");
                 localStorage.setItem(
