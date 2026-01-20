@@ -20,6 +20,7 @@ import { toast, Toaster } from "sonner";
 import { verifyOtp } from "@/api/auth.api";
 import { counties } from "@/pages/data/counties"
 import GoogleSignIn from "@/components/GoogleSignIn";
+import { getPasswordStrength } from "./PasswordStrength";
 interface ProviderSignupFormProps {
     currentStep: number;
     formData: any;
@@ -1431,6 +1432,29 @@ export function ProviderSignupForm({
                                     </button>
                                 </div>
                             </div>
+                            {formData.password && (
+                                <div className="mt-2 flex gap-1 h-1 w-full">
+                                    {(() => {
+                                        const { score, label } = getPasswordStrength(formData.password);
+                                        // Define the color based on the CURRENT score
+                                        let colorClass = "bg-red-500";
+                                        if (label === "Medium") colorClass = "bg-yellow-500";
+                                        if (label === "Strong") colorClass = "bg-green-500";
+
+                                        return [0, 1, 2, 3, 4].map((index) => (
+                                        <div
+                                            key={index}
+                                            className={`h-full flex-1 rounded-full transition-colors duration-300 ${
+                                            index < score ? colorClass : "bg-gray-200"
+                                            }`}
+                                        />
+                                        ));
+                                    })()}
+                                    <span className="ml-2 text-xs font-medium text-gray-600">
+                                        {getPasswordStrength(formData.password).label}
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Confirm Password Input */}
                             <div className="space-y-1">

@@ -183,11 +183,29 @@ export default function FundiSignup() {
             localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
 
            // 3. successs message and redirect
-           toast.success("Account created successfully, Please login")
+            const response = {
+                data: {
+                    success: true,
+                    user: newUser,
+                    accessToken: "mock_access_token" + newUser.id
+                }
+            };
+
+            // 4. Login the user automatically
+             if (response.data.success) {
+                toast.success("Account created successfully. Redirecting...");
+
+                localStorage.setItem("user", JSON.stringify(response.data.user));
+                localStorage.setItem("token", response.data.accessToken);
+
+                setUser(response.data.user);
+                setIsLoggedIn(true);
+
+                setTimeout(() => {
+                    navigate("/profile");
+                }, 2000);
+             }
            
-           setTimeout(() => {
-            navigate("/login");
-           }, 2000);
 
            
 
