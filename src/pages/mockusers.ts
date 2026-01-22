@@ -54,5 +54,15 @@ export const MOCK_USERS = [
     lastName: "One",
     adminApproved: false,
     userProfile: { complete: false }
+  },
+  // ✅ Admin user
+  {
+    username: "admin@jagedo.co.ke",
+    password: "Admin@123",
+    userType: "ADMIN",
+    firstName: "Admin",
+    lastName: "User",
+    adminApproved: true,
+    userProfile: { complete: true }
   }
 ];

@@ -5,6 +5,7 @@ import { useGlobalContext } from "@/context/GlobalProvider";
 import { getProviderProfile, updateProfileAddress } from "@/api/provider.api";
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
+import { MOCK_ADDRESSES } from "@/pages/mockAddresses";
 
 const Address = () => {
   const { user } = useGlobalContext();
@@ -45,32 +46,51 @@ const Address = () => {
     fetchCountries();
   }, []);
 
-  useEffect(() => {
-    const fetchProviderProfile = async () => {
-      if (user?.id) {
-        try {
-          setLoading(true);
-          const profile = await getProviderProfile(axiosInstance, user.id);
-          setProviderProfile(profile.data);
-          setAddress({
-            country: profile.data.country || "",
-            county: profile.data.county || "",
-            subCounty: profile.data.subCounty || "",
-            estate: profile.data.estate || "",
-          });
-        } catch (error) {
-          console.error("Failed to fetch provider profile:", error);
-          setUpdateMessage({
-            type: "error",
-            text: "Failed to fetch profile data"
-          });
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    fetchProviderProfile();
-  }, [user?.id]);
+  // useEffect(() => {
+  //   const fetchProviderProfile = async () => {
+  //     if (user?.id) {
+  //       try {
+  //         setLoading(true);
+  //         const profile = await getProviderProfile(axiosInstance, user.id);
+  //         setProviderProfile(profile.data);
+  //         setAddress({
+  //           country: profile.data.country || "",
+  //           county: profile.data.county || "",
+  //           subCounty: profile.data.subCounty || "",
+  //           estate: profile.data.estate || "",
+  //         });
+  //       } catch (error) {
+  //         console.error("Failed to fetch provider profile:", error);
+  //         setUpdateMessage({
+  //           type: "error",
+  //           text: "Failed to fetch profile data"
+  //         });
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     }
+  //   };
+  //   fetchProviderProfile();
+  // }, [user?.id]);
+useEffect(() => {
+  if (!user) return;
+
+  const key = user.username.split("@")[0];
+  const stored = JSON.parse(localStorage.getItem("address"));
+
+  if (stored) {
+    setAddress(stored);
+    setProviderProfile(stored);
+  } else {
+    const mock = MOCK_ADDRESSES[key] || MOCK_ADDRESSES["lucy"];
+
+    setAddress(mock);
+    setProviderProfile(mock);
+    localStorage.setItem("address", JSON.stringify(mock));
+  }
+
+  setLoading(false);
+}, [user]);
 
   useEffect(() => {
     if (updateMessage) {
@@ -120,25 +140,38 @@ const Address = () => {
     return true;
   };
 
-  const handleUpdate = async () => {
-    if (!validateAddress()) return;
+  // const handleUpdate = async () => {
+  //   if (!validateAddress()) return;
 
-    try {
-      setUpdating(true);
-      setUpdateMessage(null);
-      const response = await updateProfileAddress(axiosInstance, address);
-      setProviderProfile(prev => ({ ...prev, ...address }));
-      setUpdateMessage({ type: "success", text: "Address updated successfully!" });
-      setIsEditing(false);
-      console.log("Address updated successfully:", response.data);
-    } catch (error: any) {
-      console.error("Failed to update address:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to update address. Please try again.";
-      setUpdateMessage({ type: "error", text: errorMessage });
-    } finally {
-      setUpdating(false);
-    }
-  };
+  //   try {
+  //     setUpdating(true);
+  //     setUpdateMessage(null);
+  //     const response = await updateProfileAddress(axiosInstance, address);
+  //     setProviderProfile(prev => ({ ...prev, ...address }));
+  //     setUpdateMessage({ type: "success", text: "Address updated successfully!" });
+  //     setIsEditing(false);
+  //     console.log("Address updated successfully:", response.data);
+  //   } catch (error: any) {
+  //     console.error("Failed to update address:", error);
+  //     const errorMessage = error.response?.data?.message || error.message || "Failed to update address. Please try again.";
+  //     setUpdateMessage({ type: "error", text: errorMessage });
+  //   } finally {
+  //     setUpdating(false);
+  //   }
+  // };
+const handleUpdate = () => {
+  if (!validateAddress()) return;
+
+  setUpdating(true);
+
+  setTimeout(() => {
+    localStorage.setItem("address", JSON.stringify(address));
+    setProviderProfile(address);
+    setUpdateMessage({ type: "success", text: "Address updated successfully!" });
+    setIsEditing(false);
+    setUpdating(false);
+  }, 600);
+};
 
   const handleCancel = () => {
     if (providerProfile) {
@@ -303,6 +336,7 @@ const Address = () => {
         )}
       </div>
     </div>
+
   );
 };
 

@@ -255,6 +255,10 @@ const redirectUser = (user) => {
   let path = "/dashboard/customer";
 
   switch (role) {
+   case "admin":
+  path = "/dashboard/admin";
+  break;
+
     case "customer":
       path =
         user.profileType === "organization"

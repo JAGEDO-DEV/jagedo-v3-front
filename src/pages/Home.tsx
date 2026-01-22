@@ -47,6 +47,8 @@ const Home = () => {
   const dropdownRef = useRef(null);
   const mobileDropdownRef = useRef(null);
   const signupSectionRef = useRef(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
   const [steps, setSteps] = useState([
     {
       id: 1,
@@ -337,12 +339,12 @@ const Home = () => {
       >
         <Link to="/">
           <img
-            src="/logo.png"
+            src="/JaGedo logo.webp"
             alt="Logo"
             className="w-30 md:w-50 lg:w-50 h-auto"
           />
         </Link>
-        <div
+        {/* <div
           id="div1"
           className="hidden sm:flex items-center space-x-4 md:space-x-9 -ml-4"
         >
@@ -378,7 +380,32 @@ const Home = () => {
           >
             Events
           </button>
-        </div>
+        </div> */}
+<div
+  id="div1"
+  className="hidden sm:flex items-center space-x-6 md:space-x-10 -ml-4"
+>
+  <span
+    onClick={handleProductsClick}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    Products
+  </span>
+
+  <span
+    onClick={() => navigate("/about-us")}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    About Us
+  </span>
+
+  <span
+    onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    Events
+  </span>
+</div>
 
         <div
           id="div2"
@@ -557,17 +584,16 @@ const Home = () => {
         className="flex-grow py-8 px-6 flex flex-col items-center justify-center text-center bg-gray-100"
       >
         <div className="max-w-4xl">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-gray-900 leading-tight mb-6">
             A One-Stop Construction Platform
           </h1>
-          <p className="text-lg sm:text-xl text-gray-700 mb-6">
+          <p className="text-lg sm:text-xl text-gray-700 mb-28">
             JaGedo seamlessly connects customers and builders to other builders:
             fundis, professionals, contractors, and hardware suppliers in your
             locality.
           </p>
         </div>
       </motion.div>
-
       <motion.div ref={section1Ref} className="py-10 text-center">
         <button
           type="button"
@@ -643,6 +669,7 @@ const Home = () => {
           </div>
         </motion.div>
       )}
+<br></br>
 
       {/* How It Works Section */}
       <motion.div
@@ -651,9 +678,20 @@ const Home = () => {
         transition={{ duration: 1 }}
         className="bg-white text-black py-2 flex flex-col"
       >
-        <h2 className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4">
+        {/* <h2 className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4">
           How It Works
-        </h2>
+        </h2> */}
+        <h2
+  onClick={() => setShowHowItWorks((prev) => !prev)}
+  className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4 
+             text-black-800 cursor-pointer hover:underline hover:text-green-600 transition"
+>
+  How It Works
+</h2>
+
+
+
+
         <p className="text-gray-700 mt-2 text-center text-base sm:text-lg px-2 sm:px-12 mb-2">
           Seamlessly connect with fundis, professionals, contractors, and
           hardware in just a few steps.
@@ -699,7 +737,6 @@ const Home = () => {
             ))}
           </div>
         </div>
-
         <div className="flex flex-col md:flex-row gap-6 items-center px-8">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -724,6 +761,12 @@ const Home = () => {
           </motion.div>
         </div>
       </motion.div>
+
+
+
+
+
+
 
       <motion.footer
         className="mt-16 bg-[rgb(0,0,122)] text-white py-12 px-6"

@@ -252,5 +252,6 @@ export default function CustomerSignup() {
 
             <GenericFooter />
         </div>
+        
     );
 }
