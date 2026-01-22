@@ -29,6 +29,7 @@ import { getServiceProviderJobRequests } from "@/api/jobRequests.api";
 import { getProviderOrderRequests } from "@/api/orderRequests.api";
 import { toast } from "react-hot-toast";
 import ChatWidgetWrapper from "@/components/ChatWidget";
+import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
 
 export interface JobRequestResponse {
     id: string;
@@ -71,8 +72,32 @@ type Job = JobRequestResponse;
 type Order = OrderRequestResponse;
 
 export default function FundiDashboard() {
-    const { user } = useGlobalContext();
+    //const { user } = useGlobalContext();
+    const { user, setUser } = useGlobalContext();
     const navigate = useNavigate();
+    const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+    
+    useEffect(() => {
+        if (user && user.profileCompleted === false) {
+            setShowProfileCompletion(true);
+        }
+    }, [user]);
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = { ...user, ...profileData, profileCompleted: true };
+        setUser(updatedUser);
+
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        const db = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = db.findIndex((u: any) => u.email === user.email);
+        if (userIndex !== -1) {
+            db[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(db));
+        }
+        setShowProfileCompletion(false);
+        toast.success("Profile completed!");
+    };
+    
     const location = useLocation();
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [searchTerm, setSearchTerm] = useState("");
@@ -82,6 +107,7 @@ export default function FundiDashboard() {
     const [jobRequests, setJobRequests] = useState<Job[]>([]);
     const [orderRequests, setOrderRequests] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
 
     const TABS = [
         { id: 'new', label: 'New', Icon: Eye },
@@ -301,6 +327,16 @@ export default function FundiDashboard() {
             </div>
         );
     };
+
+    if (showProfileCompletion) {
+        return (
+            <ProfileCompletion
+                user={user}
+                accountType="INDIVIDUAL"
+                onComplete={handleProfileComplete}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">

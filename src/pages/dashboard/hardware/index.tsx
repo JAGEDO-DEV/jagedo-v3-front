@@ -3,6 +3,7 @@
 //@ts-nocheck
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
 import {
     Eye,
     CheckCircle,
@@ -25,7 +26,7 @@ import ChatWidgetWrapper from "@/components/ChatWidget";
 import GenericFooter from "@/components/generic-footer";
 
 export default function HardwareDashboard() {
-    const { user } = useGlobalContext();
+    const { user, setUser } = useGlobalContext();
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const navigate = useNavigate();
 
@@ -38,6 +39,30 @@ export default function HardwareDashboard() {
     const [error, setError] = useState<string | null>(null);
 
     const [showAllOrders, setShowAllOrders] = useState(false);
+
+    const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+
+    useEffect(() => {
+        if (user && user.profileCompleted === false) {
+            setShowProfileCompletion(true);
+        }
+    }, [user]);
+
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = { ...user, ...profileData, profileCompleted: true };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        const db = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const index = db.findIndex((u: any) => u.email === user.email);
+        if (index !== -1) {
+            db[index] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(db));
+        }
+
+        setShowProfileCompletion(false);
+        toast.success("Profile Completed!");
+    };
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -198,6 +223,16 @@ export default function HardwareDashboard() {
             </div>
         );
     };
+
+    if (showProfileCompletion) {
+        return (
+            <ProfileCompletion
+                user={user}
+                accountType="INDIVIDUAL"
+                onComplete={handleProfileComplete}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">

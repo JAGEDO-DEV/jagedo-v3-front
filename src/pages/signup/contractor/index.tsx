@@ -165,10 +165,11 @@ export default function ContractorSignup() {
             email: formData.email,
             password: formData.password,
             userType: "CONTRACTOR",
-            firstName: formData.firstName || "CONTRACTOR",
+            firstName: formData.firstName || "Pending",
             lastName: formData.lastName || "User",
             accountType: formData.accountType,
-            phone: formData.phone
+            phone: formData.phone,
+            profileCompleted: false
         }
         try {
             // 2. mock db save
@@ -180,13 +181,31 @@ export default function ContractorSignup() {
             }
             exisitingUsers.push(newUser);
             localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
            // 3. successs message and redirect
-           toast.success("Account created successfully, Please login")
-           
-           setTimeout(() => {
-            navigate("/login");
-           }, 2000);
+            const response = {
+                data: {
+                    success: true,
+                    user: newUser,
+                    accessToken: "mock_access_token_" + newUser.id
+                }
+            };
+
+            // 4. Login the user automatically
+             if (response.data.success) {
+                toast.success("Account created successfully. Redirecting...");
+
+                localStorage.setItem("user", JSON.stringify(response.data.user));
+                localStorage.setItem("token", response.data.accessToken);
+
+                setUser(response.data.user);
+                setIsLoggedIn(true);
+
+                setTimeout(() => {
+                    navigate("/dashboard/contractor");
+                }, 1500);
+             }
 
            
 

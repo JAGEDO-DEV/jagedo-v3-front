@@ -11,9 +11,11 @@ import {
 import { toast, Toaster } from "sonner";
 import { ProviderSignupForm } from "@/components/provider-signup-form";
 import GenericFooter from "@/components/generic-footer";
+import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
+
 
 export default function FundiSignup() {
-    const navigate = useNavigate();
+    const navigate = useNavigate();   
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -44,6 +46,8 @@ export default function FundiSignup() {
         confirmPassword: "",
         agreeToTerms: false
     });
+
+    
 
 
     //const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
@@ -112,53 +116,6 @@ export default function FundiSignup() {
         }
     };
 
-    // const handleSubmit = async () => {
-    //     const data = {
-    //         email: formData.email,
-    //         firstName: formData.firstName || "Pending",
-    //         lastName: formData.lastName || "User",
-    //         organizationName: formData.organizationName || "Pending",
-    //         contactFirstName: formData.contactFirstName || "Pending",
-    //         contactLastName: formData.contactLastName || "User",
-    //         contactPhone: formData.contactPhone || formData.phone,
-    //         contactEmail: formData.contactEmail || formData.email,
-    //         country: formData.country || "Kenya",
-    //         county: formData.county || "Pending",
-    //         subCounty: formData.subCounty || "Pending",
-    //         estate: formData.estate || "Pending",
-    //         password: formData.password,
-    //         gender: formData.gender || "male",
-    //         state: formData.country,
-    //     };
-    //     try {
-    //         //const response = await handleCompleteRegistration(data);
-    //         const response = {
-    //              data: {
-    //                 success: true,
-    //                 message: "Account Created Successfully (Mock)",
-    //                 user: { email: formData.email, role: "FUNDI" },
-    //                 accessToken: "mock_token_123"                 }             };
-    //         if (response.data.success) {
-    //             toast.success("Account Created Successfully. Redirecting to login...");
-    //             localStorage.setItem(
-    //                 "user",
-    //                 JSON.stringify(response.data.user)
-    //             );
-    //             localStorage.setItem("token", response.data.accessToken);
-    //             setUser(response.data.user);
-    //             setIsLoggedIn(true);
-    //             setTimeout(() => {
-    //                 navigate("/login");
-    //             }, 2000);
-    //         } else {
-    //             toast.error(
-    //                 `Failed To Create Account: ${response.data.message}`
-    //             );
-    //         }
-    //     } catch (error: any) {
-    //         toast.error(`Error sending OTP: ${error.response.data.message}`);
-    //     }
-    // };
     const handleSubmit = async () => {
         // 1. Prepare the user object
         const newUser = {
@@ -168,46 +125,36 @@ export default function FundiSignup() {
             userType: "FUNDI",
             firstName: formData.firstName || "Pending",
             lastName: formData.lastName || "User",
-            accoutnType: formData.accountType,
-            phone: formData.phone
-        }
-        try {
-            // 2. mock db save
-            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false // Flag for the dashboard to catch
+        };
 
-            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
+        try {
+            // 2. Mock DB save
+            const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (existingUsers.find((u: any) => u.email === newUser.email)) {
                 toast.error("User with this email already exists!");
                 return;
             }
-            exisitingUsers.push(newUser);
-            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            existingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+            
+            // Save OTP method for the profile completion step
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
-           // 3. successs message and redirect
-            const response = {
-                data: {
-                    success: true,
-                    user: newUser,
-                    accessToken: "mock_access_token" + newUser.id
-                }
-            };
+            // 3. Auto-login the user
+            toast.success("Account created successfully. Redirecting...");
+            localStorage.setItem("user", JSON.stringify(newUser));
+            localStorage.setItem("token", "mock_access_token_" + newUser.id);
+            setUser(newUser);
+            setIsLoggedIn(true);
 
-            // 4. Login the user automatically
-             if (response.data.success) {
-                toast.success("Account created successfully. Redirecting...");
-
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.accessToken);
-
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-
-                setTimeout(() => {
-                    navigate("/profile");
-                }, 2000);
-             }
-           
-
-           
+            // 4. Redirect to the specific dashboard
+            setTimeout(() => {
+                navigate("/profile");
+            }, 1500);
 
         } catch (error: any) {
             toast.error("An error occurred during mock registration");

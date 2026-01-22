@@ -40,10 +40,11 @@ import { FundiForm } from "./forms/FundiForm";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { useNavigate } from "react-router-dom";
 import GenericFooter from "@/components/generic-footer";
+import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
 
 export default function CustomerDashboard() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-    const { user } = useGlobalContext();
+    const { user, setUser } = useGlobalContext();
     const navigate = useNavigate();
     const [selectedTab, setSelectedTab] = useState("fundi");
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -76,6 +77,30 @@ export default function CustomerDashboard() {
     const [showJobDetail, setShowJobDetail] = useState(false);
     const [currentInvoice, setCurrentInvoice] = useState<any>(null);
     const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+
+    const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+
+    useEffect(() => {
+        if (user && user.profileCompleted === false) {
+            setShowProfileCompletion(true);
+        }
+    }, [user]);
+
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = { ...user, ...profileData, profileCompleted: true };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        const db = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const index = db.findIndex((u: any) => u.email === user.email);
+        if (index !== -1) {
+            db[index] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(db));
+        }
+
+        setShowProfileCompletion(false);
+        toast.success("Profile Completed!");
+    };
 
     const TABS = [
         { id: 'requisitions', label: 'Requisitions' },
@@ -711,6 +736,16 @@ export default function CustomerDashboard() {
             </div>
         );
     };
+
+    if (showProfileCompletion) {
+        return (
+            <ProfileCompletion
+                user={user}
+                accountType={user?.accountType || "INDIVIDUAL"}
+                onComplete={handleProfileComplete}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-white flex flex-col">

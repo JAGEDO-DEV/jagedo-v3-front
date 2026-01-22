@@ -141,10 +141,11 @@ export default function ProfessionalSignup() {
             email: formData.email,
             password: formData.password,
             userType: "PROFESSIONAL",
-            // firstName: formData.firstName || "Pending",
-            // lastName: formData.lastName || "User",
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
             accountType: formData.accountType,
-            phone: formData.phone
+            phone: formData.phone,
+            profileCompleted: false
         }
         try {
             // 2. mock db save
@@ -156,13 +157,14 @@ export default function ProfessionalSignup() {
             }
             exisitingUsers.push(newUser);
             localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
            // 3. successs message and redirect
             const response = {
                 data: {
                     success: true,
                     user: newUser,
-                    accessToken: "mock_access_token" + newUser.id
+                    accessToken: "mock_access_token_" + newUser.id
                 }
             };
 
@@ -177,8 +179,8 @@ export default function ProfessionalSignup() {
                 setIsLoggedIn(true);
 
                 setTimeout(() => {
-                    navigate("/profile");
-                }, 2000);
+                    navigate("/dashboard/professional");
+                }, 1500);
              }
            
            

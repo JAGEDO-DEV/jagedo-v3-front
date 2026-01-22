@@ -166,8 +166,9 @@ export default function CustomerSignup() {
             userType: "CUSTOMER",
             firstName: formData.firstName || "Pending",
             lastName: formData.lastName || "User",
-            accoutnType: formData.accountType,
-            phone: formData.phone
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false
         }
         try {
             // 2. mock db save
@@ -179,6 +180,7 @@ export default function CustomerSignup() {
             }
             exisitingUsers.push(newUser);
             localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
            // 3. successs message and redirect
             const response = {

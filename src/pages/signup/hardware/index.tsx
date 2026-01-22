@@ -167,8 +167,9 @@ export default function HardwareSignup() {
             userType: "HARDWARE",
             firstName: formData.firstName || "Pending",
             lastName: formData.lastName || "User",
-            accoutnType: formData.accountType,
-            phone: formData.phone
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false
         }
         try {
             // 2. mock db save
@@ -180,13 +181,14 @@ export default function HardwareSignup() {
             }
             exisitingUsers.push(newUser);
             localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
            // 3. successs message and redirect
             const response = {
                 data: {
                     success: true,
                     user: newUser,
-                    accessToken: "mock_access_token" + newUser.id
+                    accessToken: "mock_access_token_" + newUser.id
                 }
             };
 
@@ -201,8 +203,8 @@ export default function HardwareSignup() {
                 setIsLoggedIn(true);
 
                 setTimeout(() => {
-                    navigate("/profile");
-                }, 2000);
+                    navigate("/dashboard/hardware");
+                }, 1500);
              }
            
 
