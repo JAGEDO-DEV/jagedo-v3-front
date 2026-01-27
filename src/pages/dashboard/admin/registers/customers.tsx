@@ -2,9 +2,53 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getAllCustomers } from "@/api/provider.api";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { getAllCustomers } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
+
+// Static fallback customer data (used when no localStorage data exists)
+const STATIC_CUSTOMERS = [
+  {
+    id: "cust-001",
+    userType: "CUSTOMER",
+    accountType: "INDIVIDUAL",
+    firstName: "Lucy",
+    lastName: "Wanjiku",
+    email: "lucy@jagedo.co.ke",
+    phoneNumber: "0712000001",
+    county: "Nairobi",
+    subCounty: "Westlands",
+    adminApproved: false,
+    createdAt: "2026-01-10",
+  },
+  {
+    id: "cust-002",
+    userType: "CUSTOMER",
+    accountType: "INDIVIDUAL",
+    firstName: "Peter",
+    lastName: "Omondi",
+    email: "peter@jagedo.co.ke",
+    phoneNumber: "0712000002",
+    county: "Kisumu",
+    subCounty: "Kisumu Central",
+    adminApproved: true,
+    createdAt: "2026-01-15",
+  },
+  {
+    id: "cust-003",
+    userType: "CUSTOMER",
+    accountType: "ORGANIZATION",
+    firstName: "Acme",
+    lastName: "Builders Ltd",
+    email: "info@acmebuilders.co.ke",
+    phoneNumber: "0712000003",
+    county: "Mombasa",
+    subCounty: "Mvita",
+    adminApproved: false,
+    organizationName: "Acme Builders Ltd",
+    createdAt: "2026-01-20",
+  },
+];
 
 const navItems = [
   { name: "Individual" },
@@ -26,23 +70,45 @@ export default function CustomersAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const navigate = useNavigate();
 
+  // --- ORIGINAL API-based fetch (commented out) ---
+  // useEffect(() => {
+  //   const fetchCustomers = async () => {
+  //     setLoading(true);
+  //     setError(null);
+  //     try {
+  //       const data = await getAllCustomers(axiosInstance);
+  //       setCustomers(data?.hashSet || []);
+  //     } catch (err: any) {
+  //       setError(err.message || "Failed to fetch customers");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchCustomers();
+  // }, []);
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based fetch ---
   useEffect(() => {
-    const fetchCustomers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getAllCustomers(axiosInstance);
-        setCustomers(data?.hashSet || []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch customers");
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const stored = JSON.parse(localStorage.getItem("customers") || "null");
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        setCustomers(stored);
+      } else {
+        setCustomers(STATIC_CUSTOMERS);
+        localStorage.setItem("customers", JSON.stringify(STATIC_CUSTOMERS));
       }
-    };
-    fetchCustomers();
+    } catch (err: any) {
+      setError(err.message || "Failed to load customers");
+      setCustomers(STATIC_CUSTOMERS);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const filteredCustomers = customers.filter((customer) => {

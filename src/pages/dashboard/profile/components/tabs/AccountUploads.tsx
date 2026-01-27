@@ -2,103 +2,142 @@
 import { useState } from "react";
 import { FiDownload, FiUpload, FiTrash2 } from "react-icons/fi";
 import { UploadCloud } from "lucide-react";
-import { uploadFile } from "@/utils/fileUpload";
-import { adminDynamicUpdateAccountUploads } from "@/api/uploads.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { uploadFile } from "@/utils/fileUpload";
+// import { adminDynamicUpdateAccountUploads } from "@/api/uploads.api";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { toast, Toaster } from "sonner";
-import { handleVerifyUser } from "@/api/provider.api";
+// import { handleVerifyUser } from "@/api/provider.api";
+
+// --- Helper: update a user in localStorage "users" array ---
+const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+    try {
+        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const idx = storedUsers.findIndex((u: any) => u.id === userId);
+        if (idx !== -1) {
+            storedUsers[idx] = { ...storedUsers[idx], ...updates };
+            localStorage.setItem('users', JSON.stringify(storedUsers));
+        }
+        const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+        if (singleUser && singleUser.id === userId) {
+            localStorage.setItem('user', JSON.stringify({ ...singleUser, ...updates }));
+        }
+    } catch (err) {
+        console.error('Failed to update user in localStorage:', err);
+    }
+};
 
 const Uploads2 = ({ userData }: { userData: any }) => {
-    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+    // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
-    const handleUpdateUserDocuments = async (key: any, updatedUrl: any) => {
-        try {
-            const userType = userData?.userType?.toLowerCase();
-            const accountType = userData?.accountType?.toLowerCase();
-            const profile = userData?.userProfile || {};
-            
-            // Build complete payload with ALL required documents for the user type
-            let data: any = {};
-            
-            const isIndividualCustomer = accountType === "individual" && userType === "customer";
-            
-            if (isIndividualCustomer) {
-                data = {
-                    idFrontUrl: key === 'idFrontUrl' ? updatedUrl : (profile.idFrontUrl || ''),
-                    idBackUrl: key === 'idBackUrl' ? updatedUrl : (profile.idBackUrl || ''),
-                    kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
-                };
-            } else {
-                switch (userType) {
-                    case 'customer':
-                        data = {
-                            businessPermit: key === 'businessPermit' ? updatedUrl : (profile.businessPermit || ''),
-                            certificateOfIncorporation: key === 'certificateOfIncorporation' ? updatedUrl : (profile.certificateOfIncorporation || ''),
-                            kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
-                        };
-                        break;
-                        
-                    case 'fundi':
-                        data = {
-                            idFront: key === 'idFront' ? updatedUrl : (profile.idFrontUrl || ''),
-                            idBack: key === 'idBack' ? updatedUrl : (profile.idBackUrl || ''),
-                            certificate: key === 'certificate' ? updatedUrl : (profile.certificateUrl || ''),
-                            kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
-                        };
-                        break;
-                        
-                    case 'professional':
-                        data = {
-                            idFront: key === 'idFront' ? updatedUrl : (profile.idFrontUrl || ''),
-                            idBack: key === 'idBack' ? updatedUrl : (profile.idBackUrl || ''),
-                            academicCertificate: key === 'academicCertificate' ? updatedUrl : (profile.academicCertificateUrl || ''),
-                            cvUrl: key === 'cv' ? updatedUrl : (profile.cvUrl || ''),
-                            kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
-                            practiceLicense: key === 'practiceLicense' ? updatedUrl : (profile.practiceLicense || '')
-                        };
-                        break;
-                        
-                    case 'contractor':
-                        data = {
-                            businessRegistration: key === 'businessRegistration' ? updatedUrl : (profile.businessRegistration || ''),
-                            businessPermit: key === 'businessPermit' ? updatedUrl : (profile.businessPermit || ''),
-                            kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
-                            companyProfile: key === 'companyProfile' ? updatedUrl : (profile.companyProfile || '')
-                        };
-                        break;
-                        
-                    case 'hardware':
-                        data = {
-                            certificateOfIncorporation: key === 'certificateOfIncorporation' ? updatedUrl : (profile.certificateOfIncorporation || ''),
-                            kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
-                            singleBusinessPermit: key === 'singleBusinessPermit' ? updatedUrl : (profile.singleBusinessPermit || ''),
-                            companyProfile: key === 'companyProfile' ? updatedUrl : (profile.companyProfile || '')
-                        };
-                        break;
-                        
-                    default:
-                        throw new Error(`Unsupported user type: ${userType}`);
-                }
-            }
+    // --- ORIGINAL API-based document update (commented out) ---
+    // const handleUpdateUserDocuments = async (key: any, updatedUrl: any) => {
+    //     try {
+    //         const userType = userData?.userType?.toLowerCase();
+    //         const accountType = userData?.accountType?.toLowerCase();
+    //         const profile = userData?.userProfile || {};
+    //
+    //         let data: any = {};
+    //
+    //         const isIndividualCustomer = accountType === "individual" && userType === "customer";
+    //
+    //         if (isIndividualCustomer) {
+    //             data = {
+    //                 idFrontUrl: key === 'idFrontUrl' ? updatedUrl : (profile.idFrontUrl || ''),
+    //                 idBackUrl: key === 'idBackUrl' ? updatedUrl : (profile.idBackUrl || ''),
+    //                 kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
+    //             };
+    //         } else {
+    //             switch (userType) {
+    //                 case 'customer':
+    //                     data = {
+    //                         businessPermit: key === 'businessPermit' ? updatedUrl : (profile.businessPermit || ''),
+    //                         certificateOfIncorporation: key === 'certificateOfIncorporation' ? updatedUrl : (profile.certificateOfIncorporation || ''),
+    //                         kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
+    //                     };
+    //                     break;
+    //                 case 'fundi':
+    //                     data = {
+    //                         idFront: key === 'idFront' ? updatedUrl : (profile.idFrontUrl || ''),
+    //                         idBack: key === 'idBack' ? updatedUrl : (profile.idBackUrl || ''),
+    //                         certificate: key === 'certificate' ? updatedUrl : (profile.certificateUrl || ''),
+    //                         kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || '')
+    //                     };
+    //                     break;
+    //                 case 'professional':
+    //                     data = {
+    //                         idFront: key === 'idFront' ? updatedUrl : (profile.idFrontUrl || ''),
+    //                         idBack: key === 'idBack' ? updatedUrl : (profile.idBackUrl || ''),
+    //                         academicCertificate: key === 'academicCertificate' ? updatedUrl : (profile.academicCertificateUrl || ''),
+    //                         cvUrl: key === 'cv' ? updatedUrl : (profile.cvUrl || ''),
+    //                         kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
+    //                         practiceLicense: key === 'practiceLicense' ? updatedUrl : (profile.practiceLicense || '')
+    //                     };
+    //                     break;
+    //                 case 'contractor':
+    //                     data = {
+    //                         businessRegistration: key === 'businessRegistration' ? updatedUrl : (profile.businessRegistration || ''),
+    //                         businessPermit: key === 'businessPermit' ? updatedUrl : (profile.businessPermit || ''),
+    //                         kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
+    //                         companyProfile: key === 'companyProfile' ? updatedUrl : (profile.companyProfile || '')
+    //                     };
+    //                     break;
+    //                 case 'hardware':
+    //                     data = {
+    //                         certificateOfIncorporation: key === 'certificateOfIncorporation' ? updatedUrl : (profile.certificateOfIncorporation || ''),
+    //                         kraPIN: key === 'kraPIN' ? updatedUrl : (profile.kraPIN || ''),
+    //                         singleBusinessPermit: key === 'singleBusinessPermit' ? updatedUrl : (profile.singleBusinessPermit || ''),
+    //                         companyProfile: key === 'companyProfile' ? updatedUrl : (profile.companyProfile || '')
+    //                     };
+    //                     break;
+    //                 default:
+    //                     throw new Error(`Unsupported user type: ${userType}`);
+    //             }
+    //         }
+    //
+    //         console.log('Sending complete document payload to API:', data);
+    //         console.log('User type:', userData);
+    //         console.log('User ID:', userData.id);
+    //
+    //         const response = await adminDynamicUpdateAccountUploads(axiosInstance, data, userData.userType, userData.id, userData.accountType);
+    //         console.log('API response:', response);
+    //
+    //         if (response && (response.success || response.message)) {
+    //             return response;
+    //         } else {
+    //             throw new Error("Invalid response from server");
+    //         }
+    //     } catch (error: any) {
+    //         console.error('API update error:', error);
+    //         throw new Error(error.message || "Failed to update documents");
+    //     }
+    // }
+    // --- END ORIGINAL ---
 
-            console.log('Sending complete document payload to API:', data);
-            console.log('User type:', userData);
-            console.log('User ID:', userData.id);
+    // --- localStorage-based document update ---
+    const handleUpdateUserDocuments = (key: any, updatedUrl: any) => {
+        const profile = userData?.userProfile || {};
+        const updatedProfile = { ...profile, [key]: updatedUrl };
 
-            const response = await adminDynamicUpdateAccountUploads(axiosInstance, data, userData.userType, userData.id, userData.accountType);
-            console.log('API response:', response);
-            
-            if (response && (response.success || response.message)) {
-                return response;
-            } else {
-                throw new Error("Invalid response from server");
-            }
-        } catch (error: any) {
-            console.error('API update error:', error);
-            throw new Error(error.message || "Failed to update documents");
+        // Also update the key with "Url" suffix if applicable
+        const keyMap: Record<string, string> = {
+            idFront: 'idFrontUrl',
+            idBack: 'idBackUrl',
+            certificate: 'certificateUrl',
+            academicCertificate: 'academicCertificateUrl',
+            cv: 'cvUrl',
+            ncaRegCard: 'ncaRegCardUrl',
+            registrationCertificate: 'registrationCertificateUrl',
+        };
+        if (keyMap[key]) {
+            updatedProfile[keyMap[key]] = updatedUrl;
         }
-    }
+
+        userData.userProfile = updatedProfile;
+        updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+        console.log('Updated user documents in localStorage:', updatedProfile);
+        return { success: true, message: "Documents updated in localStorage" };
+    };
 
     // Extract documents from userData.userProfile
     const getDocumentsFromProfile = () => {
@@ -226,72 +265,107 @@ const Uploads2 = ({ userData }: { userData: any }) => {
     const [documents, setDocuments] = useState(getDocumentsFromProfile());
     const [uploadingFiles, setUploadingFiles] = useState<{[key: string]: boolean}>({});
 
-    const handleVerify = async () => {
-        try {
-            // Assume userId is available in the component's scope or via props/context
-            const userId = userData.id;
-            if (!userId) {
-                alert("User ID not found.");
-                return;
-            }
-            const response = await handleVerifyUser(axiosInstance, userId);
-            console.log("Response: ", response)
-            setShowVerificationMessage(true);
-        } catch (error) {
-            alert("Verification failed. Please try again.");
-            console.error(error);
+    // --- ORIGINAL API-based verify (commented out) ---
+    // const handleVerify = async () => {
+    //     try {
+    //         const userId = userData.id;
+    //         if (!userId) {
+    //             alert("User ID not found.");
+    //             return;
+    //         }
+    //         const response = await handleVerifyUser(axiosInstance, userId);
+    //         console.log("Response: ", response)
+    //         setShowVerificationMessage(true);
+    //     } catch (error) {
+    //         alert("Verification failed. Please try again.");
+    //         console.error(error);
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based verify ---
+    const handleVerify = () => {
+        const userId = userData.id;
+        if (!userId) {
+            alert("User ID not found.");
+            return;
         }
+        updateUserInLocalStorage(userId, { adminApproved: true, approved: true });
+        Object.assign(userData, { adminApproved: true, approved: true });
+        console.log("User verified in localStorage");
+        setShowVerificationMessage(true);
     };
 
     const handleClose = () => {
         setShowVerificationMessage(false);
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    // --- ORIGINAL API-based file replace (commented out) ---
+    // const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    //     const file = e.target.files?.[0];
+    //     if (file) {
+    //         try {
+    //             const uploadedFile = await uploadFile(file);
+    //             const newDoc = {
+    //                 name: file.name,
+    //                 url: uploadedFile.url,
+    //                 type: key
+    //             };
+    //             setDocuments((prev: any) => ({
+    //                 ...prev,
+    //                 [key]: newDoc
+    //             }));
+    //             await handleUpdateUserDocuments(key, uploadedFile.url);
+    //             toast.success(`${getDocumentDisplayName(key)} replaced successfully!`);
+    //         } catch (error: any) {
+    //             console.error('Replace file error:', error);
+    //             toast.error(`Failed to replace ${getDocumentDisplayName(key)}: ${error.message || 'Unknown error'}`);
+    //         }
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based file replace (using local object URL) ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         const file = e.target.files?.[0];
         if (file) {
-            try {
-                // Upload file first
-                const uploadedFile = await uploadFile(file);
-                
-                // Create new document object
-                const newDoc = {
-                    name: file.name,
-                    url: uploadedFile.url,
-                    type: key
-                };
-
-                // Update local state
-                setDocuments((prev: any) => ({
-                    ...prev,
-                    [key]: newDoc
-                }));
-
-                // Update via API
-                await handleUpdateUserDocuments(key, uploadedFile.url);
-                
-                toast.success(`${getDocumentDisplayName(key)} replaced successfully!`);
-            } catch (error: any) {
-                console.error('Replace file error:', error);
-                toast.error(`Failed to replace ${getDocumentDisplayName(key)}: ${error.message || 'Unknown error'}`);
-            }
+            const localUrl = URL.createObjectURL(file);
+            const newDoc = {
+                name: file.name,
+                url: localUrl,
+                type: key
+            };
+            setDocuments((prev: any) => ({
+                ...prev,
+                [key]: newDoc
+            }));
+            handleUpdateUserDocuments(key, localUrl);
+            toast.success(`${getDocumentDisplayName(key)} replaced successfully!`);
         }
     };
 
-    const handleDelete = async (key: string) => {
-        try {
-            // First update local state
-            const updated = { ...documents };
-            delete updated[key];
-            setDocuments(updated);
+    // --- ORIGINAL API-based delete (commented out) ---
+    // const handleDelete = async (key: string) => {
+    //     try {
+    //         const updated = { ...documents };
+    //         delete updated[key];
+    //         setDocuments(updated);
+    //         await handleUpdateUserDocuments(key, "");
+    //         toast.success("Document deleted successfully!");
+    //     } catch (error: any) {
+    //         console.error('Delete error:', error);
+    //         toast.error("Failed to delete document");
+    //     }
+    // };
+    // --- END ORIGINAL ---
 
-            // Then call API to delete from server by sending empty string
-            await handleUpdateUserDocuments(key, "");
-            toast.success("Document deleted successfully!");
-        } catch (error: any) {
-            console.error('Delete error:', error);
-            toast.error("Failed to delete document");
-        }
+    // --- localStorage-based delete ---
+    const handleDelete = (key: string) => {
+        const updated = { ...documents };
+        delete updated[key];
+        setDocuments(updated);
+        handleUpdateUserDocuments(key, "");
+        toast.success("Document deleted successfully!");
     };
 
     const getDocumentDisplayName = (key: string) => {
@@ -362,51 +436,64 @@ const Uploads2 = ({ userData }: { userData: any }) => {
                 { key: "companyProfile", name: "Company Profile", profileKey: "companyProfile" },
             ]
         };
-        
+
         return documentMappings[userType] || [];
     };
 
     const requiredDocuments = getRequiredDocuments();
     const missingDocuments = requiredDocuments.filter(doc => !documents[doc.key]);
 
-    const handleUploadNewDocument = async (e: React.ChangeEvent<HTMLInputElement>, docKey: string) => {
+    // --- ORIGINAL API-based new document upload (commented out) ---
+    // const handleUploadNewDocument = async (e: React.ChangeEvent<HTMLInputElement>, docKey: string) => {
+    //     const file = e.target.files?.[0];
+    //     if (file) {
+    //         setUploadingFiles(prev => ({ ...prev, [docKey]: true }));
+    //         try {
+    //             const uploadedFile = await uploadFile(file);
+    //             const newDoc = {
+    //                 name: file.name,
+    //                 url: uploadedFile.url,
+    //                 type: docKey
+    //             };
+    //             setDocuments((prev: any) => ({
+    //                 ...prev,
+    //                 [docKey]: newDoc
+    //             }));
+    //             await handleUpdateUserDocuments(docKey, uploadedFile.url);
+    //             toast.success(`${getDocumentDisplayName(docKey)} uploaded and saved successfully!`);
+    //         } catch (error: any) {
+    //             console.error('Upload error:', error);
+    //             toast.error(`Failed to upload ${getDocumentDisplayName(docKey)}: ${error.message || 'Unknown error'}`);
+    //             setDocuments((prev: any) => {
+    //                 const updated = { ...prev };
+    //                 delete updated[docKey];
+    //                 return updated;
+    //             });
+    //         } finally {
+    //             setUploadingFiles(prev => ({ ...prev, [docKey]: false }));
+    //         }
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based new document upload (using local object URL) ---
+    const handleUploadNewDocument = (e: React.ChangeEvent<HTMLInputElement>, docKey: string) => {
         const file = e.target.files?.[0];
         if (file) {
             setUploadingFiles(prev => ({ ...prev, [docKey]: true }));
-            try {
-                // First upload the file to get the URL
-                const uploadedFile = await uploadFile(file);
-                
-                // Create new document object for local state
-                const newDoc = {
-                    name: file.name,
-                    url: uploadedFile.url,
-                    type: docKey
-                };
-                
-                // Update local documents state first
-                setDocuments((prev: any) => ({
-                    ...prev,
-                    [docKey]: newDoc
-                }));
-                
-                // Then update user documents via API with the uploaded URL
-                await handleUpdateUserDocuments(docKey, uploadedFile.url);
-                
-                toast.success(`${getDocumentDisplayName(docKey)} uploaded and saved successfully!`);
-            } catch (error: any) {
-                console.error('Upload error:', error);
-                toast.error(`Failed to upload ${getDocumentDisplayName(docKey)}: ${error.message || 'Unknown error'}`);
-                
-                // Remove from local state if API call failed
-                setDocuments((prev: any) => {
-                    const updated = { ...prev };
-                    delete updated[docKey];
-                    return updated;
-                });
-            } finally {
-                setUploadingFiles(prev => ({ ...prev, [docKey]: false }));
-            }
+            const localUrl = URL.createObjectURL(file);
+            const newDoc = {
+                name: file.name,
+                url: localUrl,
+                type: docKey
+            };
+            setDocuments((prev: any) => ({
+                ...prev,
+                [docKey]: newDoc
+            }));
+            handleUpdateUserDocuments(docKey, localUrl);
+            toast.success(`${getDocumentDisplayName(docKey)} uploaded and saved successfully!`);
+            setUploadingFiles(prev => ({ ...prev, [docKey]: false }));
         }
     };
 
@@ -517,7 +604,7 @@ const Uploads2 = ({ userData }: { userData: any }) => {
                                     ))}
                                 </div>
                             )}
-                            
+
                             {/* Missing Documents - Upload Areas */}
                             {missingDocuments.length > 0 && (
                                 <div className="space-y-4">

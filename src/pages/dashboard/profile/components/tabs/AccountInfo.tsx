@@ -4,24 +4,43 @@ import { useState, useRef } from "react";
 import { Avatar } from "@material-tailwind/react";
 import { FiEdit, FiCheck, FiX } from "react-icons/fi";
 import { Star } from "lucide-react";
-import { uploadFile } from "@/utils/fileUpload";
-import { 
-    updateProfileImageAdmin, 
-    updateProfileNameAdmin, 
-    updateProfileEmailAdmin, 
-    updateProfilePhoneNumberAdmin,
-    blackListUser,
-    whiteListUser,
-    suspendUser,
-    unverifyUser
-} from "@/api/provider.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { uploadFile } from "@/utils/fileUpload";
+// import {
+//     updateProfileImageAdmin,
+//     updateProfileNameAdmin,
+//     updateProfileEmailAdmin,
+//     updateProfilePhoneNumberAdmin,
+//     blackListUser,
+//     whiteListUser,
+//     suspendUser,
+//     unverifyUser
+// } from "@/api/provider.api";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
 interface AccountInfoProps {
     userData: any;
 }
 
+// --- Helper: update a user in localStorage "users" array ---
+const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+    try {
+        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const idx = storedUsers.findIndex((u: any) => u.id === userId);
+        if (idx !== -1) {
+            storedUsers[idx] = { ...storedUsers[idx], ...updates };
+            localStorage.setItem('users', JSON.stringify(storedUsers));
+        }
+        // Also update the single "user" key if it matches
+        const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+        if (singleUser && singleUser.id === userId) {
+            localStorage.setItem('user', JSON.stringify({ ...singleUser, ...updates }));
+        }
+    } catch (err) {
+        console.error('Failed to update user in localStorage:', err);
+    }
+};
+
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
-    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+    // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [askDeleteReason, setAskDeleteReason] = useState(false);
     const [deleteReason, setDeleteReason] = useState("");
@@ -45,20 +64,34 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         fileInputRef.current?.click();
     };
 
-    const handleImageChange = async (event) => {
+    // --- ORIGINAL API-based image change (commented out) ---
+    // const handleImageChange = async (event) => {
+    //     const file = event.target.files?.[0];
+    //     if (file && file.type.startsWith("image/")) {
+    //         try {
+    //             const uploaded = await uploadFile(file);
+    //             await updateProfileImageAdmin(
+    //                 axiosInstance,
+    //                 uploaded.url,
+    //                 userData.id
+    //             );
+    //             setAvatarSrc(uploaded.url);
+    //         } catch (err) {
+    //             console.error("Failed to update profile image:", err);
+    //         }
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based image change ---
+    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && file.type.startsWith("image/")) {
-            try {
-                const uploaded = await uploadFile(file);
-                await updateProfileImageAdmin(
-                    axiosInstance,
-                    uploaded.url,
-                    userData.id
-                );
-                setAvatarSrc(uploaded.url);
-            } catch (err) {
-                console.error("Failed to update profile image:", err);
-            }
+            const localUrl = URL.createObjectURL(file);
+            setAvatarSrc(localUrl);
+            updateUserInLocalStorage(userData.id, {
+                userProfile: { ...(userData.userProfile || {}), profileImage: localUrl }
+            });
         }
     };
 
@@ -108,7 +141,48 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         }));
     };
 
-    const handleEditSave = async (field: string) => {
+    // --- ORIGINAL API-based edit save (commented out) ---
+    // const handleEditSave = async (field: string) => {
+    //     if (!editValues[field]?.trim()) {
+    //         alert(`${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`);
+    //         return;
+    //     }
+    //
+    //     setIsUpdating(true);
+    //     try {
+    //         let response;
+    //         switch (field) {
+    //             case 'name':
+    //                 response = await updateProfileNameAdmin(axiosInstance, userData.id, { name: editValues.name });
+    //                 break;
+    //             case 'email':
+    //                 response = await updateProfileEmailAdmin(axiosInstance, userData.id, { email: editValues.email });
+    //                 break;
+    //             case 'phoneNumber':
+    //                 response = await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, { phone: editValues.phoneNumber });
+    //                 break;
+    //             default:
+    //                 throw new Error('Invalid field');
+    //         }
+    //
+    //         if (response) {
+    //             Object.assign(userData, {
+    //                 [field === 'name' ? 'firstName' : field]: editValues[field]
+    //             });
+    //             setEditingField(null);
+    //             alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
+    //         }
+    //     } catch (error: any) {
+    //         console.error(`Failed to update ${field}:`, error);
+    //         alert(error.message || `Failed to update ${field}`);
+    //     } finally {
+    //         setIsUpdating(false);
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based edit save ---
+    const handleEditSave = (field: string) => {
         if (!editValues[field]?.trim()) {
             alert(`${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`);
             return;
@@ -116,29 +190,31 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
         setIsUpdating(true);
         try {
-            let response;
+            const updates: Record<string, any> = {};
             switch (field) {
-                case 'name':
-                    response = await updateProfileNameAdmin(axiosInstance, userData.id, { name: editValues.name });
+                case 'name': {
+                    const parts = editValues.name.trim().split(' ');
+                    updates.firstName = parts[0] || '';
+                    updates.lastName = parts.slice(1).join(' ') || '';
                     break;
+                }
                 case 'email':
-                    response = await updateProfileEmailAdmin(axiosInstance, userData.id, { email: editValues.email });
+                    updates.email = editValues.email;
                     break;
                 case 'phoneNumber':
-                    response = await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, { phone: editValues.phoneNumber });
+                    updates.phoneNumber = editValues.phoneNumber;
                     break;
                 default:
                     throw new Error('Invalid field');
             }
 
-            if (response) {
-                // Update the userData with new values
-                Object.assign(userData, {
-                    [field === 'name' ? 'firstName' : field]: editValues[field]
-                });
-                setEditingField(null);
-                alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
-            }
+            // Update userData in-place for the current render
+            Object.assign(userData, updates);
+            // Persist to localStorage
+            updateUserInLocalStorage(userData.id, updates);
+
+            setEditingField(null);
+            alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
         } catch (error: any) {
             console.error(`Failed to update ${field}:`, error);
             alert(error.message || `Failed to update ${field}`);
@@ -147,44 +223,71 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         }
     };
 
-    const handleBlackList = async () => {
-        try {
-            await blackListUser(axiosInstance, userData.id);
-            alert("User blacklisted successfully");
-        } catch (error: any) {
-            console.error("Failed to blacklist user:", error);
-            alert(error.message || "Failed to blacklist user");
-        }
+    // --- ORIGINAL API-based action handlers (commented out) ---
+    // const handleBlackList = async () => {
+    //     try {
+    //         await blackListUser(axiosInstance, userData.id);
+    //         alert("User blacklisted successfully");
+    //     } catch (error: any) {
+    //         console.error("Failed to blacklist user:", error);
+    //         alert(error.message || "Failed to blacklist user");
+    //     }
+    // };
+    //
+    // const handleWhiteList = async () => {
+    //     try {
+    //         await whiteListUser(axiosInstance, userData.id);
+    //         alert("User whitelisted successfully");
+    //     } catch (error: any) {
+    //         console.error("Failed to whitelist user:", error);
+    //         alert(error.message || "Failed to whitelist user");
+    //     }
+    // };
+    //
+    // const handleSuspend = async () => {
+    //     try {
+    //         await suspendUser(axiosInstance, userData.id);
+    //         alert("User suspended successfully");
+    //     } catch (error: any) {
+    //         console.error("Failed to suspend user:", error);
+    //         alert(error.message || "Failed to suspend user");
+    //     }
+    // };
+    //
+    // const handleUnverifyUser = async () => {
+    //     try {
+    //         await unverifyUser(axiosInstance, userData.id);
+    //         alert("User suspended successfully");
+    //     } catch (error: any) {
+    //         console.error("Failed to suspend user:", error);
+    //         alert(error.message || "Failed to suspend user");
+    //     }
+    // };
+    // --- END ORIGINAL ---
+
+    // --- localStorage-based action handlers ---
+    const handleBlackList = () => {
+        updateUserInLocalStorage(userData.id, { blacklisted: true });
+        Object.assign(userData, { blacklisted: true });
+        alert("User blacklisted successfully");
     };
 
-    const handleWhiteList = async () => {
-        try {
-            await whiteListUser(axiosInstance, userData.id);
-            alert("User whitelisted successfully");
-        } catch (error: any) {
-            console.error("Failed to whitelist user:", error);
-            alert(error.message || "Failed to whitelist user");
-        }
+    const handleWhiteList = () => {
+        updateUserInLocalStorage(userData.id, { blacklisted: false });
+        Object.assign(userData, { blacklisted: false });
+        alert("User whitelisted successfully");
     };
 
-    const handleSuspend = async () => {
-        try {
-            await suspendUser(axiosInstance, userData.id);
-            alert("User suspended successfully");
-        } catch (error: any) {
-            console.error("Failed to suspend user:", error);
-            alert(error.message || "Failed to suspend user");
-        }
+    const handleSuspend = () => {
+        updateUserInLocalStorage(userData.id, { suspended: true });
+        Object.assign(userData, { suspended: true });
+        alert("User suspended successfully");
     };
 
-    const handleUnverifyUser = async () => {
-        try {
-            await unverifyUser(axiosInstance, userData.id);
-            alert("User suspended successfully");
-        } catch (error: any) {
-            console.error("Failed to suspend user:", error);
-            alert(error.message || "Failed to suspend user");
-        }
+    const handleUnverifyUser = () => {
+        updateUserInLocalStorage(userData.id, { adminApproved: false, approved: false });
+        Object.assign(userData, { adminApproved: false, approved: false });
+        alert("User unverified successfully");
     }
 
     return (

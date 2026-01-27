@@ -11,23 +11,41 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { UploadCloud, FileText } from "lucide-react";
-import { handleVerifyUser, submitEvaluation, updateBuilderLevel } from "@/api/provider.api"
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { uploadAudioToCloudinary, uploadFile } from "@/utils/fileUpload";
+// import { handleVerifyUser, submitEvaluation, updateBuilderLevel } from "@/api/provider.api"
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { uploadAudioToCloudinary, uploadFile } from "@/utils/fileUpload";
 import { SquarePen } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import {
-  updateFundiExperience,
-  updateContractorExperience,
-  updateProfessionalExperience,
-  adminUpdateFundiExperience,
-  adminUpdateContractorExperience,
-  adminUpdateProfessionalExperience
-} from "@/api/experience.api";
+// import {
+//   updateFundiExperience,
+//   updateContractorExperience,
+//   updateProfessionalExperience,
+//   adminUpdateFundiExperience,
+//   adminUpdateContractorExperience,
+//   adminUpdateProfessionalExperience
+// } from "@/api/experience.api";
+
+// --- Helper: update a user in localStorage "users" array ---
+const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+  try {
+    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const idx = storedUsers.findIndex((u: any) => u.id === userId);
+    if (idx !== -1) {
+      storedUsers[idx] = { ...storedUsers[idx], ...updates };
+      localStorage.setItem('users', JSON.stringify(storedUsers));
+    }
+    const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+    if (singleUser && singleUser.id === userId) {
+      localStorage.setItem('user', JSON.stringify({ ...singleUser, ...updates }));
+    }
+  } catch (err) {
+    console.error('Failed to update user in localStorage:', err);
+  }
+};
 
 const Experience = ({ userData }) => {
   console.log("User Data: ", userData)
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
+  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
 
@@ -290,44 +308,71 @@ const Experience = ({ userData }) => {
 
   const fields = getFieldsConfig();
 
-  const handleFileUpload = async (e, rowIndex) => {
-    const uploadedFiles = Array.from(e.target.files);
-    if (uploadedFiles.length === 0) return;
+  // --- ORIGINAL API-based file upload (commented out) ---
+  // const handleFileUpload = async (e, rowIndex) => {
+  //   const uploadedFiles = Array.from(e.target.files);
+  //   if (uploadedFiles.length === 0) return;
+  //
+  //   const loadingKey = `add-${rowIndex}`;
+  //   setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+  //
+  //   try {
+  //     const toastId = toast.loading("Uploading files...");
+  //
+  //     const uploadPromises = uploadedFiles.map(file => uploadFile(file));
+  //     const uploadedFileUrls = await Promise.all(uploadPromises);
+  //
+  //     let updatedAttachments;
+  //     setAttachments((prev) => {
+  //       const newAttachments = [...prev];
+  //       newAttachments[rowIndex].files.push(
+  //         ...uploadedFileUrls.map((uploaded, index) => ({
+  //           name: uploadedFiles[index].name,
+  //           url: uploaded.url,
+  //         }))
+  //       );
+  //       updatedAttachments = newAttachments;
+  //       return newAttachments;
+  //     });
+  //
+  //     await updateUserProjects(updatedAttachments);
+  //     toast.success("Files uploaded and saved successfully!", { id: toastId });
+  //   } catch (error: any) {
+  //     console.error('File upload error:', error);
+  //     toast.error(`Failed to upload files: ${error.message || 'Unknown error'}`);
+  //   } finally {
+  //     setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based file upload (using local object URLs) ---
+  const handleFileUpload = (e, rowIndex) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length === 0) return;
 
     const loadingKey = `add-${rowIndex}`;
     setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
 
-    try {
-      const toastId = toast.loading("Uploading files...");
+    const toastId = toast.loading("Processing files...");
 
-      // Upload files to bucket and get URLs
-      const uploadPromises = uploadedFiles.map(file => uploadFile(file));
-      const uploadedFileUrls = await Promise.all(uploadPromises);
+    let updatedAttachments;
+    setAttachments((prev) => {
+      const newAttachments = [...prev];
+      newAttachments[rowIndex].files.push(
+        ...selectedFiles.map((file) => ({
+          name: file.name,
+          url: URL.createObjectURL(file),
+        }))
+      );
+      updatedAttachments = newAttachments;
+      return newAttachments;
+    });
 
-      // Update local state with uploaded files
-      let updatedAttachments;
-      setAttachments((prev) => {
-        const newAttachments = [...prev];
-        newAttachments[rowIndex].files.push(
-          ...uploadedFileUrls.map((uploaded, index) => ({
-            name: uploadedFiles[index].name,
-            url: uploaded.url,
-          }))
-        );
-        updatedAttachments = newAttachments;
-        return newAttachments;
-      });
-
-      // Update via admin API
-      await updateUserProjects(updatedAttachments);
-
-      toast.success("Files uploaded and saved successfully!", { id: toastId });
-    } catch (error: any) {
-      console.error('File upload error:', error);
-      toast.error(`Failed to upload files: ${error.message || 'Unknown error'}`);
-    } finally {
-      setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
-    }
+    // Persist to localStorage
+    updateUserProjects(updatedAttachments);
+    toast.success("Files added successfully!", { id: toastId });
+    setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
   };
 
   // Get required project count based on user type and level
@@ -359,8 +404,47 @@ const Experience = ({ userData }) => {
   const requiredProjectCount = getRequiredProjectCount();
   const missingProjectCount = Math.max(0, requiredProjectCount - attachments.length);
 
-  // Add new project functionality
-  const handleAddNewProject = async (projectId: string, projectName: string, files: File[]) => {
+  // --- ORIGINAL API-based add new project (commented out) ---
+  // const handleAddNewProject = async (projectId: string, projectName: string, files: File[]) => {
+  //   if (!projectName.trim()) {
+  //     toast.error('Please enter a project name');
+  //     return;
+  //   }
+  //   if (files.length === 0) {
+  //     toast.error('Please select at least one file');
+  //     return;
+  //   }
+  //
+  //   setUploadingProjects(prev => ({ ...prev, [projectId]: true }));
+  //
+  //   try {
+  //     const uploadPromises = files.map(file => uploadFile(file));
+  //     const uploadedFiles = await Promise.all(uploadPromises);
+  //
+  //     const newProject = {
+  //       id: attachments.length + 1,
+  //       projectName: projectName.trim(),
+  //       files: uploadedFiles.map(uploaded => ({
+  //         name: uploaded.originalName || uploaded.url.split('/').pop(),
+  //         url: uploaded.url
+  //       }))
+  //     };
+  //
+  //     setAttachments(prev => [...prev, newProject]);
+  //     await updateUserProjects([...attachments, newProject]);
+  //     toast.success(`${projectName} added successfully!`);
+  //     setNewProjects(prev => ({ ...prev, [projectId]: { name: '', files: [] } }));
+  //   } catch (error: any) {
+  //     console.error('Add project error:', error);
+  //     toast.error(`Failed to add ${projectName}`);
+  //   } finally {
+  //     setUploadingProjects(prev => ({ ...prev, [projectId]: false }));
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based add new project ---
+  const handleAddNewProject = (projectId: string, projectName: string, files: File[]) => {
     if (!projectName.trim()) {
       toast.error('Please enter a project name');
       return;
@@ -372,206 +456,245 @@ const Experience = ({ userData }) => {
 
     setUploadingProjects(prev => ({ ...prev, [projectId]: true }));
 
-    try {
-      // Upload files
-      const uploadPromises = files.map(file => uploadFile(file));
-      const uploadedFiles = await Promise.all(uploadPromises);
+    const newProject = {
+      id: attachments.length + 1,
+      projectName: projectName.trim(),
+      files: files.map(file => ({
+        name: file.name,
+        url: URL.createObjectURL(file)
+      }))
+    };
 
-      // Create new project object
-      const newProject = {
-        id: attachments.length + 1,
-        projectName: projectName.trim(),
-        files: uploadedFiles.map(uploaded => ({
-          name: uploaded.originalName || uploaded.url.split('/').pop(),
-          url: uploaded.url
-        }))
-      };
-
-      // Add to attachments
-      setAttachments(prev => [...prev, newProject]);
-
-      // Update server based on user type
-      await updateUserProjects([...attachments, newProject]);
-
-      toast.success(`${projectName} added successfully!`);
-
-      // Clear the new project form
-      setNewProjects(prev => ({ ...prev, [projectId]: { name: '', files: [] } }));
-    } catch (error: any) {
-      console.error('Add project error:', error);
-      toast.error(`Failed to add ${projectName}`);
-    } finally {
-      setUploadingProjects(prev => ({ ...prev, [projectId]: false }));
-    }
+    setAttachments(prev => [...prev, newProject]);
+    updateUserProjects([...attachments, newProject]);
+    toast.success(`${projectName} added successfully!`);
+    setNewProjects(prev => ({ ...prev, [projectId]: { name: '', files: [] } }));
+    setUploadingProjects(prev => ({ ...prev, [projectId]: false }));
   };
 
-  // Update user projects based on user type using admin APIs
-  const updateUserProjects = async (updatedAttachments) => {
+  // --- ORIGINAL API-based updateUserProjects (commented out) ---
+  // const updateUserProjects = async (updatedAttachments) => {
+  //   try {
+  //     const profile = userData?.userProfile || {};
+  //     const cleanAttachments = updatedAttachments
+  //       .filter(project => project && project.projectName)
+  //       .map(project => ({
+  //         id: project.id,
+  //         projectName: project.projectName.trim(),
+  //         files: project.files.filter(file => file && file.url && file.url.trim())
+  //       }))
+  //       .filter(project => project.files.length > 0);
+  //
+  //     console.log('Sending clean attachments:', cleanAttachments);
+  //
+  //     switch (userType) {
+  //       case 'FUNDI':
+  //         const fundiPayload = {
+  //           skill: profile.skill || userData?.skills || '',
+  //           grade: profile.grade || '',
+  //           experience: profile.experience || '',
+  //           previousJobPhotoUrls: cleanAttachments.flatMap(project =>
+  //             project.files.map((file) => ({
+  //               projectName: project.projectName,
+  //               fileUrl: file.url
+  //             }))
+  //           )
+  //         };
+  //         await adminUpdateFundiExperience(axiosInstance, userData.id, fundiPayload);
+  //         break;
+  //       case 'PROFESSIONAL':
+  //         const professionalPayload = {
+  //           professionalProjects: cleanAttachments.flatMap(project =>
+  //             project.files.map((file) => ({
+  //               projectName: project.projectName,
+  //               fileUrl: file.url
+  //             }))
+  //           ),
+  //           level: profile.professionalLevel || profile.level || '',
+  //           yearsOfExperience: profile.yearsOfExperience || ''
+  //         };
+  //         await adminUpdateProfessionalExperience(axiosInstance, userData.id, professionalPayload);
+  //         break;
+  //       case 'CONTRACTOR':
+  //         const contractorPayload = {
+  //           categories: profile.contractorExperiences || profile.categories || [],
+  //           projects: cleanAttachments.map(project => ({
+  //             projectName: project.projectName,
+  //             projectFile: project.files[0]?.url || '',
+  //             referenceLetterUrl: project.files[1]?.url || ''
+  //           }))
+  //         };
+  //         await adminUpdateContractorExperience(axiosInstance, userData.id, contractorPayload);
+  //         break;
+  //       case 'HARDWARE':
+  //         const hardwarePayload = {
+  //           ...profile,
+  //           hardwareProjects: cleanAttachments.flatMap(project =>
+  //             project.files.map((file) => ({
+  //               projectName: project.projectName,
+  //               fileUrl: file.url
+  //             }))
+  //           )
+  //         };
+  //         await updateBuilderLevel(axiosInstance, userData.id, userType, {}, hardwarePayload);
+  //         break;
+  //       default:
+  //         throw new Error(`Unsupported user type: ${userType}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Update projects error:', error);
+  //     throw error;
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based updateUserProjects ---
+  const updateUserProjects = (updatedAttachments) => {
     try {
       const profile = userData?.userProfile || {};
-
-      // Clean the attachments data to prevent duplicates
       const cleanAttachments = updatedAttachments
-        .filter(project => project && project.projectName) // Remove empty projects
+        .filter(project => project && project.projectName)
         .map(project => ({
           id: project.id,
           projectName: project.projectName.trim(),
-          files: project.files.filter(file => file && file.url && file.url.trim()) // Remove invalid files
+          files: project.files.filter(file => file && file.url && file.url.trim())
         }))
-        .filter(project => project.files.length > 0); // Only include projects with files
+        .filter(project => project.files.length > 0);
 
-      console.log('Sending clean attachments:', cleanAttachments);
+      console.log('Saving clean attachments to localStorage:', cleanAttachments);
 
-      switch (userType) {
-        case 'FUNDI':
-          const fundiPayload = {
-            skill: profile.skill || userData?.skills || '',
-            grade: profile.grade || '',
-            experience: profile.experience || '',
-            previousJobPhotoUrls: cleanAttachments.flatMap(project =>
-              project.files.map((file) => ({
-                projectName: project.projectName,
-                fileUrl: file.url
-              }))
-            )
-          };
-          console.log('Fundi payload:', fundiPayload);
-          await adminUpdateFundiExperience(axiosInstance, userData.id, fundiPayload);
-          break;
+      const projectData = cleanAttachments.flatMap(project =>
+        project.files.map((file) => ({
+          projectName: project.projectName,
+          fileUrl: file.url,
+          projectFile: file.url,
+        }))
+      );
 
-        case 'PROFESSIONAL':
-          const professionalPayload = {
-            professionalProjects: cleanAttachments.flatMap(project =>
-              project.files.map((file) => ({
-                projectName: project.projectName,
-                fileUrl: file.url
-              }))
-            ),
-            level: profile.professionalLevel || profile.level || '',
-            yearsOfExperience: profile.yearsOfExperience || ''
-          };
-          console.log('Professional payload:', professionalPayload);
-          await adminUpdateProfessionalExperience(axiosInstance, userData.id, professionalPayload);
-          break;
+      const profileKey = userType === 'FUNDI' ? 'previousJobPhotoUrls'
+        : userType === 'PROFESSIONAL' ? 'professionalProjects'
+        : userType === 'CONTRACTOR' ? 'contractorProjects'
+        : 'hardwareProjects';
 
-        case 'CONTRACTOR':
-          const contractorPayload = {
-            categories: profile.contractorExperiences || profile.categories || [],
-            projects: cleanAttachments.map(project => ({
-              projectName: project.projectName,
-              projectFile: project.files[0]?.url || '',
-              referenceLetterUrl: project.files[1]?.url || ''
-            }))
-          };
-          console.log('Contractor payload:', contractorPayload);
-          await adminUpdateContractorExperience(axiosInstance, userData.id, contractorPayload);
-          break;
-
-        case 'HARDWARE':
-          const hardwarePayload = {
-            ...profile,
-            hardwareProjects: cleanAttachments.flatMap(project =>
-              project.files.map((file) => ({
-                projectName: project.projectName,
-                fileUrl: file.url
-              }))
-            )
-          };
-          console.log('Hardware payload:', hardwarePayload);
-          await updateBuilderLevel(axiosInstance, userData.id, userType, {}, hardwarePayload);
-          break;
-
-        default:
-          throw new Error(`Unsupported user type: ${userType}`);
-      }
+      const updatedProfile = { ...profile, [profileKey]: projectData };
+      userData.userProfile = updatedProfile;
+      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
     } catch (error) {
       console.error('Update projects error:', error);
       throw error;
     }
   };
 
-  const handleReplaceFile = async (e, rowIndex, fileIndex) => {
+  // --- ORIGINAL API-based replace file (commented out) ---
+  // const handleReplaceFile = async (e, rowIndex, fileIndex) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //
+  //   try {
+  //     const toastId = toast.loading("Replacing file...");
+  //     const uploadedFile = await uploadFile(file);
+  //
+  //     let updatedAttachments;
+  //     setAttachments((prev) => {
+  //       const newAttachments = [...prev];
+  //       if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
+  //         newAttachments[rowIndex].files[fileIndex] = {
+  //           name: file.name,
+  //           url: uploadedFile.url,
+  //         };
+  //       }
+  //       updatedAttachments = newAttachments;
+  //       return newAttachments;
+  //     });
+  //
+  //     e.target.value = '';
+  //     await updateUserProjects(updatedAttachments);
+  //     toast.success("File replaced successfully!", { id: toastId });
+  //   } catch (error) {
+  //     console.error('Replace file error:', error);
+  //     toast.error(`Failed to replace file: ${error.message || 'Unknown error'}`);
+  //     e.target.value = '';
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based replace file ---
+  const handleReplaceFile = (e, rowIndex, fileIndex) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      const toastId = toast.loading("Replacing file...");
+    const toastId = toast.loading("Replacing file...");
 
-      // Upload new file to bucket
-      const uploadedFile = await uploadFile(file);
+    let updatedAttachments;
+    setAttachments((prev) => {
+      const newAttachments = [...prev];
+      if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
+        newAttachments[rowIndex].files[fileIndex] = {
+          name: file.name,
+          url: URL.createObjectURL(file),
+        };
+      }
+      updatedAttachments = newAttachments;
+      return newAttachments;
+    });
 
-      // Update local state - REPLACE the specific file, don't add
-      let updatedAttachments;
-      setAttachments((prev) => {
-        const newAttachments = [...prev];
-
-        // Ensure we're replacing at the correct index
-        if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
-          newAttachments[rowIndex].files[fileIndex] = {
-            name: file.name,
-            url: uploadedFile.url,
-          };
-        }
-
-        updatedAttachments = newAttachments;
-        return newAttachments;
-      });
-
-      // Clear the file input to prevent issues
-      e.target.value = '';
-
-      // Update via admin API with cleaned data
-      await updateUserProjects(updatedAttachments);
-
-      toast.success("File replaced successfully!", { id: toastId });
-    } catch (error) {
-      console.error('Replace file error:', error);
-      toast.error(`Failed to replace file: ${error.message || 'Unknown error'}`);
-
-      // Clear the file input on error too
-      e.target.value = '';
-    }
+    e.target.value = '';
+    updateUserProjects(updatedAttachments);
+    toast.success("File replaced successfully!", { id: toastId });
   };
 
-  // 3. Replace the handleRemoveFile function with this:
-  const handleRemoveFile = async (rowIndex, fileIndex) => {
+  // --- ORIGINAL API-based remove file (commented out) ---
+  // const handleRemoveFile = async (rowIndex, fileIndex) => {
+  //   const loadingKey = `remove-${rowIndex}-${fileIndex}`;
+  //   setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+  //   try {
+  //     const toastId = toast.loading("Removing file...");
+  //     let updatedAttachments;
+  //     setAttachments((prev) => {
+  //       const newAttachments = [...prev];
+  //       if (newAttachments[rowIndex] && newAttachments[rowIndex].files) {
+  //         newAttachments[rowIndex].files.splice(fileIndex, 1);
+  //         if (newAttachments[rowIndex].files.length === 0) {
+  //           newAttachments.splice(rowIndex, 1);
+  //         }
+  //       }
+  //       updatedAttachments = newAttachments;
+  //       return newAttachments;
+  //     });
+  //     await updateUserProjects(updatedAttachments);
+  //     toast.success("File removed successfully!", { id: toastId });
+  //   } catch (error) {
+  //     console.error("Remove file error:", error);
+  //     toast.error(`Failed to remove file: ${error.message || 'Unknown error'}`);
+  //     setAttachments(prev => getInitialAttachments());
+  //   } finally {
+  //     setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based remove file ---
+  const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
     setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
-    try {
-      const toastId = toast.loading("Removing file...");
+    const toastId = toast.loading("Removing file...");
 
-      // Update local state to remove the specific file
-      let updatedAttachments;
-      setAttachments((prev) => {
-        const newAttachments = [...prev];
-
-        if (newAttachments[rowIndex] && newAttachments[rowIndex].files) {
-          // Remove the specific file
-          newAttachments[rowIndex].files.splice(fileIndex, 1);
-
-          // If no files left in project, remove the entire project
-          if (newAttachments[rowIndex].files.length === 0) {
-            newAttachments.splice(rowIndex, 1);
-          }
+    let updatedAttachments;
+    setAttachments((prev) => {
+      const newAttachments = [...prev];
+      if (newAttachments[rowIndex] && newAttachments[rowIndex].files) {
+        newAttachments[rowIndex].files.splice(fileIndex, 1);
+        if (newAttachments[rowIndex].files.length === 0) {
+          newAttachments.splice(rowIndex, 1);
         }
+      }
+      updatedAttachments = newAttachments;
+      return newAttachments;
+    });
 
-        updatedAttachments = newAttachments;
-        return newAttachments;
-      });
-
-      // Update server with cleaned data
-      await updateUserProjects(updatedAttachments);
-
-      toast.success("File removed successfully!", { id: toastId });
-    } catch (error) {
-      console.error("Remove file error:", error);
-      toast.error(`Failed to remove file: ${error.message || 'Unknown error'}`);
-
-      // Revert local state on error
-      setAttachments(prev => getInitialAttachments());
-    } finally {
-      setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
-    }
+    updateUserProjects(updatedAttachments);
+    toast.success("File removed successfully!", { id: toastId });
+    setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
   };
 
   // Same evaluation questions for all user types
@@ -732,25 +855,41 @@ const Experience = ({ userData }) => {
     }
   }, [userData]);
 
-  // When verify button is clicked
-  const handleVerify = async () => {
+  // --- ORIGINAL API-based verify (commented out) ---
+  // const handleVerify = async () => {
+  //   setIsVerifying(true);
+  //   try {
+  //     const userId = userData.id;
+  //     if (!userId) {
+  //       alert("User ID not found.");
+  //       return;
+  //     }
+  //     const response = await handleVerifyUser(axiosInstance, userId);
+  //     console.log("Response: ", response)
+  //     setShowVerificationMessage(true);
+  //   } catch (error) {
+  //     alert("Verification failed. Please try again.");
+  //     console.error(error);
+  //   } finally {
+  //     setIsVerifying(false);
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based verify ---
+  const handleVerify = () => {
     setIsVerifying(true);
-    try {
-      // Assume userId is available in the component's scope or via props/context
-      const userId = userData.id;
-      if (!userId) {
-        alert("User ID not found.");
-        return;
-      }
-      const response = await handleVerifyUser(axiosInstance, userId);
-      console.log("Response: ", response)
-      setShowVerificationMessage(true);
-    } catch (error) {
-      alert("Verification failed. Please try again.");
-      console.error(error);
-    } finally {
+    const userId = userData.id;
+    if (!userId) {
+      alert("User ID not found.");
       setIsVerifying(false);
+      return;
     }
+    updateUserInLocalStorage(userId, { adminApproved: true, approved: true });
+    Object.assign(userData, { adminApproved: true, approved: true });
+    localStorage.setItem("showVerificationMessage", "true");
+    setShowVerificationMessage(true);
+    setIsVerifying(false);
   };
 
   // When close is clicked
@@ -759,80 +898,148 @@ const Experience = ({ userData }) => {
     setShowVerificationMessage(false);
   };
 
-  // Handle audio file upload to Cloudinary
-  const handleAudioUpload = async (event) => {
+  // --- ORIGINAL API-based audio upload to Cloudinary (commented out) ---
+  // const handleAudioUpload = async (event) => {
+  //   const file = event.target.files[0];
+  //   if (!file) return;
+  //   if (!file.type.startsWith('audio/')) {
+  //     alert('Please upload an audio file');
+  //     return;
+  //   }
+  //   setIsUploadingAudio(true);
+  //   try {
+  //     const CLOUD_NAME = 'munyite';
+  //     const url = await uploadAudioToCloudinary(file, CLOUD_NAME);
+  //     setAudioUrl(url);
+  //     console.log("Audio uploaded successfully:", url);
+  //   } catch (err) {
+  //     console.error("Error uploading audio:", err);
+  //     alert(err.message || 'Failed to upload audio');
+  //   } finally {
+  //     setIsUploadingAudio(false);
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based audio upload (using local object URL) ---
+  const handleAudioUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
-    // Check if file is an audio file
     if (!file.type.startsWith('audio/')) {
       alert('Please upload an audio file');
       return;
     }
-
     setIsUploadingAudio(true);
-
-    try {
-      const CLOUD_NAME = 'munyite'; // Using the default cloud name from the utility
-      const url = await uploadAudioToCloudinary(file, CLOUD_NAME);
-      setAudioUrl(url);
-      console.log("Audio uploaded successfully:", url);
-    } catch (err) {
-      console.error("Error uploading audio:", err);
-      alert(err.message || 'Failed to upload audio');
-    } finally {
-      setIsUploadingAudio(false);
-    }
+    const localUrl = URL.createObjectURL(file);
+    setAudioUrl(localUrl);
+    console.log("Audio stored locally:", localUrl);
+    setIsUploadingAudio(false);
   };
 
-  // Evaluation form submit handler
-  const handleEvaluationSubmit = async (e) => {
+  // --- ORIGINAL API-based evaluation submit (commented out) ---
+  // const handleEvaluationSubmit = async (e) => {
+  //   console.log("handleEvaluationSubmit");
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
+  //   setSubmitMessage("");
+  //   try {
+  //     const profileId = userData?.id;
+  //     if (!profileId) {
+  //       setSubmitMessage("Profile ID not found.");
+  //       setIsSubmitting(false);
+  //       return;
+  //     }
+  //     const body = {
+  //       hasMajorWorks: questions[0]?.answer || "Yes",
+  //       materialsUsed: questions[1]?.answer || "",
+  //       essentialEquipment: questions[2]?.answer || "",
+  //       quotationFormulation: questions[3]?.answer || "",
+  //       majorWorksScore: questions[0]?.score || 0,
+  //       materialsUsedScore: questions[1]?.score || 0,
+  //       essentialEquipmentScore: questions[2]?.score || 0,
+  //       quotationFormulaScore: questions[3]?.score || 0,
+  //       totalScore: totalScore,
+  //       audioUrl: null,
+  //     };
+  //     if (audioUrl) {
+  //       body.audioUrl = audioUrl;
+  //     }
+  //     await submitEvaluation(axiosInstance, profileId, body);
+  //     setSubmitMessage("Evaluation submitted successfully!");
+  //   } catch (err) {
+  //     setSubmitMessage("Failed to submit evaluation. Please try again.");
+  //     console.error(err);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based evaluation submit ---
+  const handleEvaluationSubmit = (e) => {
     console.log("handleEvaluationSubmit");
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage("");
-    try {
-      const profileId = userData?.id;
-      if (!profileId) {
-        setSubmitMessage("Profile ID not found.");
-        setIsSubmitting(false);
-        return;
-      }
 
-      // Map questions to API fields (same structure for all user types)
-      const body = {
-        hasMajorWorks: questions[0]?.answer || "Yes",
-        materialsUsed: questions[1]?.answer || "",
-        essentialEquipment: questions[2]?.answer || "",
-        quotationFormulation: questions[3]?.answer || "",
-        majorWorksScore: questions[0]?.score || 0,
-        materialsUsedScore: questions[1]?.score || 0,
-        essentialEquipmentScore: questions[2]?.score || 0,
-        quotationFormulaScore: questions[3]?.score || 0,
-        totalScore: totalScore,
-        audioUrl: null, // Will be set if audio is uploaded
-      };
-
-      // Use the audio URL if it exists
-      if (audioUrl) {
-        body.audioUrl = audioUrl;
-      }
-
-      // Submit evaluation
-      await submitEvaluation(axiosInstance, profileId, body);
-      setSubmitMessage("Evaluation submitted successfully!");
-    } catch (err) {
-      setSubmitMessage("Failed to submit evaluation. Please try again.");
-      console.error(err);
-    } finally {
+    const profileId = userData?.id;
+    if (!profileId) {
+      setSubmitMessage("Profile ID not found.");
       setIsSubmitting(false);
+      return;
     }
+
+    const body = {
+      hasMajorWorks: questions[0]?.answer || "Yes",
+      materialsUsed: questions[1]?.answer || "",
+      essentialEquipment: questions[2]?.answer || "",
+      quotationFormulation: questions[3]?.answer || "",
+      majorWorksScore: questions[0]?.score || 0,
+      materialsUsedScore: questions[1]?.score || 0,
+      essentialEquipmentScore: questions[2]?.score || 0,
+      quotationFormulaScore: questions[3]?.score || 0,
+      totalScore: totalScore,
+      audioUrl: audioUrl || null,
+    };
+
+    // Persist evaluation to localStorage
+    const profile = userData?.userProfile || {};
+    const updatedProfile = { ...profile, fundiEvaluation: { ...body, isVerified: true } };
+    userData.userProfile = updatedProfile;
+    updateUserInLocalStorage(profileId, { userProfile: updatedProfile });
+
+    setSubmitMessage("Evaluation submitted successfully!");
+    setIsSubmitting(false);
   };
 
-  const handleEditSkill = async (updatedFields) => {
+  // --- ORIGINAL API-based edit skill (commented out) ---
+  // const handleEditSkill = async (updatedFields) => {
+  //   setIsSavingInfo(true);
+  //   try {
+  //     const response = await updateBuilderLevel(axiosInstance, userData.id, userData?.userType, updatedFields, userData);
+  //     toast.success("Information updated successfully");
+  //     setInfo((prevInfo) => ({
+  //       ...prevInfo,
+  //       ...updatedFields,
+  //     }));
+  //     setIsEditingFields(false);
+  //   } catch (error) {
+  //     toast.error("Failed to update information");
+  //     console.error(error);
+  //   } finally {
+  //     setIsSavingInfo(false);
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based edit skill ---
+  const handleEditSkill = (updatedFields) => {
     setIsSavingInfo(true);
     try {
-      const response = await updateBuilderLevel(axiosInstance, userData.id, userData?.userType, updatedFields, userData);
+      const profile = userData?.userProfile || {};
+      const updatedProfile = { ...profile, ...updatedFields };
+      userData.userProfile = updatedProfile;
+      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
       toast.success("Information updated successfully");
       setInfo((prevInfo) => ({
         ...prevInfo,

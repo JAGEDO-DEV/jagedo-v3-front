@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getAllProviders } from "@/api/provider.api";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { getAllProviders } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { mockBuilders } from "@/data/mockBuilders";
 
@@ -30,25 +30,45 @@ export default function BuildersAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchBuilders = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        setBuilders(mockBuilders);
+  // --- ORIGINAL API-based fetch (commented out) ---
+  // useEffect(() => {
+  //   const fetchBuilders = async () => {
+  //     setLoading(true);
+  //     setError(null);
+  //     try {
+  //       const data = await getAllProviders(axiosInstance);
+  //       setBuilders(data?.hashSet || []);
+  //     } catch (err: any) {
+  //       setError(err.message || "Failed to fetch builders");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchBuilders();
+  // }, []);
+  // --- END ORIGINAL ---
 
-        // const data = await getAllProviders(axiosInstance);
-        // setBuilders(data?.hashSet || []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch builders");
-      } finally {
-        setLoading(false);
+  // --- localStorage-based fetch (with mockBuilders fallback) ---
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    try {
+      const stored = JSON.parse(localStorage.getItem("builders") || "null");
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        setBuilders(stored);
+      } else {
+        setBuilders(mockBuilders);
+        localStorage.setItem("builders", JSON.stringify(mockBuilders));
       }
-    };
-    fetchBuilders();
+    } catch (err: any) {
+      setError(err.message || "Failed to load builders");
+      setBuilders(mockBuilders);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const filteredBuilders = builders.filter((builder) => {

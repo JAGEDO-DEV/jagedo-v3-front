@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { FiEdit } from "react-icons/fi";
-import { adminUpdateAddress } from "@/api/provider.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { adminUpdateAddress } from "@/api/provider.api";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { toast, Toaster } from "sonner";
-import { getAllCountries } from "@/api/countries.api";
+// import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
 
 
@@ -16,8 +16,33 @@ const getInitialAddress = (userData: any) => {
   };
 };
 
-const Address = ({ userData }) => {
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+// --- Helper: update a user in localStorage "users" array ---
+const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+  try {
+    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const idx = storedUsers.findIndex((u: any) => u.id === userId);
+    if (idx !== -1) {
+      storedUsers[idx] = { ...storedUsers[idx], ...updates };
+      localStorage.setItem('users', JSON.stringify(storedUsers));
+    }
+    const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+    if (singleUser && singleUser.id === userId) {
+      localStorage.setItem('user', JSON.stringify({ ...singleUser, ...updates }));
+    }
+  } catch (err) {
+    console.error('Failed to update user in localStorage:', err);
+  }
+};
+
+// Static fallback countries list (used in place of API)
+const STATIC_COUNTRIES = [
+  { name: "Kenya" }, { name: "Uganda" }, { name: "Tanzania" },
+  { name: "Rwanda" }, { name: "Ethiopia" }, { name: "Nigeria" },
+  { name: "South Africa" }, { name: "Ghana" }, { name: "Egypt" },
+];
+
+const Address = ({ userData }: { userData: any }) => {
+  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [isEditing, setIsEditing] = useState(false);
   const [address, setAddress] = useState(getInitialAddress(userData));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,20 +50,39 @@ const Address = ({ userData }) => {
   const [countriesList, setCountriesList] = useState<any[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
+  // --- ORIGINAL API-based countries fetch (commented out) ---
+  // useEffect(() => {
+  //   const fetchCountries = async () => {
+  //     try {
+  //       const data = await getAllCountries();
+  //       //@ts-ignore
+  //       setCountriesList(data.hashSet || []);
+  //     } catch (error) {
+  //       console.error("Failed to fetch countries:", error);
+  //       toast.error("Could not load country list.");
+  //     } finally {
+  //       setIsLoadingCountries(false);
+  //     }
+  //   };
+  //   fetchCountries();
+  // }, []);
+  // --- END ORIGINAL ---
+
+  // --- localStorage / static fallback for countries ---
   useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        const data = await getAllCountries();
-        //@ts-ignore
-        setCountriesList(data.hashSet || []);
-      } catch (error) {
-        console.error("Failed to fetch countries:", error);
-        toast.error("Could not load country list.");
-      } finally {
-        setIsLoadingCountries(false);
+    try {
+      const storedCountries = JSON.parse(localStorage.getItem('countries') || 'null');
+      if (storedCountries && Array.isArray(storedCountries) && storedCountries.length > 0) {
+        setCountriesList(storedCountries);
+      } else {
+        setCountriesList(STATIC_COUNTRIES);
+        localStorage.setItem('countries', JSON.stringify(STATIC_COUNTRIES));
       }
-    };
-    fetchCountries();
+    } catch {
+      setCountriesList(STATIC_COUNTRIES);
+    } finally {
+      setIsLoadingCountries(false);
+    }
   }, []);
 
 
@@ -92,15 +136,33 @@ const Address = ({ userData }) => {
     });
   };
 
-  const handleEdit = async () => {
+  // --- ORIGINAL API-based address update (commented out) ---
+  // const handleEdit = async () => {
+  //   try {
+  //     setIsSubmitting(true);
+  //     const response = await adminUpdateAddress(axiosInstance, address, userData.id);
+  //     if (response.success) {
+  //       toast.success("Address Updated Successfully");
+  //     } else {
+  //       toast.error(response.message || "Error Updating Address");
+  //     }
+  //   } catch (error: any) {
+  //     console.log(error);
+  //     toast.error(error.message || "Error Updating Address");
+  //   } finally {
+  //     setIsEditing(false);
+  //     setIsSubmitting(false);
+  //   }
+  // };
+  // --- END ORIGINAL ---
+
+  // --- localStorage-based address update ---
+  const handleEdit = () => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const response = await adminUpdateAddress(axiosInstance, address, userData.id);
-      if (response.success) {
-        toast.success("Address Updated Successfully");
-      } else {
-        toast.error(response.message || "Error Updating Address");
-      }
+      updateUserInLocalStorage(userData.id, address);
+      Object.assign(userData, address);
+      toast.success("Address Updated Successfully");
     } catch (error: any) {
       console.log(error);
       toast.error(error.message || "Error Updating Address");
