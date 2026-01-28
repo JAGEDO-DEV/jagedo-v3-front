@@ -38,17 +38,55 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: "Saved",
     className: "bg-blue-100 text-blue-800",
   },
+  UNVERIFIED: {
+    label: "Unverified",
+    className: "bg-orange-100 text-orange-800",
+  },
+  SIGNED_UP: {
+    label: "Signed Up",
+    className: "bg-blue-100 text-blue-800",
+  },
+  DELETED: {
+    label: "Deleted",
+    className: "bg-gray-600 text-white",
+  },
 };
 /* ============== STATUS NORMALIZER ============== */
 const resolveStatus = (builder: any) => {
   if (builder?.status) return builder.status;
-
-  // Backward compatibility
+  if (builder?.isDeleted === true) return "DELETED";
+  if (builder?.isSuspended === true) return "SUSPENDED";
+  if (builder?.isUnverified === true) return "UNVERIFIED";
+  if (builder?.adminReviewStatus === "RETURNED") return "RETURNED";
   if (builder?.adminApproved === true) return "VERIFIED";
-  if (builder?.adminApproved === false) return "PENDING";
+  if (builder?.profileComplete === true && builder?.documentsUploaded === true) return "PENDING";
+  if (builder?.profileComplete === false) return "INCOMPLETE";
+  if (builder?.profileComplete === false && builder?.documentsUploaded === false) return "SIGNED_UP";
 
-  return "PENDING";
+
+  return "SIGNED_UP";
 };
+
+// Pseudo-logic for admin actions based on status:
+const getAvailableActions = (status: string) => {
+  switch (status) {
+    case "SIGNED_UP":
+      return ["ViewDocuments", "RequestMoreInfo"];
+    case "PENDING":
+      return ["Approve", "Return", "Suspend"];
+    case "RETURNED":
+      return ["Approve", "Resubmit"];
+    case "VERIFIED":
+      return ["Suspend", "Revoke"];
+    case "SUSPENDED":
+      return ["Unsuspend"];
+    case "DELETED":
+      return ["Restore"];
+    default:
+      return [];
+  }
+};
+
 export default function BuildersAdmin() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -59,6 +97,7 @@ export default function BuildersAdmin() {
     phone: "",
     county: "",
     verificationStatus: "",
+    status: "",
     search: "",
   });
   const [builders, setBuilders] = useState<any[]>([]);
@@ -110,6 +149,8 @@ export default function BuildersAdmin() {
       builder?.county?.toLowerCase() === filters.county.toLowerCase();
     const matchesVerificationStatus =
       !filters.verificationStatus || status === filters.verificationStatus;
+    const matchesStatus =
+      !filters.status || resolveStatus(builder) === filters.status;
 
     const searchValue = filters?.search?.toLowerCase() || "";
     const matchesSearch =
@@ -124,7 +165,7 @@ export default function BuildersAdmin() {
       matchesName &&
       matchesPhone &&
       matchesCounty &&
-      matchesVerificationStatus &&
+      matchesStatus &&
       matchesSearch
     );
   });
@@ -154,11 +195,10 @@ export default function BuildersAdmin() {
                   setActiveTab(nav.name);
                   setCurrentPage(1);
                 }}
-                className={`px-2 md:px-18 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${
-                  activeTab === nav.name
-                    ? "bg-blue-900 text-white border-blue-900"
-                    : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
-                }`}
+                className={`px-2 md:px-18 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
+                  ? "bg-blue-900 text-white border-blue-900"
+                  : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
+                  }`}
               >
                 {nav.name} (
                 {builders.filter((b) => b.userType === nav.name).length})
@@ -258,6 +298,9 @@ export default function BuildersAdmin() {
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Status
                     </th>
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -322,6 +365,32 @@ export default function BuildersAdmin() {
                             >
                               {statusMeta.label}
                             </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const statusKey = resolveStatus(row);
+                          const actions = getAvailableActions(statusKey);
+
+                          if (actions.length === 0) return <span className="text-gray-400 text-xs">-</span>;
+
+                          return (
+                            <div className="flex gap-1 flex-wrap">
+                              {actions.map((action) => (
+                                <button
+                                  key={action}
+                                  type="button"
+                                  onClick={() => {
+                                    console.log(`Action: ${action} on builder:`, row.id);
+                                    alert(`${action} action clicked for ${row.firstName || row.organizationName}`);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+                                >
+                                  {action.replace(/([A-Z])/g, ' $1').trim()}
+                                </button>
+                              ))}
+                            </div>
                           );
                         })()}
                       </td>
@@ -490,6 +559,21 @@ export default function BuildersAdmin() {
                   {Object.entries(STATUS_CONFIG).map(([key, val]) => (
                     <option key={key} value={key}>
                       {val.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => updateFilter("status", e.target.value)}
+                  className="w-full border-gray-300 border p-2 rounded-md"
+                >
+                  <option value="">All Statuses</option>
+                  {Object.keys(STATUS_CONFIG).map((status) => (
+                    <option key={status} value={status}>
+                      {STATUS_CONFIG[status].label}
                     </option>
                   ))}
                 </select>
