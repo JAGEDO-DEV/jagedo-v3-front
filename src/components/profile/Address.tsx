@@ -75,14 +75,28 @@ const Address = () => {
 useEffect(() => {
   if (!user) return;
 
-  const key = user.username.split("@")[0];
-  const stored = JSON.parse(localStorage.getItem("address"));
+  const key = (user.username || user.email || "").split("@")[0];
+  let stored = null;
+  try {
+    const raw = localStorage.getItem("address");
+    if (raw && raw !== "undefined") {
+      stored = JSON.parse(raw);
+    }
+  } catch {
+    localStorage.removeItem("address");
+  }
 
   if (stored) {
     setAddress(stored);
     setProviderProfile(stored);
   } else {
-    const mock = MOCK_ADDRESSES[key] || MOCK_ADDRESSES["lucy"];
+    // const mock = MOCK_ADDRESSES[key] || MOCK_ADDRESSES["lucy"];
+    const mock = MOCK_ADDRESSES[key] || {
+      country: user.country || "",
+      county: user.county || "",
+      subCounty: user.subCounty || "",
+      estate: user.estate || user.town || "",
+    };
 
     setAddress(mock);
     setProviderProfile(mock);

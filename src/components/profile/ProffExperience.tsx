@@ -64,7 +64,7 @@ const ProffExperience = () => {
     const [category, setCategory] = useState("Architect");
     // const [specialization, setSpecialization] = useState("Structural Engineer");
     const [level, setLevel] = useState("Professional");
-    const [experience, setExperience] = useState("5+ years");
+    const [experience, setExperience] = useState("10+ years");
     const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
 
     const [submitted, setSubmitted] = useState(false);

@@ -18,7 +18,15 @@ function AccountInfo() {
 
   /* ---------- LOAD PROFILE (REAL FIX) ---------- */
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("profile"));
+    let stored = null;
+    try {
+      const raw = localStorage.getItem("profile");
+      if (raw && raw !== "undefined") {
+        stored = JSON.parse(raw);
+      }
+    } catch {
+      localStorage.removeItem("profile");
+    }
 
     if (stored) {
       setProfile(stored);
@@ -28,10 +36,10 @@ function AccountInfo() {
       // fallback to real logged-in user
       const initialProfile = {
         name: `${user.firstName} ${user.lastName}`,
-        email: user.username,
+        email: user.username || user.email || "",
         phone: user.phone || "",
         userType: user.userType,
-        type: user.profileType,
+        type: user.profileType || user.accountType,
       };
 
       setProfile(initialProfile);

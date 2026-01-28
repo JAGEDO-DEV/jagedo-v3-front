@@ -37,12 +37,14 @@
 
 // export const useGlobalContext = () => useContext(GlobalContext);
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const GlobalContext = createContext({});
 
 export const GlobalProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load user from localStorage if present
@@ -58,6 +60,7 @@ export const GlobalProvider = ({ children }) => {
     localStorage.removeItem("token");
     setUser(null);
     setIsLoggedIn(false);
+    navigate("/");
   };
 
   return (

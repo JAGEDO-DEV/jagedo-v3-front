@@ -6,10 +6,10 @@ import {
   XMarkIcon,
   EyeIcon
 } from "@heroicons/react/24/outline";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { updateContractorExperience } from "@/api/experience.api";
-import { getProviderProfile } from "@/api/provider.api";
-import { uploadFile } from "@/utils/fileUpload";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { updateContractorExperience } from "@/api/experience.api";
+// import { getProviderProfile } from "@/api/provider.api";
+// import { uploadFile } from "@/utils/fileUpload";
 import { useGlobalContext } from "@/context/GlobalProvider";
 
 type FileOrUrl = File | string | null;
@@ -24,11 +24,18 @@ interface ContractorCategory {
 
 interface ContractorProject {
   id: string;
+  categoryId?: string;
   projectName: string;
   projectFile: FileOrUrl;
   referenceLetterFile: FileOrUrl;
 }
-
+const CATEGORIES = [
+  "Electrical Works",
+  "Mechanical Works",
+  "Road Works",
+  "Water Works",
+  "Building Works",
+];
 const BUILDING_WORKS_SPECIALIZATIONS = [
   "Residential Buildings",
   "Commercial Buildings",
@@ -42,7 +49,7 @@ const BUILDING_WORKS_SPECIALIZATIONS = [
 
 const ContractorExperience = () => {
   const { user } = useGlobalContext();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  //const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const [categories, setCategories] = useState<ContractorCategory[]>([]);
   const [projects, setProjects] = useState<ContractorProject[]>([]);
@@ -67,95 +74,170 @@ const ContractorExperience = () => {
   const prefilledProjects: ContractorProject[] = [
     {
       id: "1",
+      categoryId: "1",
       projectName: "Central Mall Renovation",
       projectFile: "https://example.com/project_file_mall.pdf",
       referenceLetterFile: "https://example.com/reference_letter_mall.pdf",
+
     },
     
   ];
 
   useEffect(() => {
     const fetchProfile = async () => {
-      try {
-        const response = await getProviderProfile(axiosInstance, user.id);
-
-        if (response.success && response.data?.userProfile) {
-          const profile = response.data.userProfile;
-
-          if (profile.contractorExperiences && profile.contractorExperiences.length > 0) {
-            const populatedCategories = profile.contractorExperiences.map(exp => ({
-              id: Math.random().toString(),
-              category: exp.category,
-                specialization: exp.specialization,
-              categoryClass: exp.categoryClass,
-              yearsOfExperience: exp.yearsOfExperience,
-              
-              isEditing: false,
-            }));
-            setCategories(populatedCategories);
-          } else {
-            setCategories(prefilledCategories);
-          }
-
-          if (profile.contractorProjects && profile.contractorProjects.length > 0) {
-            const populatedProjects = profile.contractorProjects.map(proj => ({
-              id: Math.random().toString(),
-              projectName: proj.projectName,
-              projectFile: proj.projectFile,
-              referenceLetterFile: proj.referenceLetterUrl,
-            }));
-            setProjects(populatedProjects);
-          } else {
-            setProjects(prefilledProjects);
-          }
-        } else {
-          setCategories(prefilledCategories);
-          setProjects(prefilledProjects);
+      const storedData = localStorage.getItem(`contractorExperience_${user.id}`);
+      if (storedData) {
+        try {
+          const { categories: storedCategories, projects: storedProjects } = JSON.parse(storedData);
+          setCategories(storedCategories || []);
+          setProjects(storedProjects || []);
+          setIsLoadingProfile(false);
+          return;
+        } catch (error) {
+          console.error("Error parsing stored data:", error);
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast.error("Failed to load contractor data.");
-        setCategories(prefilledCategories);
-        setProjects(prefilledProjects);
-      } finally {
-        setIsLoadingProfile(false);
       }
+      setCategories(prefilledCategories);
+      setProjects(prefilledProjects);
+      setIsLoadingProfile(false);
+      // try {
+      //   const response = await getProviderProfile(axiosInstance, user.id);
+
+      //   if (response.success && response.data?.userProfile) {
+      //     const profile = response.data.userProfile;
+
+      //     if (profile.contractorExperiences && profile.contractorExperiences.length > 0) {
+      //       const populatedCategories = profile.contractorExperiences.map(exp => ({
+      //         id: Math.random().toString(),
+      //         category: exp.category,
+      //           specialization: exp.specialization,
+      //         categoryClass: exp.categoryClass,
+      //         yearsOfExperience: exp.yearsOfExperience,
+              
+      //         isEditing: false,
+      //       }));
+      //       setCategories(populatedCategories);
+      //     } else {
+      //       setCategories(prefilledCategories);
+      //     }
+
+      //     if (profile.contractorProjects && profile.contractorProjects.length > 0) {
+      //       const populatedProjects = profile.contractorProjects.map(proj => ({
+      //         id: Math.random().toString(),
+      //         projectName: proj.projectName,
+      //         projectFile: proj.projectFile,
+      //         referenceLetterFile: proj.referenceLetterUrl,
+      //       }));
+      //       setProjects(populatedProjects);
+      //     } else {
+      //       setProjects(prefilledProjects);
+      //     }
+      //   } else {
+      //     setCategories(prefilledCategories);
+      //     setProjects(prefilledProjects);
+      //   }
+      // } catch (error) {
+      //   console.error("Error fetching profile:", error);
+      //   toast.error("Failed to load contractor data.");
+      //   setCategories(prefilledCategories);
+      //   setProjects(prefilledProjects);
+      // } finally {
+      //   setIsLoadingProfile(false);
+      // }
     };
     fetchProfile();
   }, [user.id]);
+
+  // const updateExperienceOnServer = async (
+  //   currentCategories: ContractorCategory[],
+  //   currentProjects: ContractorProject[]
+  // ) => {
+  //   const contractorCategories = await Promise.all(
+  //     currentCategories.map(async cat => ({
+  //       category: cat.category,
+  //     specialization: cat.specialization,
+
+  //       categoryClass: cat.categoryClass,
+  //       yearsOfExperience: cat.yearsOfExperience,
+        
+  //     }))
+  //   );
+
+  //   const contractorProjects = await Promise.all(
+  //     currentProjects.map(async proj => ({
+  //       projectName: proj.projectName,
+  //       projectFile: proj.projectFile instanceof File ? (await uploadFile(proj.projectFile)).url : proj.projectFile || "",
+  //       referenceLetterUrl: proj.referenceLetterFile instanceof File ? (await uploadFile(proj.referenceLetterFile)).url : proj.referenceLetterFile || "",
+  //     }))
+  //   );
+
+  //   await updateContractorExperience(axiosInstance, {
+  //     categories: contractorCategories,
+  //     projects: contractorProjects,
+  //   });
+  // };
+  const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
   const updateExperienceOnServer = async (
     currentCategories: ContractorCategory[],
     currentProjects: ContractorProject[]
   ) => {
-    const contractorCategories = await Promise.all(
-      currentCategories.map(async cat => ({
-        category: cat.category,
+    const contractorCategories = await Promise.all(currentCategories.map(async cat => ({
+      id: cat.id,
+      category: cat.category,
       specialization: cat.specialization,
+      categoryClass: cat.categoryClass,
+      yearsOfExperience: cat.yearsOfExperience,
+      certificateFile: cat.certificateFile ? {
+        name: cat.certificateFile.name,
+        size: cat.certificateFile.size,
+        type: cat.certificateFile.type,
+        content: await fileToBase64(cat.certificateFile),
+      } : null,
+      licenseFile: cat.licenseFile ? {
+        name: cat.licenseFile.name,
+        size: cat.licenseFile.size,
+        type: cat.licenseFile.type,
+      } : null,
+    })));
 
-        categoryClass: cat.categoryClass,
-        yearsOfExperience: cat.yearsOfExperience,
-        
-      }))
-    );
+    const contractorProjects = currentProjects.map(proj => ({
+      id: proj.id,
+      categoryId: proj.categoryId,
+      projectName: proj.projectName,
+      projectFile: proj.projectFile instanceof File ? {
+        name: proj.projectFile.name,
+        size: proj.projectFile.size,
+        type: proj.projectFile.type,
+      } : proj.projectFile,
+      referenceLetterFile: proj.referenceLetterFile instanceof File ? {
+        name: proj.referenceLetterFile.name,
+        size: proj.referenceLetterFile.size,
+        type: proj.referenceLetterFile.type,
+      } : proj.referenceLetterFile,
+    }));
 
-    const contractorProjects = await Promise.all(
-      currentProjects.map(async proj => ({
-        projectName: proj.projectName,
-        projectFile: proj.projectFile instanceof File ? (await uploadFile(proj.projectFile)).url : proj.projectFile || "",
-        referenceLetterUrl: proj.referenceLetterFile instanceof File ? (await uploadFile(proj.referenceLetterFile)).url : proj.referenceLetterFile || "",
-      }))
-    );
-
-    await updateContractorExperience(axiosInstance, {
+    const experienceData = {
       categories: contractorCategories,
       projects: contractorProjects,
-    });
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem(`contractorExperience_${user.id}`, JSON.stringify(experienceData));
+
+    // simulate success (no API call)
+    return Promise.resolve();
   };
 
-  const handleCategoryChange = (id: string, field: keyof Omit<ContractorCategory, 'certificateFile' | 'licenseFile'>, value: any) => {
-    setCategories(prev => prev.map(cat => cat.id === id ? { ...cat, [field]: value } : cat));
-  };
+  // const handleCategoryChange = (id: string, field: keyof Omit<ContractorCategory, 'certificateFile' | 'licenseFile'>, value: any) => {
+  //   setCategories(prev => prev.map(cat => cat.id === id ? { ...cat, [field]: value } : cat));
+  // };
 
   const handleCategoryFileChange = (id: string, field: 'certificateFile' | 'licenseFile', file: File | null) => {
     if (!file) return;
@@ -181,16 +263,43 @@ const ContractorExperience = () => {
   };
 
   const addCategoryRow = () => {
+    const id = crypto.randomUUID();
     setCategories(prev => [
       ...prev,
       {
-        id: Math.random().toString(),
-        category: "Building Works",
+        id,
+        category: "",
         specialization: "",
         categoryClass: "",
         yearsOfExperience: "",
       },
     ]);
+  };
+const handleCategoryChange = (id: string, value: string) => {
+    if (categories.some(c => c.category === value && c.id !== id)) {
+      toast.error("You cannot select the same category twice.");
+      return;
+    }
+
+    setCategories(prev =>
+      prev.map(cat =>
+        cat.id === id ? { ...cat, category: value } : cat
+      )
+    );
+
+    // Auto create linked project
+    if (!projects.find(p => p.categoryId === id)) {
+      setProjects(prev => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          categoryId: id,
+          projectName: `${value} Project`,
+          projectFile: null,
+          referenceLetterFile: null,
+        },
+      ]);
+    }
   };
 
   const removeCategoryRow = (id: string) => {
@@ -220,9 +329,9 @@ const ContractorExperience = () => {
     }
   };
 
-  const addProjectRow = () => {
-    setProjects(prev => [...prev, { id: Math.random().toString(), projectName: "", projectFile: null, referenceLetterFile: null }]);
-  };
+  // const addProjectRow = () => {
+  //   setProjects(prev => [...prev, { id: Math.random().toString(), projectName: "", projectFile: null, referenceLetterFile: null }]);
+  // };
 
   const removeProjectRow = (id: string) => {
     if (projects.length <= 1) return toast.error("You must have at least one project.");
@@ -291,109 +400,95 @@ const ContractorExperience = () => {
             )}
 
             {/* Categories */}
-            <div className="border rounded-xl p-4 bg-gray-50">
-              <legend className="text-xl font-semibold mb-4 px-2 text-gray-700">Trade Categories</legend>
-              <div className="overflow-x-auto">
-                <table className="w-full table-fixed border-collapse">
-                  <thead className="hidden md:table-header-group">
-                    <tr className="bg-gray-100 text-left text-sm font-semibold text-gray-600">
-                      <th className="px-3 py-3 w-[20%]">Category</th>
-                      <th className="px-3 py-3 w-[20%]">Specialization</th>
-                      <th className="px-3 py-3 w-[15%]">Class</th>
-                      <th className="px-3 py-3 w-[15%]">Years of Exp.</th>
-                      
-                      <th className="px-3 py-3 w-[5%] text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {categories.map(cat => (
-                      <tr key={cat.id} className="block md:table-row border-b-2 md:border-b last:border-b-0 border-gray-200 md:hover:bg-gray-100 p-4 md:p-0 mb-4 md:mb-0 rounded-lg md:rounded-none bg-white md:bg-transparent shadow-md md:shadow-none relative">
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          <span className="font-semibold text-gray-600 md:hidden">Category: </span>
-                          <input type="text" value={cat.category} onChange={e => handleCategoryChange(cat.id, 'category', e.target.value)} className={inputStyles} required disabled={isReadOnly} />
-                        </td>
-                         <select
-                    value={cat.specialization}
-                    onChange={e =>
-                      handleCategoryChange(
-                        cat.id,
-                        "specialization",
-                        e.target.value
-                      )
-                    }
-                    className={inputStyles}
-                    disabled={isReadOnly}
-                  >
-                    <option value="">Select Specialization</option>
-                    {BUILDING_WORKS_SPECIALIZATIONS.map(s => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          <span className="font-semibold text-gray-600 md:hidden">Class: </span>
-                          <select value={cat.categoryClass} onChange={e => handleCategoryChange(cat.id, 'categoryClass', e.target.value)} className={inputStyles} required disabled={isReadOnly}>
-                            <option value="">Select Class</option>
-                            {["NCA 1","NCA 2","NCA 3","NCA 4","NCA 5","NCA 6","NCA 7","NCA 8"].map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          <span className="font-semibold text-gray-600 md:hidden">Years of Exp.: </span>
-                          <select value={cat.yearsOfExperience} onChange={e => handleCategoryChange(cat.id, 'yearsOfExperience', e.target.value)} className={inputStyles} required disabled={isReadOnly}>
-                            <option value="">Select Years</option>
-                            {["10+ years","5-10 years","3-5 years","1-3 years"].map(y => <option key={y} value={y}>{y}</option>)}
-                          </select>
-                        </td>
-                        
-                       
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 md:text-center align-top absolute top-2 right-2 md:relative md:top-auto md:right-auto">
-                          {!isReadOnly && <button type="button" onClick={() => removeCategoryRow(cat.id)} className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100"><TrashIcon className="w-5 h-5" /></button>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!isReadOnly && <button type="button" onClick={addCategoryRow} className="mt-4 flex items-center gap-2 text-sm text-blue-700 font-semibold hover:text-blue-900"><PlusIcon className="w-5 h-5" />Add Category</button>}
-              </div>
-            </div>
+             {/* Categories */}
+      <div>
+        <h2 className="font-semibold mb-2">Trade Categories</h2>
+        {categories.map(cat => (
+          <div key={cat.id} className="grid grid-cols-5 gap-2 mb-2">
+            <select
+              value={cat.category}
+              onChange={e => handleCategoryChange(cat.id, e.target.value)}
+              disabled={isReadOnly}
+              className="border p-2"
+            >
+              <option value="">Select Category</option>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+
+            <select
+              value={cat.specialization}
+              onChange={e =>
+                setCategories(prev =>
+                  prev.map(x => x.id === cat.id ? { ...x, specialization: e.target.value } : x)
+                )
+              }
+              className="border p-2"
+              disabled={isReadOnly}
+            >
+              <option value="">Specialization</option>
+              {BUILDING_WORKS_SPECIALIZATIONS.map(s => <option key={s}>{s}</option>)}
+            </select>
+
+            <select
+              value={cat.categoryClass}
+              onChange={e =>
+                setCategories(prev =>
+                  prev.map(x => x.id === cat.id ? { ...x, categoryClass: e.target.value } : x)
+                )
+              }
+              className="border p-2"
+            >
+              <option value="">Class</option>
+              {["NCA 1","NCA 2","NCA 3","NCA 4","NCA 5"].map(c => <option key={c}>{c}</option>)}
+            </select>
+
+            <select
+              value={cat.yearsOfExperience}
+              onChange={e =>
+                setCategories(prev =>
+                  prev.map(x => x.id === cat.id ? { ...x, yearsOfExperience: e.target.value } : x)
+                )
+              }
+              className="border p-2"
+            >
+              <option value="">Years</option>
+              {["10+","5-10","3-5","1-3"].map(y => <option key={y}>{y}</option>)}
+            </select>
+
+            {!isReadOnly && (
+              <button type="button" onClick={() => removeCategoryRow(cat.id)}>
+                <TrashIcon className="w-5 h-5 text-red-500" />
+              </button>
+            )}
+          </div>
+        ))}
+
+        {!isReadOnly && (
+          <button type="button" onClick={addCategoryRow} className="flex items-center gap-1 text-blue-700">
+            <PlusIcon className="w-4 h-4" /> Add Category
+          </button>
+        )}
+      </div>
 
             {/* Projects */}
-            <div className="border rounded-xl p-4 bg-gray-50">
-              <legend className="text-xl font-semibold mb-4 px-2 text-gray-700">Completed Projects</legend>
-              <div className="overflow-x-auto">
-                <table className="w-full table-fixed border-collapse">
-                  <thead className="hidden md:table-header-group">
-                    <tr className="bg-gray-100 text-left text-sm font-semibold text-gray-600">
-                      <th className="px-3 py-3 w-[40%]">Project Name</th>
-                      <th className="px-3 py-3 w-[27%]">Project File</th>
-                      <th className="px-3 py-3 w-[27%]">Reference Letter</th>
-                      <th className="px-3 py-3 w-[5%] text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {projects.map(proj => (
-                      <tr key={proj.id} className="block md:table-row border-b-2 md:border-b last:border-b-0 border-gray-200 md:hover:bg-gray-100 p-4 md:p-0 mb-4 md:mb-0 rounded-lg md:rounded-none bg-white md:bg-transparent shadow-md md:shadow-none relative">
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          <span className="font-semibold text-gray-600 md:hidden">Project Name: </span>
-                          <input type="text" value={proj.projectName} onChange={e => handleProjectChange(proj.id, 'projectName', e.target.value)} className={inputStyles} required disabled={isReadOnly} />
-                        </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          {renderFileState(proj.projectFile, () => removeProjectFile(proj.id, 'projectFile'), e => handleProjectFileChange(proj.id, 'projectFile', e.target.files?.[0] || null))}
-                        </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          {renderFileState(proj.referenceLetterFile, () => removeProjectFile(proj.id, 'referenceLetterFile'), e => handleProjectFileChange(proj.id, 'referenceLetterFile', e.target.files?.[0] || null))}
-                        </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 md:text-center align-top absolute top-2 right-2 md:relative md:top-auto md:right-auto">
-                          {!isReadOnly && <button type="button" onClick={() => removeProjectRow(proj.id)} className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100"><TrashIcon className="w-5 h-5" /></button>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!isReadOnly && <button type="button" onClick={addProjectRow} className="mt-4 flex items-center gap-2 text-sm text-blue-700 font-semibold hover:text-blue-900"><PlusIcon className="w-5 h-5" />Add Project</button>}
-              </div>
-            </div>
+           <div>
+        <h2 className="font-semibold mb-2">Projects (Auto per Category)</h2>
+        {projects.map(proj => (
+          <div key={proj.id} className="grid grid-cols-3 gap-2 mb-2">
+            <input value={proj.projectName} disabled className="border p-2 bg-gray-100" />
+            {renderFileState(
+              proj.projectFile,
+              () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: null } : x)),
+              e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: e.target.files[0] } : x))
+            )}
+            {renderFileState(
+              proj.referenceLetterFile,
+              () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: null } : x)),
+              e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: e.target.files[0] } : x))
+            )}
+          </div>
+        ))}
+      </div>
 
             {!isReadOnly && (
               <div className="mt-6 pt-4 text-center md:text-right border-t">
@@ -415,6 +510,9 @@ const ContractorExperience = () => {
 };
 
 export default ContractorExperience;
+
+
+
 
 
 

@@ -3,25 +3,9 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  Menu,
-  X,
-  CheckCircleIcon,
-  ChevronDown,
-  User,
-  PencilRuler,
-  HardHat,
-  Store,
-  SquareUser,
-} from "lucide-react";
+import {Menu,X,CheckCircleIcon, ChevronDown, User,PencilRuler,HardHat,Store,SquareUser,} from "lucide-react";
 import { motion } from "framer-motion";
-import {
-  FaFacebookF,
-  FaXTwitter,
-  FaLinkedinIn,
-  FaInstagram,
-  FaTiktok,
-} from "react-icons/fa6";
+import {FaFacebookF,FaXTwitter,FaLinkedinIn,FaInstagram, FaTiktok,} from "react-icons/fa6";
 import customerImg from "../assets/customer(1).png";
 import fundiImg from "../assets/fundi.jpeg";
 import professionalImg from "../assets/professional.jpeg";
@@ -34,11 +18,11 @@ import woman1 from "../assets/woman1.jpg";
 import woman2 from "../assets/woman2.jpg";
 import Builder from "../assets/Builder.jpg";
 
-
 const GreenCheckIcon = (
   <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />
 );
-
+const VISIBLE = 3;
+const INTERVAL = 4000; // 4 seconds
 
 const testimonials = [
   {
@@ -79,8 +63,20 @@ const testimonials = [
   },
 ];
 
-
 const Home = () => {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => {
+        const next = prev + VISIBLE;
+        return next >= testimonials.length ? 0 : next;
+      });
+    }, INTERVAL);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Customer");
   const [image, setImage] = useState(micaImg);
@@ -304,14 +300,11 @@ const Home = () => {
 
   const sliderRef = useRef(null);
 
- 
-
-
-  const scrollToSection = (ref) => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  // const scrollToSection = (ref) => {
+  //   if (ref.current) {
+  //     ref.current.scrollIntoView({ behavior: "smooth" });
+  //   }
+  // };
 
   const handleNavigation = (card) => {
     switch (card.name) {
@@ -394,68 +387,32 @@ const Home = () => {
             className="w-30 md:w-50 lg:w-50 h-auto"
           />
         </Link>
-        {/* <div
+
+        <div
           id="div1"
-          className="hidden sm:flex items-center space-x-4 md:space-x-9 -ml-4"
+          className="hidden sm:flex items-center space-x-6 md:space-x-10 -ml-4"
         >
-          <button
-            type="button"
-            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
-               hover:scale-105 transition duration-300 ease-in-out
-               hover:bg-[#3AB33A] flex items-center justify-center
-               sm:w-32 md:w-28"
+          <span
             onClick={handleProductsClick}
+            className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
           >
             Products
-          </button>
+          </span>
 
-          <button
-            type="button"
-            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
-               hover:scale-105 transition duration-300 ease-in-out
-               hover:bg-[#3AB33A] flex items-center justify-center
-               sm:w-32 md:w-28"
+          <span
             onClick={() => navigate("/about-us")}
+            className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
           >
             About Us
-          </button>
+          </span>
 
-          <button
-            type="button"
-            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
-               hover:scale-105 transition duration-300 ease-in-out
-               hover:bg-[#3AB33A] flex items-center justify-center
-               sm:w-32 md:w-28"
+          <span
             onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+            className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
           >
             Events
-          </button>
-        </div> */}
-<div
-  id="div1"
-  className="hidden sm:flex items-center space-x-6 md:space-x-10 -ml-4"
->
-  <span
-    onClick={handleProductsClick}
-    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-  >
-    Products
-  </span>
-
-  <span
-    onClick={() => navigate("/about-us")}
-    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-  >
-    About Us
-  </span>
-
-  <span
-    onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
-    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-  >
-    Events
-  </span>
-</div>
+          </span>
+        </div>
 
         <div
           id="div2"
@@ -626,8 +583,6 @@ const Home = () => {
         )}
       </motion.div>
 
-
-
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -721,7 +676,7 @@ const Home = () => {
           </div>
         </motion.div>
       )}
-<br></br>
+      <br></br>
 
       {/* How It Works Section */}
       <motion.div
@@ -730,19 +685,13 @@ const Home = () => {
         transition={{ duration: 1 }}
         className="bg-white text-black py-2 flex flex-col"
       >
-        {/* <h2 className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4">
-          How It Works
-        </h2> */}
         <h2
-  onClick={() => setShowHowItWorks((prev) => !prev)}
-  className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4 
+          onClick={() => setShowHowItWorks((prev) => !prev)}
+          className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4 
              text-black-800 cursor-pointer hover:underline hover:text-green-600 transition"
->
-  How It Works
-</h2>
-
-
-
+        >
+          How It Works
+        </h2>
 
         <p className="text-gray-700 mt-2 text-center text-base sm:text-lg px-2 sm:px-12 mb-2">
           Seamlessly connect with fundis, professionals, contractors, and
@@ -814,64 +763,68 @@ const Home = () => {
         </div>
       </motion.div>
 
+      <motion.section
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+        className="bg-gray-50 py-16 overflow-hidden"
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-3">
+            What Our Users Say
+          </h2>
+          <p className="text-center text-gray-600 mb-12">
+            Join thousands of satisfied homeowners, builders, and suppliers
+            building with Jagedo.
+          </p>
 
-<motion.section
-  initial={{ opacity: 0, y: 50 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  transition={{ duration: 1 }}
-  className="bg-gray-50 py-16 overflow-hidden"
->
-  <div className="max-w-7xl mx-auto px-6">
-    <h2 className="text-3xl font-bold text-center mb-3">
-      What Our Users Say
-    </h2>
-    <p className="text-center text-gray-600 mb-12">
-      Join thousands of satisfied homeowners, builders, and suppliers building with Jagedo.
-    </p>
+          {/* CAROUSEL */}
+          <div className="relative w-full overflow-hidden">
+  <div
+    className="flex transition-transform duration-700 ease-in-out"
+    style={{
+      transform: `translateX(-${slideIndex * (100 / VISIBLE)}%)`,
+    }}
+  >
+    {testimonials.map((item, index) => (
+      <div
+        key={index}
+        className="w-1/3 flex-shrink-0 px-3"
+      >
+        <div className="bg-white p-6 rounded-2xl shadow-lg relative h-full">
+          <div className="absolute top-4 right-4 text-gray-200 text-6xl font-serif">
+            “
+          </div>
 
-    {/* CAROUSEL */}
-    <div className="relative w-full overflow-hidden">
-      <div className="flex w-max animate-marquee gap-6">
-        {[...testimonials, ...testimonials].map((item, index) => (
-          <div
-            key={index}
-            className="min-w-[300px] bg-white p-6 rounded-2xl shadow-lg relative"
-          >
-            <div className="absolute top-4 right-4 text-gray-200 text-6xl font-serif">
-              “
-            </div>
-
-            <div className="flex items-center gap-4 mb-4">
-              <img
-                src={item.image}
-                alt={item.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div>
-                <h4 className="font-bold text-sm">{item.name}</h4>
-                <p className="text-[rgb(0,0,122)] text-sm">{item.role}</p>
-              </div>
-            </div>
-
-            <p className="text-gray-600 text-sm leading-relaxed mb-4">
-              "{item.text}"
-            </p>
-
-            <div className="flex gap-1 text-orange-400">
-              {Array(5).fill(0).map((_, i) => (
-                <span key={i}>★</span>
-              ))}
+          <div className="flex items-center gap-4 mb-4">
+            <img
+              src={item.image}
+              alt={item.name}
+              className="w-12 h-12 rounded-full object-cover"
+            />
+            <div>
+              <h4 className="font-bold text-sm">{item.name}</h4>
+              <p className="text-[rgb(0,0,122)] text-sm">{item.role}</p>
             </div>
           </div>
-        ))}
+
+          <p className="text-gray-600 text-sm leading-relaxed mb-4">
+            "{item.text}"
+          </p>
+
+          <div className="flex gap-1 text-orange-400">
+            {Array(5).fill(0).map((_, i) => (
+              <span key={i}>★</span>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    ))}
   </div>
-</motion.section>
+</div>
 
-
-
-
+        </div>
+      </motion.section>
 
       <motion.footer
         className="mt-16 bg-[rgb(0,0,122)] text-white py-12 px-6"
@@ -989,11 +942,8 @@ const Home = () => {
                   <Icon />
                 </a>
               ))}
-              {/* <img src={jibs} alt="logo" className="w-8 h-8 mt-2 bg-[rgb(0,0,112)] text-white rounded-full cursor-pointer hover:bg-[#FFD700] transition duration-200 hover:scale-110" /> */}
             </div>
-            {/* <div>
-              <img src={jibs} alt="logo" className="w-6 h-6 bg-[rgb(0,0,112)]" />
-            </div> */}
+           
           </div>
         </div>
         {/* Bottom Copyright Section */}

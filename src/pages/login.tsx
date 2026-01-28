@@ -232,7 +232,9 @@ const completeLogin = (username, password) => {
   const profile = MOCK_PROFILES[key];
 
   localStorage.setItem("user", JSON.stringify(user));
-  localStorage.setItem("profile", JSON.stringify(profile));
+  if (profile) {
+    localStorage.setItem("profile", JSON.stringify(profile));
+  }
   localStorage.setItem("token", "mock-token"); // 🔥 REQUIRED
 
   setUser({ ...user, profile });

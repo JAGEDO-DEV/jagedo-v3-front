@@ -63,7 +63,7 @@ const FundiExperience = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [attachments, setAttachments] = useState<FundiAttachment[]>(prefilledAttachments);
   const [grade, setGrade] = useState("G1: Master Fundi");
-  const [experience, setExperience] = useState("5+ years");
+  const [experience, setExperience] = useState("10+ years");
   const [evaluationResults, setEvaluationResults] = useState<any>(null);
   const [visibleProjectRows, setVisibleProjectRows] = useState(requiredProjectsByGrade[grade]);
   const [specialization, setSpecialization] = useState("");
@@ -251,7 +251,7 @@ const FundiExperience = () => {
                 <label className="block text-sm font-medium text-gray-700">Experience</label>
                 <select value={experience} onChange={e => setExperience(e.target.value)} className={inputStyles} disabled={isReadOnly}>
                   <option value="" disabled>Select Years</option>
-                  {["5+ years", "3-5 years", "1-3 years"].map(exp => <option key={exp} value={exp}>{exp}</option>)}
+                  {["10+ years","5-10 years",  "3-5 years", "1-3 years"].map(exp => <option key={exp} value={exp}>{exp}</option>)}
                 </select>
               </div>
             </div>
