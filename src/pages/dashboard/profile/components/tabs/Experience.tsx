@@ -52,9 +52,18 @@ const Experience = ({ userData }) => {
 
   // Get user type from userData
   const userType = userData?.userType || "FUNDI";
+  const status = userData?.status;
+
+  // Statuses that should prefill/show existing data
+  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
   // Initialize attachments based on user type
   const getInitialAttachments = () => {
+    // For SIGNED_UP or INCOMPLETE, return empty attachments
+    if (!PREFILL_STATUSES.includes(status)) {
+      return [];
+    }
+
     let projectData = [];
 
     switch (userType) {
@@ -176,6 +185,11 @@ const removeCategory = (index: number) => {
 
   // Initialize info from userData.userProfile based on user type
   const getInitialInfo = () => {
+    // For SIGNED_UP or INCOMPLETE, return default empty values
+    if (!PREFILL_STATUSES.includes(status)) {
+      return getDefaultInfo();
+    }
+
     if (!userData?.userProfile) {
       return getDefaultInfo();
     }
@@ -647,9 +661,6 @@ const removeCategory = (index: number) => {
   // Pre-populate questions with existing evaluation data (same structure for all user types)
   const getInitialQuestions = () => {
   const evaluation = userData?.userProfile?.fundiEvaluation;
-  const status = userData?.status;
-
-  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
   // If status should NOT prefill → return empty form
   if (!PREFILL_STATUSES.includes(status)) {
@@ -1752,10 +1763,11 @@ const removeCategory = (index: number) => {
 
             <div className="mt-6 text-right">
               <div className="relative inline-block">
-                {/* Show Verify Button only if not admin approved and profile is uploaded */}
+                {/* Show Verify Button only if not admin approved, profile is complete, and status allows verification */}
                 {!userData?.adminApproved &&
                   !userData?.approved &&
-                  userData?.userProfile?.complete && (
+                  userData?.userProfile?.complete &&
+                  PREFILL_STATUSES.includes(status) && (
                     <button
                       type="button"
                       onClick={handleVerify}
@@ -1765,6 +1777,13 @@ const removeCategory = (index: number) => {
                       {isVerifying ? "Verifying..." : "Verify"}
                     </button>
                   )}
+
+                {/* Show message for incomplete accounts */}
+                {(status === "SIGNED_UP" || status === "INCOMPLETE") && (
+                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                    Account incomplete - Cannot verify
+                  </span>
+                )}
 
                 {/* Show Verified Badge if admin approved */}
                 {userData?.adminApproved && (

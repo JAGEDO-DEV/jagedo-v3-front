@@ -6,6 +6,9 @@ import { toast, Toaster } from "sonner";
 
 const STORAGE_KEY = "uploads_demo";
 
+// Statuses that should prefill/show existing data
+const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
+
 const Uploads2 = ({ userData }: { userData: any }) => {
   if (!userData) return <div className="p-8">Loading...</div>;
 
@@ -14,14 +17,21 @@ const Uploads2 = ({ userData }: { userData: any }) => {
 
   const userType = userData?.userType?.toLowerCase() || "";
   const isContractor = userType === "contractor";
+  const status = userData?.status;
 
   /* -------------------- Load from localStorage -------------------- */
   useEffect(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_${userData.id}`);
-    if (saved) {
-      setDocuments(JSON.parse(saved));
+    // Only load saved documents if status allows prefilling
+    if (PREFILL_STATUSES.includes(status)) {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_${userData.id}`);
+      if (saved) {
+        setDocuments(JSON.parse(saved));
+      }
+    } else {
+      // For SIGNED_UP or INCOMPLETE, start with empty documents
+      setDocuments({});
     }
-  }, [userData.id]);
+  }, [userData.id, status]);
 
   /* -------------------- Save to localStorage -------------------- */
   useEffect(() => {
