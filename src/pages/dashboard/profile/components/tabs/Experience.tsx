@@ -646,49 +646,60 @@ const removeCategory = (index: number) => {
 
   // Pre-populate questions with existing evaluation data (same structure for all user types)
   const getInitialQuestions = () => {
-    // Use fundiEvaluation for all user types to maintain API compatibility
-    const evaluation = userData?.userProfile?.fundiEvaluation;
+  const evaluation = userData?.userProfile?.fundiEvaluation;
+  const status = userData?.status;
 
-    if (!evaluation) {
-      return initialQuestions;
-    }
+  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
-    return [
-      {
-        id: 1,
-        text: "Have you done any major works in the construction industry?",
-        type: "select",
-        options: ["Yes", "No"],
-        answer: evaluation.hasMajorWorks || "",
-        score: evaluation.majorWorksScore || 0,
-        isEditing: false,
-      },
-      {
-        id: 2,
-        text: "State the materials that you have been using mostly for your jobs",
-        type: "text",
-        answer: evaluation.materialsUsed || "",
-        score: evaluation.materialsUsedScore || 0,
-        isEditing: false,
-      },
-      {
-        id: 3,
-        text: "Name essential equipment that you have been using for your job",
-        type: "text",
-        answer: evaluation.essentialEquipment || "",
-        score: evaluation.essentialEquipmentScore || 0,
-        isEditing: false,
-      },
-      {
-        id: 4,
-        text: "How do you always formulate your quotations?",
-        type: "text",
-        answer: evaluation.quotationFormulation || "",
-        score: evaluation.quotationFormulaScore || 0,
-        isEditing: false,
-      },
-    ];
-  };
+  // If status should NOT prefill → return empty form
+  if (!PREFILL_STATUSES.includes(status)) {
+    return initialQuestions;
+  }
+
+  // If no evaluation exists → still return empty
+  if (!evaluation) {
+    return initialQuestions;
+  }
+
+  // Otherwise → prefill from evaluation
+  return [
+    {
+      id: 1,
+      text: "Have you done any major works in the construction industry?",
+      type: "select",
+      options: ["Yes", "No"],
+      answer: evaluation.hasMajorWorks || "",
+      score: evaluation.majorWorksScore || 0,
+      isEditing: false,
+    },
+    {
+      id: 2,
+      text: "If yes, briefly describe them",
+      type: "text",
+      answer: evaluation.majorWorksDescription || "",
+      score: evaluation.majorWorksDescScore || 0,
+      isEditing: false,
+    },
+    {
+      id: 3,
+      text: "Do you always complete your projects on time?",
+      type: "select",
+      options: ["Yes", "No"],
+      answer: evaluation.completesOnTime || "",
+      score: evaluation.onTimeScore || 0,
+      isEditing: false,
+    },
+    {
+      id: 4,
+      text: "How do you always formulate your quotations?",
+      type: "text",
+      answer: evaluation.quotationFormulation || "",
+      score: evaluation.quotationFormulaScore || 0,
+      isEditing: false,
+    },
+  ];
+};
+
 
   const [questions, setQuestions] = useState(getInitialQuestions());
 

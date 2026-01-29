@@ -9,8 +9,8 @@ interface SidebarProps {
 
 // Base navigation items for all users
 const baseNavigationItems = [
-  { id: 'account-info', label: 'Account Info', icon: User, color: 'text-blue-600' },
-  { id: 'address', label: 'Address', icon: Home, color: 'text-green-600' },
+  { id: 'account-info', label: 'Account Info', icon: User, color: 'text-blue-600', status: 'complete' },
+  { id: 'address', label: 'Address', icon: Home, color: 'text-green-600', status: 'complete' },
 ];
 
 // Experience (only for builders except hardware)
@@ -19,6 +19,7 @@ const experienceItem = {
   label: 'Experience',
   icon: Briefcase,
   color: 'text-orange-600',
+  status: 'incomplete',
 };
 
 // Account uploads (all users)
@@ -27,6 +28,7 @@ const uploadsItem = {
   label: 'Account Uploads',
   icon: Upload,
   color: 'text-purple-600',
+  status: 'incomplete',
 };
 
 // Products (builders & hardware)
@@ -35,6 +37,7 @@ const productsItem = {
   label: 'Products',
   icon: Package,
   color: 'text-indigo-600',
+  status: 'incomplete',
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) => {
@@ -88,6 +91,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) =
 
   const handleBackToDashboard = () => {
     window.location.href = `/dashboard/admin`;
+  };
+
+  const renderStatus = (status: string) => {
+    if (status === 'complete') {
+      return (
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+         complete ✓
+        </span>
+      );
+    }
+
+    return (
+      <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
+       incomplete !
+      </span>
+    );
   };
 
   return (
@@ -148,6 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) =
                       isActive ? 'text-blue-600' : item.color
                     }`}
                   />
+
                   <span
                     className={`font-medium ${
                       isActive ? 'text-blue-700' : 'text-gray-700'
@@ -155,6 +175,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) =
                   >
                     {item.label}
                   </span>
+
+                  {renderStatus(item.status)}
                 </button>
               </li>
             );

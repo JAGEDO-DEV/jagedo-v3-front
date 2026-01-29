@@ -1,14 +1,66 @@
-export const mockBuilders = [
+export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED";
+
+export interface Builder {
+  id: number;
+  userType: "FUNDI" | "PROFESSIONAL" | "CONTRACTOR" | "HARDWARE";
+  firstName?: string;
+  lastName?: string;
+  organizationName?: string;
+  email: string;
+  phoneNumber: string;
+  county: string;
+  subCounty: string;
+  adminApproved: boolean;
+  status: BuilderStatus;
+  skills?: string;
+  specialization?: string;
+  grade?: string;
+  experience?: string;
+  profession?: string;
+  level?: string;
+  contractorTypes?: string;
+  hardwareTypes?: string;
+  createdAt: string;
+}
+
+export const STATUS_LABELS: Record<BuilderStatus, string> = {
+  VERIFIED: "Verified",
+  COMPLETED: "Completed",
+  SIGNED_UP: "Signed Up",
+  PENDING: "Pending",
+  INCOMPLETE: "Incomplete",
+  RETURNED: "Returned",
+};
+
+export const STATUS_STYLES: Record<BuilderStatus, string> = {
+  VERIFIED: "bg-status-verified/10 text-status-verified border-status-verified/20",
+  COMPLETED: "bg-status-completed/10 text-status-completed border-status-completed/20",
+  SIGNED_UP: "bg-status-signed-up/10 text-status-signed-up border-status-signed-up/20",
+  PENDING: "bg-status-pending/10 text-status-pending border-status-pending/20",
+  INCOMPLETE: "bg-status-incomplete/10 text-status-incomplete border-status-incomplete/20",
+  RETURNED: "bg-status-returned/10 text-status-returned border-status-returned/20",
+};
+
+export const resolveStatus = (builder: Builder): BuilderStatus => {
+  if (builder?.status) return builder.status;
+  if (builder?.adminApproved === true) return "VERIFIED";
+  if (builder?.adminApproved === false) return "PENDING";
+  return "INCOMPLETE";
+};
+
+export const mockBuilders: Builder[] = [
   // ================= FUNDI =================
   {
     id: 1,
     userType: "FUNDI",
-    firstName: "fundi01",
+    firstName: "James",
+    lastName: "Ochieng",
     email: "fundi01@jagedo.co.ke",
     phoneNumber: "0712345671",
     county: "Nairobi",
     subCounty: "Westlands",
     adminApproved: false,
+    status: "PENDING",
     skills: "Plumber",
     specialization: "Gas Plumbing",
     grade: "G1: Master Fundi",
@@ -18,12 +70,14 @@ export const mockBuilders = [
   {
     id: 2,
     userType: "FUNDI",
-    firstName: "fundi02",
+    firstName: "Peter",
+    lastName: "Kamau",
     email: "fundi02@jagedo.co.ke",
     phoneNumber: "0712345672",
     county: "Kisumu",
     subCounty: "Kisumu East",
     adminApproved: true,
+    status: "VERIFIED",
     skills: "Electrician",
     specialization: "Solar Systems",
     grade: "G2: Skilled",
@@ -33,12 +87,14 @@ export const mockBuilders = [
   {
     id: 3,
     userType: "FUNDI",
-    firstName: "fundi03",
+    firstName: "David",
+    lastName: "Mwangi",
     email: "fundi03@jagedo.co.ke",
     phoneNumber: "0712345673",
     county: "Nairobi",
     subCounty: "Kilimani",
     adminApproved: false,
+    status: "INCOMPLETE",
     skills: "Carpenter",
     specialization: "Wood Works",
     grade: "G2: Skilled",
@@ -48,12 +104,14 @@ export const mockBuilders = [
   {
     id: 4,
     userType: "FUNDI",
-    firstName: "fundi04",
+    firstName: "Michael",
+    lastName: "Njoroge",
     email: "fundi04@jagedo.co.ke",
     phoneNumber: "0712345674",
     county: "Mombasa",
     subCounty: "Nyali",
     adminApproved: true,
+    status: "COMPLETED",
     skills: "Painter",
     specialization: "Interior Painting",
     grade: "G3: Intermediate",
@@ -63,12 +121,14 @@ export const mockBuilders = [
   {
     id: 5,
     userType: "FUNDI",
-    firstName: "fundi05",
+    firstName: "Samuel",
+    lastName: "Kiprop",
     email: "fundi05@jagedo.co.ke",
     phoneNumber: "0712345675",
     county: "Nakuru",
     subCounty: "Naivasha",
     adminApproved: false,
+    status: "RETURNED",
     skills: "Roofer",
     specialization: "Tiles Roofing",
     grade: "G1: Master Fundi",
@@ -78,12 +138,14 @@ export const mockBuilders = [
   {
     id: 6,
     userType: "FUNDI",
-    firstName: "fundi06",
+    firstName: "John",
+    lastName: "Otieno",
     email: "fundi06@jagedo.co.ke",
     phoneNumber: "0712345676",
     county: "Kiambu",
     subCounty: "Thika",
     adminApproved: true,
+    status: "SIGNED_UP",
     skills: "Welder",
     specialization: "Metal Works",
     grade: "G2: Skilled",
@@ -95,227 +157,257 @@ export const mockBuilders = [
   {
     id: 7,
     userType: "PROFESSIONAL",
-    firstName: "professional01",
+    firstName: "Grace",
+    lastName: "Wanjiku",
     email: "professional01@jagedo.co.ke",
     phoneNumber: "0722112231",
     county: "Kiambu",
     subCounty: "Ruiru",
     adminApproved: false,
+    status: "PENDING",
     profession: "Architect",
     level: "Senior",
-    createdAt: "2026-09-18"
+    createdAt: "2026-09-18",
   },
   {
     id: 8,
     userType: "PROFESSIONAL",
-    firstName: "professional02",
+    firstName: "Faith",
+    lastName: "Akinyi",
     email: "professional02@jagedo.co.ke",
     phoneNumber: "0722112232",
     county: "Machakos",
     subCounty: "Athi River",
     adminApproved: true,
+    status: "VERIFIED",
     profession: "Quantity Surveyor",
     level: "Mid-level",
-    createdAt: "2026-08-21"
+    createdAt: "2026-08-21",
   },
   {
     id: 9,
     userType: "PROFESSIONAL",
-    firstName: "professional03",
+    firstName: "Brian",
+    lastName: "Kibet",
     email: "professional03@jagedo.co.ke",
     phoneNumber: "0722112233",
     county: "Nairobi",
     subCounty: "Kasarani",
     adminApproved: false,
+    status: "INCOMPLETE",
     profession: "Civil Engineer",
     level: "Junior",
-    createdAt: "2026-07-15"
+    createdAt: "2026-07-15",
   },
   {
     id: 10,
     userType: "PROFESSIONAL",
-    firstName: "professional04",
+    firstName: "Sarah",
+    lastName: "Chebet",
     email: "professional04@jagedo.co.ke",
     phoneNumber: "0722112234",
     county: "Mombasa",
     subCounty: "Mvita",
     adminApproved: true,
+    status: "COMPLETED",
     profession: "Electrical Engineer",
     level: "Senior",
-    createdAt: "2026-06-12"
+    createdAt: "2026-06-12",
   },
   {
     id: 11,
     userType: "PROFESSIONAL",
-    firstName: "professional05",
+    firstName: "Kevin",
+    lastName: "Omondi",
     email: "professional05@jagedo.co.ke",
     phoneNumber: "0722112235",
     county: "Kisumu",
     subCounty: "Kisumu Central",
     adminApproved: false,
+    status: "RETURNED",
     profession: "Surveyor",
     level: "Mid-level",
-    createdAt: "2026-05-18"
+    createdAt: "2026-05-18",
   },
   {
     id: 12,
     userType: "PROFESSIONAL",
-    firstName: "professional06",
+    firstName: "Anne",
+    lastName: "Nyambura",
     email: "professional06@jagedo.co.ke",
     phoneNumber: "0722112236",
     county: "Nakuru",
     subCounty: "Nakuru East",
     adminApproved: true,
+    status: "SIGNED_UP",
     profession: "Mechanical Engineer",
     level: "Senior",
-    createdAt: "2026-04-10"
+    createdAt: "2026-04-10",
   },
 
   // ================= CONTRACTOR =================
   {
     id: 13,
     userType: "CONTRACTOR",
-    firstName: "Contractor01",
+    firstName: "BuildRight",
+    lastName: "Construction",
     email: "contractor01@jagedo.co.ke",
     phoneNumber: "0201234561",
     county: "Nairobi",
     subCounty: "Embakasi",
     adminApproved: false,
+    status: "PENDING",
     contractorTypes: "Residential",
-    createdAt: "2026-07-10"
+    createdAt: "2026-07-10",
   },
   {
     id: 14,
     userType: "CONTRACTOR",
-    firstName: "Contractor02",
+    firstName: "Premier",
+    lastName: "Builders",
     email: "contractor02@jagedo.co.ke",
     phoneNumber: "0201234562",
     county: "Nakuru",
     subCounty: "Naivasha",
     adminApproved: true,
+    status: "VERIFIED",
     contractorTypes: "Commercial",
-    createdAt: "2026-06-02"
+    createdAt: "2026-06-02",
   },
   {
     id: 15,
     userType: "CONTRACTOR",
-    firstName: "Contractor03",
+    firstName: "Coast",
+    lastName: "Constructors",
     email: "contractor03@jagedo.co.ke",
     phoneNumber: "0201234563",
     county: "Mombasa",
     subCounty: "Nyali",
     adminApproved: false,
+    status: "INCOMPLETE",
     contractorTypes: "Industrial",
-    createdAt: "2026-05-15"
+    createdAt: "2026-05-15",
   },
   {
     id: 16,
     userType: "CONTRACTOR",
-    firstName: "Contractor04",
+    firstName: "Lakeside",
+    lastName: "Developers",
     email: "contractor04@jagedo.co.ke",
     phoneNumber: "0201234564",
     county: "Kisumu",
     subCounty: "Kisumu West",
     adminApproved: true,
+    status: "COMPLETED",
     contractorTypes: "Residential",
-    createdAt: "2026-04-12"
+    createdAt: "2026-04-12",
   },
   {
     id: 17,
     userType: "CONTRACTOR",
-    firstName: "Contractor05",
+    firstName: "Highland",
+    lastName: "Projects",
     email: "contractor05@jagedo.co.ke",
     phoneNumber: "0201234565",
     county: "Kiambu",
     subCounty: "Thika",
     adminApproved: false,
+    status: "RETURNED",
     contractorTypes: "Commercial",
-    createdAt: "2026-03-08"
+    createdAt: "2026-03-08",
   },
   {
     id: 18,
     userType: "CONTRACTOR",
-    firstName: "Contractor06",
+    firstName: "Eastern",
+    lastName: "Infrastructure",
     email: "contractor06@jagedo.co.ke",
     phoneNumber: "0201234566",
     county: "Machakos",
     subCounty: "Mavoko",
     adminApproved: true,
+    status: "SIGNED_UP",
     contractorTypes: "Industrial",
-    createdAt: "2026-02-05"
+    createdAt: "2026-02-05",
   },
 
   // ================= HARDWARE =================
   {
     id: 19,
     userType: "HARDWARE",
-    organizationName: "Hardware01",
+    organizationName: "Nairobi Building Supplies",
     email: "hardware01@jagedo.co.ke",
     phoneNumber: "0711223341",
     county: "Nairobi",
     subCounty: "CBD",
     adminApproved: false,
+    status: "PENDING",
     hardwareTypes: "Building Materials",
-    createdAt: "2026-05-12"
+    createdAt: "2026-05-12",
   },
   {
     id: 20,
     userType: "HARDWARE",
-    organizationName: "Hardware02",
+    organizationName: "Eldoret Hardware Hub",
     email: "hardware02@jagedo.co.ke",
     phoneNumber: "0711223342",
     county: "Eldoret",
     subCounty: "Kapsoya",
     adminApproved: true,
+    status: "VERIFIED",
     hardwareTypes: "Plumbing & Electrical",
-    createdAt: "2026-04-28"
+    createdAt: "2026-04-28",
   },
   {
     id: 21,
     userType: "HARDWARE",
-    organizationName: "Hardware03",
+    organizationName: "Coastal Tools & Paints",
     email: "hardware03@jagedo.co.ke",
     phoneNumber: "0711223343",
     county: "Mombasa",
     subCounty: "Nyali",
     adminApproved: false,
+    status: "INCOMPLETE",
     hardwareTypes: "Paint & Tools",
-    createdAt: "2026-03-20"
+    createdAt: "2026-03-20",
   },
   {
     id: 22,
     userType: "HARDWARE",
-    organizationName: "Hardware04",
+    organizationName: "Kisumu Electricals Ltd",
     email: "hardware04@jagedo.co.ke",
     phoneNumber: "0711223344",
     county: "Kisumu",
     subCounty: "Kisumu Central",
     adminApproved: true,
+    status: "COMPLETED",
     hardwareTypes: "Electricals",
-    createdAt: "2026-02-15"
+    createdAt: "2026-02-15",
   },
   {
     id: 23,
     userType: "HARDWARE",
-    organizationName: "Hardware05",
+    organizationName: "Ruiru Wood & Iron",
     email: "hardware05@jagedo.co.ke",
     phoneNumber: "0711223345",
     county: "Kiambu",
     subCounty: "Ruiru",
     adminApproved: false,
+    status: "RETURNED",
     hardwareTypes: "Wood & Iron",
-    createdAt: "2026-01-10"
+    createdAt: "2026-01-10",
   },
   {
     id: 24,
     userType: "HARDWARE",
-    organizationName: "Hardware06",
+    organizationName: "Nakuru Cement & Bricks",
     email: "hardware06@jagedo.co.ke",
     phoneNumber: "0711223346",
     county: "Nakuru",
     subCounty: "Nakuru East",
     adminApproved: true,
+    status: "SIGNED_UP",
     hardwareTypes: "Cement & Bricks",
-    createdAt: "2025-12-05"
-  }
+    createdAt: "2025-12-05",
+  },
 ];
