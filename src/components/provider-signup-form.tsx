@@ -53,13 +53,6 @@ export function ProviderSignupForm({
     const [timerActive, setTimerActive] = useState(false);
     const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-    const [countryCode, setCountryCode] = useState("+254");
-    const COUNTRY_CODES = [
-        { code: "+254", flag: "🇰🇪", country: "Kenya" },
-        { code: "+256", flag: "🇺🇬", country: "Uganda" },
-        { code: "+255", flag: "🇹🇿", country: "Tanzania" },
-        { code: "+250", flag: "🇷🇼", country: "Rwanda" }
-    ];
 
     // const countyList = Object.keys(counties);
 
@@ -838,75 +831,43 @@ export function ProviderSignupForm({
                                 Phone number
                             </Label>
                             <div className="flex items-center border border-gray-500 rounded-lg overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]">
-                                {/* Country Code Dropdown */}
-                                <select
-                                    className="p-3 bg-gray-100 text-gray-700 border-r outline-none focus:bg-gray-200 pr-1 pl-1"
-                                    value={countryCode}
-                                    onChange={(e) =>
-                                        setCountryCode(e.target.value)
-                                    }
-                                >
-                                    {COUNTRY_CODES?.map((country) => (
-                                        <option
-                                            key={country.code}
-                                            value={country.code}
-                                        >
-                                            {country.flag} {country.code}
-                                        </option>
-                                    ))}
-                                </select>
+                                {/* Country Code - Kenya Default (No Dropdown) */}
+                                <div className="p-3 bg-gray-100 text-gray-700 border-r text-sm font-medium">
+                                  🇰🇪 +254
+                                </div>
 
                                 {/* Phone Number Input */}
                                 <Input
                                     id="phone"
                                     type="tel"
-                                    placeholder={
-                                        countryCode === "+254"
-                                            ? "7XXXXXXXX or 1XXXXXXXX"
-                                            : "Phone number"
-                                    }
+                                    placeholder="7XXXXXXXX or 1XXXXXXXX"
                                     className="p-6 w-full outline-none focus:ring-0 border-0"
                                     value={formData.phone}
                                     onChange={(e) => {
                                         const value = e.target.value;
-                                        // For Kenya (+254), apply special validation
-                                        if (countryCode) {
-                                            // Only allow digits and limit to 9 characters (7 or 1 + 8 digits)
-                                            const cleanValue = value
-                                                .replace(/\D/g, "")
-                                                .slice(0, 9);
-                                            // Ensure it starts with 7 or 1
-                                            if (
-                                                cleanValue &&
-                                                !/^[17]/.test(cleanValue)
-                                            ) {
-                                                return;
-                                            }
-                                            updateFormData({
-                                                phone: cleanValue,
-                                                fullPhoneNumber: `${countryCode}${cleanValue}` // Concatenate here
-                                            });
-                                        } else {
-                                            // For other countries, just allow digits
-                                            const cleanValue = value.replace(
-                                                /\D/g,
-                                                ""
-                                            );
-                                            updateFormData({
-                                                phone: cleanValue,
-                                                fullPhoneNumber: `${countryCode}${cleanValue}` // Concatenate here
-                                            });
+                                        // Kenya default - only allow Kenya format
+                                        const cleanValue = value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 9);
+                                        // Ensure it starts with 7 or 1
+                                        if (
+                                            cleanValue &&
+                                            !/^[17]/.test(cleanValue)
+                                        ) {
+                                            return;
                                         }
+                                        updateFormData({
+                                            phone: cleanValue,
+                                            fullPhoneNumber: `+254${cleanValue}`
+                                        });
                                     }}
                                 />
                             </div>
 
-                            {countryCode === "+254" && (
-                                <p className="text-xs text-gray-500">
-                                    Enter your 9-digit phone number starting
-                                    with 7 or 1
-                                </p>
-                            )}
+                            <p className="text-xs text-gray-500">
+                                Enter your 9-digit phone number starting
+                                with 7 or 1
+                            </p>
                         </div>
                         {/*
                         {(formData?.skills || formData?.profession) && (<div className="space-y-2 my-2">
@@ -1054,38 +1015,26 @@ export function ProviderSignupForm({
                             </p>
 
                             <div className="space-y-2">
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="otp"
-                                        type="text"
-                                        placeholder="6-digit code"
-                                        maxLength={6}
-                                        className="text-center text-lg tracking-widest"
-                                        value={formData.otp}
-                                        onChange={(e) =>
-                                            updateFormData({
-                                                otp: e.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                )
-                                            })
-                                        }
-                                    />
-                                    <Button
-                                        type="button"
-                                        className="bg-[#00a63e] text-white"
-                                        onClick={handleVerifyOTP}
-                                        disabled={
-                                            formData.otp.length !== 6 ||
-                                            isSubmitting
-                                        }
-                                    >
-                                        {isSubmitting
-                                            ? "Verifying..."
-                                            : "Verify"}
-                                    </Button>
-                                </div>
+                                <Input
+                                    id="otp"
+                                    type="text"
+                                    placeholder="6-digit code"
+                                    maxLength={6}
+                                    className="text-center text-lg tracking-widest"
+                                    value={formData.otp}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, "");
+                                        updateFormData({ otp: value });
+                                    }}
+                                />
 
+                                <Button
+                                    onClick={handleVerifyOTP}
+                                    className="w-full bg-[#00a63e] hover:bg-[#008c34] text-white"
+                                    disabled={!formData.otp || formData.otp.length !== 6 || isSubmitting}
+                                >
+                                    {isSubmitting ? "Verifying..." : "Verify"}
+                                </Button>
 
                                 {/* Timer and resend logic */}
                                 {timerActive && otpTimer > 0 ? (
