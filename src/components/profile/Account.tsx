@@ -32,6 +32,10 @@ function AccountInfo() {
       setProfile(stored);
       setPhoneValue(stored.phone || "");
       setEmailValue(stored.email || "");
+      // Load persisted image if it exists
+      if (stored.avatar) {
+        setImageSrc(stored.avatar);
+      }
     } else if (user) {
       // fallback to real logged-in user
       const initialProfile = {
@@ -60,9 +64,31 @@ function AccountInfo() {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setImageSrc(url);
-      saveProfile({ ...profile, avatar: url });
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Convert to Base64 for persistence
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result;
+        setImageSrc(base64String); // Display immediately
+        saveProfile({ ...profile, avatar: base64String }); // Persist in localStorage
+        toast.success("Image uploaded successfully");
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read image file");
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -76,6 +102,15 @@ function AccountInfo() {
   const handleEmailSave = () => {
     saveProfile({ ...profile, email: emailValue });
     setIsEditingEmail(false);
+  };
+
+  /* ---------- REMOVE IMAGE ---------- */
+  const handleRemoveImage = () => {
+    setImageSrc("/profile.jpg"); // Reset to default
+    const updatedProfile = { ...profile };
+    delete updatedProfile.avatar; // Remove avatar from profile
+    saveProfile(updatedProfile);
+    toast.success("Image removed");
   };
 
   /* ---------- LOADING (NO BLACK SCREEN) ---------- */
@@ -98,18 +133,30 @@ function AccountInfo() {
         <img
           src={profile.avatar || imageSrc}
           className="w-24 h-24 rounded-full object-cover border"
+          alt="Profile Avatar"
         />
-        <button
-          onClick={() => fileInputRef.current.click()}
-          className="mt-4 text-blue-700 text-sm"
-        >
-          Change Photo
-        </button>
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => fileInputRef.current.click()}
+            className="text-blue-700 text-sm hover:text-blue-900"
+          >
+            Change Photo
+          </button>
+          {profile.avatar && (
+            <button
+              onClick={handleRemoveImage}
+              className="text-red-600 text-sm hover:text-red-800"
+            >
+              Remove Photo
+            </button>
+          )}
+        </div>
         <input
           type="file"
           hidden
           ref={fileInputRef}
           onChange={handleImageChange}
+          accept="image/*"
         />
       </div>
 

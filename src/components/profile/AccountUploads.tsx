@@ -2,6 +2,7 @@ import { Download, FileText, Upload } from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { MOCK_UPLOADS } from "@/pages/mockUploads";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 const DocumentRow = ({ label, url, onReplace }) => {
   const fileName = url?.split("/").pop();
@@ -59,6 +60,22 @@ const AccountUploads = () => {
       const updated = { ...documents, [key]: url };
       setDocuments(updated);
       localStorage.setItem(`docs-${userType}`, JSON.stringify(updated));
+      
+      // ✅ NEW: Also save to the expected storage key for completion tracking
+      localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
+      
+      // ✅ DON'T trigger status update here - wait for Save button click
+    };
+
+    const handleSaveDocuments = () => {
+      // Save documents to localStorage
+      localStorage.setItem(`docs-${userType}`, JSON.stringify(documents));
+      localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(documents));
+      
+      // Trigger completion status update
+      window.dispatchEvent(new Event('storage'));
+      
+      toast.success('Uploads saved successfully');
     };
 
     const defaultFields = {
@@ -101,6 +118,14 @@ const AccountUploads = () => {
             onReplace={file => replaceDocument(file, f.key)}
           />
         ))}
+        <div className="flex justify-end mt-8">
+          <button
+            onClick={handleSaveDocuments}
+            className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold"
+          >
+            Save
+          </button>
+        </div>
       </div>
     );
   }
@@ -128,6 +153,11 @@ const AccountUploads = () => {
     const updated = { ...documents, [key]: url };
     setDocuments(updated);
     localStorage.setItem("docs-contractor", JSON.stringify(updated));
+    
+    // ✅ NEW: Also save to the expected storage key for completion tracking
+    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
+    
+    // ✅ DON'T trigger status update here - wait for Save button click
   };
 
   const replaceCategoryDoc = (category, type, file) => {
@@ -141,6 +171,26 @@ const AccountUploads = () => {
     };
     setCategoryDocs(updated);
     localStorage.setItem("contractor-category-docs", JSON.stringify(updated));
+    
+    // ✅ NEW: Also save to the expected storage key for completion tracking
+    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
+    
+    // ✅ DON'T trigger status update here - wait for Save button click
+  };
+
+  const handleSaveDocuments = () => {
+    // Save all documents to localStorage
+    localStorage.setItem("docs-contractor", JSON.stringify(documents));
+    localStorage.setItem("contractor-category-docs", JSON.stringify(categoryDocs));
+    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify({
+      ...documents,
+      ...categoryDocs
+    }));
+    
+    // Trigger completion status update
+    window.dispatchEvent(new Event('storage'));
+    
+    toast.success('Uploads saved successfully');
   };
 
   const generalFields = [
@@ -197,6 +247,15 @@ const AccountUploads = () => {
           />
         </div>
       ))}
+
+      <div className="flex justify-end mt-8">
+        <button
+          onClick={handleSaveDocuments}
+          className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold"
+        >
+          Save
+        </button>
+      </div>
     </div>
   );
 };

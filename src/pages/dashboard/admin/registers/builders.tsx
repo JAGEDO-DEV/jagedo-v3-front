@@ -86,6 +86,23 @@ export default function BuildersAdmin() {
     }
   }, []);
 
+  // --- Refresh builders when page comes back into focus ---
+  useEffect(() => {
+    const handleFocus = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("builders") || "null");
+        if (stored && Array.isArray(stored) && stored.length > 0) {
+          setBuilders(stored);
+        }
+      } catch (err) {
+        console.error("Failed to refresh builders:", err);
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   const filteredBuilders = builders.filter((builder) => {
     const matchesTab = builder.userType === activeTab;
     const matchesName =

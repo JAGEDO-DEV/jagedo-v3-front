@@ -85,24 +85,24 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
     const now = new Date();
     const earliest = getEarliestStartDate(now);
     const professions = [
-  "Project Manager",
-  "Construction Manager",
   "Architect",
-  "Water Engineer",
-  "Roads Engineer",
-  "Structural Engineer",
-  "Mechanical Engineer",
+  "Construction Manager",
   "Electrical Engineer",
+  "Environment Officer",
   "Geotechnical Engineer",
-  "Quantity Surveyor",
-  "Safety Officer",
-  "Land Surveyor",
-  "Topo Surveyor",
-  "Interior Designer",
-  "Landscape Architect",
-  "Hydrologist",
   "Geologist",
-  "Environment Officer"
+  "Hydrologist",
+  "Interior Designer",
+  "Land Surveyor",
+  "Landscape Architect",
+  "Mechanical Engineer",
+  "Project Manager",
+  "Quantity Surveyor",
+  "Roads Engineer",
+  "Safety Officer",
+  "Structural Engineer",
+  "Topo Surveyor",
+  "Water Engineer"
 ]
 
 const [search, setSearch] = useState("")

@@ -5,6 +5,7 @@ import { useParams, useLocation } from 'react-router-dom';
 // import useAxiosWithAuth from '@/utils/axiosInterceptor';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
+import { useProfileCompletion } from '@/hooks/useProfileCompletion';
 
 function ProfileApp() {
   const [activeTab, setActiveTab] = useState('account-info');
@@ -14,6 +15,7 @@ function ProfileApp() {
   const [error, setError] = useState<string | null>(null);
   const { id: userId, role: type } = useParams<{ id: string; role: string }>();
   const location = useLocation();
+    const completionStatus = useProfileCompletion(user, userType);
   // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   useEffect(() => {
@@ -141,6 +143,7 @@ function ProfileApp() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         userType={userType}
+        completionStatus={completionStatus}
       />
       <MainContent
         activeTab={activeTab}

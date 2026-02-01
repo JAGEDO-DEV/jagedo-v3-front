@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
 
-const Preview = ({ productData: { name, price, sku, bid, material, size, color, uom }, images, handleEdit, prodDescription, role }) => {
+const Preview = ({ productData: { name, price, sku, bid, material, size, color, uom, status }, images, handleEdit, prodDescription, role }) => {
     const elevationLabels = ["Front Elevation", "Back Elevation", "Side Elevation"];
     const [imageList, setImageList] = useState(images || []);
 
@@ -84,6 +84,35 @@ const Preview = ({ productData: { name, price, sku, bid, material, size, color, 
                                 <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Name</p>
                                 <h1 className="text-3xl font-bold text-gray-900">{name || 'N/A'}</h1>
                             </div>
+
+                            {/* Status */}
+                            {status && (
+                                <div className="mb-6">
+                                    <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold mb-2">Status</p>
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
+                                        status.toLowerCase() === 'complete' || status.toLowerCase() === 'completed'
+                                            ? 'border-green-500 bg-green-50'
+                                            : 'border-red-500 bg-red-50'
+                                    }`}>
+                                        {status.toLowerCase() === 'complete' || status.toLowerCase() === 'completed' ? (
+                                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                        <span className={`font-bold text-sm ${
+                                            status.toLowerCase() === 'complete' || status.toLowerCase() === 'completed'
+                                                ? 'text-green-700'
+                                                : 'text-red-700'
+                                        }`}>
+                                            {status}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="border-t border-gray-200 my-4" />
 

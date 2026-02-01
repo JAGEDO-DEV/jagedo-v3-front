@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef } from "react";
-import { Avatar } from "@material-tailwind/react";
+import { useState, useRef, useEffect } from "react";
 import { FiEdit, FiCheck, FiX } from "react-icons/fi";
 import { Star } from "lucide-react";
 
@@ -9,24 +8,47 @@ interface AccountInfoProps {
   userData: any;
 }
 
-// --- Helper: update a user in localStorage "users" array ---
+// --- Helper: Deep merge for nested objects ---
+const deepMerge = (target: any, source: any): any => {
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+};
+
+// --- Helper: update a user in localStorage "users" array AND "builders" array ---
 const updateUserInLocalStorage = (
   userId: string,
   updates: Record<string, any>,
 ) => {
   try {
+    // Update in "users" array
     const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const idx = storedUsers.findIndex((u: any) => u.id === userId);
-    if (idx !== -1) {
-      storedUsers[idx] = { ...storedUsers[idx], ...updates };
+    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
+    if (userIdx !== -1) {
+      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
       localStorage.setItem("users", JSON.stringify(storedUsers));
     }
+
+    // ALSO update in "builders" array to sync with admin dashboard
+    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
+    const builderIdx = storedBuilders.findIndex((b: any) => b.id === userId);
+    if (builderIdx !== -1) {
+      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
+      localStorage.setItem("builders", JSON.stringify(storedBuilders));
+    }
+
     // Also update the single "user" key if it matches
     const singleUser = JSON.parse(localStorage.getItem("user") || "null");
     if (singleUser && singleUser.id === userId) {
       localStorage.setItem(
         "user",
-        JSON.stringify({ ...singleUser, ...updates }),
+        JSON.stringify(deepMerge(singleUser, updates)),
       );
     }
   } catch (err) {
@@ -54,22 +76,181 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // --- Load persisted image from localStorage on component mount ---
+  useEffect(() => {
+    try {
+      // Try loading from users array first
+      let image = null;
+      
+      const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      const foundUser = storedUsers.find((u: any) => u.id === userData.id);
+      if (foundUser?.userProfile?.profileImage) {
+        image = foundUser.userProfile.profileImage;
+        console.log("✅ Image loaded from users array");
+      }
+      
+      // If not found, try builders array
+      if (!image) {
+        const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
+        const foundBuilder = storedBuilders.find((b: any) => b.id === userData.id);
+        if (foundBuilder?.userProfile?.profileImage) {
+          image = foundBuilder.userProfile.profileImage;
+          console.log("✅ Image loaded from builders array");
+        }
+      }
+      
+      // If not found, try user key
+      if (!image) {
+        const singleUser = JSON.parse(localStorage.getItem("user") || "null");
+        if (singleUser?.id === userData.id && singleUser?.userProfile?.profileImage) {
+          image = singleUser.userProfile.profileImage;
+          console.log("✅ Image loaded from user key");
+        }
+      }
+      
+      // If not found, try profile key
+      if (!image) {
+        const profileData = JSON.parse(localStorage.getItem("profile") || "null");
+        if (profileData?.id === userData.id && profileData?.userProfile?.profileImage) {
+          image = profileData.userProfile.profileImage;
+          console.log("✅ Image loaded from profile key");
+        }
+      }
+      
+      // If still not found, use passed prop
+      if (!image && userData?.userProfile?.profileImage) {
+        image = userData.userProfile.profileImage;
+        console.log("✅ Image loaded from userData prop");
+      }
+      
+      if (image) {
+        setAvatarSrc(image);
+      }
+    } catch (err) {
+      console.error("Failed to load persisted image:", err);
+    }
+  }, [userData.id]);
+
   const handleButtonClick = () => {
     fileInputRef.current?.click();
   };
 
-  // --- localStorage-based image change ---
+  // --- localStorage-based image change with Base64 persistence ---
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const localUrl = URL.createObjectURL(file);
-      setAvatarSrc(localUrl);
-      updateUserInLocalStorage(userData.id, {
-        userProfile: {
-          ...(userData.userProfile || {}),
-          profileImage: localUrl,
-        },
-      });
+    if (file) {
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert("Image size must be less than 5MB");
+        event.target.value = ""; // Reset input
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please upload an image file");
+        event.target.value = ""; // Reset input
+        return;
+      }
+
+      // Convert to Base64 for persistence
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64String = e.target?.result as string;
+        
+        // Set state immediately to show preview
+        setAvatarSrc(base64String);
+        
+        // Update userData object in-place
+        if (!userData.userProfile) {
+          userData.userProfile = {};
+        }
+        userData.userProfile.profileImage = base64String;
+        
+        // Persist to all localStorage keys
+        try {
+          // Update "users" array
+          const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+          const userIdx = storedUsers.findIndex((u: any) => u.id === userData.id);
+          if (userIdx !== -1) {
+            storedUsers[userIdx] = deepMerge(storedUsers[userIdx], {
+              userProfile: {
+                ...(storedUsers[userIdx].userProfile || {}),
+                profileImage: base64String,
+              },
+            });
+            localStorage.setItem("users", JSON.stringify(storedUsers));
+            console.log("✅ Image saved to users array");
+          }
+
+          // Update "builders" array
+          const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
+          const builderIdx = storedBuilders.findIndex((b: any) => b.id === userData.id);
+          if (builderIdx !== -1) {
+            storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], {
+              userProfile: {
+                ...(storedBuilders[builderIdx].userProfile || {}),
+                profileImage: base64String,
+              },
+            });
+            localStorage.setItem("builders", JSON.stringify(storedBuilders));
+            console.log("✅ Image saved to builders array");
+          }
+
+          // Update single "user" key
+          const singleUser = JSON.parse(localStorage.getItem("user") || "null");
+          if (singleUser && singleUser.id === userData.id) {
+            const updated = deepMerge(singleUser, {
+              userProfile: {
+                ...(singleUser.userProfile || {}),
+                profileImage: base64String,
+              },
+            });
+            localStorage.setItem("user", JSON.stringify(updated));
+            console.log("✅ Image saved to user key");
+          }
+
+          // Update profile key (if exists)
+          const profileData = JSON.parse(localStorage.getItem("profile") || "null");
+          if (profileData && profileData.id === userData.id) {
+            const updated = deepMerge(profileData, {
+              userProfile: {
+                ...(profileData.userProfile || {}),
+                profileImage: base64String,
+              },
+            });
+            localStorage.setItem("profile", JSON.stringify(updated));
+            console.log("✅ Image saved to profile key");
+          }
+
+          // Update customers array if exists
+          const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
+          const customerIdx = storedCustomers.findIndex((c: any) => c.id === userData.id);
+          if (customerIdx !== -1) {
+            storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], {
+              userProfile: {
+                ...(storedCustomers[customerIdx].userProfile || {}),
+                profileImage: base64String,
+              },
+            });
+            localStorage.setItem("customers", JSON.stringify(storedCustomers));
+            console.log("✅ Image saved to customers array");
+          }
+
+          event.target.value = ""; // Reset input
+          alert("Image uploaded successfully and persisted!");
+        } catch (err) {
+          console.error("Error persisting image:", err);
+          alert("Image uploaded but failed to persist. Please try again.");
+          event.target.value = ""; // Reset input
+        }
+      };
+      reader.onerror = () => {
+        alert("Failed to read image file");
+        event.target.value = ""; // Reset input
+      };
+      reader.readAsDataURL(file); // Convert file to Base64
     }
   };
 
@@ -218,22 +399,17 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 </div>
               )}
               <div className="flex flex-col items-start mb-6">
-                <Avatar
-                  size="sm"
+                <img
                   alt="avatar"
                   src={avatarSrc}
-                  placeholder={undefined}
-                  onResize={undefined}
-                  onResizeCapture={undefined}
-                  onPointerEnterCapture={undefined}
-                  onPointerLeaveCapture={undefined}
+                  className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
                 />
                 <button
                   type="button"
                   onClick={handleButtonClick}
                   className="mt-4 text-blue-900 hover:text-blue-700 text-sm font-medium"
                 >
-                  Change Photo
+                  Changed Photo
                 </button>
                 <input
                   type="file"

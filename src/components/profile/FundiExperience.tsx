@@ -200,6 +200,9 @@ const FundiExperience = () => {
       console.error(err);
     } finally {
       setIsSubmitting(false);
+      
+      // ✅ NEW: Trigger sidebar to update completion status
+      window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -225,7 +228,7 @@ const FundiExperience = () => {
                 <input type="text" value="Plumber" readOnly className="w-full p-3 bg-gray-200 text-gray-700 border rounded-lg" />
               </div>
               <div>
-              <label className="text-sm font-medium">Specialization</label>
+              <label className="text-sm font-medium">Specializational</label>
               <select
                 value={specialization}
                 onChange={e => setSpecialization(e.target.value)}

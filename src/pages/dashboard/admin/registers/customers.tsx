@@ -111,6 +111,23 @@ export default function CustomersAdmin() {
     }
   }, []);
 
+  // --- Refresh customers when page comes back into focus ---
+  useEffect(() => {
+    const handleFocus = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("customers") || "null");
+        if (stored && Array.isArray(stored) && stored.length > 0) {
+          setCustomers(stored);
+        }
+      } catch (err) {
+        console.error("Failed to refresh customers:", err);
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   const filteredCustomers = customers.filter((customer) => {
     const matchesTab = activeTab === "Individual"
       ? customer.accountType === "INDIVIDUAL" || !customer.accountType
