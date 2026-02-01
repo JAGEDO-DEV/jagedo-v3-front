@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from "react";
-import { FiEdit, FiCheck, FiX } from "react-icons/fi";
+import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
 import { Star } from "lucide-react";
 
 interface AccountInfoProps {
@@ -21,31 +21,39 @@ const deepMerge = (target: any, source: any): any => {
   return result;
 };
 
-// --- Helper: update a user in localStorage "users" array AND "builders" array ---
+// --- Helper: update a user in localStorage across all storage keys ---
 const updateUserInLocalStorage = (
-  userId: string,
+  userId: string | number,
   updates: Record<string, any>,
 ) => {
   try {
     // Update in "users" array
     const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
+    const userIdx = storedUsers.findIndex((u: any) => u.id === userId || u.id === Number(userId) || u.id === String(userId));
     if (userIdx !== -1) {
       storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
       localStorage.setItem("users", JSON.stringify(storedUsers));
     }
 
-    // ALSO update in "builders" array to sync with admin dashboard
+    // Update in "builders" array to sync with admin dashboard
     const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-    const builderIdx = storedBuilders.findIndex((b: any) => b.id === userId);
+    const builderIdx = storedBuilders.findIndex((b: any) => b.id === userId || b.id === Number(userId) || b.id === String(userId));
     if (builderIdx !== -1) {
       storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
       localStorage.setItem("builders", JSON.stringify(storedBuilders));
     }
 
+    // Update in "customers" array to sync with admin dashboard
+    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
+    const customerIdx = storedCustomers.findIndex((c: any) => c.id === userId || c.id === Number(userId) || c.id === String(userId));
+    if (customerIdx !== -1) {
+      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
+      localStorage.setItem("customers", JSON.stringify(storedCustomers));
+    }
+
     // Also update the single "user" key if it matches
     const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (singleUser && singleUser.id === userId) {
+    if (singleUser && (singleUser.id === userId || singleUser.id === Number(userId) || singleUser.id === String(userId))) {
       localStorage.setItem(
         "user",
         JSON.stringify(deepMerge(singleUser, updates)),
@@ -61,6 +69,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const [askDeleteReason, setAskDeleteReason] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [showActionDropdown, setShowActionDropdown] = useState(false);
+  // Action reason modal state
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const showVerificationMessage = userData.adminApproved;
   const [avatarSrc, setAvatarSrc] = useState(
@@ -347,9 +358,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   };
 
   // --- localStorage-based action handlers ---
-  const handleBlackList = () => {
-    updateUserInLocalStorage(userData.id, { blacklisted: true });
-    Object.assign(userData, { blacklisted: true });
+  const handleBlackList = (reason: string) => {
+    updateUserInLocalStorage(userData.id, {
+      blacklisted: true,
+      blacklistReason: reason,
+      blacklistDate: new Date().toISOString()
+    });
+    Object.assign(userData, { blacklisted: true, blacklistReason: reason });
     alert("User blacklisted successfully");
   };
 
@@ -359,19 +374,57 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     alert("User whitelisted successfully");
   };
 
-  const handleSuspend = () => {
-    updateUserInLocalStorage(userData.id, { suspended: true });
-    Object.assign(userData, { suspended: true });
+  const handleSuspend = (reason: string) => {
+    updateUserInLocalStorage(userData.id, {
+      suspended: true,
+      suspendReason: reason,
+      suspendDate: new Date().toISOString()
+    });
+    Object.assign(userData, { suspended: true, suspendReason: reason });
     alert("User suspended successfully");
   };
 
-  const handleUnverifyUser = () => {
+  const handleUnverifyUser = (reason: string) => {
     updateUserInLocalStorage(userData.id, {
       adminApproved: false,
       approved: false,
+      unverifyReason: reason,
+      unverifyDate: new Date().toISOString()
     });
-    Object.assign(userData, { adminApproved: false, approved: false });
+    Object.assign(userData, { adminApproved: false, approved: false, unverifyReason: reason });
     alert("User unverified successfully");
+  };
+
+  // Handle action with reason submission
+  const handleActionSubmit = () => {
+    if (!actionReason.trim()) {
+      alert("Please enter a reason for this action.");
+      return;
+    }
+
+    switch (pendingAction) {
+      case "unverify":
+        handleUnverifyUser(actionReason);
+        break;
+      case "suspend":
+        handleSuspend(actionReason);
+        break;
+      case "blacklist":
+        handleBlackList(actionReason);
+        break;
+    }
+
+    setPendingAction(null);
+    setActionReason("");
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case "unverify": return "Unverify";
+      case "suspend": return "Suspend";
+      case "blacklist": return "Blacklist";
+      default: return action;
+    }
   };
 
   return (
@@ -672,16 +725,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   <button
                     type="button"
                     onClick={() => setShowActionDropdown(!showActionDropdown)}
-                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
                   >
                     Actions
+                    <FiChevronDown
+                      className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
+                      size={16}
+                    />
                   </button>
                   {showActionDropdown && (
                     <div className="absolute left-0 mt-2 w-44 bg-white border rounded shadow-lg z-50">
                       <button
                         type="button"
                         onClick={() => {
-                          handleUnverifyUser();
+                          setPendingAction("unverify");
                           setShowActionDropdown(false);
                         }}
                         className="block w-full text-left px-4 py-2 hover:bg-gray-100"
@@ -691,7 +748,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                       <button
                         type="button"
                         onClick={() => {
-                          handleSuspend();
+                          setPendingAction("suspend");
                           setShowActionDropdown(false);
                         }}
                         className="block w-full text-left px-4 py-2 hover:bg-gray-100"
@@ -701,7 +758,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                       <button
                         type="button"
                         onClick={() => {
-                          handleBlackList();
+                          setPendingAction("blacklist");
                           setShowActionDropdown(false);
                         }}
                         className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
@@ -719,6 +776,45 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 >
                   Delete
                 </button>
+              </div>
+            )}
+
+            {/* Action Reason Modal */}
+            {pendingAction && (
+              <div className="bg-blue-50 border border-blue-300 text-blue-800 px-4 py-4 rounded mt-4">
+                <p className="font-medium mb-2">
+                  Please provide a reason for {getActionLabel(pendingAction).toLowerCase()}ing this user:
+                </p>
+                <textarea
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
+                  className="w-full mt-2 p-3 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleActionSubmit}
+                    className={`text-white px-4 py-2 rounded transition ${
+                      pendingAction === "blacklist"
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    Confirm {getActionLabel(pendingAction)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingAction(null);
+                      setActionReason("");
+                    }}
+                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
             {showDeleteConfirm && (
@@ -775,6 +871,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         </div>
       </div>
     </div>
+    
   );
 };
 

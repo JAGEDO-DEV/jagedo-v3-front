@@ -1,20 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 /**
  * useProfileCompletion Hook - SIMPLIFIED VERSION
- * 
+ *
  * Since users fill Account Info & Address during sign-up, those are ALWAYS complete.
  * This hook only checks:
  * - Account Uploads: Are all required documents uploaded?
  * - Experience: Are grade, experience, and projects filled?
- * 
+ *
  * Props:
  * - userData: User data object
  * - userType: Type of user (FUNDI, PROFESSIONAL, CONTRACTOR, HARDWARE, CUSTOMER)
  */
 export const useProfileCompletion = (userData: any, userType: string): { [key: string]: 'complete' | 'incomplete' } => {
-  
+  // State to force re-computation when localStorage changes
+  const [storageVersion, setStorageVersion] = useState(0);
+
+  // Listen for storage events (including custom events from document uploads)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setStorageVersion(v => v + 1);
+    };
+
+    // Listen for both native storage events and custom events
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const completionStatus = useMemo((): { [key: string]: 'complete' | 'incomplete' } => {
     // If no user data, mark everything as incomplete
     const defaultStatus: { [key: string]: 'complete' | 'incomplete' } = {
@@ -102,7 +118,8 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     };
     
     return statusObject;
-  }, [userData, userType]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData, userType, storageVersion]);
 
   return completionStatus;
 };
