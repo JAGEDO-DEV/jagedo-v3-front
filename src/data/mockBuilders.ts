@@ -1,5 +1,30 @@
 export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED";
 
+export interface UserProfile {
+  // FUNDI fields
+  skill?: string;
+  grade?: string;
+  experience?: string;
+  previousJobPhotoUrls?: Array<{ projectName: string; fileUrl: string }>;
+  
+  // PROFESSIONAL fields
+  profession?: string;
+  professionalLevel?: string;
+  yearsOfExperience?: string;
+  professionalProjects?: Array<{ projectName: string; fileUrl: string }>;
+  
+  // CONTRACTOR fields
+  contractorType?: string;
+  licenseLevel?: string;
+  contractorExperiences?: string;
+  contractorProjects?: Array<{ projectName: string; fileUrl: string }>;
+  
+  // HARDWARE fields
+  hardwareType?: string;
+  businessType?: string;
+  hardwareProjects?: Array<{ projectName: string; fileUrl: string }>;
+}
+
 export interface Builder {
   id: number;
   userType: "FUNDI" | "PROFESSIONAL" | "CONTRACTOR" | "HARDWARE";
@@ -21,6 +46,7 @@ export interface Builder {
   contractorTypes?: string;
   hardwareTypes?: string;
   createdAt: string;
+  userProfile?: UserProfile;
 }
 
 export const STATUS_LABELS: Record<BuilderStatus, string> = {
@@ -66,6 +92,16 @@ export const mockBuilders: Builder[] = [
     grade: "G1: Master Fundi",
     experience: "5+ years",
     createdAt: "2026-11-01",
+    userProfile: {
+      skill: "Plumber",
+      grade: "G1: Master Fundi",
+      experience: "5+ years",
+      previousJobPhotoUrls: [
+        { projectName: "Kitchen Plumbing Installation", fileUrl: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400" },
+        { projectName: "Bathroom Renovation", fileUrl: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=400" },
+        { projectName: "Gas Line Installation", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
+      ],
+    },
   },
   {
     id: 2,
@@ -83,6 +119,15 @@ export const mockBuilders: Builder[] = [
     grade: "G2: Skilled",
     experience: "3-5 years",
     createdAt: "2026-10-05",
+    userProfile: {
+      skill: "Electrician",
+      grade: "G2: Skilled",
+      experience: "3-5 years",
+      previousJobPhotoUrls: [
+        { projectName: "Solar Panel Installation", fileUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400" },
+        { projectName: "Home Electrical Wiring", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
+      ],
+    },
   },
   {
     id: 3,
@@ -110,13 +155,21 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0712345674",
     county: "Mombasa",
     subCounty: "Nyali",
-    adminApproved: true,
+    adminApproved: false,
     status: "COMPLETED",
     skills: "Painter",
     specialization: "Interior Painting",
     grade: "G3: Intermediate",
     experience: "2 years",
     createdAt: "2026-08-20",
+    userProfile: {
+      skill: "Painter",
+      grade: "G3: Intermediate",
+      experience: "1-3 years",
+      previousJobPhotoUrls: [
+        { projectName: "Living Room Painting", fileUrl: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400" },
+      ],
+    },
   },
   {
     id: 5,
@@ -134,6 +187,16 @@ export const mockBuilders: Builder[] = [
     grade: "G1: Master Fundi",
     experience: "6+ years",
     createdAt: "2026-07-15",
+    userProfile: {
+      skill: "Roofer",
+      grade: "G1: Master Fundi",
+      experience: "5+ years",
+      previousJobPhotoUrls: [
+        { projectName: "Tile Roof Installation", fileUrl: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=400" },
+        { projectName: "Commercial Roofing Project", fileUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400" },
+        { projectName: "Residential Roof Repair", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
+      ],
+    },
   },
   {
     id: 6,
@@ -144,7 +207,7 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0712345676",
     county: "Kiambu",
     subCounty: "Thika",
-    adminApproved: true,
+    adminApproved: false,
     status: "SIGNED_UP",
     skills: "Welder",
     specialization: "Metal Works",
@@ -168,6 +231,16 @@ export const mockBuilders: Builder[] = [
     profession: "Architect",
     level: "Senior",
     createdAt: "2026-09-18",
+    userProfile: {
+      profession: "Architect",
+      professionalLevel: "Senior",
+      yearsOfExperience: "5+ years",
+      professionalProjects: [
+        { projectName: "Modern Villa Design", fileUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" },
+        { projectName: "Commercial Complex Blueprint", fileUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400" },
+        { projectName: "Residential Estate Planning", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
+      ],
+    },
   },
   {
     id: 8,
@@ -183,6 +256,15 @@ export const mockBuilders: Builder[] = [
     profession: "Quantity Surveyor",
     level: "Mid-level",
     createdAt: "2026-08-21",
+    userProfile: {
+      profession: "Quantity Surveyor",
+      professionalLevel: "Professional",
+      yearsOfExperience: "3-5 years",
+      professionalProjects: [
+        { projectName: "Cost Estimation Report", fileUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400" },
+        { projectName: "Budget Analysis Document", fileUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400" },
+      ],
+    },
   },
   {
     id: 9,
@@ -208,11 +290,21 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0722112234",
     county: "Mombasa",
     subCounty: "Mvita",
-    adminApproved: true,
+    adminApproved: false,
     status: "COMPLETED",
     profession: "Electrical Engineer",
     level: "Senior",
     createdAt: "2026-06-12",
+    userProfile: {
+      profession: "Electrical Engineer",
+      professionalLevel: "Senior",
+      yearsOfExperience: "5+ years",
+      professionalProjects: [
+        { projectName: "Power Distribution System", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
+        { projectName: "Industrial Electrical Layout", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
+        { projectName: "Smart Building Wiring", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
+      ],
+    },
   },
   {
     id: 11,
@@ -228,6 +320,15 @@ export const mockBuilders: Builder[] = [
     profession: "Surveyor",
     level: "Mid-level",
     createdAt: "2026-05-18",
+    userProfile: {
+      profession: "Surveyor",
+      professionalLevel: "Professional",
+      yearsOfExperience: "3-5 years",
+      professionalProjects: [
+        { projectName: "Land Survey Report", fileUrl: "https://images.unsplash.com/photo-1416339698674-4f118dd3388b?w=400" },
+        { projectName: "Topographical Mapping", fileUrl: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400" },
+      ],
+    },
   },
   {
     id: 12,
@@ -238,7 +339,7 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0722112236",
     county: "Nakuru",
     subCounty: "Nakuru East",
-    adminApproved: true,
+    adminApproved: false,
     status: "SIGNED_UP",
     profession: "Mechanical Engineer",
     level: "Senior",
@@ -259,6 +360,14 @@ export const mockBuilders: Builder[] = [
     status: "PENDING",
     contractorTypes: "Residential",
     createdAt: "2026-07-10",
+    userProfile: {
+      contractorType: "Residential",
+      licenseLevel: "NCA2",
+      contractorExperiences: "5+ years",
+      contractorProjects: [
+        { projectName: "Residential Complex Phase 1", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
+      ],
+    },
   },
   {
     id: 14,
@@ -273,6 +382,14 @@ export const mockBuilders: Builder[] = [
     status: "VERIFIED",
     contractorTypes: "Commercial",
     createdAt: "2026-06-02",
+    userProfile: {
+      contractorType: "Commercial",
+      licenseLevel: "NCA1",
+      contractorExperiences: "10+ years",
+      contractorProjects: [
+        { projectName: "Shopping Mall Construction", fileUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400" },
+      ],
+    },
   },
   {
     id: 15,
@@ -297,10 +414,18 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0201234564",
     county: "Kisumu",
     subCounty: "Kisumu West",
-    adminApproved: true,
+    adminApproved: false,
     status: "COMPLETED",
     contractorTypes: "Residential",
     createdAt: "2026-04-12",
+    userProfile: {
+      contractorType: "Residential",
+      licenseLevel: "NCA3",
+      contractorExperiences: "3-5 years",
+      contractorProjects: [
+        { projectName: "Lakeside Apartments", fileUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" },
+      ],
+    },
   },
   {
     id: 17,
@@ -315,6 +440,14 @@ export const mockBuilders: Builder[] = [
     status: "RETURNED",
     contractorTypes: "Commercial",
     createdAt: "2026-03-08",
+    userProfile: {
+      contractorType: "Commercial",
+      licenseLevel: "NCA2",
+      contractorExperiences: "5+ years",
+      contractorProjects: [
+        { projectName: "Office Complex Development", fileUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400" },
+      ],
+    },
   },
   {
     id: 18,
@@ -325,7 +458,7 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0201234566",
     county: "Machakos",
     subCounty: "Mavoko",
-    adminApproved: true,
+    adminApproved: false,
     status: "SIGNED_UP",
     contractorTypes: "Industrial",
     createdAt: "2026-02-05",
@@ -344,6 +477,15 @@ export const mockBuilders: Builder[] = [
     status: "PENDING",
     hardwareTypes: "Building Materials",
     createdAt: "2026-05-12",
+    userProfile: {
+      hardwareType: "Building Materials",
+      businessType: "Wholesale Supplier",
+      experience: "10+ years",
+      hardwareProjects: [
+        { projectName: "Cement & Aggregates Catalogue", fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400" },
+        { projectName: "Steel & Iron Products", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
+      ],
+    },
   },
   {
     id: 20,
@@ -357,6 +499,15 @@ export const mockBuilders: Builder[] = [
     status: "VERIFIED",
     hardwareTypes: "Plumbing & Electrical",
     createdAt: "2026-04-28",
+    userProfile: {
+      hardwareType: "Electrical Supplies",
+      businessType: "Retail Store",
+      experience: "5-10 years",
+      hardwareProjects: [
+        { projectName: "Plumbing Equipment Range", fileUrl: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400" },
+        { projectName: "Electrical Fittings Collection", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
+      ],
+    },
   },
   {
     id: 21,
@@ -379,10 +530,19 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0711223344",
     county: "Kisumu",
     subCounty: "Kisumu Central",
-    adminApproved: true,
+    adminApproved: false,
     status: "COMPLETED",
     hardwareTypes: "Electricals",
     createdAt: "2026-02-15",
+    userProfile: {
+      hardwareType: "Electrical Supplies",
+      businessType: "Wholesale Supplier",
+      experience: "10+ years",
+      hardwareProjects: [
+        { projectName: "Industrial Electrical Supplies", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
+        { projectName: "Residential Wiring Products", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
+      ],
+    },
   },
   {
     id: 23,
@@ -396,6 +556,15 @@ export const mockBuilders: Builder[] = [
     status: "RETURNED",
     hardwareTypes: "Wood & Iron",
     createdAt: "2026-01-10",
+    userProfile: {
+      hardwareType: "Building Materials",
+      businessType: "Retail Store",
+      experience: "3-5 years",
+      hardwareProjects: [
+        { projectName: "Timber Products Range", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
+        { projectName: "Metal & Iron Works", fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400" },
+      ],
+    },
   },
   {
     id: 24,
@@ -405,7 +574,7 @@ export const mockBuilders: Builder[] = [
     phoneNumber: "0711223346",
     county: "Nakuru",
     subCounty: "Nakuru East",
-    adminApproved: true,
+    adminApproved: false,
     status: "SIGNED_UP",
     hardwareTypes: "Cement & Bricks",
     createdAt: "2025-12-05",

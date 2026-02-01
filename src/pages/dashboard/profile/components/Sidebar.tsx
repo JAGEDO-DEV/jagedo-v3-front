@@ -31,61 +31,37 @@ const uploadsItem = {
   status: 'incomplete',
 };
 
-// Products (builders & hardware)
+// Products (builders & hardware) — ❌ NO STATUS
 const productsItem = {
   id: 'products',
   label: 'Products',
   icon: Package,
   color: 'text-indigo-600',
-  status: 'incomplete',
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) => {
-  // Determine which navigation items to show based on user type
   const getNavigationItems = () => {
-    // CUSTOMER: Account Info → Address → Account Uploads
     if (userType === 'CUSTOMER') {
-      return [
-        ...baseNavigationItems,
-        uploadsItem,
-      ];
+      return [...baseNavigationItems, uploadsItem];
     }
 
-    // HARDWARE: Account Info → Address → Account Uploads → Products
     if (userType === 'HARDWARE') {
-      return [
-        ...baseNavigationItems,
-        uploadsItem,
-        productsItem,
-      ];
+      return [...baseNavigationItems, uploadsItem, productsItem];
     }
 
-    // FUNDI / PROFESSIONAL / CONTRACTOR:
-    // Account Info → Address → Experience → Account Uploads → Products
-    return [
-      ...baseNavigationItems,
-      experienceItem,
-      uploadsItem,
-      productsItem,
-    ];
+    return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
   };
 
   const navigationItems = getNavigationItems();
 
   const getUserTypeLabel = () => {
     switch (userType) {
-      case 'FUNDI':
-        return 'Fundi Profile';
-      case 'PROFESSIONAL':
-        return 'Professional Profile';
-      case 'CONTRACTOR':
-        return 'Contractor Profile';
-      case 'HARDWARE':
-        return 'Hardware Provider Profile';
-      case 'CUSTOMER':
-        return 'Customer Profile';
-      default:
-        return 'User Profile';
+      case 'FUNDI': return 'Fundi Profile';
+      case 'PROFESSIONAL': return 'Professional Profile';
+      case 'CONTRACTOR': return 'Contractor Profile';
+      case 'HARDWARE': return 'Hardware Provider Profile';
+      case 'CUSTOMER': return 'Customer Profile';
+      default: return 'User Profile';
     }
   };
 
@@ -93,18 +69,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) =
     window.location.href = `/dashboard/admin`;
   };
 
-  const renderStatus = (status: string) => {
+  const renderStatus = (status?: string) => {
+    if (!status) return null;
+
     if (status === 'complete') {
       return (
         <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
-         complete ✓
+          complete ✓
         </span>
       );
     }
 
     return (
       <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
-       incomplete !
+        incomplete !
       </span>
     );
   };

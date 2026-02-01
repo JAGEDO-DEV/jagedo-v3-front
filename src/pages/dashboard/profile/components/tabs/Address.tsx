@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
 import { FiEdit } from "react-icons/fi";
 import { toast, Toaster } from "sonner";
-// import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
-import {
-  getUserAddress,
-  updateUserAddress,
-} from "@/api/fakeAddress.api";
+import { getUserAddress, updateUserAddress } from "@/api/fakeAddress.api";
 import { getAllCountries } from "@/api/countries.api";
 
 const getInitialAddress = (userId: number) => {
@@ -29,24 +25,6 @@ const Address = ({ userData }) => {
   const [countriesList, setCountriesList] = useState<any[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
-  // --- ORIGINAL API-based countries fetch (commented out) ---
-  // useEffect(() => {
-  //   const fetchCountries = async () => {
-  //     try {
-  //       const data = await getAllCountries();
-  //       //@ts-ignore
-  //       setCountriesList(data.hashSet || []);
-  //     } catch (error) {
-  //       console.error("Failed to fetch countries:", error);
-  //       toast.error("Could not load country list.");
-  //     } finally {
-  //       setIsLoadingCountries(false);
-  //     }
-  //   };
-  //   fetchCountries();
-  // }, []);
-  // --- END ORIGINAL ---
-
   // --- localStorage / static fallback for countries ---
   useEffect(() => {
     const fetchCountries = async () => {
@@ -63,9 +41,7 @@ const Address = ({ userData }) => {
   }, [userData.id]);
 
   const countyList =
-    address.country?.toLowerCase() === "kenya"
-      ? Object.keys(counties)
-      : [];
+    address.country?.toLowerCase() === "kenya" ? Object.keys(counties) : [];
 
   const subCountyList =
     address.country?.toLowerCase() === "kenya" && address.county
@@ -110,26 +86,6 @@ const Address = ({ userData }) => {
     });
   };
 
-  // --- ORIGINAL API-based address update (commented out) ---
-  // const handleEdit = async () => {
-  //   try {
-  //     setIsSubmitting(true);
-  //     const response = await adminUpdateAddress(axiosInstance, address, userData.id);
-  //     if (response.success) {
-  //       toast.success("Address Updated Successfully");
-  //     } else {
-  //       toast.error(response.message || "Error Updating Address");
-  //     }
-  //   } catch (error: any) {
-  //     console.log(error);
-  //     toast.error(error.message || "Error Updating Address");
-  //   } finally {
-  //     setIsEditing(false);
-  //     setIsSubmitting(false);
-  //   }
-  // };
-  // --- END ORIGINAL ---
-
   // --- localStorage-based address update ---
   const handleEdit = () => {
     setIsSubmitting(true);
@@ -162,7 +118,6 @@ const Address = ({ userData }) => {
           </div>
 
           <form className="space-y-4">
-
             {/* Country */}
             <div>
               <label className="block text-sm font-medium">Country</label>
@@ -212,39 +167,32 @@ const Address = ({ userData }) => {
             )}
 
             {/* Sub County */}
-            {address.country?.toLowerCase() === "kenya" &&
-              address.county && (
-                <div>
-                  <label className="block text-sm font-medium">
-                    Sub County
-                  </label>
-                  {isEditing ? (
-                    <select
-                      name="subCounty"
-                      value={address.subCounty}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border-b"
-                    >
-                      <option value="">Select Sub-County</option>
-                      {subCountyList.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="border-b px-4 py-2">
-                      {address.subCounty}
-                    </p>
-                  )}
-                </div>
-              )}
+            {address.country?.toLowerCase() === "kenya" && address.county && (
+              <div>
+                <label className="block text-sm font-medium">Sub County</label>
+                {isEditing ? (
+                  <select
+                    name="subCounty"
+                    value={address.subCounty}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border-b"
+                  >
+                    <option value="">Select Sub-County</option>
+                    {subCountyList.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="border-b px-4 py-2">{address.subCounty}</p>
+                )}
+              </div>
+            )}
 
             {/* Estate */}
             <div>
-              <label className="block text-sm font-medium">
-                Estate / Town
-              </label>
+              <label className="block text-sm font-medium">Estate / Town</label>
               {isEditing ? (
                 <input
                   name="estate"
@@ -253,9 +201,7 @@ const Address = ({ userData }) => {
                   className="w-full px-4 py-2 border-b"
                 />
               ) : (
-                <p className="border-b px-4 py-2">
-                  {address.estate}
-                </p>
+                <p className="border-b px-4 py-2">{address.estate}</p>
               )}
             </div>
 

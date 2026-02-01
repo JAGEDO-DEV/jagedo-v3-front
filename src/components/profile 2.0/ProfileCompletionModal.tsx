@@ -30,6 +30,7 @@ export function ProfileCompletionModal({
                 isModal={true} 
             />
          </div>
+         
       </DialogContent>
     </Dialog>
   );

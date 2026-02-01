@@ -3,48 +3,74 @@ import { useEffect, useState } from "react";
 import { FiDownload, FiUpload, FiTrash2 } from "react-icons/fi";
 import { UploadCloud } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import { getMockUploadsForUserType } from "@/pages/data/mockUploads";
 
 const STORAGE_KEY = "uploads_demo";
 
 // Statuses that should prefill/show existing data
 const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
-const Uploads2 = ({ userData }: { userData: any }) => {
-  if (!userData) return <div className="p-8">Loading...</div>;
-
+const AccountUploads = ({ userData }: { userData: any }) => {
   const [documents, setDocuments] = useState<any>({});
   const [uploadingFiles, setUploadingFiles] = useState<any>({});
 
   const userType = userData?.userType?.toLowerCase() || "";
+  const accountType = userData?.accountType?.toLowerCase() || "";
   const isContractor = userType === "contractor";
   const status = userData?.status;
 
-  /* -------------------- Load from localStorage -------------------- */
+  /* -------------------- Load documents based on status -------------------- */
   useEffect(() => {
-    // Only load saved documents if status allows prefilling
+    if (!userData) return;
+    
+    // Only prefill documents if status allows prefilling
     if (PREFILL_STATUSES.includes(status)) {
+      // First check localStorage for any user-modified documents
       const saved = localStorage.getItem(`${STORAGE_KEY}_${userData.id}`);
       if (saved) {
-        setDocuments(JSON.parse(saved));
+        const savedDocs = JSON.parse(saved);
+        // If there are saved documents, use them
+        if (Object.keys(savedDocs).length > 0) {
+          setDocuments(savedDocs);
+          return;
+        }
       }
+
+      // Otherwise, prefill with mock data
+      const mockUploads = getMockUploadsForUserType(userType, accountType);
+      const prefilledDocs: any = {};
+
+      Object.entries(mockUploads).forEach(([key, url]) => {
+        prefilledDocs[key] = {
+          name: `${key}.pdf`,
+          url: url,
+          type: key,
+        };
+      });
+
+      setDocuments(prefilledDocs);
     } else {
       // For SIGNED_UP or INCOMPLETE, start with empty documents
       setDocuments({});
     }
-  }, [userData.id, status]);
+  }, [userData?.id, status, userType, accountType]);
 
   /* -------------------- Save to localStorage -------------------- */
   useEffect(() => {
-    localStorage.setItem(
-      `${STORAGE_KEY}_${userData.id}`,
-      JSON.stringify(documents)
-    );
-  }, [documents, userData.id]);
+    if (!userData) return;
+    // Only save if there are documents to save
+    if (Object.keys(documents).length > 0) {
+      localStorage.setItem(
+        `${STORAGE_KEY}_${userData.id}`,
+        JSON.stringify(documents)
+      );
+    }
+  }, [documents, userData?.id]);
+
+  if (!userData) return <div className="p-8">Loading...</div>;
 
   /* -------------------- Required docs -------------------- */
   const getRequiredDocuments = () => {
-    const accountType = userData?.accountType?.toLowerCase() || "";
-
     if (accountType === "individual" && userType === "customer") {
       return [
         { key: "idFront", name: "ID Front" },
@@ -99,7 +125,7 @@ const Uploads2 = ({ userData }: { userData: any }) => {
   ];
 
   const missingDocuments = requiredDocuments.filter(
-    (doc) => !documents[doc.key]
+    (doc: any) => !documents[doc.key]
   );
 
   const missingContractorDocs = contractorProfessionalDocs.filter(
@@ -251,4 +277,4 @@ const Uploads2 = ({ userData }: { userData: any }) => {
   );
 };
 
-export default Uploads2;
+export default AccountUploads;

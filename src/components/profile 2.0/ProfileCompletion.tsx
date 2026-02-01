@@ -646,6 +646,7 @@ export function ProfileCompletion({
                 </div>
             </div>
         </div>
+        
     );
 }
 
