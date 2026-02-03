@@ -29,6 +29,28 @@ const deepMerge = (target: any, source: any): any => {
 };
 
 // --- Helper: update a user in all localStorage arrays ---
+
+const resolveSpecialization = (user: any) => {
+  if (!user) return "";
+
+  // 1. New unified field
+  if (user.specialization) return user.specialization;
+
+  // 2. Backward compatibility
+  if (user.fundispecialization) return user.fundispecialization;
+  if (user.professionalSpecialization) return user.professionalSpecialization;
+  if (user.contractorSpecialization) return user.contractorSpecialization;
+
+  // 3. Nested fallback (if any older data)
+  if (user?.specialization?.fundiLevel) return user.specialization.fundiLevel;
+  if (user?.specialization?.contractorLevel)
+    return user.specialization.contractorLevel;
+  if (user?.specialization?.professionalLevel)
+    return user.specialization.professionalLevel;
+
+  return "";
+};
+
 const updateUserInLocalStorage = (
   userId: string,
   updates: Record<string, any>,
@@ -291,6 +313,292 @@ const removeCategory = (index: number) => {
 
   const [info, setInfo] = useState(getInitialInfo());
 
+  // Specialization options by user type
+  const FUNDI_SPECIALIZATIONS = {
+    Mason: [
+      "Block Work & Brick Laying",
+      "Plastering & Rendering",
+      "Stone Masonry",
+      "Concrete Work",
+      "Foundation Work",
+      "Structural Masonry",
+      "Decorative Masonry",
+      "Tile Setting",
+      "Waterproofing",
+      "Restoration & Repair",
+    ],
+    Electrician: [
+      "Residential Wiring",
+      "Commercial Installations",
+      "Industrial Electrical",
+      "Solar PV Installation",
+      "Backup Power Systems",
+      "Lighting Systems",
+      "Security & Alarm Systems",
+      "Data & Network Cabling",
+      "Motor & Pump Installations",
+      "Electrical Maintenance & Repair",
+    ],
+    Plumber: [
+      "Pipe Installation & Repair",
+      "Water Heater Installation",
+      "Drainage Systems",
+      "Septic Tank Installation",
+      "Bathroom Fitting",
+      "Kitchen Plumbing",
+      "Water Treatment Systems",
+      "Irrigation Systems",
+      "Gas Pipe Installation",
+      "Sewer Line Services",
+    ],
+    Carpenter: [
+      "Furniture Making",
+      "Roofing & Trusses",
+      "Door & Window Installation",
+      "Kitchen Cabinets",
+      "Wardrobes & Closets",
+      "Flooring Installation",
+      "Ceiling Work",
+      "Formwork & Shuttering",
+      "Finish Carpentry",
+      "Renovation & Restoration",
+    ],
+    Painter: [
+      "Interior Painting",
+      "Exterior Painting",
+      "Decorative Finishes",
+      "Texture Coating",
+      "Spray Painting",
+      "Wallpaper Installation",
+      "Epoxy Coating",
+      "Waterproof Coating",
+      "Wood Finishing & Staining",
+      "Industrial Painting",
+    ],
+    Welder: [
+      "Structural Welding",
+      "Pipe Welding",
+      "MIG Welding",
+      "TIG Welding",
+      "Arc Welding",
+      "Gate & Grille Fabrication",
+      "Tank Fabrication",
+      "Aluminum Welding",
+      "Stainless Steel Welding",
+      "Repair & Maintenance Welding",
+    ],
+    Tiler: [
+      "Floor Tiling",
+      "Wall Tiling",
+      "Bathroom Tiling",
+      "Kitchen Backsplash",
+      "Swimming Pool Tiling",
+      "Outdoor & Patio Tiling",
+      "Mosaic Installation",
+      "Natural Stone Installation",
+      "Tile Repair & Restoration",
+      "Waterproofing & Grouting",
+    ],
+    Roofer: [
+      "Metal Roofing",
+      "Tile Roofing",
+      "Flat Roofing",
+      "Shingle Installation",
+      "Roof Repair & Maintenance",
+      "Gutter Installation",
+      "Skylight Installation",
+      "Waterproofing",
+      "Insulation",
+      "Green Roof Installation",
+    ],
+  };
+
+  const PROFESSIONAL_SPECIALIZATIONS = {
+    "Project Manager": [
+      "Construction Project Management",
+      "Infrastructure Projects",
+      "Residential Development",
+      "Commercial Development",
+      "Industrial Projects",
+      "Government Projects",
+      "Real Estate Development",
+      "Renovation & Remodeling",
+      "Green Building Projects",
+      "Multi-site Management",
+    ],
+    Architect: [
+      "Residential Architecture",
+      "Commercial Architecture",
+      "Industrial Architecture",
+      "Landscape Architecture",
+      "Interior Architecture",
+      "Urban Planning",
+      "Sustainable Design",
+      "Historic Preservation",
+      "Healthcare Facilities",
+      "Educational Facilities",
+    ],
+    "Water Engineer": [
+      "Water Supply Systems",
+      "Wastewater Treatment",
+      "Stormwater Management",
+      "Irrigation Engineering",
+      "Hydraulic Structures",
+      "Pipeline Engineering",
+      "Water Resources Management",
+      "Flood Control",
+      "Desalination Systems",
+      "Environmental Water Solutions",
+    ],
+    "Roads Engineer": [
+      "Highway Design",
+      "Urban Road Design",
+      "Pavement Engineering",
+      "Traffic Engineering",
+      "Bridge Engineering",
+      "Road Rehabilitation",
+      "Drainage Design",
+      "Survey & Mapping",
+      "Construction Supervision",
+      "Road Safety Engineering",
+    ],
+    "Structural Engineer": [
+      "Building Structures",
+      "Bridge Structures",
+      "Industrial Structures",
+      "Concrete Structures",
+      "Steel Structures",
+      "Foundation Engineering",
+      "Seismic Design",
+      "Structural Assessment",
+      "Retrofit & Rehabilitation",
+      "Temporary Structures",
+    ],
+    "Mechanical Engineer": [
+      "HVAC Systems",
+      "Plumbing Systems",
+      "Fire Protection Systems",
+      "Elevator & Escalator Systems",
+      "Industrial Machinery",
+      "Energy Systems",
+      "Building Automation",
+      "Refrigeration Systems",
+      "Ventilation Design",
+      "Mechanical Maintenance",
+    ],
+    "Electrical Engineer": [
+      "Power Distribution",
+      "Lighting Design",
+      "Building Electrical Systems",
+      "Industrial Electrical",
+      "Renewable Energy Systems",
+      "Control Systems",
+      "Telecommunications",
+      "Security Systems",
+      "Fire Alarm Systems",
+      "Energy Management",
+    ],
+    Surveyor: [
+      "Land Surveying",
+      "Topographic Surveys",
+      "Construction Surveying",
+      "Cadastral Surveys",
+      "Engineering Surveys",
+      "GPS & GIS Mapping",
+      "Hydrographic Surveys",
+      "Quantity Surveying",
+      "Boundary Surveys",
+      "As-built Surveys",
+    ],
+    "Quantity Surveyor": [
+      "Cost Estimation",
+      "Bill of Quantities",
+      "Contract Administration",
+      "Value Engineering",
+      "Project Cost Control",
+      "Procurement Management",
+      "Final Account Settlement",
+      "Risk Assessment",
+      "Feasibility Studies",
+      "Life Cycle Costing",
+    ],
+  };
+
+  const CONTRACTOR_SPECIALIZATIONS = {
+    "Building Works": [
+      "Residential Construction",
+      "Commercial Construction",
+      "Industrial Construction",
+      "Institutional Buildings",
+      "High-rise Buildings",
+      "Housing Estates",
+      "Renovation & Remodeling",
+      "Prefabricated Construction",
+      "Green Building Construction",
+      "Mixed-use Developments",
+    ],
+    "Water Works": [
+      "Water Supply Networks",
+      "Sewerage Systems",
+      "Water Treatment Plants",
+      "Irrigation Systems",
+      "Borehole Drilling",
+      "Dam Construction",
+      "Pipeline Installation",
+      "Pump Stations",
+      "Water Storage Tanks",
+      "Flood Control Systems",
+    ],
+    "Electrical Works": [
+      "Power Line Installation",
+      "Substation Construction",
+      "Building Electrical Works",
+      "Street Lighting",
+      "Solar Power Installation",
+      "Generator Installation",
+      "Industrial Electrical",
+      "Fire Alarm Systems",
+      "Security Systems Installation",
+      "Smart Building Systems",
+    ],
+    "Mechanical Works": [
+      "HVAC Installation",
+      "Plumbing & Sanitary Works",
+      "Fire Fighting Systems",
+      "Elevator & Escalator Installation",
+      "Industrial Equipment Installation",
+      "Refrigeration Systems",
+      "Compressed Air Systems",
+      "Steam & Boiler Systems",
+      "Piping Works",
+      "Mechanical Maintenance",
+    ],
+    "Roads & Infrastructure": [
+      "Road Construction",
+      "Bridge Construction",
+      "Culvert Construction",
+      "Drainage Systems",
+      "Pavement Works",
+      "Highway Construction",
+      "Airport Runways",
+      "Railway Construction",
+      "Port & Marine Works",
+      "Urban Infrastructure",
+    ],
+    "Landscaping & External Works": [
+      "Landscape Construction",
+      "Paving & Hardscaping",
+      "Fencing & Gates",
+      "Swimming Pool Construction",
+      "Sports Facilities",
+      "Playground Construction",
+      "Retaining Walls",
+      "Outdoor Lighting",
+      "Irrigation Installation",
+      "Environmental Landscaping",
+    ],
+  };
+
   // Dynamic field configurations based on user type
   const getFieldsConfig = () => {
     switch (userType) {
@@ -305,7 +613,22 @@ const removeCategory = (index: number) => {
               "Plumber",
               "Carpenter",
               "Painter",
+              "Welder",
+              "Tiler",
+              "Roofer",
             ],
+          },
+          {
+            name: "specialization",
+            label: "Specialization",
+            options: FUNDI_SPECIALIZATIONS[info.skill as keyof typeof FUNDI_SPECIALIZATIONS] || [
+              "Block Work & Brick Laying",
+              "Plastering & Rendering",
+              "Stone Masonry",
+              "Concrete Work",
+              "Foundation Work",
+            ],
+            dependsOn: "skill",
           },
           {
             name: "grade",
@@ -320,7 +643,7 @@ const removeCategory = (index: number) => {
           {
             name: "experience",
             label: "Experience",
-            options: ["5+ years", "3-5 years", "1-3 years"],
+            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
           },
         ];
 
@@ -336,28 +659,32 @@ const removeCategory = (index: number) => {
               "Roads Engineer",
               "Structural Engineer",
               "Mechanical Engineer",
+              "Electrical Engineer",
+              "Surveyor",
+              "Quantity Surveyor",
             ],
-            
           },
-            {
-            name: "Specialization",
+          {
+            name: "specialization",
             label: "Specialization",
-            options: [
-              "Architect",
-              "Residential",
-              "Commercial",
-              "Industrial",
+            options: PROFESSIONAL_SPECIALIZATIONS[info.profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS] || [
+              "Residential Architecture",
+              "Commercial Architecture",
+              "Industrial Architecture",
+              "Landscape Architecture",
+              "Interior Architecture",
             ],
-            },
+            dependsOn: "profession",
+          },
           {
             name: "professionalLevel",
             label: "Professional Level",
-            options: ["Graduate", "Student", "Senior", "Professional"],
+            options: ["Senior", "Professional", "Graduate", "Student"],
           },
           {
             name: "yearsOfExperience",
             label: "Years of Experience",
-            options: ["5+ years", "3-5 years", "1-3 years"],
+            options: ["15+ years", "10-15 years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
           },
         ];
 
@@ -365,33 +692,38 @@ const removeCategory = (index: number) => {
         return [
           {
             name: "category",
-            label: "category",
+            label: "Category",
             options: [
               "Building Works",
-              "Water Engineer",
-              "Roads Engineer",
-              "Mechanical Engineer",
+              "Water Works",
+              "Electrical Works",
+              "Mechanical Works",
+              "Roads & Infrastructure",
+              "Landscaping & External Works",
             ],
-            
           },
-            {
-            name: "Specialization",
+          {
+            name: "specialization",
             label: "Specialization",
-            options: [
-              "Sanitation",
-              "drainage",
-              "hydrological",
+            options: CONTRACTOR_SPECIALIZATIONS[info.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || 
+              CONTRACTOR_SPECIALIZATIONS[info.contractorType as keyof typeof CONTRACTOR_SPECIALIZATIONS] || [
+              "Residential Construction",
+              "Commercial Construction",
+              "Industrial Construction",
+              "Institutional Buildings",
+              "High-rise Buildings",
             ],
-            },
+            dependsOn: "category",
+          },
           {
             name: "class",
-            label: "class",
-            options: ["NCA1", "NCA2", "NCA3", "NCA4"],
+            label: "NCA Class",
+            options: ["NCA1", "NCA2", "NCA3", "NCA4", "NCA5", "NCA6", "NCA7", "NCA8"],
           },
           {
             name: "yearsOfExperience",
             label: "Years of Experience",
-            options: ["10+ years", "5+ years", "3-5 years", "1-3 years"],
+            options: ["20+ years", "15-20 years", "10-15 years", "5-10 years", "3-5 years", "1-3 years"],
           },
         ];
 
@@ -404,17 +736,38 @@ const removeCategory = (index: number) => {
               "Building Materials",
               "Tools & Equipment",
               "Electrical Supplies",
+              "Plumbing Supplies",
+              "Paint & Finishes",
+              "Roofing Materials",
+              "Timber & Wood Products",
+              "Steel & Metal Products",
+            ],
+          },
+          {
+            name: "specialization",
+            label: "Specialization",
+            options: [
+              "Cement & Concrete Products",
+              "Bricks & Blocks",
+              "Sand & Aggregates",
+              "Tiles & Flooring",
+              "Doors & Windows",
+              "Electrical Fittings",
+              "Plumbing Fittings",
+              "Paint & Coatings",
+              "Hand Tools",
+              "Power Tools",
             ],
           },
           {
             name: "businessType",
             label: "Business Type",
-            options: ["Retail Store", "Wholesale Supplier"],
+            options: ["Retail Store", "Wholesale Supplier", "Manufacturer", "Distributor"],
           },
           {
             name: "experience",
             label: "Business Experience",
-            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years"],
+            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
           },
         ];
 
@@ -429,6 +782,20 @@ const removeCategory = (index: number) => {
               "Plumber",
               "Carpenter",
               "Painter",
+              "Welder",
+              "Tiler",
+              "Roofer",
+            ],
+          },
+          {
+            name: "specialization",
+            label: "Specialization",
+            options: [
+              "Block Work & Brick Laying",
+              "Plastering & Rendering",
+              "Stone Masonry",
+              "Concrete Work",
+              "Foundation Work",
             ],
           },
           {
@@ -444,7 +811,7 @@ const removeCategory = (index: number) => {
           {
             name: "experience",
             label: "Experience",
-            options: ["5+ years", "3-5 years", "1-3 years"],
+            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
           },
         ];
     }
