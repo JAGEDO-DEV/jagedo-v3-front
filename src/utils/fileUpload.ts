@@ -66,6 +66,7 @@ const createFileUploadAxios = () => {
 
     return axiosInstance;
 };
+
 export interface UploadedFile {
     id: string;
     originalName: string;

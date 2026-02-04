@@ -672,7 +672,8 @@ export function CustomerSignupForm({
                     const value = e.target.value.replace(/\D/g, "");
                     updateFormData({ otp: value });
                     // Auto-verify when 6 digits are entered
-                    if (value.length === 6) {
+                    if (value.length === 6) {                        
+                      
                       setTimeout(() => handleVerifyOTP(), 0);
                     }
                   }}

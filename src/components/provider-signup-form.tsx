@@ -4,7 +4,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Mail, Phone, Loader2, Check } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +31,6 @@ interface ProviderSignupFormProps {
     handleResendOtp: () => Promise<void>
     handleInitiateRegistration: () => void;
 }
-
 export function ProviderSignupForm({
     currentStep,
     formData,
@@ -53,11 +51,10 @@ export function ProviderSignupForm({
     const [timerActive, setTimerActive] = useState(false);
     const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+    const [isAutoVerifying, setIsAutoVerifying] = useState(false);
 
     // const countyList = Object.keys(counties);
-
     // const subCountyList = counties[formData.county as keyof typeof counties]
-
     // Check email availability (debounced)
     useEffect(() => {
         if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
@@ -72,6 +69,27 @@ export function ProviderSignupForm({
         }, 500);
         return () => clearTimeout(timer);
     }, [formData.email]);
+
+    // Auto-verify OTP when user types exactly 6 digits (for both phone and email)
+    useEffect(() => {
+        if (currentStep !== 5) return;
+        if (!formData.otp || formData.otp.length !== 6 || !/^\d{6}$/.test(formData.otp)) return;
+
+        const autoVerify = async () => {
+            setIsAutoVerifying(true);
+            // Small delay to show spinner / give feedback
+            await new Promise(resolve => setTimeout(resolve, 700));
+
+            // TEMPORARY BYPASS: Directly verify without API
+            setIsOtpVerified(true);
+            toast.success("Bypassed verification for testing!");
+
+            setIsAutoVerifying(false);
+            nextStep(); // Move to next step automatically
+        };
+
+        autoVerify();
+    }, [formData.otp, currentStep, nextStep]);
 
     const validateStep = () => {
         switch (currentStep) {
@@ -108,14 +126,14 @@ export function ProviderSignupForm({
                     return false;
                 }
                 // if (formData?.skills || formData?.profession) {
-                //     if (!formData.nationalId) {
-                //         toast.error("National ID is required");
-                //         return false;
-                //     }
-                //      else if (formData.nationalId.length > 8) {
-                //         toast.error("National ID must be 8 characters or less");
-                //         return false;
-                //     }
+                // if (!formData.nationalId) {
+                // toast.error("National ID is required");
+                // return false;
+                // }
+                // else if (formData.nationalId.length > 8) {
+                // toast.error("National ID must be 8 characters or less");
+                // return false;
+                // }
                 // }
                 break;
             case 4:
@@ -137,44 +155,44 @@ export function ProviderSignupForm({
                 }
                 break;
             // case 6:
-            //     if (providerType === "HARDWARE") {
-            //         if (!formData.organizationName) {
-            //             toast.error("Hardware name is required");
-            //             return false;
-            //         }
-            //         if (!formData.contactFirstName) {
-            //             toast.error("Contact person first name is required");
-            //             return false;
-            //         }
-            //         if (!formData.contactLastName) {
-            //             toast.error("Contact person last name is required");
-            //             return false;
-            //         }
-            //     } else {
-            //         if (!formData.firstName) {
-            //             toast.error("First name is required");
-            //             return false;
-            //         }
-            //         if (!formData.lastName) {
-            //             toast.error("Last name is required");
-            //             return false;
-            //         }
-            //         if (!formData.gender) {
-            //             toast.error("Please select your gender");
-            //             return false;
-            //         }
-            //     }
-            //     break;
+            // if (providerType === "HARDWARE") {
+            // if (!formData.organizationName) {
+            // toast.error("Hardware name is required");
+            // return false;
+            // }
+            // if (!formData.contactFirstName) {
+            // toast.error("Contact person first name is required");
+            // return false;
+            // }
+            // if (!formData.contactLastName) {
+            // toast.error("Contact person last name is required");
+            // return false;
+            // }
+            // } else {
+            // if (!formData.firstName) {
+            // toast.error("First name is required");
+            // return false;
+            // }
+            // if (!formData.lastName) {
+            // toast.error("Last name is required");
+            // return false;
+            // }
+            // if (!formData.gender) {
+            // toast.error("Please select your gender");
+            // return false;
+            // }
+            // }
+            // break;
             // case 7:
-            //     if (!formData.county) {
-            //         toast.error("County is required");
-            //         return false;
-            //     }
-            //     if (!formData.town) {
-            //         toast.error("Town is required");
-            //         return false;
-            //     }
-            //     break;
+            // if (!formData.county) {
+            // toast.error("County is required");
+            // return false;
+            // }
+            // if (!formData.town) {
+            // toast.error("Town is required");
+            // return false;
+            // }
+            // break;
             case 6:
                 if (!formData.password) {
                     toast.error("Password is required");
@@ -196,10 +214,8 @@ export function ProviderSignupForm({
                 }
                 break;
         }
-
         return true;
     };
-
     const handleContinue = async () => {
         if (validateStep()) {
             // Auto-send OTP when moving from step 4 to step 5
@@ -220,7 +236,6 @@ export function ProviderSignupForm({
             nextStep();
         }
     };
-
     const handleFormSubmit = () => {
         if (validateStep()) {
             setIsSubmitting(true);
@@ -231,7 +246,6 @@ export function ProviderSignupForm({
             }, 1500);
         }
     };
-
     const handleGoogleSignIn = () => {
         setIsGoogleLoading(true);
         // Simulate Google auth
@@ -245,7 +259,6 @@ export function ProviderSignupForm({
             setIsGoogleLoading(false);
         }, 1500);
     };
-
     const handleSendOTP = async () => {
         setIsSubmitting(true);
         setOtpTimer(120); // 2 minutes
@@ -276,7 +289,6 @@ export function ProviderSignupForm({
             setIsSubmitting(false);
         }
     };
-
     const handleResendOTP = async () => {
         setIsSubmitting(true);
         setOtpTimer(120); // 2 minutes
@@ -289,30 +301,29 @@ export function ProviderSignupForm({
             setIsSubmitting(false);
         }
     }
-
     // const handleVerifyOTP = async () => {
-    //     setIsSubmitting(true);
-    //     try {
-    //         const data = {
-    //             email: formData.email,
-    //             phoneNumber: formData.phone,
-    //             otp: formData.otp
-    //         };
-    //         const res = await verifyOtp(data);
-    //         if (res.data.success) {
-    //             toast.success("OTP verified successfully!");
-    //             setIsOtpVerified(true);
-    //             handleContinue()
-    //         } else {
-    //             toast.error(`Failed To Verify OTP: ${res.data.message}`);
-    //         }
-    //     } catch (error: any) {
-    //         console.log(error);
-    //         toast.error(error.response?.data?.message || error.message || "Verification failed");
-    //         setIsOtpVerified(false);
-    //     } finally {
-    //         setIsSubmitting(false);
-    //     }
+    // setIsSubmitting(true);
+    // try {
+    // const data = {
+    // email: formData.email,
+    // phoneNumber: formData.phone,
+    // otp: formData.otp
+    // };
+    // const res = await verifyOtp(data);
+    // if (res.data.success) {
+    // toast.success("OTP verified successfully!");
+    // setIsOtpVerified(true);
+    // handleContinue()
+    // } else {
+    // toast.error(`Failed To Verify OTP: ${res.data.message}`);
+    // }
+    // } catch (error: any) {
+    // console.log(error);
+    // toast.error(error.response?.data?.message || error.message || "Verification failed");
+    // setIsOtpVerified(false);
+    // } finally {
+    // setIsSubmitting(false);
+    // }
     // };
     const handleVerifyOTP = async () => {
         setIsSubmitting(true)
@@ -322,11 +333,9 @@ export function ProviderSignupForm({
         setIsSubmitting(false);
         nextStep(); // Auto-advance to next step after verification
     }
-
     // OTP timer countdown effect
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
         if (timerActive) {
             interval = setInterval(() => {
                 setOtpTimer((prev) => {
@@ -338,17 +347,14 @@ export function ProviderSignupForm({
                 });
             }, 1000);
         }
-
         return () => {
             if (interval) clearInterval(interval);
         };
     }, [timerActive]);
-
     // Reset OTP verification if OTP or method changes
     useEffect(() => {
         setIsOtpVerified(false);
     }, [formData.otp, formData.otpMethod]);
-
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
@@ -396,7 +402,6 @@ export function ProviderSignupForm({
                                             <SelectItem value="welder">Welder</SelectItem>
                                         </SelectContent>
                                     </Select>
-
                                 </div>
                             </div>
                         </div>
@@ -416,7 +421,6 @@ export function ProviderSignupForm({
                                         Professional Sign Up
                                     </h2>
                                 </div>
-
                                 <div className="space-y-2 flex flex-col items-center justify-center text-center">
                                     <Label htmlFor="profession">
                                         Select your profession
@@ -457,9 +461,7 @@ export function ProviderSignupForm({
                                                     ))}
                                             </div>
                                         </SelectContent>
-
                                     </Select>
-
                                 </div>
                             </div>
                         </div>
@@ -472,24 +474,19 @@ export function ProviderSignupForm({
                         { value: "water-works", label: "Water Works" },
                         { value: "road-works", label: "Road and other Civil Works" }
                     ];
-
                     const selectedContractorTypes = formData.contractorTypes ? formData.contractorTypes.split(',').filter(Boolean) : [];
-
                     const handleContractorTypeToggle = (value: string) => {
                         const currentTypes = formData.contractorTypes ? formData.contractorTypes.split(',').filter(Boolean) : [];
                         let updatedTypes;
-
                         if (currentTypes.includes(value)) {
                             updatedTypes = currentTypes.filter(type => type !== value);
                         } else {
                             updatedTypes = [...currentTypes, value];
                         }
-
                         updateFormData({
                             contractorTypes: updatedTypes.join(',')
                         });
                     };
-
                     return (
                         <div className="space-y-6 animate-fade-in">
                             <div className="space-y-4">
@@ -500,17 +497,14 @@ export function ProviderSignupForm({
                                         alt="JaGedo Logo"
                                         className="h-12 mb-4"
                                     />
-
                                     <h2 className="text-2xl font-semibold text-[rgb(0,0,122)] mb-2">
                                         Contractor Sign Up
                                     </h2>
                                 </div>
-
                                 <div className="space-y-4 flex flex-col items-center justify-center text-center">
                                     <Label htmlFor="contractorType">
                                         Select contractor types (you can select multiple)
                                     </Label>
-
                                     <div className="w-full max-w-md space-y-2">
                                         {contractorTypeOptions.map((option) => (
                                             <div
@@ -535,7 +529,6 @@ export function ProviderSignupForm({
                                             </div>
                                         ))}
                                     </div>
-
                                     {selectedContractorTypes.length > 0 && (
                                         <div className="mt-4 p-3 bg-gray-50 rounded-lg w-full max-w-md">
                                             <p className="text-sm text-gray-700 font-medium mb-2">
@@ -577,26 +570,20 @@ export function ProviderSignupForm({
                         { value: "industrial", label: "Industrial Hardware" },
                         { value: "general", label: "General Hardware" },
                         { value: "aggregate", label: "Aggregate Supplier" },
-
                     ];
-
                     const selectedHardwareTypes = formData.hardwareTypes ? formData.hardwareTypes.split(',').filter(Boolean) : [];
-
                     const handleHardwareTypeToggle = (value: string) => {
                         const currentTypes = formData.hardwareTypes ? formData.hardwareTypes.split(',').filter(Boolean) : [];
                         let updatedTypes;
-
                         if (currentTypes.includes(value)) {
                             updatedTypes = currentTypes.filter(type => type !== value);
                         } else {
                             updatedTypes = [...currentTypes, value];
                         }
-
                         updateFormData({
                             hardwareTypes: updatedTypes.join(',')
                         });
                     };
-
                     return (
                         <div className="space-y-6 animate-fade-in">
                             <div className="space-y-4">
@@ -611,12 +598,10 @@ export function ProviderSignupForm({
                                         Hardware Sign Up
                                     </h2>
                                 </div>
-
                                 <div className="space-y-4 flex flex-col items-center justify-center text-center">
                                     <Label htmlFor="hardwareType">
                                         Select hardware types (you can select multiple)
                                     </Label>
-
                                     <div className="w-full max-w-md space-y-2 max-h-64 overflow-y-auto">
                                         {hardwareTypeOptions.map((option) => (
                                             <div
@@ -641,7 +626,6 @@ export function ProviderSignupForm({
                                             </div>
                                         ))}
                                     </div>
-
                                     {selectedHardwareTypes.length > 0 && (
                                         <div className="mt-4 p-3 bg-gray-50 rounded-lg w-full max-w-md">
                                             <p className="text-sm text-gray-700 font-medium mb-2">
@@ -736,7 +720,6 @@ export function ProviderSignupForm({
                                 <div className="flex-grow border-t border-gray-300"></div>
                             </div>
                             <GoogleSignIn />
-
                             {/* <div className="relative flex items-center my-8">
                                 <div className="flex-grow border-t border-gray-300"></div>
                                 <span className="mx-4 flex-shrink text-gray-400 text-sm">
@@ -772,7 +755,6 @@ export function ProviderSignupForm({
                         </div>
                     </div>
                 );
-
             case 3:
                 return (
                     <div className="xs:w-full xs:max-w-md xs:p-8 bg-white rounded-lg mx-auto p-0">
@@ -784,7 +766,6 @@ export function ProviderSignupForm({
                                 className="h-12"
                             />
                         </div>
-
                         {/* Title */}
                         <h2 className="text-2xl font-semibold text-[rgb(0,0,122)] text-center mb-2">
                             Enter Your Phone Number
@@ -793,7 +774,6 @@ export function ProviderSignupForm({
                             We'll use this for verification and important
                             updates
                         </p>
-
                         {/* Phone Input Section */}
                         <div className="space-y-2">
                             <Label htmlFor="phone" className="text-gray-700">
@@ -804,7 +784,6 @@ export function ProviderSignupForm({
                                 <div className="p-3 bg-gray-100 text-gray-700 border-r text-sm font-medium">
                                   🇰🇪 +254
                                 </div>
-
                                 {/* Phone Number Input */}
                                 <Input
                                     id="phone"
@@ -832,7 +811,6 @@ export function ProviderSignupForm({
                                     }}
                                 />
                             </div>
-
                             <p className="text-xs text-gray-500">
                                 Enter your 9-digit phone number starting
                                 with 7 or 1
@@ -868,9 +846,8 @@ export function ProviderSignupForm({
                         )}
                     </div>
                 )
-                
-                
-
+               
+               
             case 4:
                 return (
                     <div className="space-y-6 animate-fade-in">
@@ -923,7 +900,6 @@ export function ProviderSignupForm({
                                             </div>
                                         </div>
                                     </label>
-
                                     {/* Phone Option */}
                                     <label
                                         htmlFor="phone-otp"
@@ -960,7 +936,6 @@ export function ProviderSignupForm({
                         </div>
                     </div>
                 );
-
             case 5:
                 return (
                     <div className="space-y-6 animate-fade-in">
@@ -982,30 +957,27 @@ export function ProviderSignupForm({
                                     ? "email"
                                     : "phone"}
                             </p>
-
                             <div className="space-y-2">
-                                <Input
-                                    id="otp"
-                                    type="text"
-                                    placeholder="6-digit code"
-                                    maxLength={6}
-                                    className="text-center text-lg tracking-widest"
-                                    value={formData.otp}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, "");
-                                        updateFormData({ otp: value });
-                                    }}
-                                />
-
-                                <Button
-                                    onClick={handleVerifyOTP}
-                                    className="w-full bg-[#00a63e] hover:bg-[#008c34] text-white"
-                                    disabled={!formData.otp || formData.otp.length !== 6 || isSubmitting}
-                                >
-                                    {isSubmitting ? "Verifying..." : "Verify"}
-                                </Button>
-
-                                {/* Timer and resend logic */}
+                                <div className="relative">
+                                    <Input
+                                        id="otp"
+                                        type="text"
+                                        placeholder="6-digit code"
+                                        maxLength={6}
+                                        className="text-center text-lg tracking-widest"
+                                        value={formData.otp}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, "");
+                                            updateFormData({ otp: value });
+                                        }}
+                                        disabled={isAutoVerifying}
+                                    />
+                                    {isAutoVerifying && (
+                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                                        </div>
+                                    )}
+                                </div>
                                 {timerActive && otpTimer > 0 ? (
                                     <div className="flex items-center justify-between mt-2">
                                         <span className="text-sm text-gray-500">Resend available in {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, '0')}</span>
@@ -1017,312 +989,293 @@ export function ProviderSignupForm({
                                             type="button"
                                             className="text-[#00a63e] hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
                                             onClick={handleResendOTP}
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || isAutoVerifying}
                                         >
                                             Resend
                                         </button>
                                     </p>
                                 )}
-
-                                {/* Send verification code button removed - OTP is auto-sent when entering this step */}
                             </div>
                         </div>
                     </div>
                 );
-
             // case 6:
-            //     if (providerType === "HARDWARE") {
-            //         return (
-            //             <div className="space-y-6 animate-fade-in">
-            //                 <div className="space-y-4">
-            //                     {/* Logo */}
-            //                     <div className="flex justify-center">
-            //                         <img
-            //                             src="/jagedologo.png"
-            //                             alt="JaGedo Logo"
-            //                             className="h-12 mb-6"
-            //                         />
-            //                     </div>
-            //                     <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[30rem]">
-            //                         <div className="flex justify-center pb-7">
-            //                             <h2 className="text-xl font-semibold">
-            //                                 Hardware Information
-            //                             </h2>
-            //                         </div>
-
-            //                         {/* Hardware Name */}
-            //                         <div className="space-y-2 mb-6">
-            //                             <Label htmlFor="organizationName">
-            //                                 Hardware Name
-            //                             </Label>
-            //                             <Input
-            //                                 id="organizationName"
-            //                                 placeholder="Enter your hardware business name"
-            //                                 value={formData.organizationName}
-            //                                 onChange={(e) =>
-            //                                     updateFormData({
-            //                                         organizationName: e.target.value
-            //                                     })
-            //                                 }
-            //                             />
-            //                         </div>
-
-            //                         {/* Contact Person Section */}
-            //                         <div className="border-t pt-6">
-            //                             <h3 className="text-lg font-medium mb-4 text-center text-gray-700">
-            //                                 Contact Person Details
-            //                             </h3>
-
-            //                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            //                                 <div className="space-y-2">
-            //                                     <Label htmlFor="contactFirstName">
-            //                                         First name
-            //                                     </Label>
-            //                                     <Input
-            //                                         id="contactFirstName"
-            //                                         placeholder="Contact person first name"
-            //                                         value={formData.contactFirstName}
-            //                                         onChange={(e) =>
-            //                                             updateFormData({
-            //                                                 contactFirstName: e.target.value
-            //                                             })
-            //                                         }
-            //                                     />
-            //                                 </div>
-
-            //                                 <div className="space-y-2">
-            //                                     <Label htmlFor="contactLastName">
-            //                                         Last name
-            //                                     </Label>
-            //                                     <Input
-            //                                         id="contactLastName"
-            //                                         placeholder="Contact person last name"
-            //                                         value={formData.contactLastName}
-            //                                         onChange={(e) =>
-            //                                             updateFormData({
-            //                                                 contactLastName: e.target.value
-            //                                             })
-            //                                         }
-            //                                     />
-            //                                 </div>
-
-            //                                 <div className="space-y-2">
-            //                                     <Label htmlFor="contactPhone">
-            //                                         Contact
-            //                                     </Label>
-            //                                     <Input
-            //                                         id="contactPhone"
-            //                                         placeholder="Contact person phone number"
-            //                                         value={formData.contactPhone}
-            //                                         onChange={(e) =>
-            //                                             updateFormData({
-            //                                                 contactPhone: e.target.value
-            //                                             })
-            //                                         }
-            //                                     />
-            //                                 </div>
-
-            //                                 <div className="space-y-2">
-            //                                     <Label htmlFor="contactEmail">
-            //                                         Email
-            //                                     </Label>
-            //                                     <Input
-            //                                         id="contactEmail"
-            //                                         type="email"
-            //                                         placeholder="Contact person email"
-            //                                         value={formData.contactEmail}
-            //                                         onChange={(e) =>
-            //                                             updateFormData({
-            //                                                 contactEmail: e.target.value
-            //                                             })
-            //                                         }
-            //                                     />
-            //                                 </div>
-            //                             </div>
-            //                         </div>
-            //                     </div>
-            //                 </div>
-            //             </div>
-            //         );
-            //     } else {
-            //         return (
-            //             <div className="space-y-6 animate-fade-in">
-            //                 <div className="space-y-4">
-            //                     {/* Logo */}
-            //                     <div className="flex justify-center">
-            //                         <img
-            //                             src="/jagedologo.png"
-            //                             alt="JaGedo Logo"
-            //                             className="h-12 mb-6"
-            //                         />
-            //                     </div>
-            //                     <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[30rem]">
-            //                         <div className="flex justify-center pb-7">
-            //                             {providerType === "HARDWARE" ? (
-            //                                 <h2 className="text-xl font-semibold">Hardware information</h2>
-            //                             ) : (
-            //                                 <h2 className="text-xl font-semibold">Personal information</h2>
-            //                             )}
-            //                         </div>
-
-            //                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            //                             <div className="space-y-2">
-            //                                 <Label htmlFor="firstName">
-            //                                     First name
-            //                                 </Label>
-            //                                 <Input
-            //                                     id="firstName"
-            //                                     placeholder="Enter your first name"
-            //                                     value={formData.firstName}
-            //                                     onChange={(e) =>
-            //                                         updateFormData({
-            //                                             firstName: e.target.value
-            //                                         })
-            //                                     }
-            //                                 />
-            //                             </div>
-
-            //                             <div className="space-y-2">
-            //                                 <Label htmlFor="lastName">
-            //                                     Last name
-            //                                 </Label>
-            //                                 <Input
-            //                                     id="lastName"
-            //                                     placeholder="Enter your last name"
-            //                                     value={formData.lastName}
-            //                                     onChange={(e) =>
-            //                                         updateFormData({
-            //                                             lastName: e.target.value
-            //                                         })
-            //                                     }
-            //                                 />
-            //                             </div>
-            //                         </div>
-
-            //                         <div className="space-y-2 mt-8">
-            //                             <Label htmlFor="gender">Gender</Label>
-            //                             <Select
-            //                                 value={formData.gender}
-            //                                 onValueChange={(value) =>
-            //                                     updateFormData({ gender: value })
-            //                                 }
-            //                             >
-            //                                 <SelectTrigger id="gender">
-            //                                     <SelectValue placeholder="Select your gender" />
-            //                                 </SelectTrigger>
-            //                                 <SelectContent className="bg-white">
-            //                                     <SelectItem value="male">
-            //                                         Male
-            //                                     </SelectItem>
-            //                                     <SelectItem value="female">
-            //                                         Female
-            //                                     </SelectItem>
-            //                                 </SelectContent>
-            //                             </Select>
-            //                         </div>
-            //                     </div>
-            //                 </div>
-            //             </div>
-            //         );
-            //     }
-
+            // if (providerType === "HARDWARE") {
+            // return (
+            // <div className="space-y-6 animate-fade-in">
+            // <div className="space-y-4">
+            // {/* Logo */}
+            // <div className="flex justify-center">
+            // <img
+            // src="/jagedologo.png"
+            // alt="JaGedo Logo"
+            // className="h-12 mb-6"
+            // />
+            // </div>
+            // <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[30rem]">
+            // <div className="flex justify-center pb-7">
+            // <h2 className="text-xl font-semibold">
+            // Hardware Information
+            // </h2>
+            // </div>
+            // {/* Hardware Name */}
+            // <div className="space-y-2 mb-6">
+            // <Label htmlFor="organizationName">
+            // Hardware Name
+            // </Label>
+            // <Input
+            // id="organizationName"
+            // placeholder="Enter your hardware business name"
+            // value={formData.organizationName}
+            // onChange={(e) =>
+            // updateFormData({
+            // organizationName: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // {/* Contact Person Section */}
+            // <div className="border-t pt-6">
+            // <h3 className="text-lg font-medium mb-4 text-center text-gray-700">
+            // Contact Person Details
+            // </h3>
+            // <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            // <div className="space-y-2">
+            // <Label htmlFor="contactFirstName">
+            // First name
+            // </Label>
+            // <Input
+            // id="contactFirstName"
+            // placeholder="Contact person first name"
+            // value={formData.contactFirstName}
+            // onChange={(e) =>
+            // updateFormData({
+            // contactFirstName: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // <div className="space-y-2">
+            // <Label htmlFor="contactLastName">
+            // Last name
+            // </Label>
+            // <Input
+            // id="contactLastName"
+            // placeholder="Contact person last name"
+            // value={formData.contactLastName}
+            // onChange={(e) =>
+            // updateFormData({
+            // contactLastName: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // <div className="space-y-2">
+            // <Label htmlFor="contactPhone">
+            // Contact
+            // </Label>
+            // <Input
+            // id="contactPhone"
+            // placeholder="Contact person phone number"
+            // value={formData.contactPhone}
+            // onChange={(e) =>
+            // updateFormData({
+            // contactPhone: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // <div className="space-y-2">
+            // <Label htmlFor="contactEmail">
+            // Email
+            // </Label>
+            // <Input
+            // id="contactEmail"
+            // type="email"
+            // placeholder="Contact person email"
+            // value={formData.contactEmail}
+            // onChange={(e) =>
+            // updateFormData({
+            // contactEmail: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // </div>
+            // </div>
+            // </div>
+            // </div>
+            // </div>
+            // );
+            // } else {
+            // return (
+            // <div className="space-y-6 animate-fade-in">
+            // <div className="space-y-4">
+            // {/* Logo */}
+            // <div className="flex justify-center">
+            // <img
+            // src="/jagedologo.png"
+            // alt="JaGedo Logo"
+            // className="h-12 mb-6"
+            // />
+            // </div>
+            // <div className="rounded-lg p-10 border border-gray-300 overflow-hidden max-w-[30rem]">
+            // <div className="flex justify-center pb-7">
+            // {providerType === "HARDWARE" ? (
+            // <h2 className="text-xl font-semibold">Hardware information</h2>
+            // ) : (
+            // <h2 className="text-xl font-semibold">Personal information</h2>
+            // )}
+            // </div>
+            // <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            // <div className="space-y-2">
+            // <Label htmlFor="firstName">
+            // First name
+            // </Label>
+            // <Input
+            // id="firstName"
+            // placeholder="Enter your first name"
+            // value={formData.firstName}
+            // onChange={(e) =>
+            // updateFormData({
+            // firstName: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // <div className="space-y-2">
+            // <Label htmlFor="lastName">
+            // Last name
+            // </Label>
+            // <Input
+            // id="lastName"
+            // placeholder="Enter your last name"
+            // value={formData.lastName}
+            // onChange={(e) =>
+            // updateFormData({
+            // lastName: e.target.value
+            // })
+            // }
+            // />
+            // </div>
+            // </div>
+            // <div className="space-y-2 mt-8">
+            // <Label htmlFor="gender">Gender</Label>
+            // <Select
+            // value={formData.gender}
+            // onValueChange={(value) =>
+            // updateFormData({ gender: value })
+            // }
+            // >
+            // <SelectTrigger id="gender">
+            // <SelectValue placeholder="Select your gender" />
+            // </SelectTrigger>
+            // <SelectContent className="bg-white">
+            // <SelectItem value="male">
+            // Male
+            // </SelectItem>
+            // <SelectItem value="female">
+            // Female
+            // </SelectItem>
+            // </SelectContent>
+            // </Select>
+            // </div>
+            // </div>
+            // </div>
+            // </div>
+            // );
+            // }
             // case 7:
-            //     return (
-            //         <div className="font-roboto px-0 xs:p-8 bg-white mt-10 rounded-2xl w-full max-w-lg mx-auto">
-            //             {/* Section Title */}
-            //             {/* Logo */}
-            //             <div className="flex justify-center">
-            //                 <img
-            //                     src="/jagedologo.png"
-            //                     alt="JaGedo Logo"
-            //                     className="h-12 mb-6"
-            //                 />
-            //             </div>
-            //             <h3 className="text-2xl font-semibold text-[rgb(0,0,122)] mt-10 xs:mt-0 mb-6 text-center">
-            //                 Location Information
-            //             </h3>
-
-            //             {/* Country Dropdown with value Kenya only */}
-            //             {/* <div className="mb-4">
-            //                 <Label htmlFor="country" className="mb-2">Country</Label>
-            //                 <select
-            //                     id="country"
-            //                     value={formData.country || "Kenya"}
-            //                     onChange={e => updateFormData({ country: e.target.value })}
-            //                     className="w-full border border-gray-300 p-2 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)] bg-white"
-            //                 >
-            //                     <option value="Kenya">Kenya</option>
-            //                 </select>
-            //             </div> */}
-
-
-            //             {/* County Input */}
-            //             <div className="mb-4">
-            //                 <Select
-            //                     value={formData.county || ""}
-            //                     onValueChange={(value) =>
-            //                         updateFormData({ county: value, subCounty: "" })
-            //                     }
-            //                 >
-            //                     <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
-            //                         <SelectValue placeholder="Select your county" />
-            //                     </SelectTrigger>
-            //                     <SelectContent className="bg-white">
-            //                         {countyList?.map((countyName) => (
-            //                             <SelectItem key={countyName} value={countyName}>
-            //                                 {countyName}
-            //                             </SelectItem>
-            //                         ))}
-            //                     </SelectContent>
-            //                 </Select>
-            //             </div>
-
-            //             {/* Sub-county Input */}
-            //             <div className="mb-4">
-            //                 <Select
-            //                     value={formData.subCounty || ""}
-            //                     onValueChange={(value) => updateFormData({ subCounty: value })}
-            //                 >
-            //                     <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
-            //                         <SelectValue placeholder="Select your sub-county" />
-            //                     </SelectTrigger>
-            //                     <SelectContent className="bg-white">
-            //                         {subCountyList?.map((sub) => (
-            //                             <SelectItem key={sub} value={sub}>
-            //                                 {sub}
-            //                             </SelectItem>
-            //                         ))}
-            //                     </SelectContent>
-            //                 </Select>
-            //             </div>
-
-            //             {/* Town Input */}
-            //             <div className="mb-4">
-            //                 <input
-            //                     type="text"
-            //                     placeholder="Town/City"
-            //                     value={formData.town}
-            //                     onChange={(e) =>
-            //                         updateFormData({ town: e.target.value })
-            //                     }
-            //                     className="border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
-            //                 />
-            //             </div>
-
-            //             {/* Estate Input */}
-            //             <div className="mb-6">
-            //                 <input
-            //                     type="text"
-            //                     placeholder="Estate/Village"
-            //                     value={formData.estate}
-            //                     onChange={(e) =>
-            //                         updateFormData({ estate: e.target.value })
-            //                     }
-            //                     className="border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
-            //                 />
-            //             </div>
-            //         </div>
-            //     );
+            // return (
+            // <div className="font-roboto px-0 xs:p-8 bg-white mt-10 rounded-2xl w-full max-w-lg mx-auto">
+            // {/* Section Title */}
+            // {/* Logo */}
+            // <div className="flex justify-center">
+            // <img
+            // src="/jagedologo.png"
+            // alt="JaGedo Logo"
+            // className="h-12 mb-6"
+            // />
+            // </div>
+            // <h3 className="text-2xl font-semibold text-[rgb(0,0,122)] mt-10 xs:mt-0 mb-6 text-center">
+            // Location Information
+            // </h3>
+            // {/* Country Dropdown with value Kenya only */}
+            // {/* <div className="mb-4">
+            // <Label htmlFor="country" className="mb-2">Country</Label>
+            // <select
+            // id="country"
+            // value={formData.country || "Kenya"}
+            // onChange={e => updateFormData({ country: e.target.value })}
+            // className="w-full border border-gray-300 p-2 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)] bg-white"
+            // >
+            // <option value="Kenya">Kenya</option>
+            // </select>
+            // </div> */}
+            // {/* County Input */}
+            // <div className="mb-4">
+            // <Select
+            // value={formData.county || ""}
+            // onValueChange={(value) =>
+            // updateFormData({ county: value, subCounty: "" })
+            // }
+            // >
+            // <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
+            // <SelectValue placeholder="Select your county" />
+            // </SelectTrigger>
+            // <SelectContent className="bg-white">
+            // {countyList?.map((countyName) => (
+            // <SelectItem key={countyName} value={countyName}>
+            // {countyName}
+            // </SelectItem>
+            // ))}
+            // </SelectContent>
+            // </Select>
+            // </div>
+            // {/* Sub-county Input */}
+            // <div className="mb-4">
+            // <Select
+            // value={formData.subCounty || ""}
+            // onValueChange={(value) => updateFormData({ subCounty: value })}
+            // >
+            // <SelectTrigger className="w-full border border-gray-300 p-3 h-auto rounded-lg focus:ring-2 focus:ring-[rgb(0,0,122)]">
+            // <SelectValue placeholder="Select your sub-county" />
+            // </SelectTrigger>
+            // <SelectContent className="bg-white">
+            // {subCountyList?.map((sub) => (
+            // <SelectItem key={sub} value={sub}>
+            // {sub}
+            // </SelectItem>
+            // ))}
+            // </SelectContent>
+            // </Select>
+            // </div>
+            // {/* Town Input */}
+            // <div className="mb-4">
+            // <input
+            // type="text"
+            // placeholder="Town/City"
+            // value={formData.town}
+            // onChange={(e) =>
+            // updateFormData({ town: e.target.value })
+            // }
+            // className="border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
+            // />
+            // </div>
+            // {/* Estate Input */}
+            // <div className="mb-6">
+            // <input
+            // type="text"
+            // placeholder="Estate/Village"
+            // value={formData.estate}
+            // onChange={(e) =>
+            // updateFormData({ estate: e.target.value })
+            // }
+            // className="border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[rgb(0,0,122)]"
+            // />
+            // </div>
+            // </div>
+            // );
             case 6:
                 return (
                     <div className="space-y-6 animate-fade-in max-w-md mx-auto">
@@ -1337,7 +1290,6 @@ export function ProviderSignupForm({
                                 Security
                             </h2>
                         </div>
-
                         {/* Password Fields */}
                         <div className="space-y-4">
                             {/* Password Input */}
@@ -1398,7 +1350,6 @@ export function ProviderSignupForm({
                                     {formData.password && /[^A-Za-z0-9]/.test(formData.password) ? <Check className="h-4 w-4 flex-shrink-0" /> : <span className="h-4 w-4 flex-shrink-0 text-center">&#x2022;</span>} One special character
                                 </p>
                             </div>
-
                             {/* Confirm Password Input */}
                             <div className="space-y-1">
                                 <Label
@@ -1448,7 +1399,6 @@ export function ProviderSignupForm({
                                 </div>
                             </div>
                         </div>
-
                         {/* Terms Checkbox */}
                         <div className="flex items-center space-x-4 mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
                             <input
@@ -1493,9 +1443,7 @@ export function ProviderSignupForm({
                 return null;
         }
     };
-
     const isLastStep = currentStep === 6;
-
     return (
         <form
             onSubmit={(e) => {
@@ -1510,7 +1458,6 @@ export function ProviderSignupForm({
         >
             <Toaster position="top-center" richColors />
             {renderStepContent()}
-
             <div className="flex justify-between pt-4">
                 {currentStep > 1 ? (
                     <Button type="button" variant="outline" onClick={prevStep}>
@@ -1519,8 +1466,7 @@ export function ProviderSignupForm({
                 ) : (
                     <div></div>
                 )}
-
-                {/* Hide Next/Continue button on step 5 - Verify button handles advancement */}
+                {/* Hide Next/Continue button on step 5 - auto-verification handles advancement */}
                 {currentStep !== 5 && (
                     <Button
                         type="submit"
