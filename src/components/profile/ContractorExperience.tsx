@@ -82,6 +82,19 @@ const ContractorExperience = () => {
     },
     
   ];
+useEffect(() => {
+  const handleProfileUpdate = (e: CustomEvent) => {
+    if (e.detail.type === "contractor") {
+      setSidebarStatus("complete"); // or whatever your sidebar state updater is
+    }
+  };
+
+  window.addEventListener("profileUpdated", handleProfileUpdate as EventListener);
+
+  return () => {
+    window.removeEventListener("profileUpdated", handleProfileUpdate as EventListener);
+  };
+}, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -337,29 +350,32 @@ const handleCategoryChange = (id: string, value: string) => {
     if (projects.length <= 1) return toast.error("You must have at least one project.");
     setProjects(prev => prev.filter(proj => proj.id !== id));
   };
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
+  // Validation
+  if (categories.some(c => !c.category || !c.categoryClass || !c.yearsOfExperience) || projects.some(p => !p.projectName)) {
+    return toast.error("Please fill in all required fields.");
+  }
 
-    if (categories.some(c => !c.category || !c.categoryClass || !c.yearsOfExperience) || projects.some(p => !p.projectName)) {
-      return toast.error("Please fill in all required fields.");
-    }
+  setIsSubmitting(true);
+  try {
+    await toast.promise(updateExperienceOnServer(categories, projects), {
+      loading: "Processing submission...",
+      success: "Experience updated successfully!",
+      error: (err: any) => err.response?.data?.message || "Failed to update experience."
+    });
 
-    setIsSubmitting(true);
-    try {
-      await toast.promise(updateExperienceOnServer(categories, projects), {
-        loading: "Processing submission...",
-        success: "Experience updated successfully!",
-        error: (err: any) => err.response?.data?.message || "Failed to update experience."
-      });
-      setSubmitted(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    setSubmitted(true); // Shows the success message
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
 
   const fileInputStyles = "w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors cursor-pointer";
   const inputStyles = "w-full p-2 border rounded-md mt-1 md:mt-0 disabled:bg-gray-100 disabled:cursor-not-allowed";

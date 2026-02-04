@@ -1,7 +1,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -51,6 +52,8 @@ export default function Login() {
   const [isOtpFlow, setIsOtpFlow] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
+  const [otpTimer, setOtpTimer] = useState(0);
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -61,6 +64,17 @@ export default function Login() {
   });
 
   const [errors, setErrors] = useState({});
+  useEffect(() => {
+  if (!otpSent) return;
+  if (otpTimer === 0) return;
+
+  const interval = setInterval(() => {
+    setOtpTimer((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [otpSent, otpTimer]);
+
 
   /* =====================
      VALIDATION
@@ -94,17 +108,75 @@ export default function Login() {
   /* =====================
      SUBMIT HANDLER
   ===================== */
-  const handleSubmit = (e) => {
+//   const handleSubmit = (e) => {
+//   e.preventDefault();
+//   if (!validateForm()) return;
+
+//   setIsLoading(true);
+
+//   setTimeout(() => {
+//     const username = formData.email.trim();
+//     const password = formData.password;
+
+//     completeLogin(username, password);
+//     setIsLoading(false);
+//   }, 800);
+// };
+
+const handleSubmit = (e) => {
   e.preventDefault();
+
   if (!validateForm()) return;
 
+  // =====================
+  // OTP LOGIN FLOW
+  // =====================
+  if (isOtpFlow) {
+
+    // STEP 1: SEND OTP
+    if (!otpSent) {
+  setOtpSent(true);      // show OTP input
+  setOtpTimer(120);      // start 2-minute timer
+  toast.success("OTP sent");
+  return;
+}
+
+    // STEP 2: VERIFY OTP
+    if (otp.length !== 6) {
+      toast.error("Enter 6-digit OTP");
+      return;
+    }
+
+    // OTP is correct (mock)
+    // OTP verified (mock)
+
+// 1. Find user by email / username
+const username = formData.email.trim();
+
+const user = MOCK_USERS.find(
+  (u) => u.username === username
+);
+
+if (!user) {
+  toast.error("User not found");
+  return;
+}
+
+// 2. Login using real user data
+completeLogin(user.username, user.password);
+return;
+
+  }
+
+  // =====================
+  // PASSWORD LOGIN FLOW
+  // =====================
   setIsLoading(true);
-
   setTimeout(() => {
-    const username = formData.email.trim();
-    const password = formData.password;
-
-    completeLogin(username, password);
+    completeLogin(
+      formData.email.trim(),
+      formData.password
+    );
     setIsLoading(false);
   }, 800);
 };
@@ -348,6 +420,28 @@ const redirectUser = (user) => {
               )}
             </>
           )}
+{isOtpFlow && otpSent && otpTimer > 0 && (
+  <p className="text-sm text-gray-500">
+    Didn’t receive OTP? You can resend in{" "}
+    {Math.floor(otpTimer / 60)}:
+    {(otpTimer % 60).toString().padStart(2, "0")}
+  </p>
+)}
+{isOtpFlow && otpSent && otpTimer === 0 && (
+  <button
+    type="button"
+    className="text-blue-600 text-sm"
+    onClick={() => {
+      setOtp("");
+      setOtpTimer(120); // restart wait time
+      toast.success("OTP resent");
+    }}
+  >
+    Resend OTP
+  </button>
+)}
+
+
 
           {!isOtpFlow && (
             <div className="relative">

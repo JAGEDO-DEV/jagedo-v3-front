@@ -25,7 +25,7 @@ const experienceItem = {
 // Account uploads (all users)
 const uploadsItem = {
   id: 'account-uploads',
-  label: 'Account Uploads',
+  label: 'Uploads',
   icon: Upload,
   color: 'text-purple-600',
   status: 'incomplete',

@@ -111,18 +111,20 @@ const FundiExperience = () => {
   useEffect(() => {
     setVisibleProjectRows(requiredProjectsByGrade[grade] || 0);
   }, [grade]);
+const handleFileChange = (rowId: number, file: File | null) => {
+  if (!file) return;
 
-  const handleFileChange = (rowId: number, file: File | null) => {
-    if (!file) return;
-    setAttachments(prev =>
-      prev.map(item =>
-        item.id === rowId && item.files.length < 3
-          ? { ...item, files: [...item.files, file] }
-          : item
-      )
-    );
-  };
+  setAttachments(prev =>
+    prev.map(item =>
+      item.id === rowId && item.files.length < 3
+        ? { ...item, files: [...item.files, file] }
+        : item
+    )
+  );
 
+  // Trigger sidebar update whenever a new file is added
+  window.dispatchEvent(new Event('storage'));
+};
   const removeFile = async (rowId: number, fileIndex: number) => {
     const updatedAttachments = attachments.map(item => {
       if (item.id === rowId) {
@@ -156,55 +158,84 @@ const FundiExperience = () => {
     }
   };
 
-  const handleProjectNameChange = (rowId: number, name: string) => {
-    setAttachments(prev => prev.map(item => item.id === rowId ? { ...item, projectName: name } : item));
-  };
+const handleProjectNameChange = (rowId: number, name: string) => {
+  setAttachments(prev =>
+    prev.map(item => (item.id === rowId ? { ...item, projectName: name } : item))
+  );
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
-    if (!grade || !experience) return toast.error("Please select a grade and experience.");
+  // Trigger sidebar update whenever a project name changes
+  window.dispatchEvent(new Event('storage'));
+};
 
-    const requiredProjects = requiredProjectsByGrade[grade] || 0;
-    const submittedProjects = attachments.slice(0, requiredProjects).filter(att => att.projectName.trim() !== "" && att.files.length > 0);
 
-    if (submittedProjects.length < requiredProjects) {
-      return toast.error(`Please add ${requiredProjects} project(s) for the "${grade.split(':')[1].trim()}" grade.`);
-    }
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
+  if (!grade || !experience) return toast.error("Please select a grade and experience.");
 
-    setIsSubmitting(true);
+  const requiredProjects = requiredProjectsByGrade[grade] || 0;
+  const submittedProjects = attachments
+    .slice(0, requiredProjects)
+    .filter(att => att.projectName.trim() !== "" && att.files.length > 0);
 
-    const submissionPromise = async () => {
-      const allFilePromises = submittedProjects.flatMap(project =>
+  if (submittedProjects.length < requiredProjects) {
+    return toast.error(
+      `Please add ${requiredProjects} project(s) for the "${grade.split(':')[1].trim()}" grade.`
+    );
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    // 1️⃣ Upload all files
+    const uploadedFiles = await Promise.all(
+      submittedProjects.flatMap(project =>
         project.files.map(file =>
-          file instanceof File ? uploadFile(file).then(up => ({ projectName: project.projectName, fileUrl: up.url })) : Promise.resolve({ projectName: project.projectName, fileUrl: file })
+          file instanceof File
+            ? uploadFile(file).then(res => ({ projectName: project.projectName, fileUrl: res.url }))
+            : Promise.resolve({ projectName: project.projectName, fileUrl: file.toString() })
         )
-      );
-      const previousJobPhotoUrls = await Promise.all(allFilePromises);
-     await updateFundiExperience(axiosInstance, {
-        skill: "Plumber",
-        specialization,
-        grade,
-        experience,
-        previousJobPhotoUrls,
-      });
+      )
+    );
+
+    // 2️⃣ Prepare payload exactly like contractor
+    const payload = {
+      skill: "Plumber",
+      specialization: specialization || null, // backend expects null for empty
+      grade,
+      experience,
+      previousJobPhotoUrls: uploadedFiles, // make sure it's an array of { projectName, fileUrl }
     };
 
-    try {
-      await toast.promise(submissionPromise(), {
-        loading: "Processing your submission...",
-        success: "Experience updated successfully!",
-        error: (err: any) => err.response?.data?.message || "Failed to update experience.",
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-      
-      // ✅ NEW: Trigger sidebar to update completion status
-      window.dispatchEvent(new Event('storage'));
+    console.log("Submitting payload:", payload);
+
+    // 3️⃣ Call API
+    const response = await updateFundiExperience(axiosInstance, payload);
+
+    if (response.success) {
+      toast.success("Experience updated successfully!");
+
+      // 4️⃣ Trigger sidebar update exactly like Contractor
+      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: { type: "fundi" } }));
+
+      // optional: update local state if needed
+      setAttachments(submittedProjects.map((p, idx) => ({
+        id: idx + 1,
+        projectName: p.projectName,
+        files: p.files,
+      })));
+    } else {
+      toast.error(response.message || "Failed to update experience");
     }
-  };
+  } catch (err: any) {
+    console.error("Submit failed:", err);
+    toast.error(err.response?.data?.message || "Failed to update experience");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
 
   if (isLoadingProfile) return <div className="flex items-center justify-center p-8">Loading...</div>;
 
