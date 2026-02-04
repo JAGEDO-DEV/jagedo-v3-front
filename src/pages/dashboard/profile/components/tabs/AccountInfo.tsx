@@ -722,7 +722,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">
-                        Phone Number
+                        Phone Numberertt
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
                         {editingField === "phoneNumber" ? (
