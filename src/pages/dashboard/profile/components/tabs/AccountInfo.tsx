@@ -449,43 +449,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
               <h1 className="text-2xl md:text-3xl font-bold mb-6">
                 Account Info
               </h1>
-              {/* Profile Status Badge */}
-              <div className="mb-4">
-                {userData?.status === "VERIFIED" || userData?.adminApproved ? (
-                  <div className="flex items-center space-x-1">
-                    {[...Array(5)].map((_, index) => (
-                      <Star
-                        key={index}
-                        className="text-yellow-400 w-5 h-5"
-                        fill="currentColor"
-                      />
-                    ))}
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 ml-2">
-                      Verified
-                    </span>
-                  </div>
-                ) : userData?.status === "PENDING" ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
-                    Pending Review
+              {showVerificationMessage && (
+                <div className="flex items-center space-x-1 mb-4">
+                  {[...Array(5)].map((_, index) => (
+                    <Star
+                      key={index}
+                      className="text-yellow-400 w-5 h-5"
+                      fill="currentColor"
+                    />
+                  ))}
+                  <span className="text-sm text-green-600 font-medium ml-2">
+                    Verified
                   </span>
-                ) : userData?.status === "COMPLETED" ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    Completed - Awaiting Verification
-                  </span>
-                ) : userData?.status === "RETURNED" ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                    Returned - Action Required
-                  </span>
-                ) : userData?.status === "INCOMPLETE" ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    Incomplete
-                  </span>
-                ) : userData?.status === "SIGNED_UP" ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                    Signed Up - Profile Incomplete
-                  </span>
-                ) : null}
-              </div>
+                </div>
+              )}
               <div className="flex flex-col items-start mb-6">
                 <img
                   alt="avatar"
@@ -515,18 +492,60 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 {/* ORGANIZATION SPECIFIC SECTION (CONTRACTOR & HARDWARE) */}
                 {(userData?.userType === "HARDWARE" || userData?.userType === "CONTRACTOR") && (
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg mb-6">
-                    {/* Contact Person for CONTRACTOR and HARDWARE */}
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium">Contact Person</label>
+                      <label className="block text-sm font-medium">
+                        {userData?.userType === "HARDWARE" ? "Hardware Name" : "Company Name"}
+                      </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        <input
-                          type="text"
-                          value={userData?.contactFullName || userData?.contactFirstName && userData?.contactLastName
-                            ? `${userData.contactFirstName} ${userData.contactLastName}`
-                            : "N/A"}
-                          className="w-full px-4 py-2 outline-none bg-transparent"
-                          readOnly
-                        />
+                        {editingField === "name" ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editValues.name}
+                              onChange={(e) => handleEditChange("name", e.target.value)}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              disabled={isUpdating}
+                            />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditSave("name")}
+                                disabled={isUpdating}
+                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <FiCheck size={15} />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleEditCancel}
+                                disabled={isUpdating}
+                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                              >
+                                <FiX size={15} />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              value={userData?.organizationName || name || "N/A"}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              readOnly
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditStart("name")}
+                              className="text-blue-900 cursor-pointer hover:opacity-75"
+                            >
+                              <FiEdit size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 

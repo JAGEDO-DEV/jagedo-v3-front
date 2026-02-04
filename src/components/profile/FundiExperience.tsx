@@ -1,19 +1,30 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
-import { updateFundiExperience } from "@/api/experience.api";
-import { uploadFile } from "@/utils/fileUpload";
-import { getProviderProfile } from "@/api/provider.api";
-import { useGlobalContext } from "@/context/GlobalProvider";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface FundiAttachment {
   id: number;
   projectName: string;
-  files: (File | string)[];
+  files: string[];
 }
+
+const STORAGE_KEY = "fundi_experience";
+
+const saveToStorage = (data: any) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+
+const loadFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 
 const requiredProjectsByGrade: { [key: string]: number } = {
   "G1: Master Fundi": 3,
@@ -33,323 +44,181 @@ const fundiSpecializations = [
   "Solar Water Systems",
 ];
 
-// Prefilled projects tailored for a Plumber
 const prefilledAttachments: FundiAttachment[] = [
-  {
-    id: 1,
-    projectName: "Central Mall Renovation",
-    files: [
-      "https://example.com/mall1.jpg",
-    ],
-  },
-  {
-    id: 2,
-    projectName: "River Bridge Construction",
-    files: ["https://example.com/bridge1.jpg"],
-  },
-  {
-    id: 3,
-    projectName: "School Classroom Setup",
-     files: ["https://example.com/mall2.jpg"]
-    
-  }
+  { id: 1, projectName: "Central Mall Renovation", files: [] },
+  { id: 2, projectName: "River Bridge Construction", files: [] },
+  { id: 3, projectName: "School Classroom Setup", files: [] },
 ];
 
 const FundiExperience = () => {
-  const { user } = useGlobalContext();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [attachments, setAttachments] = useState<FundiAttachment[]>(prefilledAttachments);
   const [grade, setGrade] = useState("G1: Master Fundi");
   const [experience, setExperience] = useState("10+ years");
-  const [evaluationResults, setEvaluationResults] = useState<any>(null);
   const [visibleProjectRows, setVisibleProjectRows] = useState(requiredProjectsByGrade[grade]);
   const [specialization, setSpecialization] = useState("");
 
-  const isReadOnly = user?.adminApproved === true;
+  const isReadOnly = false;
 
-  useEffect(() => {
-    const fetchExperience = async () => {
-      try {
-        const response = await getProviderProfile(axiosInstance, user.id);
-        if (response.success && response.data) {
-          const data = response.data.userProfile;
-          if (data.grade) setGrade(data.grade);
-          if (data.experience) setExperience(data.experience);
-          if (data.specialization) setSpecialization(data.specialization);
+useEffect(() => {
+  const saved = loadFromStorage();
+  if (saved) {
+    setGrade(saved.grade ?? "G1: Master Fundi");
+    setExperience(saved.experience ?? "10+ years");
+    setSpecialization(saved.specialization ?? "");
+    setAttachments(saved.attachments ?? prefilledAttachments);
+  }
+  setIsLoadingProfile(false);
+}, []);
 
-          if (data.fundiEvaluation) setEvaluationResults(data.fundiEvaluation);
-          if (data.previousJobPhotoUrls && data.previousJobPhotoUrls.length > 0) {
-            const groupedProjects = data.previousJobPhotoUrls.reduce((acc: any, item: any) => {
-              acc[item.projectName] = acc[item.projectName] || [];
-              acc[item.projectName].push(item.fileUrl);
-              return acc;
-            }, {});
-            const populatedAttachments = Object.entries(groupedProjects).map(([projectName, files], index) => ({
-              id: index + 1,
-              projectName,
-              files: files as string[],
-            }));
-            while (populatedAttachments.length < 3) {
-              populatedAttachments.push({ id: populatedAttachments.length + 1, projectName: "", files: [] });
-            }
-            setAttachments(populatedAttachments);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch fundi experience:", error);
-        toast.error("Could not load your existing experience data.");
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-    fetchExperience();
-  }, [user.id]);
 
   useEffect(() => {
     setVisibleProjectRows(requiredProjectsByGrade[grade] || 0);
   }, [grade]);
-const handleFileChange = (rowId: number, file: File | null) => {
-  if (!file) return;
 
-  setAttachments(prev =>
-    prev.map(item =>
-      item.id === rowId && item.files.length < 3
-        ? { ...item, files: [...item.files, file] }
-        : item
-    )
-  );
+  useEffect(() => {
+    saveToStorage({ grade, experience, specialization, attachments });
+  }, [grade, experience, specialization, attachments]);
 
-  // Trigger sidebar update whenever a new file is added
-  window.dispatchEvent(new Event('storage'));
-};
-  const removeFile = async (rowId: number, fileIndex: number) => {
-    const updatedAttachments = attachments.map(item => {
-      if (item.id === rowId) {
-        const newFiles = [...item.files];
-        newFiles.splice(fileIndex, 1);
-        return { ...item, files: newFiles };
-      }
-      return item;
-    });
+  const handleFileChange = (rowId: number, file: File | null) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
 
-    const deletePromise = async () => {
-      const projectsWithData = updatedAttachments.filter(att => att.projectName.trim() !== "" && att.files.length > 0);
-      const allFilePromises = projectsWithData.flatMap(project =>
-        project.files.map(file =>
-          file instanceof File ? uploadFile(file).then(up => ({ projectName: project.projectName, fileUrl: up.url })) : Promise.resolve({ projectName: project.projectName, fileUrl: file })
-        )
-      );
-      const previousJobPhotoUrls = await Promise.all(allFilePromises);
-      await updateFundiExperience(axiosInstance, { skill: "Plumber", grade, experience, previousJobPhotoUrls });
-    };
-
-    try {
-      await toast.promise(deletePromise(), {
-        loading: "Deleting file...",
-        success: "File deleted successfully!",
-        error: (err: any) => err.response?.data?.message || "Failed to delete file.",
-      });
-      setAttachments(updatedAttachments);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-const handleProjectNameChange = (rowId: number, name: string) => {
-  setAttachments(prev =>
-    prev.map(item => (item.id === rowId ? { ...item, projectName: name } : item))
-  );
-
-  // Trigger sidebar update whenever a project name changes
-  window.dispatchEvent(new Event('storage'));
-};
-
-
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
-  if (!grade || !experience) return toast.error("Please select a grade and experience.");
-
-  const requiredProjects = requiredProjectsByGrade[grade] || 0;
-  const submittedProjects = attachments
-    .slice(0, requiredProjects)
-    .filter(att => att.projectName.trim() !== "" && att.files.length > 0);
-
-  if (submittedProjects.length < requiredProjects) {
-    return toast.error(
-      `Please add ${requiredProjects} project(s) for the "${grade.split(':')[1].trim()}" grade.`
-    );
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    // 1️⃣ Upload all files
-    const uploadedFiles = await Promise.all(
-      submittedProjects.flatMap(project =>
-        project.files.map(file =>
-          file instanceof File
-            ? uploadFile(file).then(res => ({ projectName: project.projectName, fileUrl: res.url }))
-            : Promise.resolve({ projectName: project.projectName, fileUrl: file.toString() })
-        )
+    setAttachments(prev =>
+      prev.map(item =>
+        item.id === rowId && item.files.length < 3
+          ? { ...item, files: [...item.files, preview] }
+          : item
       )
     );
+  };
 
-    // 2️⃣ Prepare payload exactly like contractor
-    const payload = {
-      skill: "Plumber",
-      specialization: specialization || null, // backend expects null for empty
-      grade,
-      experience,
-      previousJobPhotoUrls: uploadedFiles, // make sure it's an array of { projectName, fileUrl }
-    };
+  const removeFile = (rowId: number, fileIndex: number) => {
+    setAttachments(prev =>
+      prev.map(item =>
+        item.id === rowId
+          ? { ...item, files: item.files.filter((_, i) => i !== fileIndex) }
+          : item
+      )
+    );
+  };
 
-    console.log("Submitting payload:", payload);
+  const handleProjectNameChange = (rowId: number, name: string) => {
+    setAttachments(prev =>
+      prev.map(item => (item.id === rowId ? { ...item, projectName: name } : item))
+    );
+  };
 
-    // 3️⃣ Call API
-    const response = await updateFundiExperience(axiosInstance, payload);
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-    if (response.success) {
-      toast.success("Experience updated successfully!");
+    const required = requiredProjectsByGrade[grade];
+    const valid = attachments
+      .slice(0, required)
+      .filter(a => a.projectName.trim() && a.files.length > 0);
 
-      // 4️⃣ Trigger sidebar update exactly like Contractor
-      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: { type: "fundi" } }));
-
-      // optional: update local state if needed
-      setAttachments(submittedProjects.map((p, idx) => ({
-        id: idx + 1,
-        projectName: p.projectName,
-        files: p.files,
-      })));
-    } else {
-      toast.error(response.message || "Failed to update experience");
+    if (valid.length < required) {
+      return toast.error(`Please add ${required} complete project(s).`);
     }
-  } catch (err: any) {
-    console.error("Submit failed:", err);
-    toast.error(err.response?.data?.message || "Failed to update experience");
-  } finally {
+
+    saveToStorage({ grade, experience, specialization, attachments });
+    toast.success("Experience saved locally!");
     setIsSubmitting(false);
-  }
-};
+  };
 
+  if (isLoadingProfile) return <div className="p-8 text-center">Loading...</div>;
 
-
-  if (isLoadingProfile) return <div className="flex items-center justify-center p-8">Loading...</div>;
-
-  const inputStyles = "w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed";
+  const inputStyles = "w-full p-3 border rounded-lg";
 
   return (
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-4xl font-bold mb-8 text-gray-800">Fundi Experience</h1>
+        <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
+  <p className="font-semibold mb-1">Next Steps</p>
+  <ul className="list-disc pl-5 space-y-1">
+    <li>You will attend a <strong>15-minute interview</strong> after submission.</li>
+    <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
+  </ul>
+</div>
+
+
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {isReadOnly && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
-              Your profile has been approved and is read-only. Contact support for changes.
-            </div>
-          )}
-          <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-xl font-semibold mb-6 text-gray-800">Fundi Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-gray-50 p-6 rounded-xl border">
+            <div className="grid md:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Skill</label>
-                <input type="text" value="Plumber" readOnly className="w-full p-3 bg-gray-200 text-gray-700 border rounded-lg" />
+                <label>Skill</label>
+                <input value="Plumber" readOnly className="w-full p-3 bg-gray-200 rounded-lg" />
               </div>
-              <div>
-              <label className="text-sm font-medium">Specializational</label>
-              <select
-                value={specialization}
-                onChange={e => setSpecialization(e.target.value)}
-                className={inputStyles}
-                disabled={isReadOnly}
-              >
-                <option value="">Select Specialization</option>
-                {fundiSpecializations.map(spec => (
-                  <option key={spec} value={spec}>
-                    {spec}
-                  </option>
-                ))}
-              </select>
-            </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Grade</label>
-                <select value={grade} onChange={e => setGrade(e.target.value)} className={inputStyles} disabled={isReadOnly}>
-                  <option value="" disabled>Select Grade</option>
-                  {Object.keys(requiredProjectsByGrade).map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Experience</label>
-                <select value={experience} onChange={e => setExperience(e.target.value)} className={inputStyles} disabled={isReadOnly}>
-                  <option value="" disabled>Select Years</option>
-                  {["10+ years","5-10 years",  "3-5 years", "1-3 years"].map(exp => <option key={exp} value={exp}>{exp}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
 
-          <div className="overflow-x-auto border rounded-xl p-4 bg-gray-50">
-            <legend className="text-xl font-semibold mb-4 px-2 text-gray-700">Previous Projects</legend>
-            {visibleProjectRows > 0 ? (
-              <table className="w-full table-auto">
-                <thead>
-                  <tr className="bg-gray-100 text-left text-sm font-semibold text-gray-600">
-                    <th className="px-4 py-3 w-[10%]">No.</th>
-                    <th className="px-4 py-3 w-[40%]">Project Name</th>
-                    <th className="px-4 py-3 w-[50%]">Photos (Max 3)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 text-sm">
-                  {attachments.slice(0, visibleProjectRows).map(row => (
-                    <tr key={row.id} className="hover:bg-gray-100 align-top">
-                      <td className="px-4 py-4 font-semibold text-gray-500">{row.id}</td>
-                      <td className="px-4 py-4">
-                        <input type="text" value={row.projectName} onChange={e => handleProjectNameChange(row.id, e.target.value)} placeholder="Enter project name" className="w-full p-2 border rounded-lg" disabled={isReadOnly} />
-                      </td>
-                      <td className="px-4 py-4 space-y-2">
-                        {row.files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-lg">
-                            <span className="text-xs text-gray-700 truncate">{typeof file === 'string' ? new URL(file).pathname.split('/').pop() : file.name}</span>
-                            <div className="flex items-center gap-2">
-                              {typeof file === 'string' && <a href={file} target="_blank" rel="noopener noreferrer"><EyeIcon className="w-5 h-5 text-blue-600" /></a>}
-                              {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)}><XMarkIcon className="w-5 h-5 text-red-500" /></button>}
-                            </div>
-                          </div>
-                        ))}
-                        {!isReadOnly && row.files.length < 3 && <input type="file" accept="image/*" onChange={e => handleFileChange(row.id, e.target.files?.[0])} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />}
-                      </td>
-                    </tr>
+              <div>
+                <label>Specialization</label>
+                <select value={specialization} onChange={e => setSpecialization(e.target.value)} className={inputStyles}>
+                  <option value="">Select</option>
+                  {fundiSpecializations.map(spec => (
+                    <option key={spec}>{spec}</option>
                   ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">No project uploads required for this grade.</div>
-            )}
+                </select>
+              </div>
+
+              <div>
+                <label>Grade</label>
+                <select value={grade} onChange={e => setGrade(e.target.value)} className={inputStyles}>
+                  {Object.keys(requiredProjectsByGrade).map(g => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label>Experience</label>
+                <select value={experience} onChange={e => setExperience(e.target.value)} className={inputStyles}>
+                  {["10+ years", "5-10 years", "3-5 years", "1-3 years"].map(exp => (
+                    <option key={exp}>{exp}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
-          {!isReadOnly && (
-            <div className="mt-6 pt-4 text-right border-t">
-              <button type="submit" disabled={isSubmitting} className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition disabled:opacity-50 font-semibold">
-                {isSubmitting ? "Submitting..." : "Submit Experience"}
-              </button>
-            </div>
-          )}
+          <table className="w-full border">
+            <tbody>
+              {attachments.slice(0, visibleProjectRows).map(row => (
+                <tr key={row.id}>
+                  <td className="p-2">{row.id}</td>
+                  <td className="p-2">
+                    <input
+                      value={row.projectName}
+                      onChange={e => handleProjectNameChange(row.id, e.target.value)}
+                      className="w-full p-2 border"
+                    />
+                  </td>
+                  <td className="p-2">
+                    {row.files.map((f, i) => (
+                      <div key={i} className="flex justify-between">
+                        <a href={f} target="_blank"><EyeIcon className="w-4 h-4" /></a>
+                        <button type="button" onClick={() => removeFile(row.id, i)}>
+                          <XMarkIcon className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    ))}
+                    {row.files.length < 3 && (
+                      <input type="file" onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)} />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <button disabled={isSubmitting} className="bg-blue-700 text-white px-6 py-3 rounded">
+            Save Experience
+          </button>
         </form>
       </div>
     </div>
-    
   );
 };
 
 export default FundiExperience;
-
-
-
-
-
-
-
-
