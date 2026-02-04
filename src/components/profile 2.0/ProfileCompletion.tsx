@@ -315,7 +315,7 @@ const validateStep3 = (): boolean => {
     };
 
     const stepInfo = [
-        { icon: User, label: "Personal" },
+        { icon: User, label: isOrganizationType ? "Organization" : "Personal" },
         { icon: MapPin, label: "Location" },
         { icon: MessageSquare, label: "Source" },
         { icon: ShieldCheck, label: "Verify" }
