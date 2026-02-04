@@ -5,6 +5,15 @@ import { FiEdit } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { useGlobalContext } from "@/context/GlobalProvider";
 
+const isValidPhone = (phone: string) => {
+  return /^2547\d{8}$/.test(phone);
+};
+
+
+const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 function AccountInfo() {
   const fileInputRef = useRef(null);
   const { user } = useGlobalContext();
@@ -15,6 +24,60 @@ function AccountInfo() {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [phoneValue, setPhoneValue] = useState("");
   const [emailValue, setEmailValue] = useState("");
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [emailValid, setEmailValid] = useState(false);
+  const [originalPhone, setOriginalPhone] = useState("");
+
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [phoneOtpValue, setPhoneOtpValue] = useState("");
+  const [emailOtpValue, setEmailOtpValue] = useState("");
+  const [phoneOtpVerified, setPhoneOtpVerified] = useState(false);
+  const [emailOtpVerified, setEmailOtpVerified] = useState(false);
+
+  /* ---------- VALIDATION ---------- */
+  useEffect(() => {
+    setPhoneValid(isValidPhone(phoneValue));
+  }, [phoneValue]);
+
+  useEffect(() => {
+    setEmailValid(isValidEmail(emailValue));
+  }, [emailValue]);
+
+  /* ---------- OTP HELPERS ---------- */
+  const sendPhoneOtp = () => {
+    if (phoneValid && !phoneOtpSent) {
+      // TODO: Call your actual OTP API here
+      toast.success("OTP sent to new phone number");
+      setPhoneOtpSent(true);
+    }
+  };
+
+  const sendEmailOtp = () => {
+    if (emailValid && !emailOtpSent) {
+      // TODO: Call your actual OTP API here
+      toast.success("OTP sent to new email");
+      setEmailOtpSent(true);
+    }
+  };
+
+  const verifyPhoneOtp = () => {
+    if (phoneOtpValue.length === 6) {
+      // TODO: Call your actual OTP verification API here
+      // For now, we'll simulate success
+      toast.success("Phone OTP verified successfully");
+      setPhoneOtpVerified(true);
+    }
+  };
+
+  const verifyEmailOtp = () => {
+    if (emailOtpValue.length === 6) {
+      // TODO: Call your actual OTP verification API here
+      // For now, we'll simulate success
+      toast.success("Email OTP verified successfully");
+      setEmailOtpVerified(true);
+    }
+  };
 
   /* ---------- LOAD PROFILE (REAL FIX) ---------- */
   useEffect(() => {
@@ -32,12 +95,10 @@ function AccountInfo() {
       setProfile(stored);
       setPhoneValue(stored.phone || "");
       setEmailValue(stored.email || "");
-      // Load persisted image if it exists
       if (stored.avatar) {
         setImageSrc(stored.avatar);
       }
     } else if (user) {
-      // fallback to real logged-in user
       const initialProfile = {
         name: `${user.firstName} ${user.lastName}`,
         email: user.username || user.email || "",
@@ -64,25 +125,22 @@ function AccountInfo() {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 5MB)
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         toast.error("Image size must be less than 5MB");
         return;
       }
 
-      // Check file type
       if (!file.type.startsWith("image/")) {
         toast.error("Please upload an image file");
         return;
       }
 
-      // Convert to Base64 for persistence
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64String = event.target?.result;
-        setImageSrc(base64String); // Display immediately
-        saveProfile({ ...profile, avatar: base64String }); // Persist in localStorage
+        setImageSrc(base64String);
+        saveProfile({ ...profile, avatar: base64String });
         toast.success("Image uploaded successfully");
       };
       reader.onerror = () => {
@@ -96,19 +154,25 @@ function AccountInfo() {
   const handlePhoneSave = () => {
     saveProfile({ ...profile, phone: phoneValue });
     setIsEditingPhone(false);
+    setPhoneOtpSent(false);
+    setPhoneOtpValue("");
+    setPhoneOtpVerified(false);
   };
 
   /* ---------- EMAIL ---------- */
   const handleEmailSave = () => {
     saveProfile({ ...profile, email: emailValue });
     setIsEditingEmail(false);
+    setEmailOtpSent(false);
+    setEmailOtpValue("");
+    setEmailOtpVerified(false);
   };
 
   /* ---------- REMOVE IMAGE ---------- */
   const handleRemoveImage = () => {
-    setImageSrc("/profile.jpg"); // Reset to default
+    setImageSrc("/profile.jpg");
     const updatedProfile = { ...profile };
-    delete updatedProfile.avatar; // Remove avatar from profile
+    delete updatedProfile.avatar;
     saveProfile(updatedProfile);
     toast.success("Image removed");
   };
@@ -180,9 +244,22 @@ function AccountInfo() {
         label="Account Phone"
         value={phoneValue}
         editing={isEditingPhone}
-        onEdit={() => setIsEditingPhone(true)}
+        onEdit={() => {
+          setIsEditingPhone(true);
+          setPhoneOtpSent(false);
+          setPhoneOtpValue("");
+          setPhoneOtpVerified(false);
+        }}
         onChange={setPhoneValue}
         onSave={handlePhoneSave}
+        canSave={phoneOtpVerified}
+        isValid={phoneValid}
+        otpSent={phoneOtpSent}
+        otpValue={phoneOtpValue}
+        otpVerified={phoneOtpVerified}
+        onSendOtp={sendPhoneOtp}
+        onVerifyOtp={verifyPhoneOtp}
+        onOtpChange={setPhoneOtpValue}
       />
 
       {/* EMAIL */}
@@ -190,9 +267,22 @@ function AccountInfo() {
         label="Account Email"
         value={emailValue}
         editing={isEditingEmail}
-        onEdit={() => setIsEditingEmail(true)}
+        onEdit={() => {
+          setIsEditingEmail(true);
+          setEmailOtpSent(false);
+          setEmailOtpValue("");
+          setEmailOtpVerified(false);
+        }}
         onChange={setEmailValue}
         onSave={handleEmailSave}
+        canSave={emailOtpVerified}
+        isValid={emailValid}
+        otpSent={emailOtpSent}
+        otpValue={emailOtpValue}
+        otpVerified={emailOtpVerified}
+        onSendOtp={sendEmailOtp}
+        onVerifyOtp={verifyEmailOtp}
+        onOtpChange={setEmailOtpValue}
       />
     </section>
   );
@@ -218,6 +308,14 @@ const EditableField = ({
   onEdit,
   onChange,
   onSave,
+  canSave,
+  isValid,
+  otpSent,
+  otpValue,
+  otpVerified,
+  onSendOtp,
+  onVerifyOtp,
+  onOtpChange,
 }) => (
   <div className="space-y-2 mb-4">
     <label className="block text-sm font-medium">{label}</label>
@@ -225,19 +323,68 @@ const EditableField = ({
       <input
         value={value}
         readOnly={!editing}
-        onChange={(e) => onChange(e.target.value)}
+        maxLength={label.includes("Phone") ? 12 : undefined}
+        inputMode={label.includes("Phone") ? "numeric" : undefined}
+        onChange={(e) => {
+          if (label.includes("Phone")) {
+            const digitsOnly = e.target.value.replace(/\D/g, "");
+            onChange(digitsOnly);
+          } else {
+            onChange(e.target.value);
+          }
+        }}
         className="w-full px-4 py-2 outline-none bg-transparent"
       />
+
       {!editing ? (
         <button onClick={onEdit}>
           <FiEdit size={15} />
         </button>
       ) : (
-        <button onClick={onSave} className="text-blue-600 text-sm">
-          Save
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Send OTP Button */}
+          {isValid && !otpSent && (
+            <button onClick={onSendOtp} className="text-blue-600 text-sm whitespace-nowrap">
+              Send OTP
+            </button>
+          )}
+          
+          {/* Verify OTP Button */}
+          {otpSent && !otpVerified && otpValue.length === 6 && (
+            <button onClick={onVerifyOtp} className="text-blue-600 text-sm whitespace-nowrap">
+              Verify OTP
+            </button>
+          )}
+          
+          {/* Save Button */}
+          {canSave && (
+            <button onClick={onSave} className="text-green-600 text-sm whitespace-nowrap">
+              Save
+            </button>
+          )}
+        </div>
       )}
     </div>
+    
+    {/* OTP Input Field */}
+    {editing && otpSent && !otpVerified && (
+      <div className="mt-2">
+        <input
+          type="text"
+          value={otpValue}
+          onChange={(e) => {
+            const digitsOnly = e.target.value.replace(/\D/g, "");
+            if (digitsOnly.length <= 6) {
+              onOtpChange(digitsOnly);
+            }
+          }}
+          maxLength={6}
+          inputMode="numeric"
+          placeholder="Enter 6-digit OTP"
+          className="w-full px-4 py-2 border rounded outline-none"
+        />
+      </div>
+    )}
   </div>
 );
 
