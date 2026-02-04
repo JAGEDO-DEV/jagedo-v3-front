@@ -122,8 +122,8 @@ export default function CustomerSignup() {
             email: formData.email,
             password: formData.password,
             userType: "CUSTOMER",
-            firstName: formData.firstName || "Pending",
-            lastName: formData.lastName || "User",
+            // firstName: formData.firstName || "Pending",
+            // lastName: formData.lastName || "User",
             accountType: formData.accountType,
             phone: formData.phone,
             profileCompleted: false
@@ -189,7 +189,7 @@ export default function CustomerSignup() {
         setShowProfileCompletionModal(false);
         
         setTimeout(() => {
-            navigate("/profile");
+            navigate("/customer/dashboard");
         }, 1500);
     };
 

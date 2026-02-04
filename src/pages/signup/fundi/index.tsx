@@ -125,8 +125,8 @@ export default function FundiSignup() {
             email: formData.email,
             password: formData.password,
             userType: "FUNDI",
-            firstName: formData.firstName || "Pending",
-            lastName: formData.lastName || "User",
+            firstName: formData.firstName || "",
+            lastName: formData.lastName || "",
             accountType: formData.accountType,
             phone: formData.phone,
             profileCompleted: false // Flag for the dashboard to catch

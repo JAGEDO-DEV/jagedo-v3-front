@@ -20,7 +20,7 @@ export default function ContractorSignup() {
     const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
     const [registeredUser, setRegisteredUser] = useState<any>(null);
     const [formData, setFormData] = useState({
-        accountType: "INDIVIDUAL",
+        accountType: "ORGANIZATION",
         skills: "",
         profession: "",
         contractorTypes: "",
@@ -168,8 +168,6 @@ export default function ContractorSignup() {
             email: formData.email,
             password: formData.password,
             userType: "CONTRACTOR",
-            firstName: formData.firstName || "Pending",
-            lastName: formData.lastName || "User",
             accountType: formData.accountType,
             phone: formData.phone,
             profileCompleted: false

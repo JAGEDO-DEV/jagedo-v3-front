@@ -26,12 +26,58 @@ interface UploadedDocument {
   reviewedBy?: string;
 }
 
-const AccountUploads = ({ userData }: { userData: any }) => {
+// Helper to update user in localStorage
+const updateUserInLocalStorage = (
+  userId: string | number,
+  updates: Record<string, any>,
+) => {
+  try {
+    // Update in "users" array
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+    const userIdx = storedUsers.findIndex((u: any) => u.id === userId || u.id === Number(userId) || u.id === String(userId));
+    if (userIdx !== -1) {
+      storedUsers[userIdx] = { ...storedUsers[userIdx], ...updates };
+      localStorage.setItem("users", JSON.stringify(storedUsers));
+    }
+
+    // Update in "builders" array
+    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
+    const builderIdx = storedBuilders.findIndex((b: any) => b.id === userId || b.id === Number(userId) || b.id === String(userId));
+    if (builderIdx !== -1) {
+      storedBuilders[builderIdx] = { ...storedBuilders[builderIdx], ...updates };
+      localStorage.setItem("builders", JSON.stringify(storedBuilders));
+    }
+
+    // Update in "customers" array
+    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
+    const customerIdx = storedCustomers.findIndex((c: any) => c.id === userId || c.id === Number(userId) || c.id === String(userId));
+    if (customerIdx !== -1) {
+      storedCustomers[customerIdx] = { ...storedCustomers[customerIdx], ...updates };
+      localStorage.setItem("customers", JSON.stringify(storedCustomers));
+    }
+
+    // Update single "user" key
+    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
+    if (singleUser && (singleUser.id === userId || singleUser.id === Number(userId) || singleUser.id === String(userId))) {
+      localStorage.setItem("user", JSON.stringify({ ...singleUser, ...updates }));
+    }
+  } catch (err) {
+    console.error("Failed to update user in localStorage:", err);
+  }
+};
+
+interface AccountUploadsProps {
+  userData: any;
+  isAdmin?: boolean; // When true, shows admin actions (approve, reject, etc.)
+}
+
+const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
   if (!userData) return <div className="p-8">Loading...</div>;
 
   const [documents, setDocuments] = useState<Record<string, UploadedDocument>>({});
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Action modal state
   const [actionModal, setActionModal] = useState<{
@@ -119,13 +165,41 @@ const AccountUploads = ({ userData }: { userData: any }) => {
 
     // Contractor (Organization builder)
     if (userType === "contractor") {
-      return [
+      const baseDocs: DocumentItem[] = [
         ...organizationBaseDocs,
         { key: "ncaCertificate", name: "NCA Certificate", category: "certification" },
+      ];
+
+      // Add category-based documents from contractor categories
+      const contractorCategories = userData?.userProfile?.contractorCategories || userData?.userProfile?.contractorExperiences;
+      if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
+        contractorCategories.forEach((cat: any, index: number) => {
+          const categoryName = cat.category || `Category ${index + 1}`;
+          // Create a safe key from the category name
+          const safeKey = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+          // Add certificate and license for each category
+          baseDocs.push({
+            key: `${safeKey}_certificate_${index}`,
+            name: `${categoryName} Certificate`,
+            category: "certification",
+          });
+          baseDocs.push({
+            key: `${safeKey}_license_${index}`,
+            name: `${categoryName} Practice License`,
+            category: "certification",
+          });
+        });
+      }
+
+      // Add portfolio items
+      baseDocs.push(
         { key: "portfolio1", name: "Portfolio - Project 1", category: "portfolio" },
         { key: "portfolio2", name: "Portfolio - Project 2", category: "portfolio" },
-        { key: "portfolio3", name: "Portfolio - Project 3", category: "portfolio" },
-      ];
+        { key: "portfolio3", name: "Portfolio - Project 3", category: "portfolio" }
+      );
+
+      return baseDocs;
     }
 
     // Hardware (Organization builder)
@@ -421,7 +495,8 @@ const AccountUploads = ({ userData }: { userData: any }) => {
             Download
           </a>
 
-          {/* Admin Actions Dropdown */}
+          {/* Admin Actions Dropdown - Only show for admins */}
+          {isAdmin && (
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
@@ -479,6 +554,7 @@ const AccountUploads = ({ userData }: { userData: any }) => {
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Re-upload option for rejected/reupload_requested documents */}
@@ -528,7 +604,7 @@ const AccountUploads = ({ userData }: { userData: any }) => {
   };
 
   /* -------------------- Action Modal -------------------- */
-  const ActionModal = () => {
+  const renderActionModal = () => {
     if (!actionModal.isOpen) return null;
 
     const { action, docKey } = actionModal;
@@ -562,14 +638,16 @@ const AccountUploads = ({ userData }: { userData: any }) => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{config.title}</h3>
           <p className="text-sm text-gray-600 mb-4">{config.description}</p>
 
           {config.needsReason && (
             <textarea
+              autoFocus
               value={actionReason}
               onChange={(e) => setActionReason(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="Enter reason..."
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               rows={3}
@@ -578,12 +656,14 @@ const AccountUploads = ({ userData }: { userData: any }) => {
 
           <div className="flex gap-3 mt-4">
             <button
+              type="button"
               onClick={submitAction}
               className={`flex-1 py-2 px-4 text-white rounded-lg font-medium transition ${config.buttonColor}`}
             >
               {config.buttonText}
             </button>
             <button
+              type="button"
               onClick={closeActionModal}
               className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
             >
@@ -599,7 +679,7 @@ const AccountUploads = ({ userData }: { userData: any }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-center" />
-      <ActionModal />
+      {renderActionModal()}
 
       <div className="p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
@@ -670,6 +750,124 @@ const AccountUploads = ({ userData }: { userData: any }) => {
               <p className="text-gray-500">
                 There are no document requirements for this user type.
               </p>
+            </div>
+          )}
+
+          {/* Verify User Button - Show only for admins when ALL required documents are approved */}
+          {isAdmin && allDocuments.length > 0 && (
+            <div className="mt-8 border-t pt-6">
+              {approvedCount >= totalRequired ? (
+                // All documents approved - show verify button
+                !userData?.adminApproved ? (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-green-800">
+                          All Documents Approved
+                        </h3>
+                        <p className="text-sm text-green-600 mt-1">
+                          All required documents have been verified. You can now verify this user's profile.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setIsVerifying(true);
+                          updateUserInLocalStorage(userData.id, {
+                            adminApproved: true,
+                            approved: true,
+                            status: "VERIFIED",
+                          });
+                          Object.assign(userData, {
+                            adminApproved: true,
+                            approved: true,
+                            status: "VERIFIED",
+                          });
+                          toast.success("User profile has been verified successfully!");
+                          setIsVerifying(false);
+                        }}
+                        disabled={isVerifying}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isVerifying ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            Verify User
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-green-800">
+                          User Verified
+                        </h3>
+                        <p className="text-sm text-green-600">
+                          This user's profile has been verified.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : (
+                // Not all documents approved - show status
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-8 h-8 text-amber-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-amber-800">
+                        Documents Pending Review
+                      </h3>
+                      <p className="text-sm text-amber-600">
+                        {totalRequired - approvedCount} of {totalRequired} required documents still need to be approved before the user can be verified.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Status indicator for non-admin users */}
+          {!isAdmin && allDocuments.length > 0 && (
+            <div className="mt-8 border-t pt-6">
+              {userData?.adminApproved ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-800">
+                        Profile Verified
+                      </h3>
+                      <p className="text-sm text-green-600">
+                        Your profile has been verified by an administrator.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-8 h-8 text-blue-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-blue-800">
+                        Verification In Progress
+                      </h3>
+                      <p className="text-sm text-blue-600">
+                        {approvedCount} of {totalRequired} required documents have been approved. Please ensure all documents are uploaded for verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

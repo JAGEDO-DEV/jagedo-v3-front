@@ -144,8 +144,8 @@ export default function ProfessionalSignup() {
             email: formData.email,
             password: formData.password,
             userType: "PROFESSIONAL",
-            firstName: formData.firstName || "Pending",
-            lastName: formData.lastName || "User",
+            firstName: formData.firstName || "",
+            lastName: formData.lastName || "",
             accountType: formData.accountType,
             phone: formData.phone,
             profileCompleted: false

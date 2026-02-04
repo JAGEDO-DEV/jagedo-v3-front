@@ -170,7 +170,10 @@ function AccountInfo() {
       )}
 
       {/* NORMAL USERS */}
-      <Field label="Name" value={profile.name} />
+      {!(role === "contractor" || role === "hardware" ||
+        (role === "customer" && profile.type === "organization")) && (
+        <Field label="Name" value={profile.name} />
+      )}
 
       {/* PHONE */}
       <EditableField
