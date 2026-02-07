@@ -94,6 +94,8 @@ function AccountInfo() {
     // Build profile from user data
     const userProfile = user ? {
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
       email: user.username || user.email || "",
       phone: user.phone || "",
       userType: user.userType,
@@ -249,17 +251,20 @@ function AccountInfo() {
       {/* ORGANIZATION USERS - Contractors, Hardware, and Organization-type customers */}
       {(role === "contractor" || role === "hardware" ||
         (role === "customer" && (profile.type === "organization" || profile.type === "ORGANIZATION"))) && (
-        <>
-          <Field label="Organization Name" value={profile.organizationName} />
-          <Field label="Contact Person" value={profile.contactPerson} />
-        </>
-      )}
+          <>
+            <Field label="Organization Name" value={profile.organizationName} />
+            <Field label="Contact Person" value={profile.contactPerson} />
+          </>
+        )}
 
       {/* INDIVIDUAL USERS - Fundi, Professional, and Individual-type customers */}
       {!(role === "contractor" || role === "hardware" ||
         (role === "customer" && (profile.type === "organization" || profile.type === "ORGANIZATION"))) && (
-        <Field label="Name" value={profile.name} />
-      )}
+          <>
+            <Field label="First Name" value={profile.firstName} />
+            <Field label="Last Name" value={profile.lastName} />
+          </>
+        )}
 
       {/* PHONE */}
       <EditableField
@@ -370,14 +375,14 @@ const EditableField = ({
               Send OTP
             </button>
           )}
-          
+
           {/* Verify OTP Button */}
           {otpSent && !otpVerified && otpValue.length === 6 && (
             <button onClick={onVerifyOtp} className="text-blue-600 text-sm whitespace-nowrap">
               Verify OTP
             </button>
           )}
-          
+
           {/* Save Button */}
           {canSave && (
             <button onClick={onSave} className="text-green-600 text-sm whitespace-nowrap">
@@ -387,7 +392,7 @@ const EditableField = ({
         </div>
       )}
     </div>
-    
+
     {/* OTP Input Field */}
     {editing && otpSent && !otpVerified && (
       <div className="mt-2">

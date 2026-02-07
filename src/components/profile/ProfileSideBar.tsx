@@ -160,7 +160,7 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
                     setActiveComponent(item.id);
                     setIsMobileOpen(false); 
                   }}
-                  className={`hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center gap-4 rounded-xl px-2 py-3 ${isActive
+                  className={`hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center gap-4 rounded-xl px-1.5 py-3 ${isActive
                       ? "bg-blue-100 text-blue-700 font-bold"
                       : "text-gray-700"
                     }`}
