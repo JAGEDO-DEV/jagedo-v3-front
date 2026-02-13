@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getAuthHeaders } from "@/utils/auth";
 
-interface CustomerUploads {
+interface OrganizationCustomerUploads {
     businessPermit: string;
     certificateOfIncorporation: string;
+    kraPIN: string;
+}
+
+interface IndividualCustomerUploads {
+    idFrontUrl: string;
+    idBackUrl: string;
     kraPIN: string;
 }
 
@@ -31,7 +37,7 @@ interface ProfessionalDocuments {
 }
 
 // Customer uploads API
-export const uploadCustomerDocuments = async (axiosInstance: any, documents: CustomerUploads): Promise<any> => {
+export const uploadOrganizationCustomerDocuments = async (axiosInstance: any, documents: OrganizationCustomerUploads): Promise<any> => {
     try {
         const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/profiles/organization-customer/uploads`, documents, {
             headers: {
@@ -44,7 +50,7 @@ export const uploadCustomerDocuments = async (axiosInstance: any, documents: Cus
     }
 };
 
-export const uploadIndivudualCustomerDocuments = async (axiosInstance: any, documents: CustomerUploads): Promise<any> => {
+export const uploadIndividualCustomerDocuments = async (axiosInstance: any, documents: IndividualCustomerUploads): Promise<any> => {
     try {
         const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/profiles/individual-customer/uploads`, documents, {
             headers: {
@@ -120,7 +126,7 @@ export const uploadHardwareDocuments = async (axiosInstance: any, documents: any
 export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any): Promise<any> => {
     try {
         let url;
-        
+
         switch (userType.toLowerCase()) {
             case 'customer':
                 if (accountType.toLowerCase() === 'individual') {

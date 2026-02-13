@@ -6,12 +6,12 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import {
-  uploadCustomerDocuments,
   uploadContractorDocuments,
   uploadFundiDocuments,
   uploadProfessionalDocuments,
   uploadHardwareDocuments,
-  uploadIndivudualCustomerDocuments
+  uploadIndividualCustomerDocuments,
+  uploadOrganizationCustomerDocuments
 } from "@/api/uploads.api";
 import { uploadFile } from "@/utils/fileUpload";
 
@@ -163,15 +163,20 @@ const AccountUploads = ({ data, refreshData }) => {
       // 2. Prepare payload based on user type
       let response;
       if (userType === 'customer') {
-        const payload = {
-          businessPermit: updatedUrls.businessPermit || null,
-          certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
-          kraPIN: updatedUrls.kraPIN || null
-        };
         if (accountType === 'individual') {
-          response = await uploadIndivudualCustomerDocuments(axiosInstance, payload);
+          const payload = {
+            idFrontUrl: updatedUrls.idFrontUrl || null,
+            idBackUrl: updatedUrls.idBackUrl || null,
+            kraPIN: updatedUrls.kraPIN || null
+          };
+          response = await uploadIndividualCustomerDocuments(axiosInstance, payload);
         } else {
-          response = await uploadCustomerDocuments(axiosInstance, payload);
+          const payload = {
+            businessPermit: updatedUrls.businessPermit || null,
+            certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
+            kraPIN: updatedUrls.kraPIN || null
+          };
+          response = await uploadOrganizationCustomerDocuments(axiosInstance, payload);
         }
       } else if (userType === 'fundi') {
         const payload = {
@@ -222,11 +227,17 @@ const AccountUploads = ({ data, refreshData }) => {
 
   if (userType !== "contractor") {
     const defaultFields = {
-      customer: [
-        { label: "Business Permit", key: "businessPermit" },
-        { label: "Certificate of Incorporation", key: "certificateOfIncorporation" },
-        { label: "KRA PIN", key: "kraPIN" },
-      ],
+      customer: accountType === 'individual'
+        ? [
+          { label: "ID Front", key: "idFrontUrl" },
+          { label: "ID Back", key: "idBackUrl" },
+          { label: "KRA PIN", key: "kraPIN" },
+        ]
+        : [
+          { label: "Business Permit", key: "businessPermit" },
+          { label: "Certificate of Incorporation", key: "certificateOfIncorporation" },
+          { label: "KRA PIN", key: "kraPIN" },
+        ],
       fundi: [
         { label: "ID Front", key: "idFrontUrl" },
         { label: "ID Back", key: "idBackUrl" },
