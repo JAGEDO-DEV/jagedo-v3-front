@@ -2,12 +2,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { XMarkIcon, EyeIcon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { updateFundiExperience } from "@/api/experience.api";
+import { uploadFile } from "@/utils/fileUpload";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+
+interface FileItem {
+  file: File | null;
+  previewUrl: string;
+}
 
 interface FundiAttachment {
   id: number;
   projectName: string;
-  files: string[];
+  files: FileItem[];
 }
 
 const requiredProjectsByGrade: { [key: string]: number } = {
@@ -28,14 +36,21 @@ const fundiSpecializations = [
   "Solar Water Systems",
 ];
 
-const FundiExperience = ({ data, refreshData }) => {
+const prefilledAttachments: FundiAttachment[] = [
+  { id: 1, projectName: "Project One", files: [] },
+  { id: 2, projectName: "Project Two", files: [] },
+  { id: 3, projectName: "Project Three", files: [] },
+];
+
+const FundiExperience = ({ data, refreshData }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-
+  const [attachments, setAttachments] = useState<FundiAttachment[]>(prefilledAttachments);
   const [grade, setGrade] = useState("G1: Master Fundi");
   const [experience, setExperience] = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
-  const [attachments, setAttachments] = useState<FundiAttachment[]>([]);
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -45,21 +60,17 @@ const FundiExperience = ({ data, refreshData }) => {
       setExperience(up.experience || "10+ years");
       setSpecialization(up.profession || "");
 
-      // Map previousJobPhotoUrls to attachments if available
-      // For Fundi, we might have professionalProjects or just photo urls
       const existingProjects = up.professionalProjects || [];
+      // existingProjects usually comes as [{ projectName: "ABC", files: ["url1", "url2"] }] or similar
+      // Note: Adjust parsing logic based on exact backend response structure
       if (existingProjects.length > 0) {
         setAttachments(existingProjects.map((p: any, idx: number) => ({
           id: idx + 1,
-          projectName: p.projectName || `Project ${idx + 1}`,
-          files: p.files || []
+          projectName: p.projectName || (prefilledAttachments[idx]?.projectName || `Project ${idx + 1}`),
+          files: Array.isArray(p.files)
+            ? p.files.map((url: string) => ({ file: null, previewUrl: url }))
+            : (p.fileUrl ? [{ file: null, previewUrl: p.fileUrl }] : [])
         })));
-      } else {
-        setAttachments([
-          { id: 1, projectName: "", files: [] },
-          { id: 2, projectName: "", files: [] },
-          { id: 3, projectName: "", files: [] },
-        ]);
       }
       setIsLoadingProfile(false);
     }
@@ -74,7 +85,7 @@ const FundiExperience = ({ data, refreshData }) => {
     setAttachments(prev =>
       prev.map(item =>
         item.id === rowId && item.files.length < 3
-          ? { ...item, files: [...item.files, preview] }
+          ? { ...item, files: [...item.files, { file: file, previewUrl: preview }] }
           : item
       )
     );
@@ -101,172 +112,189 @@ const FundiExperience = ({ data, refreshData }) => {
     setIsSubmitting(true);
 
     const required = requiredProjectsByGrade[grade];
-    const validProjects = attachments
+    const valid = attachments
       .slice(0, required)
       .filter(a => a.projectName.trim() && a.files.length > 0);
 
-    if (validProjects.length < required) {
+    if (valid.length < required) {
       setIsSubmitting(false);
-      return toast.error(`Please provide details for ${required} project(s).`);
+      return toast.error(`Please add ${required} complete project(s).`);
     }
 
+    const toastId = toast.loading("Uploading photos and saving...");
+
     try {
-      // API Call to Update Experience
-      toast.success("Experience details saved successfully!");
+      // 1. Upload files and collect URLs
+      const flattenedProjectFiles: { projectName: string; fileUrl: string }[] = [];
+
+      for (const att of valid) {
+        for (const fItem of att.files) {
+          let url = fItem.previewUrl;
+          if (fItem.file) {
+            // It's a new file, upload it
+            url = await uploadFile(fItem.file);
+          }
+          flattenedProjectFiles.push({
+            projectName: att.projectName,
+            fileUrl: url
+          });
+        }
+      }
+
+      // 2. Build Payload
+      const payload = {
+        skill: "Plumber", // As per UI hardcode, or use specialization if intended
+        specialization: specialization, // Sending specialization as part of info
+        grade: grade,
+        experience: experience,
+        previousJobPhotoUrls: flattenedProjectFiles
+      };
+
+      // 3. API Call
+      await updateFundiExperience(axiosInstance, payload);
+
+      toast.success("Experience saved successfully!", { id: toastId });
       if (refreshData) refreshData();
-    } catch (error) {
-      toast.error("Failed to save experience info");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to save experience!", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium">Loading experience profile...</div>;
+  if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium">Loading...</div>;
+
+  const inputStyles = "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm";
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
-      <div className="mb-8 border-b border-gray-100 pb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Experience & Portfolio</h1>
-        <p className="text-sm text-gray-500 mt-2 font-medium">
-          Showcase your skills and previous work to get approved faster.
-        </p>
-      </div>
+    <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
 
-      <div className="mb-8 p-5 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-start gap-4">
-        <div className="p-2 bg-white rounded-lg shadow-sm">
-          <CloudArrowUpIcon className="w-6 h-6 text-indigo-600" />
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
+          <p className="font-semibold mb-1">Next Steps</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>You will attend a <strong>15-minute interview</strong> after submission.</li>
+            <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
+          </ul>
         </div>
-        <div>
-          <h4 className="font-bold text-indigo-900 text-sm">Review Process</h4>
-          <p className="text-indigo-700 text-xs mt-1 leading-relaxed">
-            After saving your experience, our team will review your portfolio.
-            Average verification time is <strong>7-14 business days</strong>.
-          </p>
-        </div>
-      </div>
 
-      <form className="space-y-10" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Skill Category</label>
-            <div className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-700 font-bold text-sm">
-              Plumbing & Installation
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="bg-gray-50 p-6 rounded-xl border">
+            <div className="grid md:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
+                <input value="Plumber" readOnly className="w-full p-3 bg-gray-200 rounded-lg text-sm border-none" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                <select
+                  value={specialization}
+                  onChange={e => setSpecialization(e.target.value)}
+                  className={inputStyles}
+                >
+                  <option value="">Select</option>
+                  {fundiSpecializations.map(spec => (
+                    <option key={spec}>{spec}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                <select
+                  value={grade}
+                  onChange={e => setGrade(e.target.value)}
+                  className={inputStyles}
+                >
+                  {Object.keys(requiredProjectsByGrade).map(g => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+                <select
+                  value={experience}
+                  onChange={e => setExperience(e.target.value)}
+                  className={inputStyles}
+                >
+                  {["10+ years", "5-10 years", "3-5 years", "1-3 years"].map(exp => (
+                    <option key={exp}>{exp}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Specialization</label>
-            <select
-              value={specialization}
-              onChange={e => setSpecialization(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            >
-              <option value="">Select Specialty</option>
-              {fundiSpecializations.map(spec => (
-                <option key={spec} value={spec}>{spec}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Certifed Grade</label>
-            <select
-              value={grade}
-              onChange={e => setGrade(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            >
-              {Object.keys(requiredProjectsByGrade).map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Years Active</label>
-            <select
-              value={experience}
-              onChange={e => setExperience(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            >
-              {["10+ years", "5-10 years", "3-5 years", "1-3 years", "Entry Level"].map(exp => (
-                <option key={exp} value={exp}>{exp}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {visibleProjectRows > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800 text-sm">Previous Projects (Proof of Work)</h3>
-            </div>
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left bg-gray-50/50">
-                    <th className="px-8 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest w-16 text-center">No.</th>
-                    <th className="px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Project Description / Name</th>
-                    <th className="px-8 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Job Site Photos (Max 3)</th>
+          {visibleProjectRows > 0 && (
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr className="text-left">
+                    <th className="p-4 font-semibold text-gray-600">No.</th>
+                    <th className="p-4 font-semibold text-gray-600">Project Name</th>
+                    <th className="p-4 font-semibold text-gray-600">Proof of Work (Max 3)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-200">
                   {attachments.slice(0, visibleProjectRows).map(row => (
                     <tr key={row.id}>
-                      <td className="px-8 py-6 text-center font-bold text-indigo-600 text-sm">#{row.id}</td>
-                      <td className="px-4 py-6">
+                      <td className="p-4 font-medium text-gray-500">#{row.id}</td>
+                      <td className="p-4">
                         <input
-                          placeholder="e.g. Bathroom renovation at Kilimani..."
                           value={row.projectName}
                           onChange={e => handleProjectNameChange(row.id, e.target.value)}
-                          className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                          placeholder="Project name..."
+                          className="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none"
                         />
                       </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-wrap gap-3 items-center">
-                          {row.files.map((f, i) => (
-                            <div key={i} className="relative group w-14 h-14">
-                              <img src={f} className="w-full h-full object-cover rounded-lg border shadow-sm" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1.5">
-                                <a href={f} target="_blank" className="p-1 bg-white rounded-full text-gray-700 hover:text-indigo-600">
-                                  <EyeIcon className="w-3 h-3" />
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {row.files.map((fItem, i) => (
+                            <div key={i} className="relative group w-12 h-12">
+                              <img src={fItem.previewUrl} alt="preview" className="w-full h-full object-cover rounded border" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded">
+                                <a href={fItem.previewUrl} target="_blank" rel="noreferrer" className="text-white hover:text-blue-200">
+                                  <EyeIcon className="w-4 h-4" />
                                 </a>
-                                <button type="button" onClick={() => removeFile(row.id, i)} className="p-1 bg-white rounded-full text-red-500 hover:bg-red-50">
-                                  <XMarkIcon className="w-3 h-3" />
+                                <button type="button" onClick={() => removeFile(row.id, i)} className="text-white hover:text-red-300">
+                                  <XMarkIcon className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
                           ))}
-                          {row.files.length < 3 && (
-                            <label className="w-14 h-14 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
-                              <CloudArrowUpIcon className="w-6 h-6 text-gray-300 group-hover:text-indigo-400" />
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
-                              />
-                            </label>
-                          )}
                         </div>
+                        {row.files.length < 3 && (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
+                            className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="flex justify-end pt-4">
-          <button
-            disabled={isSubmitting}
-            className="bg-indigo-600 text-white px-12 py-4 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-3"
-          >
-            {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-            {isSubmitting ? "Submitting Portfolio..." : "Save Experience & Portfolio"}
-          </button>
-        </div>
-      </form>
+          <div className="flex justify-end">
+            <button
+              disabled={isSubmitting}
+              className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+              {isSubmitting ? "Saving..." : "Save Experience"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

@@ -296,7 +296,6 @@ const AccountUploads = ({ data, refreshData }) => {
     );
   }
 
-  /* ---------------- CONTRACTORS ONLY ---------------- */
   const generalFields = [
     { label: "Business Registration", key: "businessRegistration" },
     { label: "Business Permit", key: "businessPermit" },

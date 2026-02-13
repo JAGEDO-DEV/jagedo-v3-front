@@ -4,10 +4,22 @@
 import { getAuthHeaders } from "@/utils/auth";
 
 
-export interface ProfessionalExperience {
-    professionalProjects: string[];
-    level: string;
+export interface ProfessionalProject {
+    projectName: string;
+    projectFile: string;
+    referenceLetterFile: string;
+}
+
+export interface ProfessionalCategory {
+    category: string;
+    specialization: string;
+    categoryClass: string;
     yearsOfExperience: string;
+}
+
+export interface ProfessionalExperience {
+    professionalCategories: ProfessionalCategory[];
+    professionalProjects: ProfessionalProject[];
 }
 
 export const updateProfessionalExperience = async (

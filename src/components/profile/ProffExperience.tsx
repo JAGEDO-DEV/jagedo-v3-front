@@ -1,17 +1,24 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-//@ts-nocheck
 
 import { useState, useMemo, useEffect } from "react";
 import toast from 'react-hot-toast';
+import { updateProfessionalExperience } from "@/api/experience.api";
 import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
-import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
+import { uploadFile } from "@/utils/fileUpload";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+
+interface FileItem {
+    file: File | null;
+    previewUrl: string;
+    fileName: string;
+}
 
 interface AttachmentRow {
     id: number;
     projectName: string;
-    files: any[];
+    files: FileItem[];
 }
 
 const PROJECT_REQUIREMENTS = {
@@ -28,15 +35,19 @@ const SPECIALIZATIONS_BY_CATEGORY: Record<string, string[]> = {
     "Project Manager": ["Construction", "IT", "Infrastructure"]
 };
 
-const ProffExperience = ({ data, refreshData }) => {
+const ProffExperience = ({ data, refreshData }: any) => {
     const [category, setCategory] = useState("Architect");
     const [specialization, setSpecialization] = useState("Residential");
     const [level, setLevel] = useState("Professional");
     const [experience, setExperience] = useState("10+ years");
     const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
+    const [submitted, setSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+    const isReadOnly = data?.userProfile?.adminApproved === true;
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
@@ -47,13 +58,27 @@ const ProffExperience = ({ data, refreshData }) => {
             setLevel(up.professionalLevel || "Professional");
             setExperience(up.yearsOfExperience || "10+ years");
 
-            const projects = up.professionalProjects || [];
-            if (projects.length > 0) {
-                setAttachments(projects.map((p: any, idx: number) => ({
-                    id: idx + 1,
-                    projectName: p.projectName || `Project ${idx + 1}`,
-                    files: p.files || (p.fileUrl ? [p.fileUrl] : [])
-                })));
+            const existingProjects = up.professionalProjects || [];
+            if (existingProjects.length > 0) {
+                setAttachments(existingProjects.map((p: any, idx: number) => {
+                    // Reconstruct file list from response
+                    // ProfessionalProject has { projectFile: string, referenceLetterFile: string } usually
+                    // OR files array if generic. Adapting to receive specific fields or array.
+                    const files: FileItem[] = [];
+                    if (p.projectFile) files.push({ file: null, previewUrl: p.projectFile, fileName: "Project File" });
+                    if (p.referenceLetterFile) files.push({ file: null, previewUrl: p.referenceLetterFile, fileName: "Reference Letter" });
+
+                    // Fallback if 'files' array exists
+                    if (p.files && Array.isArray(p.files)) {
+                        p.files.forEach((f: string) => files.push({ file: null, previewUrl: f, fileName: f.split('/').pop() || 'File' }));
+                    }
+
+                    return {
+                        id: idx + 1,
+                        projectName: p.projectName || `Project ${idx + 1}`,
+                        files: files
+                    };
+                }));
             } else {
                 setAttachments([...Array(5)].map((_, i) => ({ id: i + 1, projectName: "", files: [] })));
             }
@@ -70,7 +95,9 @@ const ProffExperience = ({ data, refreshData }) => {
         if (!file) return;
         const preview = URL.createObjectURL(file);
         setAttachments((prev) =>
-            prev.map((item) => item.id === rowId && item.files.length < 3 ? { ...item, files: [...item.files, preview] } : item)
+            prev.map((item) => item.id === rowId && item.files.length < 3
+                ? { ...item, files: [...item.files, { file, previewUrl: preview, fileName: file.name }] }
+                : item)
         );
     };
 
@@ -91,163 +118,224 @@ const ProffExperience = ({ data, refreshData }) => {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
+
         const required = rowsToShow;
         const valid = attachments.slice(0, required).filter(p => p.projectName.trim() !== "" && p.files.length > 0);
-
-        if (valid.length < required) return toast.error(`Please provide details for ${required} projects.`);
+        if (valid.length < required) return toast.error(`Please provide all ${required} required projects with at least one file each.`);
 
         setIsSubmitting(true);
+        const toastId = toast.loading("Uploading files and saving...");
+
         try {
-            // Mock API Update
-            toast.success('Professional profile updated!');
+            // 1. Process Files for Upload
+            const processedProjects = await Promise.all(valid.map(async (row) => {
+                const uploadedUrls: string[] = [];
+
+                for (const fItem of row.files) {
+                    if (fItem.file) {
+                        const url = await uploadFile(fItem.file);
+                        uploadedUrls.push(url);
+                    } else {
+                        uploadedUrls.push(fItem.previewUrl);
+                    }
+                }
+
+                // Map to API structure: projectFile & referenceLetterFile
+                // First file -> Project File, Second -> Reference Letter (if exists)
+                return {
+                    projectName: row.projectName,
+                    projectFile: uploadedUrls[0] || "",
+                    referenceLetterFile: uploadedUrls[1] || "" // Handle if only 1 file is uploaded
+                };
+            }));
+
+            // 2. Build Payload
+            const payload = {
+                professionalCategories: [
+                    {
+                        category: category,
+                        specialization: specialization,
+                        categoryClass: level, // Mapping level to 'class' as per schema implies
+                        yearsOfExperience: experience
+                    }
+                ],
+                professionalProjects: processedProjects
+            };
+
+            // 3. Send API
+            await updateProfessionalExperience(axiosInstance, payload);
+
+            toast.success('Experience updated successfully!', { id: toastId });
             if (refreshData) refreshData();
-        } catch (err) {
-            toast.error("Failed to update experience");
+            setSubmitted(true);
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.message || "Failed to update experience!", { id: toastId });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium font-inter">Loading professional data...</div>;
+    if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-600">Loading professional profile...</div>;
 
-    const inputStyles = "w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all";
+    const inputStyles = "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm disabled:bg-gray-100 disabled:cursor-not-allowed";
 
     return (
-        <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
-            <div className="mb-8 border-b border-gray-100 pb-6">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight font-inter">Professional Portfolio</h1>
-                <p className="text-sm text-gray-400 mt-2 font-medium font-inter">
-                    Manage your accreditation level and showcase your specialized project history.
-                </p>
-            </div>
-
-            <form className="space-y-10" onSubmit={handleSubmit}>
-                {/* Meta Info */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Core Category</label>
-                        <div className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 font-bold text-sm">
-                            {category}
+        <div className="bg-gray-50 min-h-screen w-full p-2 sm:p-4 md:p-8">
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
+                <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
+                {!submitted ? (
+                    <form className="space-y-8" onSubmit={handleSubmit}>
+                        <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200 space-y-4 shadow-inner">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <input type="text" value={category} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                                    <select
+                                        value={specialization}
+                                        onChange={(e) => setSpecialization(e.target.value)}
+                                        disabled={isReadOnly}
+                                        className={inputStyles}
+                                    >
+                                        <option value="">Select Specialty</option>
+                                        {(SPECIALIZATIONS_BY_CATEGORY[category] || ["General"]).map(spec => (
+                                            <option key={spec} value={spec}>{spec}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                                    <input type="text" value={level} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                                    <input type="text" value={experience} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Specialization</label>
-                        <select
-                            value={specialization}
-                            onChange={(e) => setSpecialization(e.target.value)}
-                            className={inputStyles}
-                        >
-                            <option value="">Select Specialty</option>
-                            {(SPECIALIZATIONS_BY_CATEGORY[category] || ["General"]).map(spec => (
-                                <option key={spec} value={spec}>{spec}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Career Level</label>
-                        <select
-                            value={level}
-                            onChange={(e) => setLevel(e.target.value)}
-                            className={inputStyles}
-                        >
-                            {["Senior", "Professional", "Graduate", "Student"].map(l => (
-                                <option key={l} value={l}>{l}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Experience Range</label>
-                        <select
-                            value={experience}
-                            onChange={(e) => setExperience(e.target.value)}
-                            className={inputStyles}
-                        >
-                            {["10+ years", "5-10 years", "3-5 years", "1-3 years", "Graduate"].map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                {/* Projects Table */}
-                {rowsToShow > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
-                            <h3 className="font-bold text-gray-800 text-sm">Representative Projects ({rowsToShow} Required)</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-gray-50/50">
-                                        <th className="px-8 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest w-16 text-center">No.</th>
-                                        <th className="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Project Description / Context</th>
-                                        <th className="px-8 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Drawings / Evidence</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {attachments.slice(0, rowsToShow).map((row) => (
-                                        <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-8 py-6 text-center font-bold text-indigo-600 text-sm font-inter">#{row.id}</td>
-                                            <td className="px-4 py-6">
-                                                <input
-                                                    type="text"
-                                                    placeholder="e.g. Structural design for Apex Towers..."
-                                                    value={row.projectName}
-                                                    onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
-                                                    className="w-full p-3 bg-gray-50/50 border border-gray-100 rounded-xl text-sm font-medium focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all font-inter"
-                                                />
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex flex-wrap gap-3 items-center">
-                                                    {row.files.map((file, idx) => (
-                                                        <div key={idx} className="relative group w-14 h-14">
-                                                            <div className="w-full h-full bg-indigo-50 rounded-lg border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-[10px] overflow-hidden">
-                                                                {typeof file === 'string' && (file.includes('jpg') || file.includes('png')) ? <img src={file} className="w-full h-full object-cover" /> : 'DOC'}
-                                                            </div>
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1.5">
-                                                                <a href={file} target="_blank" className="p-1 bg-white rounded-full text-gray-700 hover:text-indigo-600">
-                                                                    <EyeIcon className="w-3 h-3" />
-                                                                </a>
-                                                                <button type="button" onClick={() => removeFile(row.id, idx)} className="p-1 bg-white rounded-full text-red-500 hover:bg-red-50">
-                                                                    <XMarkIcon className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
+                        {rowsToShow > 0 && (
+                            <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
+                                <div className="hidden md:block overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="bg-gray-100 border-b border-gray-200">
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-1/12">No.</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-4/12">Project Name</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-7/12">Project Files</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {attachments.slice(0, rowsToShow).map((row) => (
+                                                <tr key={row.id} className="hover:bg-gray-100/50 transition-colors">
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-500">#{row.id}</td>
+                                                    <td className="px-6 py-4">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter project name"
+                                                            value={row.projectName}
+                                                            onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
+                                                            className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                            disabled={isSubmitting || isReadOnly}
+                                                        />
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="space-y-2">
+                                                            {row.files.map((fItem, index) => (
+                                                                <div key={index} className="flex items-center justify-between gap-2 bg-white p-2 rounded border shadow-sm">
+                                                                    <span className="text-xs text-gray-700 truncate font-medium" title={fItem.fileName}>{fItem.fileName}</span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <a href={fItem.previewUrl} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-blue-50 rounded text-blue-600 transition-colors"><EyeIcon className="w-4 h-4" /></a>
+                                                                        {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="p-1 hover:bg-red-50 rounded text-red-500 transition-colors" disabled={isSubmitting}><XMarkIcon className="w-4 h-4" /></button>}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                            {row.files.length < 3 && !isReadOnly && (
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*,application/pdf"
+                                                                    onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)}
+                                                                    className="text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                                                />
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                    {row.files.length < 3 && (
-                                                        <label className="w-14 h-14 border-2 border-dashed border-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
-                                                            <CloudArrowUpIcon className="w-6 h-6 text-gray-300 group-hover:text-indigo-400" />
-                                                            <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)}
-                                                            />
-                                                        </label>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile View for Projects */}
+                                <div className="md:hidden space-y-4">
+                                    {attachments.slice(0, rowsToShow).map((row) => (
+                                        <div key={row.id} className="bg-white p-4 rounded-lg border shadow-sm space-y-3">
+                                            <div className="flex justify-between items-center border-b pb-2">
+                                                <span className="font-bold text-gray-500 text-sm">Project #{row.id}</span>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Project Name"
+                                                value={row.projectName}
+                                                onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
+                                                className="w-full p-2 border rounded text-sm"
+                                                disabled={isSubmitting || isReadOnly}
+                                            />
+                                            <div className="space-y-2">
+                                                {row.files.map((fItem, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border text-xs">
+                                                        <span className="truncate flex-1">{fItem.fileName}</span>
+                                                        <div className="flex gap-2">
+                                                            <a href={fItem.previewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600"><EyeIcon className="w-4 h-4" /></a>
+                                                            {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="text-red-500"><XMarkIcon className="w-4 h-4" /></button>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {row.files.length < 3 && !isReadOnly && (
+                                                    <input type="file" onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)} className="text-[10px] w-full" />
+                                                )}
+                                            </div>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isReadOnly && (
+                            <div className="flex justify-end pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full sm:w-auto bg-blue-800 text-white px-10 py-3 rounded-lg hover:bg-blue-900 transition-all shadow-md shadow-blue-100 disabled:opacity-50 font-bold flex items-center justify-center gap-2"
+                                >
+                                    {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                                    {isSubmitting ? "Submitting..." : "Submit Experience"}
+                                </button>
+                            </div>
+                        )}
+                    </form>
+                ) : (
+                    <div className="text-center py-12 px-6 bg-green-50 rounded-2xl border border-green-100">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">✓</span>
                         </div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-green-800">Submission Successful!</h2>
+                        <p className="text-gray-600 mt-4 max-w-md mx-auto">Your professional experience has been updated successfully. Our team will review your portfolio and update your status.</p>
+                        <button
+                            onClick={() => setSubmitted(false)}
+                            className="mt-8 text-green-700 font-bold hover:underline"
+                        >
+                            Back to Profile
+                        </button>
                     </div>
                 )}
-
-                <div className="flex justify-end pt-6 border-t border-gray-100">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="bg-indigo-600 text-white px-12 py-4 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-3 font-inter"
-                    >
-                        {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                        {isSubmitting ? "Submitting Portfolio..." : "Submit Experience"}
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     );
 };
