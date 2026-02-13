@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { forgotPassword } from "@/api/auth.api";
+import { forgotPasswordLink } from "@/api/auth.api";
 
 // This component's purpose is to request a password reset, so ForgotPassword is a more fitting name.
 const ForgotPassword = () => {
@@ -18,20 +18,17 @@ const ForgotPassword = () => {
 
     setIsLoading(true);
 
-    const payload = {
-      email,
-      otpDeliveryMethod: "EMAIL",
-    };
-
     try {
       // Call the API function with the correct payload
-      await forgotPassword(payload);
+      await forgotPasswordLink(email);
 
       // Show a success message
-      toast.success("An OTP has been sent to your email address.");
+      toast.success("A password reset link has been sent to your email address.");
 
       // Navigate to the next step, passing the email so the next page can use it
-      navigate("/reset-password", { state: { email: email } });
+      // Note: User will click the link in their email, but we can redirect to a check email page or just stay here.
+      // For now, let's redirect to reset page if they want to enter token manually, or just inform them.
+      // navigate("/reset-password", { state: { email: email } });
 
     } catch (error: any) {
       // Log the full error for debugging purposes
@@ -39,7 +36,7 @@ const ForgotPassword = () => {
 
       // Show a user-friendly error from the API, or a generic one
       const errorMessage =
-        error.response?.data?.message || "Failed to send reset code. Please try again.";
+        error.response?.data?.message || "Failed to send reset link. Please try again.";
       toast.error(errorMessage);
     } finally {
       // This block will run whether the request succeeded or failed
@@ -55,7 +52,7 @@ const ForgotPassword = () => {
           <h2 className="text-2xl font-bold mb-6 text-center">Forgot Password</h2>
         </div>
         <p className="text-center text-gray-600 mb-6">
-          Enter your email address and we'll send you an OTP to reset your password.
+          Enter your email address and we'll send you a link to reset your password.
         </p>
 
         {/* Use the form's onSubmit event handler */}
@@ -81,7 +78,7 @@ const ForgotPassword = () => {
             disabled={isLoading} // Disable button while loading
             className="w-full py-4 my-4 hover:bg-blue-600 text-white rounded-md bg-[rgb(0,0,112)] transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Sending..." : "Send Reset Code"}
+            {isLoading ? "Sending..." : "Send Reset Link"}
           </button>
         </form>
 

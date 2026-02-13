@@ -101,7 +101,7 @@ export default function Login() {
       if (!otpSent) {
         setIsLoading(true);
         const phoneNumber = formData.email.replace(/\D/g, "");
-        
+
         try {
 
           const moddedPhoneNumber = phoneNumber.startsWith("254") ? phoneNumber : phoneNumber.startsWith('0') ? phoneNumber.replace("0", "254") : `254${phoneNumber}`
@@ -391,6 +391,15 @@ export default function Login() {
                   {errors.password}
                 </p>
               )}
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  className="text-[#00007a] text-sm hover:underline"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </div>
           )}
 

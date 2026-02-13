@@ -130,3 +130,22 @@ export const completeProfile = async (data: any) => {
     );
     return response;
 }
+
+export const forgotPasswordLink = async (email: string) => {
+    const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/forgot-password-link`,
+        null,
+        {
+            params: { email }
+        }
+    );
+    return response.data;
+};
+
+export const resetPasswordToken = async (data: any) => {
+    const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/reset-password-token`,
+        data
+    );
+    return response.data;
+};

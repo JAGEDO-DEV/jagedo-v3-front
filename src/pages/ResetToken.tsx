@@ -1,35 +1,31 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { resetPassword } from '@/api/auth.api';
+import { resetPasswordToken } from '@/api/auth.api';
 import { Eye, EyeOff } from "lucide-react";
 
-// This component is where the user enters their OTP and new password.
+// This component is where the user enters their Token and new password.
 const ResetPassword = () => {
     // State for the form inputs
-    const [otp, setOtp] = useState("");
+    const [token, setToken] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     // State for the component's logic
-    const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
     const navigate = useNavigate();
     const location = useLocation();
 
-    // This effect runs when the component loads to get the email from the previous page.
+    // This effect runs when the component loads to get the token from the URL if present.
     useEffect(() => {
-        const emailFromState = location.state?.email;
-        if (emailFromState) {
-            setEmail(emailFromState);
-        } else {
-            // If the user lands here directly without an email, they shouldn't be here.
-            toast.error("No email provided. Please start the process again.");
-            navigate('/forgot-password');
+        const queryParams = new URLSearchParams(location.search);
+        const tokenFromUrl = queryParams.get('token');
+        if (tokenFromUrl) {
+            setToken(tokenFromUrl);
         }
-    }, [location, navigate]);
+    }, [location]);
 
     const toggleVisibility = () => setIsVisible((prevState) => !prevState);
 
@@ -37,7 +33,7 @@ const ResetPassword = () => {
         event.preventDefault();
 
         // --- Validation ---
-        if (!otp || !newPassword || !confirmPassword) {
+        if (!token || !newPassword || !confirmPassword) {
             return toast.error("Please fill in all required fields.");
         }
         if (newPassword.trim().length < 8) {
@@ -51,14 +47,13 @@ const ResetPassword = () => {
 
         // --- Payload Creation ---
         const payload = {
-            email,
-            otp,
+            token,
             newPassword,
         };
 
         // --- API Call ---
         try {
-            await resetPassword(payload);
+            await resetPasswordToken(payload);
 
             toast.success("Password has been reset successfully!");
 
@@ -67,7 +62,7 @@ const ResetPassword = () => {
 
         } catch (error: any) {
             console.error("Reset Password Error:", error);
-            const errorMessage = error.response?.data?.message || "Invalid OTP or an error occurred. Please try again.";
+            const errorMessage = error.response?.data?.message || "Invalid token or an error occurred. Please try again.";
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);
@@ -83,32 +78,18 @@ const ResetPassword = () => {
                 </div>
                 {/* Use the form's onSubmit handler */}
                 <form onSubmit={handleSubmit}>
-                    {/* Display the user's email for context */}
                     <div className="mb-4">
-                        <label htmlFor="emailDisplay" className="block text-sm sm:text-lg font-medium text-gray-700 mb-1">
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="emailDisplay"
-                            value={email}
-                            readOnly
-                            className="w-full p-4 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
-                        />
-                    </div>
-
-                    <div className="mb-4">
-                        <label htmlFor="otp" className="block text-sm sm:text-lg font-medium text-gray-700 mb-1">
-                            One-Time Password (OTP)
+                        <label htmlFor="token" className="block text-sm sm:text-lg font-medium text-gray-700 mb-1">
+                            Reset Token
                             <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            id="otp"
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                            id="token"
                             className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter the code sent to your email"
+                            placeholder="Enter the reset token from your email"
                             required
                         />
                     </div>
