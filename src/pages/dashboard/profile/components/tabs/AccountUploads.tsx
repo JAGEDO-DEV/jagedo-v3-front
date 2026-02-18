@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { FiDownload, FiEye, FiUpload, FiTrash2, FiCheck, FiX, FiRefreshCw, FiChevronDown } from "react-icons/fi";
 import { FileText, Image, AlertCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { getMockUploadsForUserType } from "@/pages/data/mockUploads";
+import { getMockUploadsForuser_type } from "@/pages/data/mockUploads";
 
 const STORAGE_KEY = "uploads_demo";
 
@@ -90,7 +90,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
   }>({ isOpen: false, docKey: "", action: null });
   const [actionReason, setActionReason] = useState("");
 
-  const userType = userData?.userType?.toLowerCase() || "";
+  const user_type = userData?.user_type?.toLowerCase() || "";
   const accountType = userData?.accountType?.toLowerCase() || "";
 
   /* -------------------- Load documents based on status -------------------- */
@@ -124,12 +124,12 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
     ];
 
     // Individual Customer
-    if (accountType === "individual" && userType === "customer") {
+    if (accountType === "individual" && user_type === "customer") {
       return individualBaseDocs;
     }
 
     // Fundi (Individual builder)
-    if (userType === "fundi") {
+    if (user_type === "fundi") {
       return [
         ...individualBaseDocs,
         { key: "certificate", name: "Trade Certificate", category: "certification" },
@@ -140,7 +140,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
     }
 
     // Professional (Individual builder)
-    if (userType === "professional") {
+    if (user_type === "professional") {
       return [
         ...individualBaseDocs,
         { key: "academicCertificate", name: "Academic Certificate", category: "certification" },
@@ -162,12 +162,12 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
     ];
 
     // Organization Customer
-    if (userType === "customer") {
+    if (user_type === "customer") {
       return organizationBaseDocs;
     }
 
     // Contractor (Organization builder)
-    if (userType === "contractor") {
+    if (user_type === "contractor") {
       const baseDocs: DocumentItem[] = [
         ...organizationBaseDocs,
         { key: "ncaCertificate", name: "NCA Certificate", category: "certification" },
@@ -225,7 +225,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
     }
 
     // Hardware (Organization builder)
-    if (userType === "hardware") {
+    if (user_type === "hardware") {
       return organizationBaseDocs;
     }
 

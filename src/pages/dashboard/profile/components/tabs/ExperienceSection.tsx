@@ -8,17 +8,17 @@ import { hasPrefilledExperience } from "@/data/BuilderExperience";
 interface ExperienceSectionProps {
   experience: BuilderExperience | undefined;
   status: BuilderStatus;
-  userType: string;
+  user_type: string;
 }
 
-export function ExperienceSection({ experience, status, userType }: ExperienceSectionProps) {
+export function ExperienceSection({ experience, status, user_type }: ExperienceSectionProps) {
   const isPrefilled = hasPrefilledExperience(status);
   const hasWorkExperience = experience?.workExperience && experience.workExperience.length > 0;
   const hasCertifications = experience?.certifications && experience.certifications.length > 0;
   const hasProjects = experience?.projects && experience.projects.length > 0;
 
   // Hardware stores don't show work experience section
-  if (userType === "HARDWARE") {
+  if (user_type === "HARDWARE") {
     return null;
   }
 

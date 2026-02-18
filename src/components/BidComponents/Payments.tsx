@@ -27,15 +27,15 @@ const Payments = ({ jobData }: PaymentsProps) => {
   const payableAmount = assignedBid?.payableToServiceProvider || 0;
 
   // Helper function to calculate discount for customers/admins
-  const calculateDiscount = (total: number, managedBy: string, userType: string) => {
-    const isCustomerOrAdmin = userType?.toLowerCase() === 'customer' || userType?.toLowerCase() === 'admin';
+  const calculateDiscount = (total: number, managedBy: string, user_type: string) => {
+    const isCustomerOrAdmin = user_type?.toLowerCase() === 'customer' || user_type?.toLowerCase() === 'admin';
     if (isCustomerOrAdmin && managedBy === 'SELF') {
       return total * 0.20; // 20% discount
     }
     return 0;
   };
 
-  const discount = calculateDiscount(totalAmount, jobData?.managedBy || 'JAGEDO', user?.userType);
+  const discount = calculateDiscount(totalAmount, jobData?.managedBy || 'JAGEDO', user?.user_type);
   const discountedTotal = totalAmount - discount;
 
   // Use the first payment if it exists, otherwise fallback to the calculated payable amount.
@@ -71,7 +71,7 @@ const Payments = ({ jobData }: PaymentsProps) => {
       Funds Request Report
       =====================
       Fund Request to: ${jobData?.assignedServiceProvider?.firstName || 'N/A'} ${jobData?.assignedServiceProvider?.lastName || ''}
-      Type: ${jobData?.assignedServiceProvider?.profession || jobData?.assignedServiceProvider?.userType || 'N/A'}
+      Type: ${jobData?.assignedServiceProvider?.profession || jobData?.assignedServiceProvider?.user_type || 'N/A'}
       Request Type: Managed by JaGedo
       Request ID: #Fr${Date.now()}
       FR Date: ${new Date().toLocaleDateString('en-GB')}
@@ -145,7 +145,7 @@ const Payments = ({ jobData }: PaymentsProps) => {
               <span className="text-gray-600 text-lg">Total (KES)</span>
               <span className="text-2xl font-bold text-blue-900">{totalAmount.toLocaleString()}</span>
             </div>
-            {(user?.userType?.toLowerCase() === 'customer' || user?.userType?.toLowerCase() === 'admin') && discount > 0 && (
+            {(user?.user_type?.toLowerCase() === 'customer' || user?.user_type?.toLowerCase() === 'admin') && discount > 0 && (
               <>
                 <div className="w-full p-6 rounded-lg flex justify-between items-center bg-green-50 shadow border border-green-300">
                   <span className="text-green-800 text-lg font-semibold">Customer Discount (20%)</span>

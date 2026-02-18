@@ -112,7 +112,7 @@ const DocumentCard = ({ label, url, onReplace, isUploading }) => {
 
 const AccountUploads = ({ data, refreshData }) => {
   const { user } = useGlobalContext();
-  const userType = (user?.userType || '').toLowerCase();
+  const user_type = (user?.user_type || '').toLowerCase();
   const accountType = (user?.accountType || '').toLowerCase();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
@@ -126,12 +126,12 @@ const AccountUploads = ({ data, refreshData }) => {
     if (data?.userProfile) {
       setDocuments(data.userProfile);
 
-      if (userType === 'contractor' && data.userProfile.contractorExperiences) {
+      if (user_type === 'contractor' && data.userProfile.contractorExperiences) {
         const catNames = data.userProfile.contractorExperiences.map(exp => exp.category);
         setCategories(catNames);
       }
     }
-  }, [data, userType]);
+  }, [data, user_type]);
 
   const replaceDocument = (file, key) => {
     // Generate a temporary preview URL
@@ -162,7 +162,7 @@ const AccountUploads = ({ data, refreshData }) => {
 
       // 2. Prepare payload based on user type
       let response;
-      if (userType === 'customer') {
+      if (user_type === 'customer') {
         if (accountType === 'individual') {
           const payload = {
             idFrontUrl: updatedUrls.idFrontUrl || null,
@@ -178,7 +178,7 @@ const AccountUploads = ({ data, refreshData }) => {
           };
           response = await uploadOrganizationCustomerDocuments(axiosInstance, payload);
         }
-      } else if (userType === 'fundi') {
+      } else if (user_type === 'fundi') {
         const payload = {
           idFront: updatedUrls.idFrontUrl || null,
           idBack: updatedUrls.idBackUrl || null,
@@ -186,7 +186,7 @@ const AccountUploads = ({ data, refreshData }) => {
           kraPIN: updatedUrls.kraPIN || null
         };
         response = await uploadFundiDocuments(axiosInstance, payload);
-      } else if (userType === 'professional') {
+      } else if (user_type === 'professional') {
         const payload = {
           idFront: updatedUrls.idFrontUrl || null,
           idBack: updatedUrls.idBackUrl || null,
@@ -196,7 +196,7 @@ const AccountUploads = ({ data, refreshData }) => {
           practiceLicense: updatedUrls.practiceLicense || null
         };
         response = await uploadProfessionalDocuments(axiosInstance, payload);
-      } else if (userType === 'contractor') {
+      } else if (user_type === 'contractor') {
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
           businessPermit: updatedUrls.businessPermit || null,
@@ -204,7 +204,7 @@ const AccountUploads = ({ data, refreshData }) => {
           companyProfile: updatedUrls.companyProfile || null
         };
         response = await uploadContractorDocuments(axiosInstance, payload);
-      } else if (userType === 'hardware') {
+      } else if (user_type === 'hardware') {
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
           kraPIN: updatedUrls.kraPIN || null,
@@ -225,7 +225,7 @@ const AccountUploads = ({ data, refreshData }) => {
     }
   };
 
-  if (userType !== "contractor") {
+  if (user_type !== "contractor") {
     const defaultFields = {
       customer: accountType === 'individual'
         ? [
@@ -260,7 +260,7 @@ const AccountUploads = ({ data, refreshData }) => {
       ],
     };
 
-    const fields = defaultFields[userType] || [];
+    const fields = defaultFields[user_type] || [];
 
     return (
       <div className="min-h-screen bg-gray-50">

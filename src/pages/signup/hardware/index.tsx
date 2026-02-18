@@ -66,7 +66,7 @@ export default function HardwareSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            userType: "HARDWARE",
+            user_type: "HARDWARE",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -90,7 +90,7 @@ export default function HardwareSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            userType: "HARDWARE",
+            user_type: "HARDWARE",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -229,7 +229,7 @@ export default function HardwareSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={"HARDWARE" as any}
-                userType="HARDWARE"
+                user_type="HARDWARE"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

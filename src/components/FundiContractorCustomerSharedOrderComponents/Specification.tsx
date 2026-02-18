@@ -42,7 +42,7 @@ const Specification = () => {
   const { id } = useParams<{ id: string }>();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const { user } = useGlobalContext();
-  const userType = user.userType
+  const user_type = user.user_type
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ const Specification = () => {
     const fetchOrderData = async () => {
       try {
         setLoading(true);
-        const fetchApi = userType?.toLowerCase() === 'customer'
+        const fetchApi = user_type?.toLowerCase() === 'customer'
           ? getOrderRequestsById
           : getProvierOrderRequestsById;
         const response = await fetchApi(axiosInstance, id);
@@ -76,7 +76,7 @@ const Specification = () => {
     };
 
     fetchOrderData();
-  }, [id, userType]);
+  }, [id, user_type]);
 
   if (loading) {
     return (

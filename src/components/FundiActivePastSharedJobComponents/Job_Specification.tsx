@@ -443,7 +443,7 @@ export const JobSpecificationPage = () => {
       {(() => {
         const serviceProviderTypes = ['PROFESSIONAL', 'CONTRACTOR', 'FUNDI', 'HARDWARE', 'ADMIN'];
 
-        if (user?.userType === "CUSTOMER" && job?.payments && job.payments.length > 0) {
+        if (user?.user_type === "CUSTOMER" && job?.payments && job.payments.length > 0) {
           return (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
@@ -487,7 +487,7 @@ export const JobSpecificationPage = () => {
           );
         }
 
-        if (serviceProviderTypes.includes(user?.userType) && job?.assignedBid) {
+        if (serviceProviderTypes.includes(user?.user_type) && job?.assignedBid) {
           const jagedoFee = job.assignedBid.jagedoCommission;
           const serviceProviderEarnings = job.assignedBid.payableToServiceProvider;
 

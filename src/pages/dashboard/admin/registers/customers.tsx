@@ -384,7 +384,7 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                       key={row.id || rowIndex}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
                       onClick={() => navigate(`/dashboard/profile/${row.id || rowIndex}/customer`, {
-                        state: { userData: row, userType: 'CUSTOMER' }
+                        state: { userData: row, user_type: 'CUSTOMER' }
                       })}
                     >
                       <td className="px-3 py-4 font-medium text-gray-800">

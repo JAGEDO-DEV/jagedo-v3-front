@@ -66,7 +66,7 @@ export default function ProfessionalSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            userType: "PROFESSIONAL",
+            user_type: "PROFESSIONAL",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -167,7 +167,7 @@ export default function ProfessionalSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            userType: "PROFESSIONAL",
+            user_type: "PROFESSIONAL",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -230,7 +230,7 @@ export default function ProfessionalSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
-                userType="PROFESSIONAL"
+                user_type="PROFESSIONAL"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

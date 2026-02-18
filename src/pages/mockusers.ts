@@ -2,7 +2,7 @@ export const MOCK_USERS = [
   {
     username: "customer01@jagedo.co.ke",
     password: "Customer@123",
-    userType: "CUSTOMER",
+    user_type: "CUSTOMER",
     profileType: "individual",
     firstName: "Customer",
     lastName: "Doe",
@@ -12,7 +12,7 @@ export const MOCK_USERS = [
   {
     username: "customer02@jagedo.co.ke",
     password: "Customer@123",
-    userType: "CUSTOMER",
+    user_type: "CUSTOMER",
     profileType: "organization",
     firstName: "Customer",
     lastName: "Smith",
@@ -22,7 +22,7 @@ export const MOCK_USERS = [
   {
     username: "fundi01@jagedo.co.ke",
     password: "Builder@123",
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "Fundi",
     lastName: "One",
     adminApproved: false,
@@ -31,7 +31,7 @@ export const MOCK_USERS = [
   {
     username: "professional01@jagedo.co.ke",
     password: "Builder@123",
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Professional",
     lastName: "One",
     adminApproved: false,
@@ -40,7 +40,7 @@ export const MOCK_USERS = [
   {
     username: "contractor01@jagedo.co.ke",
     password: "Builder@123",
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     firstName: "Contractor",
     lastName: "One",
     adminApproved: false,
@@ -49,7 +49,7 @@ export const MOCK_USERS = [
   {
     username: "hardware01@jagedo.co.ke",
     password: "Builder@123",
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     firstName: "Hardware",
     lastName: "One",
     adminApproved: false,
@@ -59,7 +59,7 @@ export const MOCK_USERS = [
   {
     username: "admin@jagedo.co.ke",
     password: "Admin@123",
-    userType: "ADMIN",
+    user_type: "ADMIN",
     firstName: "Admin",
     lastName: "User",
     adminApproved: true,

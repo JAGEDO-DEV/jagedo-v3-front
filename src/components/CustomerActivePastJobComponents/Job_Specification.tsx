@@ -442,7 +442,7 @@ export const JobSpecificationPage = () => {
       ) : null}
 
       {/* Payment Breakdown Section */}
-      {user?.userType !== "CUSTOMER" && (<div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+      {user?.user_type !== "CUSTOMER" && (<div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">
           Payment Breakdown
         </h2>

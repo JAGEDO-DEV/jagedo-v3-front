@@ -6,7 +6,7 @@ import { StatusBadge } from "@/pages/dashboard/admin/registers/StatusBadge";
 import { resolveStatus, type Builder } from "@/data/mockBuilders";
 
 export default function BuilderProfile() {
-  const { id, userType } = useParams();
+  const { id, user_type } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -53,7 +53,7 @@ export default function BuilderProfile() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <CardTitle className="text-2xl">{displayName}</CardTitle>
-                <p className="text-muted-foreground mt-1">{userType}</p>
+                <p className="text-muted-foreground mt-1">{user_type}</p>
               </div>
               <StatusBadge status={status} className="w-fit" />
             </div>

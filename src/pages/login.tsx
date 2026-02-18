@@ -182,7 +182,7 @@ export default function Login() {
      */
 
     const user = {
-      userType: "customer",
+      user_type: "customer",
       email: googleUser.email,
       name: googleUser.name,
       avatar: googleUser.picture,

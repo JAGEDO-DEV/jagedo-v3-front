@@ -66,7 +66,7 @@ export default function ContractorSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            userType: "CONTRACTOR",
+            user_type: "CONTRACTOR",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -90,7 +90,7 @@ export default function ContractorSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            userType: "CONTRACTOR",
+            user_type: "CONTRACTOR",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -229,7 +229,7 @@ export default function ContractorSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={"CONTRACTOR" as any}
-                userType="CONTRACTOR"
+                user_type="CONTRACTOR"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

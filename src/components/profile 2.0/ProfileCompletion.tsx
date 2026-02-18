@@ -14,7 +14,7 @@ import { initiateSecondaryVerification, verifySecondaryVerification } from "@/ap
 interface ProfileCompletionProps {
     user: any;
     accountType: "INDIVIDUAL" | "ORGANIZATION" | "CONTRACTOR" | "HARDWARE";
-    userType?: "CUSTOMER" | "CONTRACTOR" | "FUNDI" | "PROFESSIONAL" | "HARDWARE";
+    user_type?: "CUSTOMER" | "CONTRACTOR" | "FUNDI" | "PROFESSIONAL" | "HARDWARE";
     onComplete: (profileData: any) => void;
     onCancel?: () => void;
     isModal?: boolean;
@@ -23,7 +23,7 @@ interface ProfileCompletionProps {
 export function ProfileCompletion({
     user,
     accountType,
-    userType,
+    user_type,
     onComplete,
     onCancel,
     isModal = false,
@@ -200,8 +200,8 @@ export function ProfileCompletion({
         }
 
 
-        const isCustomer = userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"));
-        const isServiceProvider = userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType);
+        const isCustomer = user_type === "CUSTOMER" || (!user_type && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"));
+        const isServiceProvider = user_type && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(user_type);
 
         if (isCustomer && !isServiceProvider) {
             if (reference.interestedServices.length === 0) return false;
@@ -665,8 +665,8 @@ export function ProfileCompletion({
                             )}
 
                             {/* CUSTOMER ONLY: Interested Services - hide for service providers */}
-                            {(userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
-                                !(userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType)) && (
+                            {(user_type === "CUSTOMER" || (!user_type && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
+                                !(user_type && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(user_type)) && (
 
                                     <div className="space-y-2 mt-6 animate-fade-in">
                                         <Label>What services are you interested in? *</Label>

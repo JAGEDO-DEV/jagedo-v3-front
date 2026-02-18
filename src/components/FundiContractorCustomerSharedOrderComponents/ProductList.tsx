@@ -33,7 +33,7 @@ const ProductList = () => {
   const { id } = useParams<{ id: string }>();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const { user } = useGlobalContext();
-  const userType = user.userType;
+  const user_type = user.user_type;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ const ProductList = () => {
     const fetchOrderItems = async () => {
       try {
         setLoading(true);
-        const fetchApi = userType?.toLowerCase() === 'customer'
+        const fetchApi = user_type?.toLowerCase() === 'customer'
           ? getOrderRequestsById
           : getProvierOrderRequestsById;
         const response = await fetchApi(axiosInstance, id);
@@ -78,7 +78,7 @@ const ProductList = () => {
     };
 
     fetchOrderItems();
-  }, [id, userType]); // Added axiosInstance to dependency array
+  }, [id, user_type]); // Added axiosInstance to dependency array
 
   const calculateTotal = (quantity: number, rate: number) => quantity * rate;
 

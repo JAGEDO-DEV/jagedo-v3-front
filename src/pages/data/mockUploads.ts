@@ -47,8 +47,8 @@ export const MOCK_UPLOADS = {
 };
 
 // Helper function to get mock uploads based on user type
-export const getMockUploadsForUserType = (userType: string, accountType?: string): Record<string, string> => {
-  const type = userType?.toLowerCase() || "";
+export const getMockUploadsForuser_type = (user_type: string, accountType?: string): Record<string, string> => {
+  const type = user_type?.toLowerCase() || "";
   const account = accountType?.toLowerCase() || "";
 
   if (type === "customer") {

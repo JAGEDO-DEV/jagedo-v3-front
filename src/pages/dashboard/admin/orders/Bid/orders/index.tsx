@@ -160,7 +160,7 @@ function BidsOrderPageContainer() {
       );
     }
     if (orderData && ActiveComponent) {
-      return <ActiveComponent orderData={orderData} userType={user?.userType} />;
+      return <ActiveComponent orderData={orderData} user_type={user?.user_type} />;
     }
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 text-lg">

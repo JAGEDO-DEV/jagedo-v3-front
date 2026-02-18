@@ -490,20 +490,20 @@ export const submitEvaluation = async (
 export const updateBuilderLevel = async (
     axiosInstance: any,
     id: any,
-    userType: string,
+    user_type: string,
     editedFields: any,
     userData: any
 ) => {
     const url =
-        userType === "FUNDI"
+        user_type === "FUNDI"
             ? `${
                   import.meta.env.VITE_SERVER_URL
               }/api/admin/profiles/${id}/fundi/information`
-            : userType === "PROFESSIONAL"
+            : user_type === "PROFESSIONAL"
             ? `${
                   import.meta.env.VITE_SERVER_URL
               }/api/admin/profiles/${id}/professional/experience`
-            : userType === "CONTRACTOR"
+            : user_type === "CONTRACTOR"
             ? `${
                   import.meta.env.VITE_SERVER_URL
               }/api/admin/profiles/${id}/contractor/experience`
@@ -513,7 +513,7 @@ export const updateBuilderLevel = async (
         console.log("USER DATA: ", userData);
 
         const data =
-            userType === "FUNDI"
+            user_type === "FUNDI"
                 ? {
                       skill: editedFields.skill || userData.skill,
                       grade: editedFields.grade || userData.grade,
@@ -521,7 +521,7 @@ export const updateBuilderLevel = async (
                           editedFields.experience || userData.experience,
                       previousJobPhotoUrls: userData.previousJobPhotoUrls || []
                   }
-                : userType === "PROFESSIONAL"
+                : user_type === "PROFESSIONAL"
                 ? {
                       professionalProjects: userData.professionalProjects || [],
                       level: editedFields.professionalLevel || userData.level,
@@ -530,7 +530,7 @@ export const updateBuilderLevel = async (
                           userData.yearsOfExperience,
                       profession: editedFields.profession || userData.profession
                   }
-                : userType === "CONTRACTOR"
+                : user_type === "CONTRACTOR"
                 ? {
                       categories: userData.categories || [],
                       projects: userData.projects || [],

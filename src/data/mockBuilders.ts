@@ -54,7 +54,7 @@ export interface UserProfile {
 
 export interface Builder {
   id: number;
-  userType: "FUNDI" | "PROFESSIONAL" | "CONTRACTOR" | "HARDWARE";
+  user_type: "FUNDI" | "PROFESSIONAL" | "CONTRACTOR" | "HARDWARE";
   firstName?: string;
   lastName?: string;
   organizationName?: string;
@@ -138,7 +138,7 @@ export const mockBuilders: Builder[] = [
   // ================= FUNDI =================
   {
     id: 1,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "James",
     lastName: "Ochieng",
     email: "fundi01@jagedo.co.ke",
@@ -181,7 +181,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 2,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "Peter",
     lastName: "Kamau",
     email: "fundi02@jagedo.co.ke",
@@ -226,7 +226,7 @@ export const mockBuilders: Builder[] = [
   // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 3,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "David",
     lastName: "Mwangi",
     email: "fundi03@jagedo.co.ke",
@@ -252,7 +252,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 4,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "Michael",
     lastName: "Njoroge",
     email: "fundi04@jagedo.co.ke",
@@ -292,7 +292,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 5,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "Samuel",
     lastName: "Kiprop",
     email: "fundi05@jagedo.co.ke",
@@ -336,7 +336,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 6,
-    userType: "FUNDI",
+    user_type: "FUNDI",
     firstName: "John",
     lastName: "Otieno",
     email: "fundi06@jagedo.co.ke",
@@ -352,7 +352,7 @@ export const mockBuilders: Builder[] = [
   // ================= PROFESSIONAL =================
   {
     id: 7,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Grace",
     lastName: "Wanjiku",
     email: "professional01@jagedo.co.ke",
@@ -383,7 +383,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 8,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Faith",
     lastName: "Akinyi",
     email: "professional02@jagedo.co.ke",
@@ -415,7 +415,7 @@ export const mockBuilders: Builder[] = [
   // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 9,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Brian",
     lastName: "Kibet",
     email: "professional03@jagedo.co.ke",
@@ -441,7 +441,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 10,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Sarah",
     lastName: "Chebet",
     email: "professional04@jagedo.co.ke",
@@ -470,7 +470,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 11,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Kevin",
     lastName: "Omondi",
     email: "professional05@jagedo.co.ke",
@@ -500,7 +500,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 12,
-    userType: "PROFESSIONAL",
+    user_type: "PROFESSIONAL",
     firstName: "Anne",
     lastName: "Nyambura",
     email: "professional06@jagedo.co.ke",
@@ -516,7 +516,7 @@ export const mockBuilders: Builder[] = [
   // ================= CONTRACTOR =================
   {
     id: 13,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "BuildRight Construction",
     email: "contractor01@jagedo.co.ke",
     phoneNumber: "0201234561",
@@ -551,7 +551,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 14,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "Premier Builders Ltd",
     email: "contractor02@jagedo.co.ke",
     phoneNumber: "0201234562",
@@ -595,7 +595,7 @@ export const mockBuilders: Builder[] = [
   // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 15,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "Coast Constructors",
     email: "contractor03@jagedo.co.ke",
     phoneNumber: "0201234563",
@@ -617,7 +617,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 16,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "Lakeside Developers",
     email: "contractor04@jagedo.co.ke",
     phoneNumber: "0201234564",
@@ -649,7 +649,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 17,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "Highland Projects",
     email: "contractor05@jagedo.co.ke",
     phoneNumber: "0201234565",
@@ -682,7 +682,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 18,
-    userType: "CONTRACTOR",
+    user_type: "CONTRACTOR",
     organizationName: "Eastern Infrastructure",
     email: "contractor06@jagedo.co.ke",
     phoneNumber: "0201234566",
@@ -697,7 +697,7 @@ export const mockBuilders: Builder[] = [
   // ================= HARDWARE =================
   {
     id: 19,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Nairobi Building Supplies",
     email: "hardware01@jagedo.co.ke",
     phoneNumber: "0711223341",
@@ -722,7 +722,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 20,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Eldoret Hardware Hub",
     email: "hardware02@jagedo.co.ke",
     phoneNumber: "0711223342",
@@ -749,7 +749,7 @@ export const mockBuilders: Builder[] = [
   // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 21,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Coastal Tools & Paints",
     email: "hardware03@jagedo.co.ke",
     phoneNumber: "0711223343",
@@ -773,7 +773,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 22,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Kisumu Electricals Ltd",
     email: "hardware04@jagedo.co.ke",
     phoneNumber: "0711223344",
@@ -796,7 +796,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 23,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Ruiru Wood & Iron",
     email: "hardware05@jagedo.co.ke",
     phoneNumber: "0711223345",
@@ -821,7 +821,7 @@ export const mockBuilders: Builder[] = [
   },
   {
     id: 24,
-    userType: "HARDWARE",
+    user_type: "HARDWARE",
     organizationName: "Nakuru Cement & Bricks",
     email: "hardware06@jagedo.co.ke",
     phoneNumber: "0711223346",

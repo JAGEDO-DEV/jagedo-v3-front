@@ -15,7 +15,7 @@ interface User {
   contactLastName: string;
   contactPhone: string;
   contactEmail: string;
-  userType: string;
+  user_type: string;
   admin_approved?: boolean; // Only present for fundi, contractor, professional
   [key: string]: any; // Allow for extra properties
 }
@@ -57,7 +57,7 @@ const ProtectedRoute = ({
   // If route requires specific roles
   if (
     allowedRoles.length > 0 &&
-    (!user.userType || !allowedRoles.includes(user.userType))
+    (!user.user_type || !allowedRoles.includes(user.user_type))
   ) {
     return <Navigate to={fallback} state={{ from: location }} replace />;
   }

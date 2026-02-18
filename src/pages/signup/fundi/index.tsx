@@ -70,7 +70,7 @@ export default function FundiSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            userType: "FUNDI",
+            user_type: "FUNDI",
             accountType: formData.accountType,
             email: formData.email,
             nationalId: formData.nationalId,
@@ -95,7 +95,7 @@ export default function FundiSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            userType: "FUNDI",
+            user_type: "FUNDI",
             accountType: formData.accountType,
             email: formData.email,
             nationalId: formData.nationalId,
@@ -233,7 +233,7 @@ export default function FundiSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
-                userType="FUNDI"
+                user_type="FUNDI"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

@@ -165,7 +165,7 @@ export default function BuildersAdmin() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   const filteredBuilders = builders.filter((builder) => {
-    const matchesTab = builder?.userType === activeTab;
+    const matchesTab = builder?.user_type === activeTab;
     const matchesName =
       !filters.name ||
       builder?.firstName?.toLowerCase().includes(filters.name.toLowerCase()) ||
@@ -240,7 +240,7 @@ export default function BuildersAdmin() {
                 }`}
               >
                 {nav.name} (
-                {builders.filter((b) => b.userType === nav.name).length})
+                {builders.filter((b) => b.user_type === nav.name).length})
               </button>
             ))}
           </div>
@@ -400,12 +400,12 @@ export default function BuildersAdmin() {
                       onClick={() =>
                         navigate(
                           `/dashboard/profile/${row.id || rowIndex}/${
-                            row.userType || activeTab
+                            row.user_type || activeTab
                           }`,
                           {
                             state: {
                               userData: row,
-                              userType: row.userType || activeTab,
+                              user_type: row.user_type || activeTab,
                             },
                           }
                         )

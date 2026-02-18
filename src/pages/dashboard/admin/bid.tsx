@@ -80,7 +80,7 @@ function ActiveJobPageContainer() {
 
     return (
         <>
-            {user?.userType.toLowerCase() == 'fundi' && <DashboardHeader />}
+            {user?.user_type.toLowerCase() == 'fundi' && <DashboardHeader />}
             <section className="container mx-auto mt-8 px-4">
                 <header>
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Job Details for #{jobData?.jobId}</h2>

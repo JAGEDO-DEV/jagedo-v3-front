@@ -37,7 +37,7 @@ import { BreadcrumbNav } from "@/components/breadcrumb-nav"
 import { NotificationsModal } from "@/components/NotificationsModal"
 
 interface EnhancedTopNavProps {
-  userType: "customer" | "fundi" | "professional" | "contractor" | "builder" | "hardware" | "admin"
+  user_type: "customer" | "fundi" | "professional" | "contractor" | "builder" | "hardware" | "admin"
   notifications?: any[]
   cartItems?: any[]
   onMobileMenuToggle?: () => void
@@ -49,7 +49,7 @@ interface EnhancedTopNavProps {
 }
 
 export function EnhancedTopNav({
-  userType,
+  user_type,
   notifications = [],
   cartItems = [],
   onMobileMenuToggle,
@@ -92,8 +92,8 @@ export function EnhancedTopNav({
     console.log('Mark all as read')
   }
 
-  const getUserTypeLabel = () => {
-    switch (userType) {
+  const getuser_typeLabel = () => {
+    switch (user_type) {
       case "customer":
         return "Customer Portal"
       case "fundi":
@@ -114,7 +114,7 @@ export function EnhancedTopNav({
   }
 
   const getQuickActions = () => {
-    switch (userType) {
+    switch (user_type) {
       case "customer":
         return [
           { label: "New Request", icon: Plus, href: "/dashboard/customer?section=requisitions" },
@@ -178,7 +178,7 @@ export function EnhancedTopNav({
               />
               <div className="hidden sm:block">
                 <span className="text-xl font-bold text-[#00007a]">JAGEDO</span>
-                <div className="text-xs text-gray-500">{getUserTypeLabel()}</div>
+                <div className="text-xs text-gray-500">{getuser_typeLabel()}</div>
               </div>
             </Link>
 

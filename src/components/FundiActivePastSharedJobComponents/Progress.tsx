@@ -160,7 +160,7 @@ const TrackProgress = () => {
                 </div>
 
                 {/* Current Step Details */}
-                {user?.userType.toLowerCase() !== "customer" && user?.userType.toLowerCase() !== "admin" && (<div className="bg-gray-50 p-6 rounded-lg shadow-inner text-center">
+                {user?.user_type.toLowerCase() !== "customer" && user?.user_type.toLowerCase() !== "admin" && (<div className="bg-gray-50 p-6 rounded-lg shadow-inner text-center">
                     <h3 className="text-2xl font-semibold text-gray-800 mb-2">
                         {stepsContent[currentStep].heading}
                     </h3>
@@ -171,8 +171,8 @@ const TrackProgress = () => {
                 </div>)}
 
                 {/* Action Button Section */}
-                {user.userType.toLowerCase() !== "customer" &&
-                    user.userType.toLowerCase() !== "admin" && (
+                {user.user_type.toLowerCase() !== "customer" &&
+                    user.user_type.toLowerCase() !== "admin" && (
                         <div className="text-center mt-10">
                             {currentStep < stepsContent.length - 1 && (
                                 <button
@@ -201,7 +201,7 @@ const TrackProgress = () => {
                         </div>
                     )}
 
-                {user?.userType?.toLowerCase() == "admin" && (
+                {user?.user_type?.toLowerCase() == "admin" && (
                     <div className="bg-gray-50 p-6 rounded-lg shadow-inner text-center">
                         <h3 className="text-2xl font-semibold text-gray-800 mb-2">
                             {stepsContent[currentStep].heading}

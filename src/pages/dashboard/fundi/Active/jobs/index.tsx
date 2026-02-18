@@ -65,7 +65,7 @@ function ActiveAwardedNav({ activeTab, onTabClick }: ActiveAwardedNavProps) {
             {tabs
                 .filter(
                     (tab) =>
-                        !(user?.userType?.toLowerCase() === "fundi" && tab.name === "Fundi Details")
+                        !(user?.user_type?.toLowerCase() === "fundi" && tab.name === "Fundi Details")
                 )
                 .map((tab) => (
                     <button
@@ -130,7 +130,7 @@ function ActiveJobPageContainer() {
 
     return (
         <>
-            {user?.userType.toLowerCase() == 'fundi' && <DashboardHeader />}
+            {user?.user_type.toLowerCase() == 'fundi' && <DashboardHeader />}
             <section className="container mx-auto mt-8 px-4">
                 <header>
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Job Details for #{jobData?.jobId}</h2>

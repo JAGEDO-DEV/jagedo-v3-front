@@ -123,11 +123,11 @@ export const uploadHardwareDocuments = async (axiosInstance: any, documents: any
     }
 };
 
-export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any): Promise<any> => {
+export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, user_type: string, id: any, accountType: any): Promise<any> => {
     try {
         let url;
 
-        switch (userType.toLowerCase()) {
+        switch (user_type.toLowerCase()) {
             case 'customer':
                 if (accountType.toLowerCase() === 'individual') {
                     url = `${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${id}/individual-customer/uploads`;

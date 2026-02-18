@@ -39,7 +39,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const { user } = useGlobalContext();
-    const userType = (user?.userType || '').trim().toLowerCase();
+    const user_type = (user?.user_type || '').trim().toLowerCase();
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -71,7 +71,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         let allNotifications: Notification[] = [];
         try {
-            if (serviceProviderTypes.includes(userType)) {
+            if (serviceProviderTypes.includes(user_type)) {
                 const [jobsResponse, ordersResponse] = await Promise.all([
                     getServiceProviderJobRequests(axiosInstance),
                     getProviderOrderRequests(axiosInstance)
@@ -109,7 +109,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                     allNotifications = allNotifications.concat(orderNotifications);
                 }
 
-            } else if (userType === 'customer') {
+            } else if (user_type === 'customer') {
                 const [jobsResponse, ordersResponse] = await Promise.all([
                     getCustomerJobRequests(axiosInstance),
                     getOrderRequests(axiosInstance),

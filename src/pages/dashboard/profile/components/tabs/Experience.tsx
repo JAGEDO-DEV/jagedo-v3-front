@@ -400,7 +400,7 @@ const Experience = ({ userData }) => {
   const [fileActionLoading, setFileActionLoading] = useState({});
 
   // Get user type from userData
-  const userType = userData?.userType || "FUNDI";
+  const user_type = userData?.user_type || "FUNDI";
   const status = userData?.status;
 
   // Statuses that should prefill/show existing data
@@ -415,7 +415,7 @@ const Experience = ({ userData }) => {
 
     let projectData = [];
 
-    switch (userType) {
+    switch (user_type) {
       case "FUNDI":
         projectData = userData?.userProfile?.previousJobPhotoUrls || [];
         break;
@@ -438,10 +438,10 @@ const Experience = ({ userData }) => {
 
     return projectData.map((project, index) => ({
       id: index + 1,
-      projectName: project.projectName || `${userType} Project ${index + 1}`,
+      projectName: project.projectName || `${user_type} Project ${index + 1}`,
       files: [
         {
-          name: `${project.projectName || `${userType} Project ${index + 1}`}.jpg`,
+          name: `${project.projectName || `${user_type} Project ${index + 1}`}.jpg`,
           url: project.fileUrl || project?.projectFile,
         },
       ],
@@ -449,7 +449,7 @@ const Experience = ({ userData }) => {
   };
 
   const profileUploaded = (userData) => {
-    switch (userData?.userType) {
+    switch (userData?.user_type) {
       case "FUNDI":
         return (
           userData?.userProfile?.previousJobPhotoUrls &&
@@ -474,7 +474,7 @@ const Experience = ({ userData }) => {
 
   // Get project field name based on user type
   const getProjectFieldName = () => {
-    switch (userType) {
+    switch (user_type) {
       case "FUNDI":
         return "Previous Job Photos";
       case "PROFESSIONAL":
@@ -558,7 +558,7 @@ const removeCategory = (index: number) => {
       return getDefaultInfo();
     }
 
-    switch (userType) {
+    switch (user_type) {
       case "FUNDI":
         const fundiSkill = userData.userProfile.skill || userData.skills || "";
         const fundiSpecOptions = FUNDI_SPECIALIZATIONS[fundiSkill as keyof typeof FUNDI_SPECIALIZATIONS] || [];
@@ -641,7 +641,7 @@ const removeCategory = (index: number) => {
  
   // Dynamic field configurations based on user type
   const getFieldsConfig = () => {
-    switch (userType) {
+    switch (user_type) {
       case "FUNDI":
         return [
           {
@@ -892,7 +892,7 @@ const removeCategory = (index: number) => {
 
   // Get required project count based on user type and level
   const getRequiredProjectCount = () => {
-    switch (userType) {
+    switch (user_type) {
       case "FUNDI":
         const grade = userData?.userProfile?.grade || "";
         if (grade === "G1: Master Fundi") return 3;
@@ -992,11 +992,11 @@ const removeCategory = (index: number) => {
       );
 
       const profileKey =
-        userType === "FUNDI"
+        user_type === "FUNDI"
           ? "previousJobPhotoUrls"
-          : userType === "PROFESSIONAL"
+          : user_type === "PROFESSIONAL"
             ? "professionalProjects"
-            : userType === "CONTRACTOR"
+            : user_type === "CONTRACTOR"
               ? "contractorProjects"
               : "hardwareProjects";
 
@@ -1103,7 +1103,7 @@ const removeCategory = (index: number) => {
   const getEvaluationQuestions = () => {
     const skill = userData?.userProfile?.skill || userData?.skills || info?.skill || "";
 
-    if (userType === "FUNDI" && skill) {
+    if (user_type === "FUNDI" && skill) {
       // Try to load skill-specific questions from localStorage
       const storageKey = `evaluation_questions_${skill.toLowerCase()}`;
       const storedQuestions = localStorage.getItem(storageKey);
@@ -1404,7 +1404,7 @@ const removeCategory = (index: number) => {
           {/* Header with Approve Button */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-800">
-              {userData?.userType} Experience
+              {userData?.user_type} Experience
             </h1>
             <div className="flex items-center gap-3">
               {userData?.userProfile?.experienceApproved ? (
@@ -1439,13 +1439,13 @@ const removeCategory = (index: number) => {
             {/* Skills Section - Card Based Design */}
             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                {userData?.userType} Information
+                {userData?.user_type} Information
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {fields.map((field, index) => {
                   // Skip contractor experience table - handled in Work Categories section
-                  if (userType.toLowerCase() === "contractor" && field.name === "experience") {
+                  if (user_type.toLowerCase() === "contractor" && field.name === "experience") {
                     return null;
                   }
 
@@ -1557,7 +1557,7 @@ const removeCategory = (index: number) => {
             </div>
 
             {/* Contractor Categories Section */}
-            {userType === "CONTRACTOR" && (
+            {user_type === "CONTRACTOR" && (
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">
@@ -1748,7 +1748,7 @@ const removeCategory = (index: number) => {
               </div>
             )}
 
-            {/* {userType} Project Attachments */}
+            {/* {user_type} Project Attachments */}
             <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
@@ -1788,7 +1788,7 @@ const removeCategory = (index: number) => {
                             {index + 1}
                           </td>
                           <td className="px-6 py-4 font-medium">
-                            {row.projectName || `Unnamed ${userType} Project`}
+                            {row.projectName || `Unnamed ${user_type} Project`}
                           </td>
                           <td className="px-6 py-4">
                             <div className="space-y-2">
@@ -2022,15 +2022,15 @@ const removeCategory = (index: number) => {
               )}
             </div>
             {/* Evaluation Criteria Instructions */}
-            {userType.toLowerCase() === "fundi" &&
+            {user_type.toLowerCase() === "fundi" &&
               !userData?.userProfile?.fundiEvaluation && (
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  {userType} Evaluation Guidelines
+                  {user_type} Evaluation Guidelines
                 </h2>
               )}
 
             {/* Scoring Criteria Description */}
-            {userType.toLowerCase() === "fundi" &&
+            {user_type.toLowerCase() === "fundi" &&
               !userData?.userProfile?.fundiEvaluation && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <h3 className="font-semibold text-blue-900 text-sm mb-2">
@@ -2054,7 +2054,7 @@ const removeCategory = (index: number) => {
               )}
 
             {/* Evaluation Criteria Instructions */}
-            {userType.toLowerCase() === "fundi" &&
+            {user_type.toLowerCase() === "fundi" &&
               !userData?.userProfile?.fundiEvaluation && (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">

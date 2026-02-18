@@ -34,8 +34,8 @@ const toISOStringOrNull = (dateString) => {
 
 const TechnicalProgressView = ({ workPlans, onWorkPlanChange, onUpdateWorkPlan, savingWorkPlanId, user, jobData, refetchJobData }) => {
     const navigate = useNavigate();
-    const isEditable = user?.userType === 'PROFESSIONAL' || user?.userType === 'CONTRACTOR';
-    const isCustomer = user.userType === 'CUSTOMER' || user.userType === 'ADMIN';
+    const isEditable = user?.user_type === 'PROFESSIONAL' || user?.user_type === 'CONTRACTOR';
+    const isCustomer = user.user_type === 'CUSTOMER' || user.user_type === 'ADMIN';
 
     const sortedWorkPlans = useMemo(() => workPlans.sort((a, b) => a.id - b.id), [workPlans]);
 
@@ -350,9 +350,9 @@ const TechnicalProgressView = ({ workPlans, onWorkPlanChange, onUpdateWorkPlan, 
 const FinancialProgressView = ({ milestones, jobId, user, jobData, refetchJobData }) => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const isEditable = user?.userType === 'PROFESSIONAL' || user?.userType === 'CONTRACTOR';
-    const isCustomer = user?.userType === 'CUSTOMER';
-    const isAdmin = user?.userType === 'ADMIN';
+    const isEditable = user?.user_type === 'PROFESSIONAL' || user?.user_type === 'CONTRACTOR';
+    const isCustomer = user?.user_type === 'CUSTOMER';
+    const isAdmin = user?.user_type === 'ADMIN';
 
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 

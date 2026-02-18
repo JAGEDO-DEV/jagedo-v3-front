@@ -79,7 +79,7 @@ function ActiveProffJobsPageContainer() {
 
     return (
         <>
-            {user?.userType?.toLowerCase() == "professional" && (<DashboardHeader />)}
+            {user?.user_type?.toLowerCase() == "professional" && (<DashboardHeader />)}
             <section className="container mx-auto mt-8 px-4">
                 <header className="mb-6">
                     {/* Container for Back button and Tabs */}

@@ -180,7 +180,7 @@ export function DashboardHeader() {
   const { totalItems } = useCart();
   const userData = localStorage.getItem('user');
   const user = userData ? JSON.parse(userData) : null;
-  const userType = user?.userType?.trim().toLowerCase();
+  const user_type = user?.user_type?.trim().toLowerCase();
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -303,7 +303,7 @@ export function DashboardHeader() {
       hardware: { order: '/hardware' },
     };
 
-    const basePath = paths[userType]?.[type];
+    const basePath = paths[user_type]?.[type];
     if (!basePath) {
       toast.error("Cannot determine navigation path.");
       return;
@@ -380,7 +380,7 @@ export function DashboardHeader() {
           </div>
 
           <nav className="hidden md:flex items-center space-x-2">
-            {(userType === 'customer' || !user) &&
+            {(user_type === 'customer' || !user) &&
               <CustomerNav
                 totalItems={totalItems}
                 notifications={notifications}
@@ -391,7 +391,7 @@ export function DashboardHeader() {
               />
             }
 
-            {serviceProviderTypes.includes(userType) &&
+            {serviceProviderTypes.includes(user_type) &&
               <ServiceProviderNav
                 notifications={notifications}
                 unreadCount={unreadCount}
@@ -433,7 +433,7 @@ export function DashboardHeader() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t p-4 animate-fade-in-down">
           <div className="flex flex-col space-y-2">
-            {(userType === 'customer' || !user) && (
+            {(user_type === 'customer' || !user) && (
               <>
                 {!user && (
                   <Link to="/login" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700">
@@ -463,7 +463,7 @@ export function DashboardHeader() {
                 )}
               </>
             )}
-            {serviceProviderTypes.includes(userType) && (
+            {serviceProviderTypes.includes(user_type) && (
               <>
                 <Link to="/dashboard/sales" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
                   <BriefcaseIcon className="h-5 w-5" /> Sales

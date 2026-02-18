@@ -90,7 +90,7 @@ const Reviews: React.FC = () => {
 
     // Determine review type based on user type
     const getReviewType = () => {
-        return user?.userType?.toLowerCase() === 'customer' ? 'CUSTOMER_TO_PROVIDER' : 'PROVIDER_TO_CUSTOMER';
+        return user?.user_type?.toLowerCase() === 'customer' ? 'CUSTOMER_TO_PROVIDER' : 'PROVIDER_TO_CUSTOMER';
     };
 
     // Fetch reviews for the job
@@ -155,7 +155,7 @@ const Reviews: React.FC = () => {
             const reviewData = {
                 jobRequestId: parseInt(id),
                 reviewerId: user.id,
-                revieweeId: user.userType?.toLowerCase() === 'customer' ? job?.assignedServiceProvider?.id : job?.customer?.id,
+                revieweeId: user.user_type?.toLowerCase() === 'customer' ? job?.assignedServiceProvider?.id : job?.customer?.id,
                 reviewType: getReviewType(),
                 ...formData
             };
@@ -281,11 +281,11 @@ const Reviews: React.FC = () => {
                         Comments
                     </label>
                     <textarea
-                        value={user?.userType?.toLowerCase() === 'customer' ?
+                        value={user?.user_type?.toLowerCase() === 'customer' ?
                             formData.customerComments : formData.providerComments}
                         onChange={(e) => setFormData(prev => ({
                             ...prev,
-                            [user?.userType?.toLowerCase() === 'customer' ? 'customerComments' : 'providerComments']: e.target.value
+                            [user?.user_type?.toLowerCase() === 'customer' ? 'customerComments' : 'providerComments']: e.target.value
                         }))}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -327,7 +327,7 @@ const Reviews: React.FC = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-800">Reviews</h2>
-                {!hasUserReviewed && user?.userType?.toLowerCase() !== 'admin' && (
+                {!hasUserReviewed && user?.user_type?.toLowerCase() !== 'admin' && (
                     <button
                         onClick={() => setShowReviewForm(true)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"

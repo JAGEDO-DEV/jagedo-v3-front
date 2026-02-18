@@ -208,7 +208,7 @@ const Register = () => {
                                         const lowerFilter = filterCriteria.toLowerCase();
 
                                         if (entityType === 'order') {
-                                            return p.userType?.toLowerCase() === lowerFilter;
+                                            return p.user_type?.toLowerCase() === lowerFilter;
                                         }
 
                                         if (entityType === 'job') {

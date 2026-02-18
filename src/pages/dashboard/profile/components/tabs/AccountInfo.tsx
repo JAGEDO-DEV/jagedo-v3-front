@@ -82,7 +82,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   // Handle display name - use organizationName for organizations, firstName + lastName for individuals
   const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
-                         userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
+                         userData?.user_type === "CONTRACTOR" || userData?.user_type === "HARDWARE";
   const name = isOrganization && userData?.organizationName
     ? userData.organizationName
     : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
@@ -490,11 +490,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 </h2>
 
                 {/* ORGANIZATION SPECIFIC SECTION (CONTRACTOR & HARDWARE) */}
-                {(userData?.userType === "HARDWARE" || userData?.userType === "CONTRACTOR") && (
+                {(userData?.user_type === "HARDWARE" || userData?.user_type === "CONTRACTOR") && (
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg mb-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">
-                        {userData?.userType === "HARDWARE" ? "Hardware Name" : "Company Name"}
+                        {userData?.user_type === "HARDWARE" ? "Hardware Name" : "Company Name"}
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
                         {editingField === "name" ? (
@@ -662,7 +662,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 )}
 
                 {/* INDIVIDUAL USERS (FUNDI, PROFESSIONAL, CUSTOMER) */}
-                {userData?.userType !== "HARDWARE" && userData?.userType !== "CONTRACTOR" && (
+                {userData?.user_type !== "HARDWARE" && userData?.user_type !== "CONTRACTOR" && (
                   <form className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Name</label>

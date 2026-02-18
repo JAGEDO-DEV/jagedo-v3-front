@@ -21,7 +21,7 @@ interface PaymentBreakdownProps {
 
 const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: PaymentBreakdownProps) => {
     const { user } = useGlobalContext();
-    const isAdmin = user.userType === "ADMIN";
+    const isAdmin = user.user_type === "ADMIN";
     // State for UI display, all derived from props/localStorage
     const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
     const [professionalFeeSubtotal, setProfessionalFeeSubtotal] = useState(0);
@@ -41,8 +41,8 @@ const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: P
     };
 
     // Helper function to calculate discount
-    const calculateDiscount = (total: number, managedBy: string, userType: string) => {
-        const isEligible = userType?.toLowerCase() === 'customer' || userType?.toLowerCase() === 'admin';
+    const calculateDiscount = (total: number, managedBy: string, user_type: string) => {
+        const isEligible = user_type?.toLowerCase() === 'customer' || user_type?.toLowerCase() === 'admin';
         if (isEligible && managedBy === 'SELF') {
             return total * 0.20; // 20% discount
         }
@@ -118,7 +118,7 @@ const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: P
             payableToServiceProvider: total - commission,
             milestones: milestonesData,
         };
-    }, [response, selectedBid, user?.userType]);
+    }, [response, selectedBid, user?.user_type]);
 
     // Sync derived values into component state for UI rendering
     useEffect(() => {
@@ -132,11 +132,11 @@ const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: P
 
         // Handle discount separately as it's a UI concern for certain users
         const managedBy = response?.managedBy || 'JAGEDO';
-        const discountAmount = calculateDiscount(derivedValues.totalAmount, managedBy, user?.userType);
+        const discountAmount = calculateDiscount(derivedValues.totalAmount, managedBy, user?.user_type);
         setDiscount(discountAmount);
         setDiscountedTotal(derivedValues.totalAmount - discountAmount);
 
-    }, [derivedValues, response, user?.userType]);
+    }, [derivedValues, response, user?.user_type]);
 
     // Saves the calculated summary to localStorage
     const saveSummaryData = () => {
@@ -214,7 +214,7 @@ const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: P
                 </div>
 
                 {/* Show discount only for customers and admins */}
-                {(user?.userType?.toLowerCase() === 'customer' || user?.userType?.toLowerCase() === 'admin') && discount > 0 && (
+                {(user?.user_type?.toLowerCase() === 'customer' || user?.user_type?.toLowerCase() === 'admin') && discount > 0 && (
                     <>
                         <div className="w-full p-6 rounded-lg flex justify-between items-center bg-green-50 shadow-sm border border-green-200">
                             <span className="text-green-800 text-lg font-semibold">Customer Discount (20%)</span>

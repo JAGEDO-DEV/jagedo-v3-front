@@ -16,9 +16,9 @@ export default function GoogleSignIn() {
 
     const nonce = useMemo(() => crypto.randomUUID(), []);
 
-    const redirectUser = (userType) => {
+    const redirectUser = (user_type) => {
         setTimeout(() => {
-            switch (userType?.toLowerCase()) {
+            switch (user_type?.toLowerCase()) {
                 case "customer": navigate("/dashboard/customer"); break;
                 case "fundi": navigate("/dashboard/fundi"); break;
                 case "professional": navigate("/dashboard/professional"); break;
@@ -60,7 +60,7 @@ export default function GoogleSignIn() {
             localStorage.setItem('user', JSON.stringify(response.data.user));
             localStorage.setItem('token', response.data.accessToken);
             toast.success("Login successful! Redirecting to dashboard...");
-            redirectUser(response.data.user.userType);
+            redirectUser(response.data.user.user_type);
         } catch (err) {
             const errorMessage = axios.isAxiosError(err)
                 ? err.response?.data?.message || err.message

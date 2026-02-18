@@ -11,9 +11,9 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
  *
  * Props:
  * - userData: User data object
- * - userType: Type of user (FUNDI, PROFESSIONAL, CONTRACTOR, HARDWARE, CUSTOMER)
+ * - user_type: Type of user (FUNDI, PROFESSIONAL, CONTRACTOR, HARDWARE, CUSTOMER)
  */
-export const useProfileCompletion = (userData: any, userType: string): { [key: string]: 'complete' | 'incomplete' } => {
+export const useProfileCompletion = (userData: any, user_type: string): { [key: string]: 'complete' | 'incomplete' } => {
   // State to force re-computation when localStorage changes
   const [storageVersion, setStorageVersion] = useState(0);
 
@@ -51,10 +51,10 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     // Get required documents based on user type
     const getRequiredDocuments = () => {
       const accountType = userData?.accountType?.toLowerCase() || '';
-      const userTypeLC = userType.toLowerCase();
+      const user_typeLC = user_type.toLowerCase();
 
       // Individual customer needs: ID Front, ID Back, KRA PIN
-      if (accountType === 'individual' && userTypeLC === 'customer') {
+      if (accountType === 'individual' && user_typeLC === 'customer') {
         return ['idFront', 'idBack', 'kraPIN'];
       }
 
@@ -67,7 +67,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
         hardware: ['certificateOfIncorporation', 'kraPIN', 'singleBusinessPermit', 'companyProfile'],
       };
 
-      return docMap[userTypeLC] || [];
+      return docMap[user_typeLC] || [];
     };
 
     // Get documents uploaded from localStorage
@@ -88,19 +88,19 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     // ============================================
     // Check experience based on user type
     let experienceComplete = false;
-    const userTypeUpper = userType.toUpperCase();
+    const user_typeUpper = user_type.toUpperCase();
 
-    if (userTypeUpper === 'CUSTOMER') {
+    if (user_typeUpper === 'CUSTOMER') {
       // CUSTOMER doesn't have experience section
       experienceComplete = true;
-    } else if (userTypeUpper === 'FUNDI') {
+    } else if (user_typeUpper === 'FUNDI') {
       // FUNDI: needs grade, experience, and previousJobPhotoUrls
       const hasGrade = userData?.userProfile?.grade;
       const hasExperience = userData?.userProfile?.experience;
       const hasProjects = userData?.userProfile?.previousJobPhotoUrls &&
                           userData.userProfile.previousJobPhotoUrls.length > 0;
       experienceComplete = !!(hasGrade && hasExperience && hasProjects);
-    } else if (userTypeUpper === 'PROFESSIONAL') {
+    } else if (user_typeUpper === 'PROFESSIONAL') {
       // PROFESSIONAL: needs profession, professionalLevel, yearsOfExperience, and professionalProjects
       const hasProfession = userData?.userProfile?.profession;
       const hasLevel = userData?.userProfile?.professionalLevel;
@@ -108,7 +108,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
       const hasProjects = userData?.userProfile?.professionalProjects &&
                           userData.userProfile.professionalProjects.length > 0;
       experienceComplete = !!(hasProfession && hasLevel && hasExperience && hasProjects);
-    } else if (userTypeUpper === 'CONTRACTOR') {
+    } else if (user_typeUpper === 'CONTRACTOR') {
       // CONTRACTOR: needs contractorType, licenseLevel, contractorExperiences, and contractorProjects
       const hasType = userData?.userProfile?.contractorType;
       const hasLevel = userData?.userProfile?.licenseLevel;
@@ -116,7 +116,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
       const hasProjects = userData?.userProfile?.contractorProjects &&
                           userData.userProfile.contractorProjects.length > 0;
       experienceComplete = !!(hasType && hasLevel && hasExperience && hasProjects);
-    } else if (userTypeUpper === 'HARDWARE') {
+    } else if (user_typeUpper === 'HARDWARE') {
       // HARDWARE: needs hardwareType, businessType, experience, and hardwareProjects
       const hasType = userData?.userProfile?.hardwareType;
       const hasBusinessType = userData?.userProfile?.businessType;
@@ -139,7 +139,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     
     return statusObject;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, userType, storageVersion]);
+  }, [userData, user_type, storageVersion]);
 
   return completionStatus;
 };
