@@ -1,10 +1,12 @@
 import React from 'react';
 import { User, Home, Upload, Briefcase, Package, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   userType: string;
-  completionStatus?: { [key: string]: 'complete' | 'incomplete' };  // ← ADD THIS LINE
+  completionStatus?: { [key: string]: 'complete' | 'incomplete' };
+  userData?: any;
 }
 
 // Base navigation items for all users
@@ -39,7 +41,16 @@ const productsItem = {
   color: 'text-indigo-600',
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, completionStatus = {} }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, completionStatus = {}, userData }) => {
+  const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
+    userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
+
+  const displayName = isOrganization && userData?.organizationName
+    ? userData.organizationName
+    : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim() || "User Profile";
+
+  const email = userData?.email || "No email provided";
+
   // Determine which navigation items to show based on user type
   const getNavigationItems = () => {
     if (userType === 'CUSTOMER') {
@@ -70,43 +81,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
     window.location.href = `/dashboard/admin`;
   };
 
-  const renderStatus = (status?: string) => {
-    if (!status) return null;
-
-    if (status === 'complete') {
-      return (
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
-          complete ✓
-        </span>
-      );
-    }
-
-    return (
-      <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
-        incomplete !
-      </span>
-    );
-  };
-
   return (
     <div className="w-80 bg-white shadow-lg border-2 border-gray-200 rounded-2xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">
-          {getUserTypeLabel()}
+        <h1 className="text-xl font-semibold text-gray-900 mb-1 truncate">
+          {displayName}
         </h1>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Manage your account settings and preferences
+        <p className="text-sm text-gray-500 mb-3 truncate">
+          {email}
         </p>
-        <div className="mt-3">
+        <div className="flex items-center justify-between">
           <span
-            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              userType === 'CUSTOMER'
+            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${userType === 'CUSTOMER'
                 ? 'bg-blue-100 text-blue-800'
                 : 'bg-green-100 text-green-800'
-            }`}
+              }`}
           >
             {userType}
+          </span>
+          <span className="text-[10px] text-gray-400 font-medium">
+            ID: {userData?.id || 'N/A'}
           </span>
         </div>
       </div>
@@ -125,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -139,22 +134,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
               <li key={item.id}>
                 <button
                   onClick={() => onTabChange(item.id)}
-                  className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 ${
-                    isActive
+                  className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 ${isActive
                       ? 'bg-blue-50 border-2 border-blue-200 text-blue-700'
                       : 'hover:bg-gray-50 text-gray-700 border-2 border-transparent hover:border-gray-200'
-                  }`}
+                    }`}
                 >
                   <Icon
-                    className={`w-5 h-5 mr-3 ${
-                      isActive ? 'text-blue-600' : item.color
-                    }`}
+                    className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-600' : item.color
+                      }`}
                   />
 
                   <span
-                    className={`font-medium flex-1 ${
-                      isActive ? 'text-blue-700' : 'text-gray-700'
-                    }`}
+                    className={`font-medium flex-1 ${isActive ? 'text-blue-700' : 'text-gray-700'
+                      }`}
                   >
                     {item.label}
                     {isOptional && <span className="text-xs text-gray-400 ml-1">(Optional)</span>}
@@ -175,8 +167,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500 text-center">
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <p className="text-[10px] text-gray-400 text-center uppercase tracking-wider font-semibold">
           {userType === 'CUSTOMER'
             ? 'Customer Dashboard'
             : 'Service Provider Dashboard'}

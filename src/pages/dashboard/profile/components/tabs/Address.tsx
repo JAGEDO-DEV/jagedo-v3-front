@@ -2,43 +2,31 @@ import { useState, useEffect } from "react";
 import { FiEdit } from "react-icons/fi";
 import { toast, Toaster } from "sonner";
 import { counties } from "@/pages/data/counties";
-import { getUserAddress, updateUserAddress } from "@/api/fakeAddress.api";
+import { adminUpdateAddress } from "@/api/provider.api"
 import { getAllCountries } from "@/api/countries.api";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
-const getInitialAddress = (userId: number) => {
-  const saved = getUserAddress(userId);
-  return (
-    saved || {
-      country: "",
-      county: "",
-      subCounty: "",
-      estate: "",
-    }
-  );
+const getInitialAddress = (userData: any) => {
+  return {
+    country: userData?.country || "Kenya",
+    county: userData?.county || "",
+    subCounty: userData?.subCounty || "",
+    estate: userData?.estate || "",
+  };
 };
 
 const Address = ({ userData }) => {
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [isEditing, setIsEditing] = useState(false);
-  const [address, setAddress] = useState(getInitialAddress(userData.id));
+  const [address, setAddress] = useState(getInitialAddress(userData));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [countriesList, setCountriesList] = useState<any[]>([]);
-  const [isLoadingCountries, setIsLoadingCountries] = useState(true);
-
-  // --- localStorage / static fallback for countries ---
-  useEffect(() => {
-    const fetchCountries = async () => {
-      const data = await getAllCountries();
-      setCountriesList(data);
-
-      setIsLoadingCountries(false);
-    };
-    fetchCountries();
-  }, []);
+  const countriesList = [{ name: "Kenya" }];
+  const isLoadingCountries = false;
 
   useEffect(() => {
-    setAddress(getInitialAddress(userData.id));
-  }, [userData.id]);
+    setAddress(getInitialAddress(userData));
+  }, [userData]);
 
   const countyList =
     address.country?.toLowerCase() === "kenya" ? Object.keys(counties) : [];
@@ -73,7 +61,7 @@ const Address = ({ userData }) => {
   };
 
   const handleCancel = () => {
-    setAddress(getInitialAddress(userData.id));
+    setAddress(getInitialAddress(userData));
     setIsEditing(false);
   };
 
@@ -86,18 +74,17 @@ const Address = ({ userData }) => {
     });
   };
 
-  // --- localStorage-based address update ---
-  const handleEdit = () => {
+  // --- Corrected API call ---
+  const handleEdit = async () => {
     setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      updateUserAddress(userData.id, address);
+      await adminUpdateAddress(axiosInstance, address, userData.id);
       toast.success("Address Updated Successfully");
-    } catch (err) {
-      toast.error("Failed to update address");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update address");
     } finally {
       setIsSubmitting(false);
-      setIsEditing(false);
     }
   };
 

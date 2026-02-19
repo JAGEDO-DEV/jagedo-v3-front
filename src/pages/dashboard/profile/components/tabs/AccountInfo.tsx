@@ -3,68 +3,18 @@
 import { useState, useRef, useEffect } from "react";
 import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
 import { Star } from "lucide-react";
+import { toast } from "sonner";
+import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, blackListUser, whiteListUser, suspendUser, unverifyUser } from "@/api/provider.api";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface AccountInfoProps {
   userData: any;
 }
 
-// --- Helper: Deep merge for nested objects ---
-const deepMerge = (target: any, source: any): any => {
-  const result = { ...target };
-  for (const key in source) {
-    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
-      result[key] = deepMerge(result[key] || {}, source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-};
-
-// --- Helper: update a user in localStorage across all storage keys ---
-const updateUserInLocalStorage = (
-  userId: string | number,
-  updates: Record<string, any>,
-) => {
-  try {
-    // Update in "users" array
-    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const userIdx = storedUsers.findIndex((u: any) => u.id === userId || u.id === Number(userId) || u.id === String(userId));
-    if (userIdx !== -1) {
-      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
-      localStorage.setItem("users", JSON.stringify(storedUsers));
-    }
-
-    // Update in "builders" array to sync with admin dashboard
-    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-    const builderIdx = storedBuilders.findIndex((b: any) => b.id === userId || b.id === Number(userId) || b.id === String(userId));
-    if (builderIdx !== -1) {
-      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
-      localStorage.setItem("builders", JSON.stringify(storedBuilders));
-    }
-
-    // Update in "customers" array to sync with admin dashboard
-    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
-    const customerIdx = storedCustomers.findIndex((c: any) => c.id === userId || c.id === Number(userId) || c.id === String(userId));
-    if (customerIdx !== -1) {
-      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
-      localStorage.setItem("customers", JSON.stringify(storedCustomers));
-    }
-
-    // Also update the single "user" key if it matches
-    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (singleUser && (singleUser.id === userId || singleUser.id === Number(userId) || singleUser.id === String(userId))) {
-      localStorage.setItem(
-        "user",
-        JSON.stringify(deepMerge(singleUser, updates)),
-      );
-    }
-  } catch (err) {
-    console.error("Failed to update user in localStorage:", err);
-  }
-};
+// --- Remove local storage helpers ---
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [askDeleteReason, setAskDeleteReason] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
@@ -82,7 +32,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   // Handle display name - use organizationName for organizations, firstName + lastName for individuals
   const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
-                         userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
+    userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
   const name = isOrganization && userData?.organizationName
     ? userData.organizationName
     : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
@@ -94,60 +44,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- Load persisted image from localStorage on component mount ---
-  useEffect(() => {
-    try {
-      // Try loading from users array first
-      let image = null;
-      
-      const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-      const foundUser = storedUsers.find((u: any) => u.id === userData.id);
-      if (foundUser?.userProfile?.profileImage) {
-        image = foundUser.userProfile.profileImage;
-        console.log("✅ Image loaded from users array");
-      }
-      
-      // If not found, try builders array
-      if (!image) {
-        const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-        const foundBuilder = storedBuilders.find((b: any) => b.id === userData.id);
-        if (foundBuilder?.userProfile?.profileImage) {
-          image = foundBuilder.userProfile.profileImage;
-          console.log("✅ Image loaded from builders array");
-        }
-      }
-      
-      // If not found, try user key
-      if (!image) {
-        const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-        if (singleUser?.id === userData.id && singleUser?.userProfile?.profileImage) {
-          image = singleUser.userProfile.profileImage;
-          console.log("✅ Image loaded from user key");
-        }
-      }
-      
-      // If not found, try profile key
-      if (!image) {
-        const profileData = JSON.parse(localStorage.getItem("profile") || "null");
-        if (profileData?.id === userData.id && profileData?.userProfile?.profileImage) {
-          image = profileData.userProfile.profileImage;
-          console.log("✅ Image loaded from profile key");
-        }
-      }
-      
-      // If still not found, use passed prop
-      if (!image && userData?.userProfile?.profileImage) {
-        image = userData.userProfile.profileImage;
-        console.log("✅ Image loaded from userData prop");
-      }
-      
-      if (image) {
-        setAvatarSrc(image);
-      }
-    } catch (err) {
-      console.error("Failed to load persisted image:", err);
-    }
-  }, [userData.id]);
+  // --- Remove localStorage-based load on mount ---
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -174,93 +71,24 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
       // Convert to Base64 for persistence
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const base64String = e.target?.result as string;
-        
+
         // Set state immediately to show preview
         setAvatarSrc(base64String);
-        
-        // Update userData object in-place
-        if (!userData.userProfile) {
-          userData.userProfile = {};
-        }
-        userData.userProfile.profileImage = base64String;
-        
-        // Persist to all localStorage keys
+
+        // --- Backend Update Only ---
         try {
-          // Update "users" array
-          const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-          const userIdx = storedUsers.findIndex((u: any) => u.id === userData.id);
-          if (userIdx !== -1) {
-            storedUsers[userIdx] = deepMerge(storedUsers[userIdx], {
-              userProfile: {
-                ...(storedUsers[userIdx].userProfile || {}),
-                profileImage: base64String,
-              },
-            });
-            localStorage.setItem("users", JSON.stringify(storedUsers));
-            console.log("✅ Image saved to users array");
-          }
-
-          // Update "builders" array
-          const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-          const builderIdx = storedBuilders.findIndex((b: any) => b.id === userData.id);
-          if (builderIdx !== -1) {
-            storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], {
-              userProfile: {
-                ...(storedBuilders[builderIdx].userProfile || {}),
-                profileImage: base64String,
-              },
-            });
-            localStorage.setItem("builders", JSON.stringify(storedBuilders));
-            console.log("✅ Image saved to builders array");
-          }
-
-          // Update single "user" key
-          const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-          if (singleUser && singleUser.id === userData.id) {
-            const updated = deepMerge(singleUser, {
-              userProfile: {
-                ...(singleUser.userProfile || {}),
-                profileImage: base64String,
-              },
-            });
-            localStorage.setItem("user", JSON.stringify(updated));
-            console.log("✅ Image saved to user key");
-          }
-
-          // Update profile key (if exists)
-          const profileData = JSON.parse(localStorage.getItem("profile") || "null");
-          if (profileData && profileData.id === userData.id) {
-            const updated = deepMerge(profileData, {
-              userProfile: {
-                ...(profileData.userProfile || {}),
-                profileImage: base64String,
-              },
-            });
-            localStorage.setItem("profile", JSON.stringify(updated));
-            console.log("✅ Image saved to profile key");
-          }
-
-          // Update customers array if exists
-          const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
-          const customerIdx = storedCustomers.findIndex((c: any) => c.id === userData.id);
-          if (customerIdx !== -1) {
-            storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], {
-              userProfile: {
-                ...(storedCustomers[customerIdx].userProfile || {}),
-                profileImage: base64String,
-              },
-            });
-            localStorage.setItem("customers", JSON.stringify(storedCustomers));
-            console.log("✅ Image saved to customers array");
-          }
-
+          await updateProfileImageAdmin(
+            axiosInstance,
+            base64String,
+            userData.id,
+          );
+          toast.success("Profile image updated on server");
           event.target.value = ""; // Reset input
-          alert("Image uploaded successfully and persisted!");
-        } catch (err) {
-          console.error("Error persisting image:", err);
-          alert("Image uploaded but failed to persist. Please try again.");
+        } catch (apiErr: any) {
+          console.error("Failed to update image on server:", apiErr);
+          toast.error(apiErr.message || "Failed to sync image with server");
           event.target.value = ""; // Reset input
         }
       };
@@ -319,7 +147,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   };
 
   // --- localStorage-based edit save ---
-  const handleEditSave = (field: string) => {
+  const handleEditSave = async (field: string) => {
     if (!editValues[field]?.trim()) {
       alert(
         `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
@@ -352,15 +180,41 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
           throw new Error("Invalid field");
       }
 
-      // Update userData in-place for the current render
+      // Update userData in-place for the current render (not strictly necessary if we refresh)
       Object.assign(userData, updates);
-      // Persist to localStorage
-      updateUserInLocalStorage(userData.id, updates);
+
+
+      // --- Backend Update ---
+      try {
+        if (field === "name") {
+          const namePayload = {
+            name: editValues.name.trim(),
+            contactName: isOrganization
+              ? `${userData?.firstName || ""} ${userData?.lastName || ""}`.trim()
+              : editValues.name.trim()
+          };
+          await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
+        } else if (field === "email") {
+          await updateProfileEmailAdmin(axiosInstance, userData.id, {
+            email: editValues.email,
+          });
+        } else if (field === "phoneNumber") {
+          await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
+            phone: editValues.phoneNumber,
+          });
+        }
+        toast.success(
+          `${field.charAt(0).toUpperCase() + field.slice(1)} updated on server`,
+        );
+      } catch (apiErr: any) {
+        console.error(`Failed to update ${field} on server:`, apiErr);
+        toast.error(apiErr.message || `Failed to sync ${field} with server`);
+      }
 
       setEditingField(null);
-      alert(
-        `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`,
-      );
+      // alert(
+      //   `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`,
+      // );
     } catch (error: any) {
       console.error(`Failed to update ${field}:`, error);
       alert(error.message || `Failed to update ${field}`);
@@ -369,46 +223,49 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }
   };
 
-  // --- localStorage-based action handlers ---
-  const handleBlackList = (reason: string) => {
-    updateUserInLocalStorage(userData.id, {
-      blacklisted: true,
-      blacklistReason: reason,
-      blacklistDate: new Date().toISOString()
-    });
-    Object.assign(userData, { blacklisted: true, blacklistReason: reason });
-    alert("User blacklisted successfully");
+  // --- Action handlers using API ---
+  const handleBlackList = async (reason: string) => {
+    try {
+      await blackListUser(axiosInstance, userData.id);
+      Object.assign(userData, { blacklisted: true, blacklistReason: reason });
+      toast.success("User blacklisted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to blacklist user");
+    }
   };
 
-  const handleWhiteList = () => {
-    updateUserInLocalStorage(userData.id, { blacklisted: false });
-    Object.assign(userData, { blacklisted: false });
-    alert("User whitelisted successfully");
+  const handleWhiteList = async () => {
+    try {
+      await whiteListUser(axiosInstance, userData.id);
+      Object.assign(userData, { blacklisted: false });
+      toast.success("User whitelisted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to whitelist user");
+    }
   };
 
-  const handleSuspend = (reason: string) => {
-    updateUserInLocalStorage(userData.id, {
-      suspended: true,
-      suspendReason: reason,
-      suspendDate: new Date().toISOString()
-    });
-    Object.assign(userData, { suspended: true, suspendReason: reason });
-    alert("User suspended successfully");
+  const handleSuspend = async (reason: string) => {
+    try {
+      await suspendUser(axiosInstance, userData.id);
+      Object.assign(userData, { suspended: true, suspendReason: reason });
+      toast.success("User suspended successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to suspend user");
+    }
   };
 
-  const handleUnverifyUser = (reason: string) => {
-    updateUserInLocalStorage(userData.id, {
-      adminApproved: false,
-      approved: false,
-      unverifyReason: reason,
-      unverifyDate: new Date().toISOString()
-    });
-    Object.assign(userData, { adminApproved: false, approved: false, unverifyReason: reason });
-    alert("User unverified successfully");
+  const handleUnverifyUser = async (reason: string) => {
+    try {
+      await unverifyUser(axiosInstance, userData.id);
+      Object.assign(userData, { adminApproved: false, approved: false, unverifyReason: reason });
+      toast.success("User unverified successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unverify user");
+    }
   };
 
   // Handle action with reason submission
-  const handleActionSubmit = () => {
+  const handleActionSubmit = async () => {
     if (!actionReason.trim()) {
       alert("Please enter a reason for this action.");
       return;
@@ -416,13 +273,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
     switch (pendingAction) {
       case "unverify":
-        handleUnverifyUser(actionReason);
+        await handleUnverifyUser(actionReason);
         break;
       case "suspend":
-        handleSuspend(actionReason);
+        await handleSuspend(actionReason);
         break;
       case "blacklist":
-        handleBlackList(actionReason);
+        await handleBlackList(actionReason);
         break;
     }
 
@@ -466,7 +323,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
               <div className="flex flex-col items-start mb-6">
                 <img
                   alt="avatar"
-                  src={avatarSrc}
+                  src={avatarSrc || "/profile.jpg"}
                   className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
                 />
                 <button
@@ -722,7 +579,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">
-                        Phone Numberertt
+                        Phone Number
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
                         {editingField === "phoneNumber" ? (
@@ -916,11 +773,10 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   <button
                     type="button"
                     onClick={handleActionSubmit}
-                    className={`text-white px-4 py-2 rounded transition ${
-                      pendingAction === "blacklist"
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                    className={`text-white px-4 py-2 rounded transition ${pendingAction === "blacklist"
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                   >
                     Confirm {getActionLabel(pendingAction)}
                   </button>
@@ -991,7 +847,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         </div>
       </div>
     </div>
-    
+
   );
 };
 
