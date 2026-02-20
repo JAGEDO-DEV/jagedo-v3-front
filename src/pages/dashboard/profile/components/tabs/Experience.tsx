@@ -14,6 +14,8 @@ import { UploadCloud, FileText, CheckCircle } from "lucide-react";
 import { FiCheck } from "react-icons/fi";
 import { SquarePen } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 
 // Specialization options by user type
@@ -339,58 +341,13 @@ const resolveSpecialization = (user: any) => {
   return "";
 };
 
-const updateUserInLocalStorage = (
-  userId: string,
-  updates: Record<string, any>,
-) => {
-  try {
-    // Update "users" array
-    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
-    if (userIdx !== -1) {
-      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
-      localStorage.setItem("users", JSON.stringify(storedUsers));
-    }
+// Local storage sync omitted as per requirements.
 
-    // Update "builders" array
-    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-    const builderIdx = storedBuilders.findIndex((u: any) => u.id === userId);
-    if (builderIdx !== -1) {
-      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
-      localStorage.setItem("builders", JSON.stringify(storedBuilders));
-    }
-
-    // Update "customers" array
-    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
-    const customerIdx = storedCustomers.findIndex((u: any) => u.id === userId);
-    if (customerIdx !== -1) {
-      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
-      localStorage.setItem("customers", JSON.stringify(storedCustomers));
-    }
-
-    // Update "user" single object
-    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (singleUser && singleUser.id === userId) {
-      const updatedUser = deepMerge(singleUser, updates);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-    }
-
-    // Update "profile" single object
-    const profileUser = JSON.parse(localStorage.getItem("profile") || "null");
-    if (profileUser && profileUser.id === userId) {
-      const updatedProfile = deepMerge(profileUser, updates);
-      localStorage.setItem("profile", JSON.stringify(updatedProfile));
-    }
-  } catch (err) {
-    console.error("Failed to update user in localStorage:", err);
-    throw err;
-  }
-};
 
 const Experience = ({ userData }) => {
 
   console.log("User Data: ", userData);
-  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
 
@@ -982,7 +939,7 @@ const Experience = ({ userData }) => {
         .filter((project) => project.files.length > 0);
 
       console.log(
-        "Saving clean attachments to localStorage:",
+        "Updating local project state:",
         cleanAttachments,
       );
 
@@ -1005,7 +962,6 @@ const Experience = ({ userData }) => {
 
       const updatedProfile = { ...profile, [profileKey]: projectData };
       userData.userProfile = updatedProfile;
-      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
     } catch (error) {
       console.error("Update projects error:", error);
       throw error;
@@ -1298,19 +1254,25 @@ const Experience = ({ userData }) => {
   }, [userData]);
 
   // --- localStorage-based verify ---
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setIsVerifying(true);
     const userId = userData.id;
     if (!userId) {
-      alert("User ID not found.");
+      toast.error("User ID not found.");
       setIsVerifying(false);
       return;
     }
-    updateUserInLocalStorage(userId, { adminApproved: true, approved: true });
-    Object.assign(userData, { adminApproved: true, approved: true });
-    localStorage.setItem("showVerificationMessage", "true");
-    setShowVerificationMessage(true);
-    setIsVerifying(false);
+    try {
+      await handleVerifyUser(axiosInstance, userId)
+      toast.success("User verified successfully!");
+      localStorage.setItem("showVerificationMessage", "true");
+      setShowVerificationMessage(true);
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to verify user");
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   // When close is clicked
@@ -1335,7 +1297,7 @@ const Experience = ({ userData }) => {
   };
 
   // --- localStorage-based evaluation submit ---
-  const handleEvaluationSubmit = (e) => {
+  const handleEvaluationSubmit = async (e) => {
     console.log("handleEvaluationSubmit");
     e.preventDefault();
     setIsSubmitting(true);
@@ -1359,43 +1321,47 @@ const Experience = ({ userData }) => {
       quotationFormulaScore: questions[3]?.score || 0,
       totalScore: totalScore,
       audioUrl: audioUrl || null,
+      isVerified: true
     };
 
-    // Persist evaluation to localStorage
-    const profile = userData?.userProfile || {};
-    const updatedProfile = {
-      ...profile,
-      fundiEvaluation: { ...body, isVerified: true },
-    };
-    userData.userProfile = updatedProfile;
-    updateUserInLocalStorage(profileId, { userProfile: updatedProfile });
-
-    setSubmitMessage("Evaluation submitted successfully!");
-    setIsSubmitting(false);
+    try {
+      await submitEvaluation(axiosInstance, profileId, body);
+      setSubmitMessage("Evaluation submitted successfully!");
+      toast.success("Evaluation submitted successfully!");
+      window.location.reload();
+    } catch (error: any) {
+      setSubmitMessage(error.message || "Failed to submit evaluation");
+      toast.error(error.message || "Failed to submit evaluation");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // --- localStorage-based edit skill ---
-  const handleEditSkill = (updatedFields) => {
+  const handleEditSkill = async (updatedFields) => {
     setIsSavingInfo(true);
     try {
       if (!userData?.id) {
         throw new Error("User ID not found");
       }
-      const profile = userData?.userProfile || {};
-      const updatedProfile = deepMerge(profile, updatedFields);
-      userData.userProfile = updatedProfile;
-      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+
+      await updateBuilderLevel(
+        axiosInstance,
+        userData.id,
+        userType,
+        updatedFields,
+        userData.userProfile
+      );
+
       toast.success("Information updated successfully");
       setInfo((prevInfo) => deepMerge(prevInfo, updatedFields));
       setIsEditingFields(false);
-    } catch (error) {
-      toast.error("Failed to update information");
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update information");
       console.error("Edit skill error:", error);
     } finally {
       setIsSavingInfo(false);
-
-      // ✅ Trigger sidebar to update status (dispatch event so parent component recalculates)
-      window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -1418,21 +1384,29 @@ const Experience = ({ userData }) => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    const profile = userData?.userProfile || {};
-                    const updatedProfile = {
-                      ...profile,
-                      experienceApproved: true,
-                      experienceApprovedAt: new Date().toISOString(),
-                    };
-                    userData.userProfile = updatedProfile;
-                    updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
-                    toast.success("Experience section has been approved!");
+                  onClick={async () => {
+                    setIsSavingInfo(true);
+                    try {
+                      await updateBuilderLevel(
+                        axiosInstance,
+                        userData.id,
+                        userType,
+                        { experienceApproved: true },
+                        userData.userProfile
+                      );
+                      toast.success("Experience section has been approved!");
+                      window.location.reload();
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to approve experience");
+                    } finally {
+                      setIsSavingInfo(false);
+                    }
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                  disabled={isSavingInfo}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
                 >
                   <FiCheck className="w-4 h-4" />
-                  Approve
+                  {isSavingInfo ? "Processing..." : "Approve"}
                 </button>
               )}
             </div>
@@ -1716,36 +1690,49 @@ const Experience = ({ userData }) => {
                 <div className="mt-4 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      // Filter valid categories and save
+                    onClick={async () => {
                       const validCategories = categories.filter(c => c.category && c.class && c.years);
                       if (validCategories.length === 0) {
                         toast.error("Please fill in at least one category with all required fields");
                         return;
                       }
 
-                      // Save to localStorage for Account Uploads to pick up
-                      const contractorExperiences = validCategories.map(c => ({
-                        category: c.category,
-                        specialization: c.specialization,
-                        categoryClass: c.class,
-                        yearsOfExperience: c.years,
-                      }));
+                      setIsSavingInfo(true);
+                      try {
+                        const contractorExperiences = validCategories.map(c => ({
+                          category: c.category,
+                          specialization: c.specialization,
+                          categoryClass: c.class,
+                          yearsOfExperience: c.years,
+                        }));
 
-                      const profile = userData?.userProfile || {};
-                      const updatedProfile = {
-                        ...profile,
-                        contractorExperiences,
-                        contractorCategories: validCategories, // Store categories for document generation
-                      };
-                      userData.userProfile = updatedProfile;
-                      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+                        const profile = userData?.userProfile || {};
+                        const updatedProfile = {
+                          ...profile,
+                          contractorExperiences,
+                          contractorCategories: validCategories,
+                        };
 
-                      toast.success("Categories saved successfully!");
+                        await updateBuilderLevel(
+                          axiosInstance,
+                          userData.id,
+                          userType,
+                          {},
+                          updatedProfile
+                        );
+
+                        toast.success("Categories saved successfully!");
+                        window.location.reload();
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to save categories");
+                      } finally {
+                        setIsSavingInfo(false);
+                      }
                     }}
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                    disabled={isSavingInfo}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
                   >
-                    Save Categories
+                    {isSavingInfo ? "Saving..." : "Save Categories"}
                   </button>
                 </div>
               </div>
@@ -1878,6 +1865,34 @@ const Experience = ({ userData }) => {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="p-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSavingInfo(true);
+                    try {
+                      await updateBuilderLevel(
+                        axiosInstance,
+                        userData.id,
+                        userType,
+                        {},
+                        userData.userProfile
+                      );
+                      toast.success("Projects saved successfully!");
+                      window.location.reload();
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to save projects");
+                    } finally {
+                      setIsSavingInfo(false);
+                    }
+                  }}
+                  disabled={isSavingInfo}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm disabled:opacity-50"
+                >
+                  {isSavingInfo ? "Saving..." : "Save Projects"}
+                </button>
               </div>
 
               {/* Add New Projects Section */}

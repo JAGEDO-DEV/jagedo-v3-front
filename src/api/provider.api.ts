@@ -139,8 +139,7 @@ export const updateProfessionalExperienceProfile = async (
 ): Promise<any> => {
     try {
         const response = await axiosInstance.put(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/profiles/professional/experience`,
             data,
             {}
@@ -193,8 +192,7 @@ export const updateProfessionalDocumentsProfile = async (
 ): Promise<any> => {
     try {
         const response = await axiosInstance.put(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/profiles/professional/documents`,
             data,
             {
@@ -218,8 +216,7 @@ export const assignJobToProviders = async (
 ) => {
     try {
         const response = await axiosInstance.post(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/job-requests/${jobId}/assign-providers`,
             providerIds,
             {
@@ -374,8 +371,7 @@ export const updateProfileImageAdmin = async (
 ): Promise<any> => {
     try {
         const response = await axiosInstance.put(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/admin/profiles/${id}/profileImage`,
             { profileImage: imageUrl },
             {}
@@ -395,8 +391,7 @@ export const updateProfilePhoneNumberAdmin = async (
 ): Promise<any> => {
     try {
         const response = await axiosInstance.put(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/admin/profiles/${id}/phoneNumber`,
             phone,
             {
@@ -409,7 +404,7 @@ export const updateProfilePhoneNumberAdmin = async (
     } catch (error: any) {
         throw new Error(
             error.response?.data?.message ||
-                "Failed to update provider phone number (admin)"
+            "Failed to update provider phone number (admin)"
         );
     }
 };
@@ -433,7 +428,7 @@ export const updateProfileEmailAdmin = async (
     } catch (error: any) {
         throw new Error(
             error.response?.data?.message ||
-                "Failed to update provider email (admin)"
+            "Failed to update provider email (admin)"
         );
     }
 };
@@ -457,7 +452,7 @@ export const updateProfileNameAdmin = async (
     } catch (error: any) {
         throw new Error(
             error.response?.data?.message ||
-                "Failed to update provider name (admin)"
+            "Failed to update provider name (admin)"
         );
     }
 };
@@ -469,8 +464,7 @@ export const submitEvaluation = async (
 ) => {
     try {
         const response = await axiosInstance.put(
-            `${
-                import.meta.env.VITE_SERVER_URL
+            `${import.meta.env.VITE_SERVER_URL
             }/api/admin/profiles/${id}/fundi/evaluation`,
             data,
             {
@@ -496,18 +490,18 @@ export const updateBuilderLevel = async (
 ) => {
     const url =
         userType === "FUNDI"
-            ? `${
-                  import.meta.env.VITE_SERVER_URL
-              }/api/admin/profiles/${id}/fundi/information`
+            ? `${import.meta.env.VITE_SERVER_URL
+            }/api/admin/profiles/${id}/fundi/information`
             : userType === "PROFESSIONAL"
-            ? `${
-                  import.meta.env.VITE_SERVER_URL
-              }/api/admin/profiles/${id}/professional/experience`
-            : userType === "CONTRACTOR"
-            ? `${
-                  import.meta.env.VITE_SERVER_URL
-              }/api/admin/profiles/${id}/contractor/experience`
-            : "";
+                ? `${import.meta.env.VITE_SERVER_URL
+                }/api/admin/profiles/${id}/professional/experience`
+                : userType === "CONTRACTOR"
+                    ? `${import.meta.env.VITE_SERVER_URL
+                    }/api/admin/profiles/${id}/contractor/experience`
+                    : userType === "HARDWARE"
+                        ? `${import.meta.env.VITE_SERVER_URL
+                        }/api/profiles/hardware`
+                        : "";
     try {
         console.log("EDITING FIELDS: ", editedFields);
         console.log("USER DATA: ", userData);
@@ -515,27 +509,45 @@ export const updateBuilderLevel = async (
         const data =
             userType === "FUNDI"
                 ? {
-                      skill: editedFields.skill || userData.skill,
-                      grade: editedFields.grade || userData.grade,
-                      experience:
-                          editedFields.experience || userData.experience,
-                      previousJobPhotoUrls: userData.previousJobPhotoUrls || []
-                  }
+                    skill: editedFields.skill || userData.skill,
+                    specialization: editedFields.specialization || userData.specialization,
+                    grade: editedFields.grade || userData.grade,
+                    experience:
+                        editedFields.experience || userData.experience,
+                    previousJobPhotoUrls: userData.previousJobPhotoUrls || [],
+                    experienceApproved: editedFields.experienceApproved ?? userData.experienceApproved
+                }
                 : userType === "PROFESSIONAL"
-                ? {
-                      professionalProjects: userData.professionalProjects || [],
-                      level: editedFields.professionalLevel || userData.level,
-                      yearsOfExperience:
-                          editedFields.yearsOfExperience ||
-                          userData.yearsOfExperience,
-                      profession: editedFields.profession || userData.profession
-                  }
-                : userType === "CONTRACTOR"
-                ? {
-                      categories: userData.categories || [],
-                      projects: userData.projects || [],
-                  }
-                : null;
+                    ? {
+                        professionalProjects: userData.professionalProjects || [],
+                        level: editedFields.professionalLevel || userData.level,
+                        yearsOfExperience:
+                            editedFields.yearsOfExperience ||
+                            userData.yearsOfExperience,
+                        profession: editedFields.profession || userData.profession,
+                        specialization: editedFields.specialization || userData.specialization,
+                        experienceApproved: editedFields.experienceApproved ?? userData.experienceApproved
+                    }
+                    : userType === "CONTRACTOR"
+                        ? {
+                            categories: userData.categories || userData.contractorCategories || [],
+                            projects: userData.projects || userData.contractorProjects || [],
+                            contractorType: editedFields.category || userData.contractorType || userData.category,
+                            specialization: editedFields.specialization || userData.specialization,
+                            licenseLevel: editedFields.class || userData.licenseLevel || userData.class,
+                            yearsOfExperience: editedFields.yearsOfExperience || userData.yearsOfExperience,
+                            experienceApproved: editedFields.experienceApproved ?? userData.experienceApproved
+                        }
+                        : userType === "HARDWARE"
+                            ? {
+                                hardwareType: editedFields.hardwareType || userData.hardwareType,
+                                specialization: editedFields.specialization || userData.specialization,
+                                businessType: editedFields.businessType || userData.businessType,
+                                experience: editedFields.experience || userData.experience,
+                                projects: userData.hardwareProjects || userData.projects || [],
+                                experienceApproved: editedFields.experienceApproved ?? userData.experienceApproved
+                            }
+                            : null;
 
         const response = await axiosInstance.put(url, data, {
             headers: {
@@ -543,7 +555,7 @@ export const updateBuilderLevel = async (
             }
         });
         return response.data;
-    } catch (error) {
+    } catch (error: any) {
         throw new Error(
             error.response?.data?.message || "Failed to update builder level"
         );
