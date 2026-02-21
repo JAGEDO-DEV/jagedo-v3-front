@@ -35,7 +35,7 @@ export const getRoleById = async (roleId: string | number): Promise<Role> => {
         headers: { Authorization: getAuthHeaders() }
       }
     );
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch role");
   }
@@ -48,6 +48,7 @@ export const createRole = async (data: {
   name: string;
   description: string;
   menuItemIds: string[];
+  roleMenuItemOperations?: Record<string, string[]>;
 }): Promise<RolePermissionResponse> => {
   try {
     const response = await axios.post(
@@ -72,6 +73,7 @@ export const updateRole = async (
     name?: string;
     description?: string;
     menuItemIds?: string[];
+    roleMenuItemOperations?: Record<string, string[]>;
   }
 ): Promise<RolePermissionResponse> => {
   try {
@@ -276,7 +278,7 @@ export const getRoleStatistics = async (): Promise<any> => {
         headers: { Authorization: getAuthHeaders() }
       }
     );
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch role statistics");
   }
@@ -302,7 +304,7 @@ export const createAdminUser = async (data: {
         headers: { Authorization: getAuthHeaders() }
       }
     );
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to create admin user");
   }
@@ -346,7 +348,7 @@ export const updateAdminUser = async (
         headers: { Authorization: getAuthHeaders() }
       }
     );
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to update admin user");
   }
@@ -386,3 +388,77 @@ export const suspendAdminUser = async (userId: number | string): Promise<any> =>
     throw new Error(error.response?.data?.message || "Failed to suspend/unsuspend admin user");
   }
 };
+
+// ============ OPERATION PERMISSIONS (CRUD) ============
+
+/**
+ * Get all roles with their current CRUD operation permissions for each menu
+ */
+export const getAllRolePermissionsWithOperations = async (): Promise<any[]> => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/role-permissions`,
+      {
+        headers: { Authorization: getAuthHeaders() }
+      }
+    );
+    return response.data || [];
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch role permissions");
+  }
+};
+
+/**
+ * Get a specific role's operation permissions for each menu
+ */
+/**
+ * Get simple role-menu assignments (no operations complexity)
+ */
+export const getRoleMenuAssignments = async (roleId: string | number): Promise<any> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/roles/${roleId}`, {
+      headers: { Authorization: getAuthHeaders() },
+    });
+    return response.data?.data || response.data || {};
+  } catch (error: any) {
+    console.error('[API] Error fetching role assignments:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * @deprecated Use getRoleMenuAssignments instead
+ */
+export const getRoleOperationPermissions = async (roleId: string | number): Promise<any> => {
+  return getRoleMenuAssignments(roleId);
+};
+
+/**
+ * Update operation permissions for a role-menu combination
+ * @param roleId - The role ID
+ * @param menuId - The menu ID
+ * @param operations - Array of operation names like ['VIEW', 'CREATE', 'UPDATE', 'DELETE']
+ */
+export const updateRoleMenuOperations = async (
+  roleId: string | number,
+  menuId: string,
+  operations: string[]
+): Promise<any> => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/admin/role-permissions/${roleId}/${menuId}`,
+      { permissions: operations },
+      {
+        headers: { Authorization: getAuthHeaders() }
+      }
+    );
+    return response.data || {};
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to update role permissions");
+  }
+};
+
+/**
+ * NOTE: getPermissionMatrix has been moved to permissions.api.ts for simplified permission flow
+ * Use: import { getPermissionMatrix } from '@/api/permissions.api';
+ */

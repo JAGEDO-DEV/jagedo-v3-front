@@ -118,16 +118,17 @@ export const sendSingleSms = async (
 
 /**
  * Get SMS history - all previously sent bulk SMS
+ * Handles both wrapped responses ({ success,message,data }) and direct arrays.
  * @param axiosInstance - Axios instance with authentication
  * @returns Promise<SmsHistoryEntry[]>
  */
 export const getSmsHistory = async (
   axiosInstance: AxiosInstance
 ): Promise<SmsHistoryEntry[]> => {
-  const response = await axiosInstance.get<SmsHistoryEntry[]>(
-    "/api/bulk-sms/history"
-  );
-  return response.data;
+  const response = await axiosInstance.get("/api/bulk-sms/history");
+  // backend may return { success, message, data } or an array directly
+  const payload = response.data?.data ?? response.data ?? [];
+  return Array.isArray(payload) ? payload : [];
 };
 
 /**
@@ -140,8 +141,8 @@ export const getSmsHistoryById = async (
   axiosInstance: AxiosInstance,
   smsId: string
 ): Promise<SmsHistoryEntry> => {
-  const response = await axiosInstance.get<SmsHistoryEntry>(
-    `/api/bulk-sms/history/${smsId}`
-  );
-  return response.data;
+  const response = await axiosInstance.get(`/api/bulk-sms/history/${smsId}`);
+  const payload = response.data?.data ?? response.data ?? null;
+  if (!payload) throw new Error('SMS history item not found');
+  return payload as SmsHistoryEntry;
 };

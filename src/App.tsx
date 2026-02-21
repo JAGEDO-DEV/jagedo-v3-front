@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom
 import React, { Suspense } from "react";
 import RouteLoading from "@/components/RouteLoading";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ProtectedAdminRoute from "@/components/ProtectedAdminRoute";
 import { GlobalProvider } from "@/context/GlobalProvider";
 import { RolePermissionProvider } from "@/context/RolePermissionProvider";
 import Unauthorized from "@/pages/Unauthorized.js";
@@ -637,225 +638,366 @@ function App() {
                                         <Route path="/bill-details/:id/:billid" element={<BillDetails />} />
                                     </Route>
 
-                                    {/* --- ADMIN DASHBOARD --- */}
+                                    {/* --- ADMIN DASHBOARD WITH PERMISSION CHECKS --- */}
                                     <Route
                                         element={
-                                            <ProtectedRoute allowedRoles={["ADMIN"]} />
+                                            <ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]} />
                                         }
                                     >
                                         <Route
                                             path="/dashboard/admin"
                                             element={<AdminRootLayout />}
                                         >
+                                            {/* Home - Home Menu */}
                                             <Route
-                                                index
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="home" />}
+                                            >
+                                                <Route
+                                                    index
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Analytics */}
                                             <Route
-                                                path="analytics"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/Analytics"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="analytics" />}
+                                            >
+                                                <Route
+                                                    path="analytics"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/Analytics"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* User Management */}
                                             <Route
-                                                path="user-management"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/users-management"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="user-management" />}
+                                            >
+                                                <Route
+                                                    path="user-management"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/users-management"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Bulk SMS */}
                                             <Route
-                                                path="bulk-sms"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/bulk-sms"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="bulk-sms" />}
+                                            >
+                                                <Route
+                                                    path="bulk-sms"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/bulk-sms"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Jobs Management */}
                                             <Route
-                                                path="jobs"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/jobs"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="jobs" />}
+                                            >
+                                                <Route
+                                                    path="jobs"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/jobs"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/job-detail"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/active/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/fundi/Active/jobs/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="professional/active/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/professional/Active/jobs/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/fundi/complete/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/fundi/Complete/jobs/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/bid/complete/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/professional/Complete/jobs/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/bid/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/bid"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="jobs/quote/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/quoteBreakdown"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Orders Management */}
                                             <Route
-                                                path="jobs/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/job-detail"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="orders" />}
+                                            >
+                                                <Route
+                                                    path="orders"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/orders"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/order-detail"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/active/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/orders/Active/orders/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/bid/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/orders/Bid/orders/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/complete/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/orders/Complete/orders/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/draft/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/orders/Draft/orders/index"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                                <Route
+                                                    path="orders/new/:id"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/order-detail"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Products */}
                                             <Route
-                                                path="orders/active/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/orders/Active/orders/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-products" />}
+                                            >
+                                                <Route
+                                                    path="shop/products"
+                                                    element={<ShopProducts />}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Customer View */}
                                             <Route
-                                                path="orders/bid/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/orders/Bid/orders/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-customer-view" />}
+                                            >
+                                                <Route
+                                                    path="shop/customer-view"
+                                                    element={<ShopCustomerView />}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Categories */}
                                             <Route
-                                                path="orders/complete/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/orders/Complete/orders/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-categories" />}
+                                            >
+                                                <Route
+                                                    path="shop/categories"
+                                                    element={<ShopCategories />}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Attributes */}
                                             <Route
-                                                path="orders/draft/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/orders/Draft/orders/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-attributes" />}
+                                            >
+                                                <Route
+                                                    path="shop/attributes"
+                                                    element={<ShopAttributes />}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Regions */}
                                             <Route
-                                                path="orders/new/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/order-detail"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-regions" />}
+                                            >
+                                                <Route
+                                                    path="shop/regions"
+                                                    element={<ShopRegions />}
+                                                />
+                                            </Route>
+
+                                            {/* Shop Prices */}
                                             <Route
-                                                path="jobs/active/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/fundi/Active/jobs/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="shop-prices" />}
+                                            >
+                                                <Route
+                                                    path="shop/prices"
+                                                    element={<ShopPrices />}
+                                                />
+                                            </Route>
+
+                                            {/* Builder Configuration */}
                                             <Route
-                                                path="professional/active/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/professional/Active/jobs/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="configuration" />}
+                                            >
+                                                <Route
+                                                    path="configuration"
+                                                    element={<BuilderConfiguration />}
+                                                />
+                                            </Route>
+
+                                            {/* Builder Registers */}
                                             <Route
-                                                path="jobs/fundi/complete/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/fundi/Complete/jobs/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="registers-builders" />}
+                                            >
+                                                <Route
+                                                    path="builders"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/registers/builders"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Customer Registers */}
                                             <Route
-                                                path="jobs/bid/complete/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/professional/Complete/jobs/index"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="jobs/bid/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/bid"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="jobs/quote/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/quoteBreakdown"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="orders"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/orders"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="orders/:id"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/order-detail"
-                                                            )
-                                                    )
-                                                )}
-                                            />
+                                                element={<ProtectedAdminRoute requiredMenu="registers-customers" />}
+                                            >
+                                                <Route
+                                                    path="customers"
+                                                    element={React.createElement(
+                                                        React.lazy(
+                                                            () =>
+                                                                import(
+                                                                    "@/pages/dashboard/admin/registers/customers"
+                                                                )
+                                                        )
+                                                    )}
+                                                />
+                                            </Route>
+
+                                            {/* Remaining legacy routes - kept for backwards compatibility */}
                                             <Route
                                                 path="register"
                                                 element={React.createElement(
@@ -874,56 +1016,6 @@ function App() {
                                                         () =>
                                                             import(
                                                                 "@/pages/dashboard/admin/settings"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="shop/products"
-                                                element={<ShopProducts />}
-                                            />
-                                            <Route
-                                                path="shop/customer-view"
-                                                element={<ShopCustomerView />}
-                                            />
-                                            <Route
-                                                path="shop/categories"
-                                                element={<ShopCategories />}
-                                            />
-                                            <Route
-                                                path="shop/attributes"
-                                                element={<ShopAttributes />}
-                                            />
-                                            <Route
-                                                path="shop/regions"
-                                                element={<ShopRegions />}
-                                            />
-                                            <Route
-                                                path="shop/prices"
-                                                element={<ShopPrices />}
-                                            />
-                                            <Route
-                                                path="configuration"
-                                                element={<BuilderConfiguration />}
-                                            />
-                                            <Route
-                                                path="builders"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/registers/builders"
-                                                            )
-                                                    )
-                                                )}
-                                            />
-                                            <Route
-                                                path="customers"
-                                                element={React.createElement(
-                                                    React.lazy(
-                                                        () =>
-                                                            import(
-                                                                "@/pages/dashboard/admin/registers/customers"
                                                             )
                                                     )
                                                 )}

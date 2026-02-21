@@ -54,11 +54,11 @@ const ProtectedRoute = ({
     return <Navigate to={fallback} state={{ from: location }} replace />;
   }
 
-  // If route requires specific roles
-  if (
-    allowedRoles.length > 0 &&
-    (!user.userType || !allowedRoles.includes(user.userType))
-  ) {
+  // If route requires specific roles (support `userType` and legacy `role`)
+  const role = (user.userType || user.role || '')?.toString?.().toUpperCase();
+  const allowedNormalized = allowedRoles.map((r) => r.toString().toUpperCase());
+
+  if (allowedRoles.length > 0 && !allowedNormalized.includes(role)) {
     return <Navigate to={fallback} state={{ from: location }} replace />;
   }
 

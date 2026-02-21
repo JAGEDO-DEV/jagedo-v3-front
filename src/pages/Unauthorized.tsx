@@ -66,7 +66,7 @@ export default function Unauthorized() {
                     className="space-x-4"
                 >
                     <Link
-                        to="/"
+                        to="/dashboard/admin"
                         className="inline-block px-6 py-3 bg-red-600 text-white rounded-lg
                      hover:bg-red-700 transition-colors duration-200
                      transform hover:scale-105"

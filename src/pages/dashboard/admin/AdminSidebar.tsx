@@ -148,6 +148,7 @@ export const sidebarItems = [
         color: "#9B59B6",
         submenu: [
           {
+            id: "configuration",
             title: "Builders Configurations",
             icon: ShovelIcon,
             href: "/dashboard/admin/configuration",

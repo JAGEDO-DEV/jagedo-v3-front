@@ -83,10 +83,20 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
           const cachedPermissions = JSON.parse(cached);
           setUserMenuPermissions(cachedPermissions);
         } catch (e) {
-          setUserMenuPermissions([]);
+          // Fallback to default menu items for admin users
+          if (user?.userType === "ADMIN") {
+            setUserMenuPermissions(DEFAULT_ADMIN_MENU_ITEMS);
+          } else {
+            setUserMenuPermissions([]);
+          }
         }
       } else {
-        setUserMenuPermissions([]);
+        // Fallback to default menu items for admin users when API fails
+        if (user?.userType === "ADMIN") {
+          setUserMenuPermissions(DEFAULT_ADMIN_MENU_ITEMS);
+        } else {
+          setUserMenuPermissions([]);
+        }
       }
     } finally {
       setIsLoadingPermissions(false);
@@ -119,6 +129,14 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
   useEffect(() => {
     const hasToken = localStorage.getItem("token");
     
+    // Only restore from cache if user is logged in and has a token
+    if (!hasToken) {
+      setUserMenuPermissions([]);
+      setCachedUserId(null);
+      setIsLoadingPermissions(false);
+      return;
+    }
+    
     // Restore from cache immediately for better UX, but validate it belongs to current user
     const cached = localStorage.getItem("cachedPermissions");
     const cachedId = localStorage.getItem("cachedPermissionsUserId");
@@ -131,11 +149,20 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
         setCachedUserId(cachedId);
       } catch (e) {
         console.error("Failed to parse cached permissions:", e);
-        setUserMenuPermissions([]);
+        // Fallback to default menu items for admin users
+        if (user?.userType === "ADMIN") {
+          setUserMenuPermissions(DEFAULT_ADMIN_MENU_ITEMS);
+        } else {
+          setUserMenuPermissions([]);
+        }
       }
     } else {
-      // Clear cache if user changed or no valid cache exists
-      setUserMenuPermissions([]);
+      // Use default menu items for admin users, or clear for others
+      if (user?.userType === "ADMIN") {
+        setUserMenuPermissions(DEFAULT_ADMIN_MENU_ITEMS);
+      } else {
+        setUserMenuPermissions([]);
+      }
       setCachedUserId(null);
     }
     
@@ -154,10 +181,12 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
       refreshPermissions();
       refreshRoles();
     } else {
-      // Clear state when logging out
+      // Clear state and cache when logging out
       setUserMenuPermissions([]);
       setAllRoles([]);
       setCachedUserId(null);
+      localStorage.removeItem("cachedPermissions");
+      localStorage.removeItem("cachedPermissionsUserId");
     }
   }, [isLoggedIn]);
 

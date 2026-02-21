@@ -246,7 +246,7 @@ export default function Login() {
   };
 
   const redirectUser = (user) => {
-    const role = user.userType.toLowerCase();
+    const role = (user?.userType || 'customer').toLowerCase();
 
     let path = "/dashboard/customer";
 

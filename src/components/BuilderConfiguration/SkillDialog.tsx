@@ -116,7 +116,7 @@ export function SkillDialog({ open, onOpenChange, skill, onSave }: Props) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button className="bg-blue-600" onClick={handleSave}>{skill ? "Update" : "Add"}</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave}>{skill ? "Update" : "Add"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

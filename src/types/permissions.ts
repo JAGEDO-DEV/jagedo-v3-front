@@ -6,6 +6,7 @@ export interface MenuItem {
   href?: string;
   category: string;
   submenu?: MenuItem[];
+  operations?: string[]; // Array of operations user can perform (CREATE, UPDATE, DELETE, etc.)
 }
 
 export interface Permission {

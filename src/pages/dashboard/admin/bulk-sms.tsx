@@ -55,6 +55,10 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getAllCustomers, getAllProviders } from "@/api/provider.api";
 import { sendBulkSms, getSmsHistory, getSmsHistoryById, BulkSmsRequest, SmsHistoryEntry } from "@/api/bulk-sms.api";
+import { useAdminPermission } from "@/components/ProtectedAdminRoute";
+import { useRolePermissions } from "@/context/RolePermissionProvider";
+import { canPerformOperation } from "@/utils/adminPermissions";
+import { Navigate } from "react-router-dom";
 
 const BulkSMS = () => {
   const serverUrl = import.meta.env.VITE_SERVER_URL;
@@ -102,6 +106,27 @@ const BulkSMS = () => {
   const [builders, setBuilders] = useState<any[]>([]);
   const [smsHistory, setSmsHistory] = useState<SmsHistoryEntry[]>([]);
 
+ // Check permissions for configuration menu
+  const { hasAccess, isLoading } = useAdminPermission('bulk-sms', 'VIEW');
+  const { userMenuPermissions } = useRolePermissions();
+  const canCreate = canPerformOperation(userMenuPermissions, 'bulk-sms', 'CREATE');
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+   // Handle no access
+  if (!hasAccess) {
+    return <Navigate to="/403" replace />;
+  }
+  
   // Fetch data on component mount - OPTIMIZED VERSION
   useEffect(() => {
     let isMounted = true;
@@ -143,7 +168,6 @@ const BulkSMS = () => {
         setCustomers(customersList);
         setBuilders(buildersList);
         setSmsHistory(history);
-        console.log(history);
 
       } catch (err: any) {
         if (!isMounted) return;
@@ -641,7 +665,13 @@ const BulkSMS = () => {
           {safeCustomersLength} customers
         </p>
       </div>
-
+{!canCreate && (
+            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800">
+                You have read-only access to this section. Contact an administrator to request Sending SMS permissions.
+              </p>
+            </div>
+          )}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -719,7 +749,7 @@ const BulkSMS = () => {
                       !message.trim() ||
                       isSending
                     }
-                    onClick={sendSMS}
+                    onClick={canCreate ? sendSMS : null}
                   >
                     {isSending ? (
                       <>

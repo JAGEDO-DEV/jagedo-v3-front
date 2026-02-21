@@ -26,13 +26,23 @@ const createFileUploadAxios = () => {
         (response) => response,
         async (error) => {
             const originalRequest = error.config;
-            if (error.response?.status === 401 && !originalRequest._retry) {
+            const status = error.response?.status;
+            
+            console.log('[FileUpload Interceptor] API Error:', {
+                status,
+                url: originalRequest?.url,
+                message: error.response?.data?.message || error.message
+            });
+            
+            // Handle 401 (Unauthorized) and 403 (Forbidden - expired token)
+            if ((status === 401 || status === 403) && !originalRequest._retry) {
                 originalRequest._retry = true;
                 const refreshToken = localStorage.getItem("refreshToken");
                 const token = localStorage.getItem("token");
 
-                if (refreshToken) {
+                if (refreshToken && status === 401) {
                     try {
+                        console.log('[FileUpload Interceptor] Attempting to refresh token...');
                         const response = await axios.post(
                             `${import.meta.env.VITE_STAGING_API}/auth/refresh/token`,
                             {
@@ -45,19 +55,25 @@ const createFileUploadAxios = () => {
                         const newRefreshToken = res.refreshToken;
                         localStorage.setItem("token", newAccessToken);
                         localStorage.setItem("refreshToken", newRefreshToken);
+                        console.log('[FileUpload Interceptor] Token refreshed successfully');
                         return axiosInstance(originalRequest);
                     } catch (error) {
-                        console.error("Error refreshing token:", error);
+                        console.error("[FileUpload Interceptor] Error refreshing token:", error);
+                        console.log('[FileUpload Interceptor] Redirecting to login (token refresh failed)');
                         // Clear tokens on refresh failure
                         localStorage.removeItem("token");
                         localStorage.removeItem("refreshToken");
-                        window.location.href = "/";
+                        window.location.href = "/login";
+                        return Promise.reject(error);
                     }
                 } else {
-                    // Token is invalid or expired
+                    // Token is invalid, expired, or refresh failed
+                    console.log('[FileUpload Interceptor] Token expired/invalid - redirecting to login');
+                    // Clear tokens
                     localStorage.removeItem("token");
                     localStorage.removeItem("refreshToken");
-                    window.location.href = "/";
+                    window.location.href = "/login";
+                    return Promise.reject(new Error('Session expired. Please login again.'));
                 }
             }
             return Promise.reject(error);
