@@ -168,7 +168,6 @@ const BulkSMS = () => {
         setCustomers(customersList);
         setBuilders(buildersList);
         setSmsHistory(history);
-        console.log(history);
 
       } catch (err: any) {
         if (!isMounted) return;

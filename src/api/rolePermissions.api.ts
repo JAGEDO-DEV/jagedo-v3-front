@@ -18,7 +18,6 @@ export const getAllRoles = async (): Promise<Role[]> => {
         headers: { Authorization: getAuthHeaders() }
       }
     );
-    console.log("API Response for getAllRoles:", response.data);
     return response.data.data || [];
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch roles");

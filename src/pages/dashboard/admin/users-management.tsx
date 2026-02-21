@@ -52,18 +52,6 @@ const UserManagement = () => {
   const { hasAccess, isLoading: permissionsLoading } = useAdminPermission('user-management', 'VIEW');
   const { userMenuPermissions } = useRolePermissions();
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[UserManagement] Current user:', {
-      id: user?.id,
-      email: user?.email,
-      userType: user?.userType,
-      isSuperAdminFlag: user?.isSuperAdmin,
-      roles: user?.roles,
-      isSuperAdmin,
-      hasMenuAccess: hasAccess
-    });
-  }, [user, isSuperAdmin, hasAccess]);
 
   // Check specific user-management operations
   const canView = canPerformOperation(userMenuPermissions, 'user-management', 'VIEW');

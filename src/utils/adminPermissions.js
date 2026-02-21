@@ -25,7 +25,6 @@ export const canPerformOperation = (userMenuPermissions, menuItemId, operation) 
   if (!menuItem) return false;
   
   // Debug: Log what we're checking
-  console.log(`[Permission Check] menu=${menuItemId}, operation=${operation}, allowed=${JSON.stringify(menuItem.operations)}`);
   
   // Check if the specific operation is allowed
   // operations array comes from role_menu_items.permissions in the DB
@@ -33,13 +32,11 @@ export const canPerformOperation = (userMenuPermissions, menuItemId, operation) 
   
   // If operations array is empty, only VIEW is allowed
   if (allowedOperations.length === 0) {
-    console.log(`[Permission Check] No operations configured for ${menuItemId}, only VIEW allowed`);
     return operation === 'VIEW';
   }
   
   // Check if the requested operation is in the allowed list
   const isAllowed = allowedOperations.includes(operation);
-  console.log(`[Permission Check] Result for ${operation}: ${isAllowed}`);
   return isAllowed;
 };
 
