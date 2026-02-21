@@ -161,7 +161,7 @@ export default function Login() {
 
       completeLoginWithApiResponse(response);
     } catch (error) {
-      console.error("Login error:", error);
+      console.log("Login error:", error);
       toast.error(error?.response?.data?.message || "Invalid credentials");
       setIsLoading(false);
     }

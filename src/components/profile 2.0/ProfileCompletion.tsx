@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, User, MapPin, MessageSquare, ShieldCheck, Check } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,11 @@ export function ProfileCompletion({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
-
     const [countries, setCountries] = useState<any[]>([]);
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
+
+    console.log("User: ", user);
 
     const [personalInfo, setPersonalInfo] = useState({
         firstName: user?.firstName || "",
@@ -116,14 +117,21 @@ export function ProfileCompletion({
         }
 
     }, [currentStep, secondaryContact.isOtpSent]);
+    const lastAttemptedOtp = useRef("");
+
     useEffect(() => {
+        if (secondaryContact.otp.length < 6) {
+            lastAttemptedOtp.current = "";
+        }
 
         if (
             currentStep === 4 &&
             secondaryContact.otp.length === 6 &&
             !secondaryContact.isVerified &&
-            !isVerifying
+            !isVerifying &&
+            lastAttemptedOtp.current !== secondaryContact.otp
         ) {
+            lastAttemptedOtp.current = secondaryContact.otp;
             handleVerifyOtp();
         }
 
@@ -251,7 +259,11 @@ export function ProfileCompletion({
         }
         setSecondaryContact((prev) => ({ ...prev, isLoading: true }));
         try {
-            const response = await initiateSecondaryVerification(user.email);
+            const response = await initiateSecondaryVerification({
+                email: user.email,
+                otpDeliveryMethod: secondaryContact.contactType,
+                phoneNumber: secondaryContact.contact
+            });
 
             if (response.data.success) {
                 toast.success(`OTP sent to ${secondaryContact.contact}`);

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { FiDownload, FiEye, FiUpload, FiTrash2, FiCheck, FiX, FiRefreshCw, FiChevronDown } from "react-icons/fi";
 import { FileText, Image, AlertCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
+
 import { getMockUploadsForUserType } from "@/pages/data/mockUploads";
 
 const STORAGE_KEY = "uploads_demo";
@@ -95,12 +96,59 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
 
   /* -------------------- Load documents based on status -------------------- */
   useEffect(() => {
+    // 1. Start with documents from userProfile if available
+    const initialDocs: Record<string, UploadedDocument> = {};
+    const profile = userData?.userProfile;
+
+    if (profile) {
+      if (profile.idFrontUrl) {
+        initialDocs.idFront = {
+          name: "National ID Front",
+          url: profile.idFrontUrl,
+          type: "idFront",
+          uploadedAt: "Existing",
+          status: "pending",
+        };
+      }
+      if (profile.idBackUrl) {
+        initialDocs.idBack = {
+          name: "National ID Back",
+          url: profile.idBackUrl,
+          type: "idBack",
+          uploadedAt: "Existing",
+          status: "pending",
+        };
+      }
+      if (profile.kraPIN) {
+        initialDocs.kraPIN = {
+          name: "KRA PIN Certificate",
+          url: profile.kraPIN,
+          type: "kraPIN",
+          uploadedAt: "Existing",
+          status: "pending",
+        };
+      }
+      if (profile.certificateUrl) {
+        initialDocs.certificate = {
+          name: "Trade Certificate",
+          url: profile.certificateUrl,
+          type: "certificate",
+          uploadedAt: "Existing",
+          status: "pending",
+        };
+      }
+    }
+
+    // 2. Load from localStorage as override/supplement
     const saved = localStorage.getItem(`${STORAGE_KEY}_${userData.id}`);
     if (saved) {
-      setDocuments(JSON.parse(saved));
+      const savedDocs = JSON.parse(saved);
+      setDocuments({ ...initialDocs, ...savedDocs });
+    } else {
+      setDocuments(initialDocs);
     }
     setIsLoaded(true);
-  }, [userData.id]);
+  }, [userData]);
 
   /* -------------------- Save to localStorage -------------------- */
   useEffect(() => {
@@ -475,17 +523,16 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
 
         {/* Status Reason / Context */}
         {uploaded.statusReason && (
-          <div className={`mb-3 p-2 rounded-lg text-xs ${
-            status === "rejected" ? "bg-red-50 text-red-700" :
-            status === "reupload_requested" ? "bg-blue-50 text-blue-700" :
-            status === "approved" ? "bg-green-50 text-green-700" :
-            "bg-amber-50 text-amber-700"
-          }`}>
+          <div className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected" ? "bg-red-50 text-red-700" :
+              status === "reupload_requested" ? "bg-blue-50 text-blue-700" :
+                status === "approved" ? "bg-green-50 text-green-700" :
+                  "bg-amber-50 text-amber-700"
+            }`}>
             <span className="font-medium">
               {status === "pending" ? "Status: " :
-               status === "rejected" ? "Rejection reason: " :
-               status === "reupload_requested" ? "Re-upload reason: " :
-               "Note: "}
+                status === "rejected" ? "Rejection reason: " :
+                  status === "reupload_requested" ? "Re-upload reason: " :
+                    "Note: "}
             </span>
             {uploaded.statusReason}
             {uploaded.statusDate && (
@@ -788,9 +835,8 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
             </div>
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${
-                  overallStatus === "approved" ? "bg-green-500" : "bg-amber-500"
-                }`}
+                className={`h-full transition-all duration-500 ${overallStatus === "approved" ? "bg-green-500" : "bg-amber-500"
+                  }`}
                 style={{
                   width: `${totalRequired > 0 ? (approvedCount / totalRequired) * 100 : 0}%`,
                 }}

@@ -15,7 +15,7 @@ export const loginUser = async (data: {
     );
     console.log("Login response:", response.data);
     console.log("User data:", response.data.user);
-    return {...response.data, user: response.data.user};
+    return { ...response.data, user: response.data.user };
 
 };
 
@@ -88,30 +88,30 @@ export const resetPassword = async (data: any) => {
 
 export const verifyOtpLogin = async (data: any) => {
     const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/login/verify/otp`,
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/login-with-otp`,
         data
     );
-    return {...response.data, user: response.data.user};
+    return { ...response.data, user: response.data.user };
 };
 
 export const phoneLogin = async (data: any) => {
     const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/login/phone`,
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/initiate-otp-login`,
         data
     );
-    return {...response.data, user: response.data.user};
+    return { ...response.data, user: response.data.user };
 };
 
 //initiate secondary verification 
-export const initiateSecondaryVerification = async (email: string) => {
-  const response = await axios.post(
-    `${import.meta.env.VITE_SERVER_URL}/api/auth/secondary-verification/initiate`,
-    null,
-    {
-      params: { email }
-    }
-  );
-  return response;
+export const initiateSecondaryVerification = async (data: any) => {
+    const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/secondary-verification/initiate`,
+        null,
+        {
+            params: data
+        }
+    );
+    return response;
 };
 
 

@@ -12,6 +12,7 @@ import { toast, Toaster } from "sonner"
 import { verifyOtp, verifyEmail } from "@/api/auth.api"
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { cn } from "@/lib/utils";
+import { startupSnapshot } from "node:v8"
 interface CustomerSignupFormProps {
   currentStep: number
   formData: any
@@ -100,25 +101,19 @@ export function CustomerSignupForm({
       setEmailStatus('checking');
       try {
         const response = await verifyEmail({ email: formData.email });
-
-        const message = response.data.message?.toLowerCase() || "";
-
-        if (message.includes("not found") || message.includes("does not exist") || (response.data.success === false && message.includes("user"))) {
+        const available = response.data.available
+        const message = response.data.message
+        if (available || message === "User not found") {
           setEmailStatus('available');
-        } else if (response.data.success && !message.includes("not found")) {
-
-          setEmailStatus('taken');
         } else {
-
           setEmailStatus('taken');
         }
 
       } catch (error: any) {
-
-        if (error.response && error.response.status === 404) {
+        console.error(error)
+        if (error.response?.data?.message === "User not found") {
           setEmailStatus('available');
         } else {
-          console.error("Email check failed", error);
           setEmailStatus('idle');
         }
       }

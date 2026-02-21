@@ -14,293 +14,295 @@ import { UploadCloud, FileText, CheckCircle } from "lucide-react";
 import { FiCheck } from "react-icons/fi";
 import { SquarePen } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 
- // Specialization options by user type
-  const FUNDI_SPECIALIZATIONS = {
-    Mason: [
-      "Block Work & Brick Laying",
-      "Plastering & Rendering",
-      "Stone Masonry",
-      "Concrete Work",
-      "Foundation Work",
-      "Structural Masonry",
-      "Decorative Masonry",
-      "Tile Setting",
-      "Waterproofing",
-      "Restoration & Repair",
-    ],
-    Electrician: [
-      "Residential Wiring",
-      "Commercial Installations",
-      "Industrial Electrical",
-      "Solar PV Installation",
-      "Backup Power Systems",
-      "Lighting Systems",
-      "Security & Alarm Systems",
-      "Data & Network Cabling",
-      "Motor & Pump Installations",
-      "Electrical Maintenance & Repair",
-    ],
-    Plumber: [
-      "Pipe Installation & Repair",
-      "Water Heater Installation",
-      "Drainage Systems",
-      "Septic Tank Installation",
-      "Bathroom Fitting",
-      "Kitchen Plumbing",
-      "Water Treatment Systems",
-      "Irrigation Systems",
-      "Gas Pipe Installation",
-      "Sewer Line Services",
-    ],
-    Carpenter: [
-      "Furniture Making",
-      "Roofing & Trusses",
-      "Door & Window Installation",
-      "Kitchen Cabinets",
-      "Wardrobes & Closets",
-      "Flooring Installation",
-      "Ceiling Work",
-      "Formwork & Shuttering",
-      "Finish Carpentry",
-      "Renovation & Restoration",
-    ],
-    Painter: [
-      "Interior Painting",
-      "Exterior Painting",
-      "Decorative Finishes",
-      "Texture Coating",
-      "Spray Painting",
-      "Wallpaper Installation",
-      "Epoxy Coating",
-      "Waterproof Coating",
-      "Wood Finishing & Staining",
-      "Industrial Painting",
-    ],
-    Welder: [
-      "Structural Welding",
-      "Pipe Welding",
-      "MIG Welding",
-      "TIG Welding",
-      "Arc Welding",
-      "Gate & Grille Fabrication",
-      "Tank Fabrication",
-      "Aluminum Welding",
-      "Stainless Steel Welding",
-      "Repair & Maintenance Welding",
-    ],
-    Tiler: [
-      "Floor Tiling",
-      "Wall Tiling",
-      "Bathroom Tiling",
-      "Kitchen Backsplash",
-      "Swimming Pool Tiling",
-      "Outdoor & Patio Tiling",
-      "Mosaic Installation",
-      "Natural Stone Installation",
-      "Tile Repair & Restoration",
-      "Waterproofing & Grouting",
-    ],
-    Roofer: [
-      "Metal Roofing",
-      "Tile Roofing",
-      "Flat Roofing",
-      "Shingle Installation",
-      "Roof Repair & Maintenance",
-      "Gutter Installation",
-      "Skylight Installation",
-      "Waterproofing",
-      "Insulation",
-      "Green Roof Installation",
-    ],
-  };
+// Specialization options by user type
+const FUNDI_SPECIALIZATIONS = {
+  Mason: [
+    "Block Work & Brick Laying",
+    "Plastering & Rendering",
+    "Stone Masonry",
+    "Concrete Work",
+    "Foundation Work",
+    "Structural Masonry",
+    "Decorative Masonry",
+    "Tile Setting",
+    "Waterproofing",
+    "Restoration & Repair",
+  ],
+  Electrician: [
+    "Residential Wiring",
+    "Commercial Installations",
+    "Industrial Electrical",
+    "Solar PV Installation",
+    "Backup Power Systems",
+    "Lighting Systems",
+    "Security & Alarm Systems",
+    "Data & Network Cabling",
+    "Motor & Pump Installations",
+    "Electrical Maintenance & Repair",
+  ],
+  Plumber: [
+    "Pipe Installation & Repair",
+    "Water Heater Installation",
+    "Drainage Systems",
+    "Septic Tank Installation",
+    "Bathroom Fitting",
+    "Kitchen Plumbing",
+    "Water Treatment Systems",
+    "Irrigation Systems",
+    "Gas Pipe Installation",
+    "Sewer Line Services",
+  ],
+  Carpenter: [
+    "Furniture Making",
+    "Roofing & Trusses",
+    "Door & Window Installation",
+    "Kitchen Cabinets",
+    "Wardrobes & Closets",
+    "Flooring Installation",
+    "Ceiling Work",
+    "Formwork & Shuttering",
+    "Finish Carpentry",
+    "Renovation & Restoration",
+  ],
+  Painter: [
+    "Interior Painting",
+    "Exterior Painting",
+    "Decorative Finishes",
+    "Texture Coating",
+    "Spray Painting",
+    "Wallpaper Installation",
+    "Epoxy Coating",
+    "Waterproof Coating",
+    "Wood Finishing & Staining",
+    "Industrial Painting",
+  ],
+  Welder: [
+    "Structural Welding",
+    "Pipe Welding",
+    "MIG Welding",
+    "TIG Welding",
+    "Arc Welding",
+    "Gate & Grille Fabrication",
+    "Tank Fabrication",
+    "Aluminum Welding",
+    "Stainless Steel Welding",
+    "Repair & Maintenance Welding",
+  ],
+  Tiler: [
+    "Floor Tiling",
+    "Wall Tiling",
+    "Bathroom Tiling",
+    "Kitchen Backsplash",
+    "Swimming Pool Tiling",
+    "Outdoor & Patio Tiling",
+    "Mosaic Installation",
+    "Natural Stone Installation",
+    "Tile Repair & Restoration",
+    "Waterproofing & Grouting",
+  ],
+  Roofer: [
+    "Metal Roofing",
+    "Tile Roofing",
+    "Flat Roofing",
+    "Shingle Installation",
+    "Roof Repair & Maintenance",
+    "Gutter Installation",
+    "Skylight Installation",
+    "Waterproofing",
+    "Insulation",
+    "Green Roof Installation",
+  ],
+};
 
-  const PROFESSIONAL_SPECIALIZATIONS = {
-    "Project Manager": [
-      "Construction Project Management",
-      "Infrastructure Projects",
-      "Residential Development",
-      "Commercial Development",
-      "Industrial Projects",
-      "Government Projects",
-      "Real Estate Development",
-      "Renovation & Remodeling",
-      "Green Building Projects",
-      "Multi-site Management",
-    ],
-    Architect: [
-      "Residential Architecture",
-      "Commercial Architecture",
-      "Industrial Architecture",
-      "Landscape Architecture",
-      "Interior Architecture",
-      "Urban Planning",
-      "Sustainable Design",
-      "Historic Preservation",
-      "Healthcare Facilities",
-      "Educational Facilities",
-    ],
-    "Water Engineer": [
-      "Water Supply Systems",
-      "Wastewater Treatment",
-      "Stormwater Management",
-      "Irrigation Engineering",
-      "Hydraulic Structures",
-      "Pipeline Engineering",
-      "Water Resources Management",
-      "Flood Control",
-      "Desalination Systems",
-      "Environmental Water Solutions",
-    ],
-    "Roads Engineer": [
-      "Highway Design",
-      "Urban Road Design",
-      "Pavement Engineering",
-      "Traffic Engineering",
-      "Bridge Engineering",
-      "Road Rehabilitation",
-      "Drainage Design",
-      "Survey & Mapping",
-      "Construction Supervision",
-      "Road Safety Engineering",
-    ],
-    "Structural Engineer": [
-      "Building Structures",
-      "Bridge Structures",
-      "Industrial Structures",
-      "Concrete Structures",
-      "Steel Structures",
-      "Foundation Engineering",
-      "Seismic Design",
-      "Structural Assessment",
-      "Retrofit & Rehabilitation",
-      "Temporary Structures",
-    ],
-    "Mechanical Engineer": [
-      "HVAC Systems",
-      "Plumbing Systems",
-      "Fire Protection Systems",
-      "Elevator & Escalator Systems",
-      "Industrial Machinery",
-      "Energy Systems",
-      "Building Automation",
-      "Refrigeration Systems",
-      "Ventilation Design",
-      "Mechanical Maintenance",
-    ],
-    "Electrical Engineer": [
-      "Power Distribution",
-      "Lighting Design",
-      "Building Electrical Systems",
-      "Industrial Electrical",
-      "Renewable Energy Systems",
-      "Control Systems",
-      "Telecommunications",
-      "Security Systems",
-      "Fire Alarm Systems",
-      "Energy Management",
-    ],
-    Surveyor: [
-      "Land Surveying",
-      "Topographic Surveys",
-      "Construction Surveying",
-      "Cadastral Surveys",
-      "Engineering Surveys",
-      "GPS & GIS Mapping",
-      "Hydrographic Surveys",
-      "Quantity Surveying",
-      "Boundary Surveys",
-      "As-built Surveys",
-    ],
-    "Quantity Surveyor": [
-      "Cost Estimation",
-      "Bill of Quantities",
-      "Contract Administration",
-      "Value Engineering",
-      "Project Cost Control",
-      "Procurement Management",
-      "Final Account Settlement",
-      "Risk Assessment",
-      "Feasibility Studies",
-      "Life Cycle Costing",
-    ],
-  };
+const PROFESSIONAL_SPECIALIZATIONS = {
+  "Project Manager": [
+    "Construction Project Management",
+    "Infrastructure Projects",
+    "Residential Development",
+    "Commercial Development",
+    "Industrial Projects",
+    "Government Projects",
+    "Real Estate Development",
+    "Renovation & Remodeling",
+    "Green Building Projects",
+    "Multi-site Management",
+  ],
+  Architect: [
+    "Residential Architecture",
+    "Commercial Architecture",
+    "Industrial Architecture",
+    "Landscape Architecture",
+    "Interior Architecture",
+    "Urban Planning",
+    "Sustainable Design",
+    "Historic Preservation",
+    "Healthcare Facilities",
+    "Educational Facilities",
+  ],
+  "Water Engineer": [
+    "Water Supply Systems",
+    "Wastewater Treatment",
+    "Stormwater Management",
+    "Irrigation Engineering",
+    "Hydraulic Structures",
+    "Pipeline Engineering",
+    "Water Resources Management",
+    "Flood Control",
+    "Desalination Systems",
+    "Environmental Water Solutions",
+  ],
+  "Roads Engineer": [
+    "Highway Design",
+    "Urban Road Design",
+    "Pavement Engineering",
+    "Traffic Engineering",
+    "Bridge Engineering",
+    "Road Rehabilitation",
+    "Drainage Design",
+    "Survey & Mapping",
+    "Construction Supervision",
+    "Road Safety Engineering",
+  ],
+  "Structural Engineer": [
+    "Building Structures",
+    "Bridge Structures",
+    "Industrial Structures",
+    "Concrete Structures",
+    "Steel Structures",
+    "Foundation Engineering",
+    "Seismic Design",
+    "Structural Assessment",
+    "Retrofit & Rehabilitation",
+    "Temporary Structures",
+  ],
+  "Mechanical Engineer": [
+    "HVAC Systems",
+    "Plumbing Systems",
+    "Fire Protection Systems",
+    "Elevator & Escalator Systems",
+    "Industrial Machinery",
+    "Energy Systems",
+    "Building Automation",
+    "Refrigeration Systems",
+    "Ventilation Design",
+    "Mechanical Maintenance",
+  ],
+  "Electrical Engineer": [
+    "Power Distribution",
+    "Lighting Design",
+    "Building Electrical Systems",
+    "Industrial Electrical",
+    "Renewable Energy Systems",
+    "Control Systems",
+    "Telecommunications",
+    "Security Systems",
+    "Fire Alarm Systems",
+    "Energy Management",
+  ],
+  Surveyor: [
+    "Land Surveying",
+    "Topographic Surveys",
+    "Construction Surveying",
+    "Cadastral Surveys",
+    "Engineering Surveys",
+    "GPS & GIS Mapping",
+    "Hydrographic Surveys",
+    "Quantity Surveying",
+    "Boundary Surveys",
+    "As-built Surveys",
+  ],
+  "Quantity Surveyor": [
+    "Cost Estimation",
+    "Bill of Quantities",
+    "Contract Administration",
+    "Value Engineering",
+    "Project Cost Control",
+    "Procurement Management",
+    "Final Account Settlement",
+    "Risk Assessment",
+    "Feasibility Studies",
+    "Life Cycle Costing",
+  ],
+};
 
-  const CONTRACTOR_SPECIALIZATIONS = {
-    "Building Works": [
-      "Residential Construction",
-      "Commercial Construction",
-      "Industrial Construction",
-      "Institutional Buildings",
-      "High-rise Buildings",
-      "Housing Estates",
-      "Renovation & Remodeling",
-      "Prefabricated Construction",
-      "Green Building Construction",
-      "Mixed-use Developments",
-    ],
-    "Water Works": [
-      "Water Supply Networks",
-      "Sewerage Systems",
-      "Water Treatment Plants",
-      "Irrigation Systems",
-      "Borehole Drilling",
-      "Dam Construction",
-      "Pipeline Installation",
-      "Pump Stations",
-      "Water Storage Tanks",
-      "Flood Control Systems",
-    ],
-    "Electrical Works": [
-      "Power Line Installation",
-      "Substation Construction",
-      "Building Electrical Works",
-      "Street Lighting",
-      "Solar Power Installation",
-      "Generator Installation",
-      "Industrial Electrical",
-      "Fire Alarm Systems",
-      "Security Systems Installation",
-      "Smart Building Systems",
-    ],
-    "Mechanical Works": [
-      "HVAC Installation",
-      "Plumbing & Sanitary Works",
-      "Fire Fighting Systems",
-      "Elevator & Escalator Installation",
-      "Industrial Equipment Installation",
-      "Refrigeration Systems",
-      "Compressed Air Systems",
-      "Steam & Boiler Systems",
-      "Piping Works",
-      "Mechanical Maintenance",
-    ],
-    "Roads & Infrastructure": [
-      "Road Construction",
-      "Bridge Construction",
-      "Culvert Construction",
-      "Drainage Systems",
-      "Pavement Works",
-      "Highway Construction",
-      "Airport Runways",
-      "Railway Construction",
-      "Port & Marine Works",
-      "Urban Infrastructure",
-    ],
-    "Landscaping & External Works": [
-      "Landscape Construction",
-      "Paving & Hardscaping",
-      "Fencing & Gates",
-      "Swimming Pool Construction",
-      "Sports Facilities",
-      "Playground Construction",
-      "Retaining Walls",
-      "Outdoor Lighting",
-      "Irrigation Installation",
-      "Environmental Landscaping",
-    ],
-  };
+const CONTRACTOR_SPECIALIZATIONS = {
+  "Building Works": [
+    "Residential Construction",
+    "Commercial Construction",
+    "Industrial Construction",
+    "Institutional Buildings",
+    "High-rise Buildings",
+    "Housing Estates",
+    "Renovation & Remodeling",
+    "Prefabricated Construction",
+    "Green Building Construction",
+    "Mixed-use Developments",
+  ],
+  "Water Works": [
+    "Water Supply Networks",
+    "Sewerage Systems",
+    "Water Treatment Plants",
+    "Irrigation Systems",
+    "Borehole Drilling",
+    "Dam Construction",
+    "Pipeline Installation",
+    "Pump Stations",
+    "Water Storage Tanks",
+    "Flood Control Systems",
+  ],
+  "Electrical Works": [
+    "Power Line Installation",
+    "Substation Construction",
+    "Building Electrical Works",
+    "Street Lighting",
+    "Solar Power Installation",
+    "Generator Installation",
+    "Industrial Electrical",
+    "Fire Alarm Systems",
+    "Security Systems Installation",
+    "Smart Building Systems",
+  ],
+  "Mechanical Works": [
+    "HVAC Installation",
+    "Plumbing & Sanitary Works",
+    "Fire Fighting Systems",
+    "Elevator & Escalator Installation",
+    "Industrial Equipment Installation",
+    "Refrigeration Systems",
+    "Compressed Air Systems",
+    "Steam & Boiler Systems",
+    "Piping Works",
+    "Mechanical Maintenance",
+  ],
+  "Roads & Infrastructure": [
+    "Road Construction",
+    "Bridge Construction",
+    "Culvert Construction",
+    "Drainage Systems",
+    "Pavement Works",
+    "Highway Construction",
+    "Airport Runways",
+    "Railway Construction",
+    "Port & Marine Works",
+    "Urban Infrastructure",
+  ],
+  "Landscaping & External Works": [
+    "Landscape Construction",
+    "Paving & Hardscaping",
+    "Fencing & Gates",
+    "Swimming Pool Construction",
+    "Sports Facilities",
+    "Playground Construction",
+    "Retaining Walls",
+    "Outdoor Lighting",
+    "Irrigation Installation",
+    "Environmental Landscaping",
+  ],
+};
 
 
 // --- Helper: deep merge objects ---
@@ -339,58 +341,13 @@ const resolveSpecialization = (user: any) => {
   return "";
 };
 
-const updateUserInLocalStorage = (
-  userId: string,
-  updates: Record<string, any>,
-) => {
-  try {
-    // Update "users" array
-    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
-    if (userIdx !== -1) {
-      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
-      localStorage.setItem("users", JSON.stringify(storedUsers));
-    }
+// Local storage sync omitted as per requirements.
 
-    // Update "builders" array
-    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-    const builderIdx = storedBuilders.findIndex((u: any) => u.id === userId);
-    if (builderIdx !== -1) {
-      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
-      localStorage.setItem("builders", JSON.stringify(storedBuilders));
-    }
-
-    // Update "customers" array
-    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
-    const customerIdx = storedCustomers.findIndex((u: any) => u.id === userId);
-    if (customerIdx !== -1) {
-      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
-      localStorage.setItem("customers", JSON.stringify(storedCustomers));
-    }
-
-    // Update "user" single object
-    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (singleUser && singleUser.id === userId) {
-      const updatedUser = deepMerge(singleUser, updates);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-    }
-
-    // Update "profile" single object
-    const profileUser = JSON.parse(localStorage.getItem("profile") || "null");
-    if (profileUser && profileUser.id === userId) {
-      const updatedProfile = deepMerge(profileUser, updates);
-      localStorage.setItem("profile", JSON.stringify(updatedProfile));
-    }
-  } catch (err) {
-    console.error("Failed to update user in localStorage:", err);
-    throw err;
-  }
-};
 
 const Experience = ({ userData }) => {
-  
+
   console.log("User Data: ", userData);
-  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
 
@@ -488,64 +445,64 @@ const Experience = ({ userData }) => {
     }
   };
   type ContractorCategory = {
-  category: string;
-  specialization: string;
-  class: string;
-  years: string;
-  projectFile?: File;
-  referenceFile?: File;
-};
+    category: string;
+    specialization: string;
+    class: string;
+    years: string;
+    projectFile?: File;
+    referenceFile?: File;
+  };
 
-const CATEGORY_OPTIONS = [
-  "Building Works",
-  "Water Works",
-  "Electrical Works",
-  "Mechanical Works",
-];
+  const CATEGORY_OPTIONS = [
+    "Building Works",
+    "Water Works",
+    "Electrical Works",
+    "Mechanical Works",
+  ];
 
   const [attachments, setAttachments] = useState(getInitialAttachments());
   const [uploadingProjects, setUploadingProjects] = useState<{
     [key: string]: boolean;
   }>({});
   const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
-// Initialize categories from userData or defaults
-const getInitialCategories = (): ContractorCategory[] => {
-  if (userData?.userProfile?.contractorCategories && Array.isArray(userData.userProfile.contractorCategories)) {
-    return userData.userProfile.contractorCategories.map((cat: any) => ({
-      category: cat.category || "",
-      specialization: cat.specialization || "",
-      class: cat.class || cat.categoryClass || "",
-      years: cat.years || cat.yearsOfExperience || "",
-    }));
-  }
-  // Fallback: try contractorExperiences if it's an array
-  if (userData?.userProfile?.contractorExperiences && Array.isArray(userData.userProfile.contractorExperiences)) {
-    return userData.userProfile.contractorExperiences.map((exp: any) => ({
-      category: exp.category || "",
-      specialization: exp.specialization || "",
-      class: exp.categoryClass || exp.class || "",
-      years: exp.yearsOfExperience || exp.years || "",
-    }));
-  }
-  return [{ category: "", specialization: "", class: "", years: "" }];
-};
+  // Initialize categories from userData or defaults
+  const getInitialCategories = (): ContractorCategory[] => {
+    if (userData?.userProfile?.contractorCategories && Array.isArray(userData.userProfile.contractorCategories)) {
+      return userData.userProfile.contractorCategories.map((cat: any) => ({
+        category: cat.category || "",
+        specialization: cat.specialization || "",
+        class: cat.class || cat.categoryClass || "",
+        years: cat.years || cat.yearsOfExperience || "",
+      }));
+    }
+    // Fallback: try contractorExperiences if it's an array
+    if (userData?.userProfile?.contractorExperiences && Array.isArray(userData.userProfile.contractorExperiences)) {
+      return userData.userProfile.contractorExperiences.map((exp: any) => ({
+        category: exp.category || "",
+        specialization: exp.specialization || "",
+        class: exp.categoryClass || exp.class || "",
+        years: exp.yearsOfExperience || exp.years || "",
+      }));
+    }
+    return [{ category: "", specialization: "", class: "", years: "" }];
+  };
 
-const [categories, setCategories] = useState<ContractorCategory[]>(getInitialCategories());
-const addCategory = () => {
-  setCategories([
-    ...categories,
-    {
-      category: "",
-      specialization: "",
-      class: "",
-      years: "",
-    },
-  ]);
-};
+  const [categories, setCategories] = useState<ContractorCategory[]>(getInitialCategories());
+  const addCategory = () => {
+    setCategories([
+      ...categories,
+      {
+        category: "",
+        specialization: "",
+        class: "",
+        years: "",
+      },
+    ]);
+  };
 
-const removeCategory = (index: number) => {
-  setCategories(categories.filter((_, i) => i !== index));
-};
+  const removeCategory = (index: number) => {
+    setCategories(categories.filter((_, i) => i !== index));
+  };
 
   // Initialize info from userData.userProfile based on user type
   const getInitialInfo = () => {
@@ -565,7 +522,7 @@ const removeCategory = (index: number) => {
         const defaultFundiSpec = fundiSpecOptions.length > 0 ? fundiSpecOptions[0] : "";
         return {
           skill: fundiSkill,
-          specialization: 
+          specialization:
             userData.userProfile.specialization ||
             userData.userProfile.fundispecialization ||
             userData.specialization ||
@@ -603,10 +560,10 @@ const removeCategory = (index: number) => {
             userData.specialization ||
             defaultContSpec,
           class: userData.userProfile.licenseLevel || "",
-         yearsOfExperience:
-  userData.userProfile.contractorExperiences?.[0]?.yearsOfExperience ||
-  userData?.contractorExperiences?.[0]?.yearsOfExperience ||
-  "",
+          yearsOfExperience:
+            userData.userProfile.contractorExperiences?.[0]?.yearsOfExperience ||
+            userData?.contractorExperiences?.[0]?.yearsOfExperience ||
+            "",
 
         };
 
@@ -638,8 +595,11 @@ const removeCategory = (index: number) => {
 
   const [info, setInfo] = useState(getInitialInfo());
 
- 
-  // Dynamic field configurations based on user type
+  useEffect(() => {
+    setInfo(getInitialInfo());
+    setAttachments(getInitialAttachments());
+    setCategories(getInitialCategories());
+  }, [userData]);
   const getFieldsConfig = () => {
     switch (userType) {
       case "FUNDI":
@@ -745,14 +705,14 @@ const removeCategory = (index: number) => {
           {
             name: "specialization",
             label: "Specialization",
-            options: CONTRACTOR_SPECIALIZATIONS[info.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || 
+            options: CONTRACTOR_SPECIALIZATIONS[info.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] ||
               CONTRACTOR_SPECIALIZATIONS[info.contractorType as keyof typeof CONTRACTOR_SPECIALIZATIONS] || [
-              "Residential Construction",
-              "Commercial Construction",
-              "Industrial Construction",
-              "Institutional Buildings",
-              "High-rise Buildings",
-            ],
+                "Residential Construction",
+                "Commercial Construction",
+                "Industrial Construction",
+                "Institutional Buildings",
+                "High-rise Buildings",
+              ],
             dependsOn: "category",
           },
           {
@@ -979,7 +939,7 @@ const removeCategory = (index: number) => {
         .filter((project) => project.files.length > 0);
 
       console.log(
-        "Saving clean attachments to localStorage:",
+        "Updating local project state:",
         cleanAttachments,
       );
 
@@ -1002,7 +962,6 @@ const removeCategory = (index: number) => {
 
       const updatedProfile = { ...profile, [profileKey]: projectData };
       userData.userProfile = updatedProfile;
-      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
     } catch (error) {
       console.error("Update projects error:", error);
       throw error;
@@ -1166,56 +1125,56 @@ const removeCategory = (index: number) => {
 
   // Pre-populate questions with existing evaluation data (same structure for all user types)
   const getInitialQuestions = () => {
-  const evaluation = userData?.userProfile?.fundiEvaluation;
+    const evaluation = userData?.userProfile?.fundiEvaluation;
 
-  // If status should NOT prefill → return empty form
-  if (!PREFILL_STATUSES.includes(status)) {
-    return initialQuestions;
-  }
+    // If status should NOT prefill → return empty form
+    if (!PREFILL_STATUSES.includes(status)) {
+      return initialQuestions;
+    }
 
-  // If no evaluation exists → still return empty
-  if (!evaluation) {
-    return initialQuestions;
-  }
+    // If no evaluation exists → still return empty
+    if (!evaluation) {
+      return initialQuestions;
+    }
 
-  // Otherwise → prefill from evaluation
-  return [
-    {
-      id: 1,
-      text: "Have you done any major works in the construction industry?",
-      type: "select",
-      options: ["Yes", "No"],
-      answer: evaluation.hasMajorWorks || "",
-      score: evaluation.majorWorksScore || 0,
-      isEditing: false,
-    },
-    {
-      id: 2,
-      text: "If yes, briefly describe them",
-      type: "text",
-      answer: evaluation.majorWorksDescription || "",
-      score: evaluation.majorWorksDescScore || 0,
-      isEditing: false,
-    },
-    {
-      id: 3,
-      text: "Do you always complete your projects on time?",
-      type: "select",
-      options: ["Yes", "No"],
-      answer: evaluation.completesOnTime || "",
-      score: evaluation.onTimeScore || 0,
-      isEditing: false,
-    },
-    {
-      id: 4,
-      text: "How do you always formulate your quotations?",
-      type: "text",
-      answer: evaluation.quotationFormulation || "",
-      score: evaluation.quotationFormulaScore || 0,
-      isEditing: false,
-    },
-  ];
-};
+    // Otherwise → prefill from evaluation
+    return [
+      {
+        id: 1,
+        text: "Have you done any major works in the construction industry?",
+        type: "select",
+        options: ["Yes", "No"],
+        answer: evaluation.hasMajorWorks || "",
+        score: evaluation.majorWorksScore || 0,
+        isEditing: false,
+      },
+      {
+        id: 2,
+        text: "If yes, briefly describe them",
+        type: "text",
+        answer: evaluation.majorWorksDescription || "",
+        score: evaluation.majorWorksDescScore || 0,
+        isEditing: false,
+      },
+      {
+        id: 3,
+        text: "Do you always complete your projects on time?",
+        type: "select",
+        options: ["Yes", "No"],
+        answer: evaluation.completesOnTime || "",
+        score: evaluation.onTimeScore || 0,
+        isEditing: false,
+      },
+      {
+        id: 4,
+        text: "How do you always formulate your quotations?",
+        type: "text",
+        answer: evaluation.quotationFormulation || "",
+        score: evaluation.quotationFormulaScore || 0,
+        isEditing: false,
+      },
+    ];
+  };
 
 
   const [questions, setQuestions] = useState(getInitialQuestions());
@@ -1295,19 +1254,25 @@ const removeCategory = (index: number) => {
   }, [userData]);
 
   // --- localStorage-based verify ---
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setIsVerifying(true);
     const userId = userData.id;
     if (!userId) {
-      alert("User ID not found.");
+      toast.error("User ID not found.");
       setIsVerifying(false);
       return;
     }
-    updateUserInLocalStorage(userId, { adminApproved: true, approved: true });
-    Object.assign(userData, { adminApproved: true, approved: true });
-    localStorage.setItem("showVerificationMessage", "true");
-    setShowVerificationMessage(true);
-    setIsVerifying(false);
+    try {
+      await handleVerifyUser(axiosInstance, userId)
+      toast.success("User verified successfully!");
+      localStorage.setItem("showVerificationMessage", "true");
+      setShowVerificationMessage(true);
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to verify user");
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   // When close is clicked
@@ -1332,7 +1297,7 @@ const removeCategory = (index: number) => {
   };
 
   // --- localStorage-based evaluation submit ---
-  const handleEvaluationSubmit = (e) => {
+  const handleEvaluationSubmit = async (e) => {
     console.log("handleEvaluationSubmit");
     e.preventDefault();
     setIsSubmitting(true);
@@ -1356,43 +1321,47 @@ const removeCategory = (index: number) => {
       quotationFormulaScore: questions[3]?.score || 0,
       totalScore: totalScore,
       audioUrl: audioUrl || null,
+      isVerified: true
     };
 
-    // Persist evaluation to localStorage
-    const profile = userData?.userProfile || {};
-    const updatedProfile = {
-      ...profile,
-      fundiEvaluation: { ...body, isVerified: true },
-    };
-    userData.userProfile = updatedProfile;
-    updateUserInLocalStorage(profileId, { userProfile: updatedProfile });
-
-    setSubmitMessage("Evaluation submitted successfully!");
-    setIsSubmitting(false);
+    try {
+      await submitEvaluation(axiosInstance, profileId, body);
+      setSubmitMessage("Evaluation submitted successfully!");
+      toast.success("Evaluation submitted successfully!");
+      window.location.reload();
+    } catch (error: any) {
+      setSubmitMessage(error.message || "Failed to submit evaluation");
+      toast.error(error.message || "Failed to submit evaluation");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // --- localStorage-based edit skill ---
-  const handleEditSkill = (updatedFields) => {
+  const handleEditSkill = async (updatedFields) => {
     setIsSavingInfo(true);
     try {
       if (!userData?.id) {
         throw new Error("User ID not found");
       }
-      const profile = userData?.userProfile || {};
-      const updatedProfile = deepMerge(profile, updatedFields);
-      userData.userProfile = updatedProfile;
-      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+
+      await updateBuilderLevel(
+        axiosInstance,
+        userData.id,
+        userType,
+        updatedFields,
+        userData.userProfile
+      );
+
       toast.success("Information updated successfully");
       setInfo((prevInfo) => deepMerge(prevInfo, updatedFields));
       setIsEditingFields(false);
-    } catch (error) {
-      toast.error("Failed to update information");
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update information");
       console.error("Edit skill error:", error);
     } finally {
       setIsSavingInfo(false);
-      
-      // ✅ Trigger sidebar to update status (dispatch event so parent component recalculates)
-      window.dispatchEvent(new Event('storage'));
     }
   };
 
@@ -1415,21 +1384,29 @@ const removeCategory = (index: number) => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    const profile = userData?.userProfile || {};
-                    const updatedProfile = {
-                      ...profile,
-                      experienceApproved: true,
-                      experienceApprovedAt: new Date().toISOString(),
-                    };
-                    userData.userProfile = updatedProfile;
-                    updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
-                    toast.success("Experience section has been approved!");
+                  onClick={async () => {
+                    setIsSavingInfo(true);
+                    try {
+                      await updateBuilderLevel(
+                        axiosInstance,
+                        userData.id,
+                        userType,
+                        { experienceApproved: true },
+                        userData.userProfile
+                      );
+                      toast.success("Experience section has been approved!");
+                      window.location.reload();
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to approve experience");
+                    } finally {
+                      setIsSavingInfo(false);
+                    }
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                  disabled={isSavingInfo}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
                 >
                   <FiCheck className="w-4 h-4" />
-                  Approve
+                  {isSavingInfo ? "Processing..." : "Approve"}
                 </button>
               )}
             </div>
@@ -1713,36 +1690,49 @@ const removeCategory = (index: number) => {
                 <div className="mt-4 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      // Filter valid categories and save
+                    onClick={async () => {
                       const validCategories = categories.filter(c => c.category && c.class && c.years);
                       if (validCategories.length === 0) {
                         toast.error("Please fill in at least one category with all required fields");
                         return;
                       }
 
-                      // Save to localStorage for Account Uploads to pick up
-                      const contractorExperiences = validCategories.map(c => ({
-                        category: c.category,
-                        specialization: c.specialization,
-                        categoryClass: c.class,
-                        yearsOfExperience: c.years,
-                      }));
+                      setIsSavingInfo(true);
+                      try {
+                        const contractorExperiences = validCategories.map(c => ({
+                          category: c.category,
+                          specialization: c.specialization,
+                          categoryClass: c.class,
+                          yearsOfExperience: c.years,
+                        }));
 
-                      const profile = userData?.userProfile || {};
-                      const updatedProfile = {
-                        ...profile,
-                        contractorExperiences,
-                        contractorCategories: validCategories, // Store categories for document generation
-                      };
-                      userData.userProfile = updatedProfile;
-                      updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+                        const profile = userData?.userProfile || {};
+                        const updatedProfile = {
+                          ...profile,
+                          contractorExperiences,
+                          contractorCategories: validCategories,
+                        };
 
-                      toast.success("Categories saved successfully!");
+                        await updateBuilderLevel(
+                          axiosInstance,
+                          userData.id,
+                          userType,
+                          {},
+                          updatedProfile
+                        );
+
+                        toast.success("Categories saved successfully!");
+                        window.location.reload();
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to save categories");
+                      } finally {
+                        setIsSavingInfo(false);
+                      }
                     }}
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                    disabled={isSavingInfo}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
                   >
-                    Save Categories
+                    {isSavingInfo ? "Saving..." : "Save Categories"}
                   </button>
                 </div>
               </div>
@@ -1796,7 +1786,7 @@ const removeCategory = (index: number) => {
                                 row.files.map((file, fileIndex) => {
                                   const isRemoving =
                                     fileActionLoading[
-                                      `remove-${index}-${fileIndex}`
+                                    `remove-${index}-${fileIndex}`
                                     ];
                                   return (
                                     <div
@@ -1875,6 +1865,34 @@ const removeCategory = (index: number) => {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="p-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSavingInfo(true);
+                    try {
+                      await updateBuilderLevel(
+                        axiosInstance,
+                        userData.id,
+                        userType,
+                        {},
+                        userData.userProfile
+                      );
+                      toast.success("Projects saved successfully!");
+                      window.location.reload();
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to save projects");
+                    } finally {
+                      setIsSavingInfo(false);
+                    }
+                  }}
+                  disabled={isSavingInfo}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm disabled:opacity-50"
+                >
+                  {isSavingInfo ? "Saving..." : "Save Projects"}
+                </button>
               </div>
 
               {/* Add New Projects Section */}
@@ -2280,40 +2298,38 @@ const removeCategory = (index: number) => {
                     </h3>
                     <div className="flex items-center gap-3">
                       <span
-                        className={`text-2xl font-bold ${
-                          userData.userProfile.fundiEvaluation.totalScore >= 90
-                            ? "text-green-600"
-                            : userData.userProfile.fundiEvaluation.totalScore >=
-                                80
-                              ? "text-blue-600"
-                              : userData.userProfile.fundiEvaluation
-                                    .totalScore >= 70
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                        }`}
+                        className={`text-2xl font-bold ${userData.userProfile.fundiEvaluation.totalScore >= 90
+                          ? "text-green-600"
+                          : userData.userProfile.fundiEvaluation.totalScore >=
+                            80
+                            ? "text-blue-600"
+                            : userData.userProfile.fundiEvaluation
+                              .totalScore >= 70
+                              ? "text-yellow-600"
+                              : "text-red-600"
+                          }`}
                       >
                         {userData.userProfile.fundiEvaluation.totalScore}%
                       </span>
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          userData.userProfile.fundiEvaluation.totalScore >= 90
-                            ? "bg-green-100 text-green-800"
-                            : userData.userProfile.fundiEvaluation.totalScore >=
-                                80
-                              ? "bg-blue-100 text-blue-800"
-                              : userData.userProfile.fundiEvaluation
-                                    .totalScore >= 70
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                        }`}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${userData.userProfile.fundiEvaluation.totalScore >= 90
+                          ? "bg-green-100 text-green-800"
+                          : userData.userProfile.fundiEvaluation.totalScore >=
+                            80
+                            ? "bg-blue-100 text-blue-800"
+                            : userData.userProfile.fundiEvaluation
+                              .totalScore >= 70
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {userData.userProfile.fundiEvaluation.totalScore >= 90
                           ? "Expert Level"
                           : userData.userProfile.fundiEvaluation.totalScore >=
-                              80
+                            80
                             ? "Advanced Level"
                             : userData.userProfile.fundiEvaluation.totalScore >=
-                                70
+                              70
                               ? "Intermediate Level"
                               : "Beginner Level"}
                       </span>
@@ -2324,17 +2340,16 @@ const removeCategory = (index: number) => {
                   <div className="mt-3">
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div
-                        className={`h-3 rounded-full transition-all duration-500 ${
-                          userData.userProfile.fundiEvaluation.totalScore >= 90
-                            ? "bg-green-500"
-                            : userData.userProfile.fundiEvaluation.totalScore >=
-                                80
-                              ? "bg-blue-500"
-                              : userData.userProfile.fundiEvaluation
-                                    .totalScore >= 70
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                        }`}
+                        className={`h-3 rounded-full transition-all duration-500 ${userData.userProfile.fundiEvaluation.totalScore >= 90
+                          ? "bg-green-500"
+                          : userData.userProfile.fundiEvaluation.totalScore >=
+                            80
+                            ? "bg-blue-500"
+                            : userData.userProfile.fundiEvaluation
+                              .totalScore >= 70
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          }`}
                         style={{
                           width: `${userData.userProfile.fundiEvaluation.totalScore}%`,
                         }}
@@ -2360,15 +2375,14 @@ const removeCategory = (index: number) => {
                           "Not provided"}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${
-                          userData.userProfile.fundiEvaluation
-                            .majorWorksScore >= 80
-                            ? "bg-green-100 text-green-800"
-                            : userData.userProfile.fundiEvaluation
-                                  .majorWorksScore >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
+                          .majorWorksScore >= 80
+                          ? "bg-green-100 text-green-800"
+                          : userData.userProfile.fundiEvaluation
+                            .majorWorksScore >= 60
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {userData.userProfile.fundiEvaluation.majorWorksScore}%
                       </span>
@@ -2390,15 +2404,14 @@ const removeCategory = (index: number) => {
                           "Not provided"}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${
-                          userData.userProfile.fundiEvaluation
-                            .materialsUsedScore >= 80
-                            ? "bg-green-100 text-green-800"
-                            : userData.userProfile.fundiEvaluation
-                                  .materialsUsedScore >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
+                          .materialsUsedScore >= 80
+                          ? "bg-green-100 text-green-800"
+                          : userData.userProfile.fundiEvaluation
+                            .materialsUsedScore >= 60
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {
                           userData.userProfile.fundiEvaluation
@@ -2424,15 +2437,14 @@ const removeCategory = (index: number) => {
                           .essentialEquipment || "Not provided"}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${
-                          userData.userProfile.fundiEvaluation
-                            .essentialEquipmentScore >= 80
-                            ? "bg-green-100 text-green-800"
-                            : userData.userProfile.fundiEvaluation
-                                  .essentialEquipmentScore >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
+                          .essentialEquipmentScore >= 80
+                          ? "bg-green-100 text-green-800"
+                          : userData.userProfile.fundiEvaluation
+                            .essentialEquipmentScore >= 60
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {
                           userData.userProfile.fundiEvaluation
@@ -2457,15 +2469,14 @@ const removeCategory = (index: number) => {
                           .quotationFormulation || "Not provided"}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${
-                          userData.userProfile.fundiEvaluation
-                            .quotationFormulaScore >= 80
-                            ? "bg-green-100 text-green-800"
-                            : userData.userProfile.fundiEvaluation
-                                  .quotationFormulaScore >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
+                          .quotationFormulaScore >= 80
+                          ? "bg-green-100 text-green-800"
+                          : userData.userProfile.fundiEvaluation
+                            .quotationFormulaScore >= 60
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {
                           userData.userProfile.fundiEvaluation
