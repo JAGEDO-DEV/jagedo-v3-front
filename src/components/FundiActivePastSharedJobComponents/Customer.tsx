@@ -10,8 +10,8 @@ interface CustomerData {
     profile: boolean;
     accountType: 'INDIVIDUAL' | 'ORGANIZATION';
     organizationName: string | null;
-    contactFirstName: string | null;
-    contactLastName: string | null;
+    contactfirstName: string | null;
+    contactlastName: string | null;
     phoneNumber: string;
     email: string;
     firstName: string;
@@ -78,7 +78,7 @@ export default function CustomerPage() {
     const displayName = isOrganization 
         ? customerData.organizationName 
         : `${customerData.firstName} ${customerData.lastName}`;
-    const contactPerson = `${customerData.contactFirstName || ''} ${customerData.contactLastName || ''}`.trim();
+    const contactPerson = `${customerData.contactfirstName || ''} ${customerData.contactlastName || ''}`.trim();
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

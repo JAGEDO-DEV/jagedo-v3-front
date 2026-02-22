@@ -24,14 +24,14 @@ const exportToExcel = (data: any[], filename: string) => {
     "Builder ID": item?.builderId || "N/A",
     Name:
       `${item?.firstName ?? ""} ${item?.lastName ?? ""}`.trim() ||
-      `${item?.contactFirstName ?? ""} ${item?.contactLastName ?? ""}`.trim() ||
+      `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
       item?.organizationName ||
       "N/A",
     Email: item.email || "N/A",
     Phone: item.phoneNumber || "N/A",
     Gender: item.gender || "N/A",
     County: item.county || "N/A",
-    Subcounty: item.subCounty || "N/A",
+    subCounty: item.subCounty || "N/A",
     Estate: item.estate || "N/A",
     "Account Type": item.accountType || "N/A",
     "Registration Type": item.registrationType || "N/A",
@@ -50,7 +50,7 @@ const exportToExcel = (data: any[], filename: string) => {
     { wch: 15 }, // Phone
     { wch: 10 }, // Gender
     { wch: 15 }, // County
-    { wch: 15 }, // Subcounty
+    { wch: 15 }, // subCounty
     { wch: 15 }, // Estate
     { wch: 15 }, // Account Type
     { wch: 15 }, // Registration Type
@@ -79,7 +79,7 @@ const exportToPDF = async (
     index + 1,
     item?.builderId || "N/A",
     `${item?.firstName ?? ""} ${item?.lastName ?? ""}`.trim() ||
-      `${item?.contactFirstName ?? ""} ${item?.contactLastName ?? ""}`.trim() ||
+      `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
       item?.organizationName ||
       "N/A",
     item.email || "N/A",
@@ -106,7 +106,7 @@ const exportToPDF = async (
         "Phone",
         "Gender",
         "County",
-        "Subcounty",
+        "subCounty",
         "Estate",
         "Account Type",
         "Registration",
@@ -186,8 +186,8 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
       !searchValue ||
       customer?.firstName?.toLowerCase().includes(searchValue) ||
       customer?.lastName?.toLowerCase().includes(searchValue) ||
-      customer?.contactFirstName?.toLowerCase().includes(searchValue) ||
-      customer?.contactLastName?.toLowerCase().includes(searchValue) ||
+      customer?.contactfirstName?.toLowerCase().includes(searchValue) ||
+      customer?.contactlastName?.toLowerCase().includes(searchValue) ||
       customer?.phoneNumber?.toLowerCase().includes(searchValue) ||
       customer?.email?.toLowerCase().includes(searchValue) ||
       customer?.organizationName?.toLowerCase().includes(searchValue) ||
@@ -371,7 +371,7 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                       County
                     </th>
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
-                      Subcounty
+                      subCounty
                     </th>
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Status
@@ -394,8 +394,8 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                         {`${row?.firstName ?? ""} ${
                           row?.lastName ?? ""
                         }`.trim() ||
-                          `${row?.contactFirstName ?? ""} ${
-                            row?.contactLastName ?? ""
+                          `${row?.contactfirstName ?? ""} ${
+                            row?.contactlastName ?? ""
                           }`.trim() ||
                           row?.organizationName}
                       </td>

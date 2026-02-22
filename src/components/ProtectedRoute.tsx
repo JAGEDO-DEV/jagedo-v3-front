@@ -11,8 +11,8 @@ interface User {
   county: string;
   password: string;
   gender: string;
-  contactFirstName: string;
-  contactLastName: string;
+  contactfirstName: string;
+  contactlastName: string;
   contactPhone: string;
   contactEmail: string;
   userType: string;

@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
 
   const navigationItems = getNavigationItems();
 
-  const getUserTypeLabel = () => {
+  const getuserTypeLabel = () => {
     switch (userType) {
       case 'FUNDI': return 'Fundi Profile';
       case 'PROFESSIONAL': return 'Professional Profile';
@@ -85,8 +85,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, com
     <div className="w-80 bg-white shadow-lg border-2 border-gray-200 rounded-2xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900 mb-1 truncate">
-          {displayName}
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">
+          {getuserTypeLabel()}
         </h1>
         <p className="text-sm text-gray-500 mb-3 truncate">
           {email}

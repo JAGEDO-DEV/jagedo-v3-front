@@ -65,7 +65,7 @@ export const generatePDF = async (
     if (headerLower.includes('email')) return 45;
     if (headerLower.includes('phone')) return 30;
     if (headerLower.includes('name')) return 40;
-    if (headerLower.includes('county') || headerLower.includes('subcounty')) return 30;
+    if (headerLower.includes('county') || headerLower.includes('subCounty')) return 30;
     if (headerLower.includes('estate')) return 25;
     if (headerLower.includes('gender')) return 20;
     if (headerLower.includes('status') || headerLower.includes('type')) return 25;

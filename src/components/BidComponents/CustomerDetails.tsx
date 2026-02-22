@@ -20,7 +20,7 @@ export default function CustomerDetails({ jobData }: CustomerDetailsProps) {
   const displayName = isOrganization 
     ? customerData.organizationName 
     : `${customerData.firstName} ${customerData.lastName}`;
-  const contactPerson = `${customerData.contactFirstName || ''} ${customerData.contactLastName || ''}`.trim();
+  const contactPerson = `${customerData.contactfirstName || ''} ${customerData.contactlastName || ''}`.trim();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

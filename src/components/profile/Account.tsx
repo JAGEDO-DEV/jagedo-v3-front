@@ -57,11 +57,11 @@ function AccountInfo({ data, refreshData }) {
         firstName: data.firstName || "",
         lastName: data.lastName || "",
         email: data.email || "",
-        phone: data.phoneNumber || "",
+        phone: data.phone || "",
         userType: data.userType,
         type: data.accountType, // e.g., ORGANIZATION
         organizationName: data.organizationName || "",
-        contactPerson: `${data.contactFirstName || ""} ${data.contactLastName || ""}`.trim(),
+        contactPerson: `${data.contactfirstName || ""} ${data.contactlastName || ""}`.trim(),
         avatar: data.userProfile?.profileImage || null
       };
 

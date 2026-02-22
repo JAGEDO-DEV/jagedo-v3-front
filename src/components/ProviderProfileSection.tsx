@@ -60,8 +60,8 @@
 //     county: string;
 //     state: string;
 //     hardwareTypes: string;
-//     contactFirstName: string;
-//     contactLastName: string;
+//     contactfirstName: string;
+//     contactlastName: string;
 //     contactPhone: string;
 //     contactEmail: string;
 // };
@@ -120,8 +120,8 @@
 //     { key: "county", label: "County", type: "text" },
 //     { key: "state", label: "State", type: "text" },
 //     { key: "hardwareTypes", label: "Hardware Types", type: "text" },
-//     { key: "contactFirstName", label: "Contact First Name", type: "text" },
-//     { key: "contactLastName", label: "Contact Last Name", type: "text" },
+//     { key: "contactfirstName", label: "Contact First Name", type: "text" },
+//     { key: "contactlastName", label: "Contact Last Name", type: "text" },
 //     { key: "contactPhone", label: "Contact Phone", type: "text" },
 //     { key: "contactEmail", label: "Contact Email", type: "email" },
 // ];

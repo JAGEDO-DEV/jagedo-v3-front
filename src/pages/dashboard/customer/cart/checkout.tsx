@@ -82,7 +82,7 @@ const CheckoutPage: React.FC = () => {
 
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [contactDetails, setContactDetails] = useState<ContactDetails>({
-        name: `${user?.contactFirstName || ""} ${user?.contactLastName || ""}`.trim(),
+        name: `${user?.contactfirstName || ""} ${user?.contactlastName || ""}`.trim(),
         phone: user?.contactPhone,
         email: user?.contactEmail,
     });

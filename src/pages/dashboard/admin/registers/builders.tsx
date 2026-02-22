@@ -28,8 +28,8 @@ const exportToExcel = (data: any[], filename: string) => {
     Name:
       item.organizationName && item.organizationName.length > 1
         ? item.organizationName
-        : item.contactFirstName && item.contactFirstName.length > 1
-        ? `${item.contactFirstName} ${item.contactLastName}`
+        : item.contactfirstName && item.contactfirstName.length > 1
+        ? `${item.contactfirstName} ${item.contactlastName}`
         : `${item.firstName} ${item.lastName}`,
     Type:
       item.skills ||
@@ -40,7 +40,7 @@ const exportToExcel = (data: any[], filename: string) => {
     Email: item.email || item.Email || "N/A",
     Phone: item.phoneNo || item.phone || item.phoneNumber || "N/A",
     County: item.county || "N/A",
-    Subcounty: item.subCounty || item.subcounty || "N/A",
+    subCounty: item.subCounty || item.subCounty || "N/A",
     Created: item.createdAt
       ? new Date(item.createdAt).toLocaleDateString()
       : "N/A",
@@ -85,8 +85,8 @@ const exportToPDF = async (
     index + 1,
     item.organizationName && item.organizationName.length > 1
       ? item.organizationName
-      : item.contactFirstName && item.contactFirstName.length > 1
-      ? `${item.contactFirstName} ${item.contactLastName}`
+      : item.contactfirstName && item.contactfirstName.length > 1
+      ? `${item.contactfirstName} ${item.contactlastName}`
       : `${item.firstName} ${item.lastName}`,
     item.skills ||
       item.profession ||
@@ -382,7 +382,7 @@ export default function BuildersAdmin() {
                       County
                     </th>
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
-                      Subcounty
+                      subCounty
                     </th>
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Created At
@@ -416,15 +416,15 @@ export default function BuildersAdmin() {
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {/* {
-                          row.organizationName || row.contactFirstName + ' ' + row.contactLastName || row.firstName + " " + row.LastName
+                          row.organizationName || row.contactfirstName + ' ' + row.contactlastName || row.firstName + " " + row.lastName
                       
                         } */}
 
                         {row.organizationName && row.organizationName.length > 1
                           ? row.organizationName
-                          : row.contactFirstName &&
-                            row.contactFirstName.length > 1
-                          ? `${row.contactFirstName} ${row.contactLastName}`
+                          : row.contactfirstName &&
+                            row.contactfirstName.length > 1
+                          ? `${row.contactfirstName} ${row.contactlastName}`
                           : `${row.firstName} ${row.lastName}`}
                       </td>
 
@@ -446,7 +446,7 @@ export default function BuildersAdmin() {
                         {row.county || "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        {row.subCounty || row.subcounty || "N/A"}
+                        {row.subCounty || row.subCounty || "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.createdAt

@@ -92,7 +92,7 @@ export function EnhancedTopNav({
     console.log('Mark all as read')
   }
 
-  const getUserTypeLabel = () => {
+  const getuserTypeLabel = () => {
     switch (userType) {
       case "customer":
         return "Customer Portal"
@@ -178,7 +178,7 @@ export function EnhancedTopNav({
               />
               <div className="hidden sm:block">
                 <span className="text-xl font-bold text-[#00007a]">JAGEDO</span>
-                <div className="text-xs text-gray-500">{getUserTypeLabel()}</div>
+                <div className="text-xs text-gray-500">{getuserTypeLabel()}</div>
               </div>
             </Link>
 

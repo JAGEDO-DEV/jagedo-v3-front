@@ -268,13 +268,13 @@ const OrderDetail = () => {
     const customerName =
         customer?.organizationName ||
         (customer?.firstName && customer?.lastName ? `${customer.firstName} ${customer.lastName}` : null) ||
-        (customer?.contactFirstName && customer?.contactLastName ? `${customer.contactFirstName} ${customer.contactLastName}` : null) ||
+        (customer?.contactfirstName && customer?.contactlastName ? `${customer.contactfirstName} ${customer.contactlastName}` : null) ||
         customer?.username ||
         order.customer?.username ||
         "Unknown Customer";
 
     const contactPerson =
-        (customer?.contactFirstName && customer?.contactLastName) ? `${customer.contactFirstName} ${customer.contactLastName}` : null;
+        (customer?.contactfirstName && customer?.contactlastName) ? `${customer.contactfirstName} ${customer.contactlastName}` : null;
 
     const displayPhone = customer?.phoneNumber || customer?.contactPhone || order.customerPhone;
     const displayEmail = customer?.email || customer?.contactEmail || order.customerEmail;

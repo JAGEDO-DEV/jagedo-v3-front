@@ -16,7 +16,7 @@ const Bidders = ({ jobData }: BiddersProps) => {
   const endIndex = startIndex + rowsPerPage;
   const currentBidders = assignedServiceProviders.slice(startIndex, endIndex);
 
-  const formatUserType = (userType: string) => {
+  const formatuserType = (userType: string) => {
     return userType?.replace(/([A-Z])/g, ' $1').trim() || 'N/A';
   };
 
@@ -71,7 +71,7 @@ const Bidders = ({ jobData }: BiddersProps) => {
                            'N/A'}
                         </td>
                         <td className="px-6 py-4 text-gray-800 whitespace-nowrap">
-                          {formatUserType(bidder.userType)}
+                          {formatuserType(bidder.userType)}
                         </td>
                         <td className="px-6 py-4 text-gray-800 whitespace-nowrap">
                           {bidder.email}

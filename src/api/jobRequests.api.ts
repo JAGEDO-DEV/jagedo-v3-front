@@ -36,8 +36,8 @@ export interface CustomerData {
     profile: boolean;
     accountType: "INDIVIDUAL" | "ORGANIZATION";
     organizationName: string;
-    contactFirstName: string;
-    contactLastName: string;
+    contactfirstName: string;
+    contactlastName: string;
     phoneNumber: string;
     email: string;
     firstName: string;

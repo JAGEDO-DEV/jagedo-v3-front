@@ -312,7 +312,7 @@ const JobDetail = () => {
                                     First Name:
                                 </span>
                                 <span className="text-gray-700">
-                                    {customer.firstName || customer?.contactFirstName}
+                                    {customer.firstName || customer?.contactfirstName}
                                 </span>
                             </div>
                             <div className="flex items-center bg-gray-50 p-3 rounded-lg">
@@ -320,7 +320,7 @@ const JobDetail = () => {
                                     Last Name:
                                 </span>
                                 <span className="text-gray-700">
-                                    {customer.lastName || customer?.contactLastName}
+                                    {customer.lastName || customer?.contactlastName}
                                 </span>
                             </div>
                             <div className="flex items-center bg-gray-50 p-3 rounded-lg">

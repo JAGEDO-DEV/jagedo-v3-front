@@ -248,8 +248,8 @@ const Register = () => {
                                             )}
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.skills || provider.profession || provider.contractorTypes}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.firstName || provider?.contactFirstName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.lastName || provider?.contactLastName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.firstName || provider?.contactfirstName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.lastName || provider?.contactlastName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.phoneNumber}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.county}</td>

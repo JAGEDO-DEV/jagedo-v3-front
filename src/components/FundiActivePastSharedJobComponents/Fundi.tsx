@@ -18,8 +18,8 @@ interface FundiData {
     lastName: string,
     organizationName: string,
     gender: string,
-    contactFirstName: string,
-    contactLastName: string,
+    contactfirstName: string,
+    contactlastName: string,
     contactPhone: string,
     contactEmail: string,
     country: string,
@@ -93,7 +93,7 @@ export default function FundiPage() {
     const displayName = isOrganization 
         ? customerData.organizationName 
         : `${customerData.firstName} ${customerData.lastName}`;
-    const contactPerson = `${customerData.contactFirstName || ''} ${customerData.contactLastName || ''}`.trim();
+    const contactPerson = `${customerData.contactfirstName || ''} ${customerData.contactlastName || ''}`.trim();
 
     return (
         <div className="flex h-screen bg-white">
