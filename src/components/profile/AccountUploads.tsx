@@ -124,12 +124,42 @@ const AccountUploads = ({ data, refreshData }) => {
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      setDocuments(data);
+      // Create a flat map for documents
+      const docsMap = { ...data };
 
-      if (userType === 'contractor' && data.contractorExperiences) {
-        const catNames = data.contractorExperiences.map(exp => exp.category);
-        setCategories(catNames);
+      const catNames = [];
+      if (userType === 'contractor') {
+        const contractorExperiences = data.contractorExperiences || [];
+
+        if (contractorExperiences.length > 0) {
+          contractorExperiences.forEach(exp => {
+            catNames.push(exp.category);
+
+            // Flatten certificates and licenses into docsMap
+            const categoryKey = exp.category.toUpperCase().replace(/\s+/g, '_');
+            const certKey = `${categoryKey}_CERTIFICATE`;
+            const licenseKey = `${categoryKey}_LICENSE`;
+
+            if (exp.certificate) docsMap[certKey] = exp.certificate;
+            if (exp.license) docsMap[licenseKey] = exp.license;
+          });
+        } else if (data.contractorTypes) {
+          const SLUG_MAP = {
+            "building-works": "Building Works",
+            "electrical-works": "Electrical Works",
+            "mechanical-works": "Mechanical Works",
+            "road-works": "Road Works",
+            "water-works": "Water Works",
+          };
+          data.contractorTypes.split(',').forEach(slug => {
+            const name = SLUG_MAP[slug.trim()];
+            if (name) catNames.push(name);
+          });
+        }
       }
+
+      setDocuments(docsMap);
+      setCategories(catNames);
     }
   }, [data, userType]);
 
@@ -197,12 +227,23 @@ const AccountUploads = ({ data, refreshData }) => {
         };
         response = await uploadProfessionalDocuments(axiosInstance, payload);
       } else if (userType === 'contractor') {
+        // Base payload
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
           businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
           companyProfile: updatedUrls.companyProfile || null
         };
+
+        // Add dynamic category fields
+        categories.forEach(cat => {
+          const categoryKey = cat.toUpperCase().replace(/\s+/g, '_');
+          const certKey = `${categoryKey}_CERTIFICATE`;
+          const licenseKey = `${categoryKey}_LICENSE`;
+          payload[certKey] = updatedUrls[certKey] || null;
+          payload[licenseKey] = updatedUrls[licenseKey] || null;
+        });
+
         response = await uploadContractorDocuments(axiosInstance, payload);
       } else if (userType === 'hardware') {
         const payload = {
@@ -249,7 +290,6 @@ const AccountUploads = ({ data, refreshData }) => {
         { label: "ID Back", key: "idBackUrl" },
         { label: "Academics Certificate", key: "academicCertificateUrl" },
         { label: "CV", key: "cvUrl" },
-        { label: "Practice License", key: "practiceLicense" },
         { label: "KRA PIN", key: "krapin" },
       ],
       hardware: [
@@ -339,6 +379,42 @@ const AccountUploads = ({ data, refreshData }) => {
               ))}
             </div>
           </div>
+
+          {categories.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-600 mb-4">Category Specific Documents</h3>
+              <div className="space-y-6">
+                {categories.map((cat, idx) => {
+                  const categoryKey = cat.toUpperCase().replace(/\s+/g, '_');
+                  const certKey = `${categoryKey}_CERTIFICATE`;
+                  const licenseKey = `${categoryKey}_LICENSE`;
+
+                  return (
+                    <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                      <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        {cat} Credentials
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <DocumentCard
+                          label={`${cat} Certificate`}
+                          url={documents[certKey]}
+                          onReplace={file => replaceDocument(file, certKey)}
+                          isUploading={isSubmitting && !!pendingFiles[certKey]}
+                        />
+                        <DocumentCard
+                          label={`${cat} Practice License`}
+                          url={documents[licenseKey]}
+                          onReplace={file => replaceDocument(file, licenseKey)}
+                          isUploading={isSubmitting && !!pendingFiles[licenseKey]}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end">
             <button

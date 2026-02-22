@@ -18,6 +18,8 @@ interface ContractorCategory {
   specialization: string;
   categoryClass: string;
   yearsOfExperience: string;
+  certificate?: string;
+  license?: string;
 }
 
 interface ContractorProject {
@@ -30,23 +32,55 @@ interface ContractorProject {
 }
 
 const CATEGORIES = [
+  "Building Works",
   "Electrical Works",
   "Mechanical Works",
   "Road Works",
   "Water Works",
-  "Building Works",
 ];
 
-const BUILDING_WORKS_SPECIALIZATIONS = [
-  "Residential Buildings",
-  "Commercial Buildings",
-  "Industrial Buildings",
-  "Renovation & Refurbishment",
-  "Road & Pavement Works",
-  "Bridges & Culverts",
-  "Water & Drainage Works",
-  "Steel Structures",
-];
+const SPECIALIZATIONS: { [key: string]: string[] } = {
+  "Building Works": [
+    "Residential Buildings",
+    "Commercial Buildings",
+    "Industrial Buildings",
+    "Renovation & Refurbishment",
+  ],
+  "Electrical Works": [
+    "Power Distribution",
+    "Wiring & Installation",
+    "Solar Systems",
+    "Industrial Electrical",
+  ],
+  "Mechanical Works": [
+    "HVAC Systems",
+    "Refrigeration",
+    "Industrial Machinery",
+  ],
+  "Road Works": [
+    "Asphalt Paving",
+    "Concrete Roads",
+    "Road Drainage",
+    "Traffic Safety",
+  ],
+  "Water Works": [
+    "Water Supply Systems",
+    "Sewerage Systems",
+    "Water Treatment",
+    "Pipe Installation",
+  ],
+};
+
+const NCA_CLASSES = ["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5"];
+const YEARS_OF_EXPERIENCE = ["10+ years", "5-10 years", "3-5 years", "1-3 years"];
+
+const SLUG_MAP: { [key: string]: string } = {
+  "building-works": "Building Works",
+  "electrical-works": "Electrical Works",
+  "mechanical-works": "Mechanical Works",
+  "road-works": "Road Works",
+  "water-works": "Water Works",
+};
 
 const ContractorExperience = ({ data, refreshData }: any) => {
   const [categories, setCategories] = useState<ContractorCategory[]>([]);
@@ -64,6 +98,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const up = data;
 
       const exps = up.contractorExperiences || [];
+      const contractorTypes = up.contractorTypes || ""; // comma separated slugs
+
       if (exps.length > 0) {
         setCategories(exps.map((exp: any) => ({
           id: exp.id || crypto.randomUUID(),
@@ -71,7 +107,36 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           specialization: exp.specialization || "",
           categoryClass: exp.categoryClass || "",
           yearsOfExperience: exp.yearsOfExperience || "",
+          certificate: exp.certificate || "",
+          license: exp.license || "",
         })));
+      } else if (contractorTypes) {
+        const slugs = contractorTypes.split(',').map((s: string) => s.trim());
+        const prePopulated = slugs
+          .map(slug => SLUG_MAP[slug])
+          .filter(Boolean)
+          .map(name => ({
+            id: crypto.randomUUID(),
+            category: name,
+            specialization: "",
+            categoryClass: "",
+            yearsOfExperience: "",
+          }));
+
+        if (prePopulated.length > 0) {
+          setCategories(prePopulated);
+          // Also pre-populate projects for these categories
+          const prePopProjects = prePopulated.map(cat => ({
+            id: crypto.randomUUID(),
+            categoryId: cat.id,
+            projectName: `${cat.category} Project`,
+            projectFile: null,
+            referenceLetterFile: null,
+          }));
+          setProjects(prePopProjects);
+        } else {
+          setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "" }]);
+        }
       } else {
         setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "" }]);
       }
@@ -80,13 +145,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       if (projs.length > 0) {
         setProjects(projs.map((proj: any) => ({
           id: proj.id || crypto.randomUUID(),
-          categoryId: proj.categoryId, // Ensure backend provides this link or logic matches by index/category name if needed
+          categoryId: proj.categoryId,
           projectName: proj.projectName || "",
           projectFile: proj.projectFile || null,
           referenceLetterFile: proj.referenceLetterUrl || null,
         })));
-      } else {
-        setProjects([]);
       }
       setIsLoadingProfile(false);
     }
@@ -190,10 +253,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const payload = {
         categories: categories.map(c => ({
           category: c.category,
+          specialization: c.specialization,
           categoryClass: c.categoryClass,
           yearsOfExperience: c.yearsOfExperience,
-          certificate: null,
-          license: null
+          certificate: c.certificate || null,
+          license: c.license || null
         })),
         projects: uploadedProjects
       };
@@ -276,7 +340,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       disabled={isReadOnly}
                     >
                       <option value="">Specialization</option>
-                      {BUILDING_WORKS_SPECIALIZATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      {(SPECIALIZATIONS[cat.category] || []).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
 
                     <select
@@ -290,7 +354,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Class</option>
-                      {["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5"].map(c => <option key={c} value={c}>{c}</option>)}
+                      {NCA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
 
                     <select
@@ -304,7 +368,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Years</option>
-                      {["10+", "5-10", "3-5", "1-3"].map(y => <option key={y} value={y}>{y}</option>)}
+                      {YEARS_OF_EXPERIENCE.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
 
                     <div className="flex justify-end pr-2">

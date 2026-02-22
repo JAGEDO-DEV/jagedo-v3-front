@@ -34,8 +34,7 @@ export default function ContractorSignup() {
         lastName: "",
         gender: "male",
         organizationName: "",
-        contactfirstName: "",
-        contactlastName: "",
+        contactFullName: "",
         contactPhone: "",
         contactEmail: "",
         country: "Kenya",
@@ -150,11 +149,11 @@ export default function ContractorSignup() {
             // Prepare the complete profile payload
             const completeProfilePayload = {
                 email: registeredUser.email,
-                firstName: profileData.firstName || "",
-                lastName: profileData.lastName || "",
+                contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
+                subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",

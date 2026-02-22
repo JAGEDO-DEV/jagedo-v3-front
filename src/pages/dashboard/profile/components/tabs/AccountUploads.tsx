@@ -78,11 +78,25 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
         };
       } else if (type === "contractor") {
         payload = {
-          businessRegistration: updatedDocs.certificateOfIncorporation?.url || "",
+          businessRegistration: updatedDocs.certificateOfIncorporation?.url || updatedDocs.businessRegistration?.url || "",
           businessPermit: updatedDocs.businessPermit?.url || "",
           krapin: updatedDocs.kraPIN?.url || "",
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
+
+        // Add dynamic category fields
+        const contractorCategories = userData?.contractorCategories || userData?.contractorExperiences || [];
+        if (Array.isArray(contractorCategories)) {
+          contractorCategories.forEach((cat: any) => {
+            const categoryName = cat.category || "";
+            const categoryKey = categoryName.toUpperCase().replace(/\s+/g, '_');
+            const certKey = `${categoryKey}_CERTIFICATE`;
+            const licenseKey = `${categoryKey}_LICENSE`;
+
+            payload[certKey] = updatedDocs[certKey]?.url || "";
+            payload[licenseKey] = updatedDocs[licenseKey]?.url || "";
+          });
+        }
       } else if (type === "customer") {
         if (accountType === "individual") {
           payload = {
@@ -237,6 +251,38 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
         };
       }
 
+      // 4b. Dynamic Contractor Category Documents
+      const contractorCategories = profile.contractorExperiences || [];
+      if (Array.isArray(contractorCategories)) {
+        contractorCategories.forEach((cat: any, index: number) => {
+          const categoryName = cat.category || "";
+          if (!categoryName) return;
+
+          const categoryKey = categoryName.toUpperCase().replace(/\s+/g, '_');
+          const certKey = `${categoryKey}_CERTIFICATE`;
+          const licenseKey = `${categoryKey}_LICENSE`;
+
+          if (cat.certificate) {
+            initialDocs[certKey] = {
+              name: `${categoryName} Certificate`,
+              url: cat.certificate,
+              type: certKey,
+              uploadedAt: "Existing",
+              status: status as DocumentStatus,
+            };
+          }
+          if (cat.license) {
+            initialDocs[licenseKey] = {
+              name: `${categoryName} Practice License`,
+              url: cat.license,
+              type: licenseKey,
+              uploadedAt: "Existing",
+              status: status as DocumentStatus,
+            };
+          }
+        });
+      }
+
       // 5. Portfolio / Projects
       const projects = profile.professionalProjects || profile.contractorProjects || profile.previousJobPhotoUrls;
       if (Array.isArray(projects)) {
@@ -320,38 +366,25 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
       const contractorCategories = userData?.contractorCategories || userData?.contractorExperiences;
       if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
         contractorCategories.forEach((cat: any, index: number) => {
-          const categoryName = cat.category || `Category ${index + 1}`;
-          // Create a safe key from the category name
-          const safeKey = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          const categoryName = cat.category || "";
+          if (!categoryName) return;
+
+          const categoryKey = categoryName.toUpperCase().replace(/\s+/g, '_');
+          const certKey = `${categoryKey}_CERTIFICATE`;
+          const licenseKey = `${categoryKey}_LICENSE`;
 
           // Add certificate and license for each category
           baseDocs.push({
-            key: `${safeKey}_certificate_${index}`,
+            key: certKey,
             name: `${categoryName} Certificate`,
             category: "certification",
           });
           baseDocs.push({
-            key: `${safeKey}_license_${index}`,
+            key: licenseKey,
             name: `${categoryName} Practice License`,
             category: "certification",
           });
 
-          // Add project documents for each category (3 projects per category)
-          baseDocs.push({
-            key: `${safeKey}_project1_${index}`,
-            name: `${categoryName} - Project 1`,
-            category: "portfolio",
-          });
-          baseDocs.push({
-            key: `${safeKey}_project2_${index}`,
-            name: `${categoryName} - Project 2`,
-            category: "portfolio",
-          });
-          baseDocs.push({
-            key: `${safeKey}_project3_${index}`,
-            name: `${categoryName} - Project 3`,
-            category: "portfolio",
-          });
         });
       }
 
