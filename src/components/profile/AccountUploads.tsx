@@ -123,11 +123,22 @@ const AccountUploads = ({ data, refreshData }) => {
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
-    if (data?.userProfile) {
-      setDocuments(data.userProfile);
+    if (data) {
+      // Use userProfile if it exists, otherwise use data itself (for customers)
+      const up = data.userProfile || data;
+      const mapped = { ...up };
 
-      if (userType === 'contractor' && data.userProfile.contractorExperiences) {
-        const catNames = data.userProfile.contractorExperiences.map(exp => exp.category);
+      // Map potential backend keys to frontend state keys for consistency
+      if (up.idFront && !up.idFrontUrl) mapped.idFrontUrl = up.idFront;
+      if (up.idBack && !up.idBackUrl) mapped.idBackUrl = up.idBack;
+      if (up.certificate && !up.certificateUrl) mapped.certificateUrl = up.certificate;
+      if (up.academicCertificate && !up.academicCertificateUrl) mapped.academicCertificateUrl = up.academicCertificate;
+      if (up.krapin && !up.kraPIN) mapped.kraPIN = up.krapin;
+
+      setDocuments(mapped);
+
+      if (userType === 'contractor' && up.contractorExperiences) {
+        const catNames = up.contractorExperiences.map(exp => exp.category);
         setCategories(catNames);
       }
     }
@@ -217,6 +228,7 @@ const AccountUploads = ({ data, refreshData }) => {
       toast.success("All documents saved successfully!", { id: uploadToast });
       setPendingFiles({}); // Clear pending files
       if (refreshData) refreshData();
+      window.location.reload();
     } catch (error) {
       console.error("Upload error:", error);
       toast.error(error.message || "An error occurred while saving documents", { id: uploadToast });

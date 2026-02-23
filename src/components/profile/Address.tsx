@@ -12,6 +12,7 @@ const Address = ({ data, refreshData }) => {
     country: "Kenya",
     county: "",
     subCounty: "",
+    city: "",
     estate: "",
   });
 
@@ -20,24 +21,23 @@ const Address = ({ data, refreshData }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
       setAddress({
         country: data.country || "Kenya",
         county: data.county || "",
         subCounty: data.subCounty || "",
-        estate: data.estate || "",
+        city: data.city || data.townCity || data.town || "",
+        estate: data.estate || data.estateVillage || "",
       });
       setLoading(false);
     }
   }, [data]);
 
-  /* ---------- HANDLERS ---------- */
   const subCounties = counties[address.county] || [];
 
   const handleUpdate = async () => {
-    if (!address.county || !address.subCounty || !address.estate) {
+    if (!address.county || !address.subCounty || !address.city || !address.estate) {
       return toast.error("Please fill in all address fields");
     }
 
@@ -131,6 +131,27 @@ const Address = ({ data, refreshData }) => {
           )}
         </div>
 
+        {/* City */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">City/Town</label>
+          {isEditing ? (
+            <input
+              type="text"
+              value={address.city}
+              onChange={(e) => setAddress({ ...address, city: e.target.value })}
+              placeholder="Enter City or Town"
+              className="w-full px-4 py-2 border rounded-md"
+            />
+          ) : (
+            <input
+              type="text"
+              value={address.city}
+              readOnly
+              className="w-full px-4 py-2 border-b bg-transparent"
+            />
+          )}
+        </div>
+
         {/* Estate */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">Estate</label>
@@ -156,7 +177,7 @@ const Address = ({ data, refreshData }) => {
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="bg-blue-800 text-white px-8 py-2 rounded font-semibold"
+              className="bg-blue-800 text-white px-8 py-2 rounded font-semibold transition hover:bg-blue-900"
             >
               Edit Address
             </button>
@@ -165,7 +186,7 @@ const Address = ({ data, refreshData }) => {
               <button
                 onClick={handleUpdate}
                 disabled={isSubmitting}
-                className="bg-blue-800 text-white px-8 py-2 rounded font-semibold disabled:opacity-50"
+                className="bg-blue-800 text-white px-8 py-2 rounded font-semibold disabled:opacity-50 transition hover:bg-blue-900"
               >
                 {isSubmitting ? "Saving..." : "Save Changes"}
               </button>

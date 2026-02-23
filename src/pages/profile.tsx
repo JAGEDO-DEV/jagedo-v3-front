@@ -67,7 +67,7 @@ function ProfilePage() {
     const completionStatus = useMemo(() => {
         const userType = user?.userType?.toLowerCase() || '';
         // Prioritize providerData from API, fallback to user.userProfile
-        const up = (providerData && providerData.userProfile) ? providerData.userProfile : user?.userProfile;
+        const up = providerData ? (providerData.userProfile || providerData) : user?.userProfile;
 
         const getRequiredDocuments = () => {
             const accountType = user?.accountType?.toLowerCase() || '';
@@ -97,7 +97,17 @@ function ProfilePage() {
                 // Priority 2: Manual check of required documents
                 uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
                     const value = up[key];
-                    return value !== null && value !== undefined && value !== '';
+                    if (value !== null && value !== undefined && value !== '') return true;
+
+                    // Fallback for backend naming inconsistencies (e.g. idFront vs idFrontUrl)
+                    const altKey = key.endsWith('Url') ? key.replace('Url', '') : `${key}Url`;
+                    const altValue = up[altKey];
+                    if (altValue !== null && altValue !== undefined && altValue !== '') return true;
+
+                    // Fallback for kraPIN/krapin inconsistency
+                    if (key === 'kraPIN' && up['krapin']) return true;
+
+                    return false;
                 });
 
                 // If there are no required docs for this type (shouldn't happen for providers), mark as complete
