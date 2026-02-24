@@ -13,8 +13,6 @@ export const loginUser = async (data: {
         `${import.meta.env.VITE_SERVER_URL}/api/auth/login`,
         data
     );
-    console.log("Login response:", response.data);
-    console.log("User data:", response.data.user);
     return { ...response.data, user: response.data.user };
 
 };

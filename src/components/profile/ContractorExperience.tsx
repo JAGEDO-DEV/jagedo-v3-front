@@ -24,7 +24,6 @@ interface ContractorProject {
   id: string;
   categoryId?: string;
   projectName: string;
-  // We store either the File object (new upload) or the URL string (existing)
   projectFile: File | string | null;
   referenceLetterFile: File | string | null;
 }
@@ -60,30 +59,34 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
-    if (data?.userProfile) {
-      const up = data.userProfile;
+    if (data) {
+      const up = data.userProfile || data;
 
       const exps = up.contractorExperiences || [];
+      let mappedCategories: ContractorCategory[] = [];
+
       if (exps.length > 0) {
-        setCategories(exps.map((exp: any) => ({
+        mappedCategories = exps.map((exp: any) => ({
           id: exp.id || crypto.randomUUID(),
           category: exp.category || "",
           specialization: exp.specialization || "",
           categoryClass: exp.categoryClass || "",
           yearsOfExperience: exp.yearsOfExperience || "",
-        })));
+        }));
+        setCategories(mappedCategories);
       } else {
         setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "" }]);
       }
 
       const projs = up.contractorProjects || [];
       if (projs.length > 0) {
-        setProjects(projs.map((proj: any) => ({
+        setProjects(projs.map((proj: any, index: number) => ({
           id: proj.id || crypto.randomUUID(),
-          categoryId: proj.categoryId, // Ensure backend provides this link or logic matches by index/category name if needed
+          // Link to category by index if categoryId is missing in stored data
+          categoryId: proj.categoryId || (mappedCategories[index] ? mappedCategories[index].id : null),
           projectName: proj.projectName || "",
           projectFile: proj.projectFile || null,
-          referenceLetterFile: proj.referenceLetterUrl || null,
+          referenceLetterFile: proj.referenceLetterUrl || proj.referenceLetterFile || null,
         })));
       } else {
         setProjects([]);
@@ -190,6 +193,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const payload = {
         categories: categories.map(c => ({
           category: c.category,
+          specialization: c.specialization,
           categoryClass: c.categoryClass,
           yearsOfExperience: c.yearsOfExperience,
           certificate: null,

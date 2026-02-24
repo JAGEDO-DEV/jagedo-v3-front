@@ -11,6 +11,7 @@ export interface ProfessionalProject {
 
 export interface ProfessionalExperience {
     profession: string;
+    specialization: string;
     level: string;
     yearsOfExperience: string;
     professionalProjects: ProfessionalProject[];

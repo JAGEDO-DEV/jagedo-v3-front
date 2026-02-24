@@ -182,6 +182,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
             // 2. Build Payload
             const payload = {
                 profession: category,
+                specialization: specialization,
                 level: level,
                 yearsOfExperience: experience,
                 professionalProjects: processedProjects

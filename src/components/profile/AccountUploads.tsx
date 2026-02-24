@@ -194,7 +194,7 @@ const AccountUploads = ({ data, refreshData }) => {
           idFront: updatedUrls.idFrontUrl || null,
           idBack: updatedUrls.idBackUrl || null,
           certificate: updatedUrls.certificateUrl || null,
-          kraPIN: updatedUrls.kraPIN || null
+          krapin: updatedUrls.kraPIN || null
         };
         response = await uploadFundiDocuments(axiosInstance, payload);
       } else if (userType === 'professional') {
