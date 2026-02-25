@@ -209,7 +209,7 @@ function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {isServiceProvider && (providerData?.adminApproved === false || user?.adminApproved === false) && (
+            {isServiceProvider && (providerData?.status == 'VERIFIED' === false || user?.status == 'VERIFIED' === false) && (
                 <div className="fixed top-12 w-full px-4 sm:px-6 pointer-events-none z-50">
                     <div className="w-[70%] sm:max-w-md mx-auto flex items-start gap-2 bg-yellow-100 rounded-md p-2 sm:p-4 shadow-md">
                         <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-1 text-yellow-500 flex-shrink-0" />

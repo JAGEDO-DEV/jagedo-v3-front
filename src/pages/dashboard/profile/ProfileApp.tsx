@@ -6,10 +6,11 @@ import useAxiosWithAuth from '@/utils/axiosInterceptor';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import { useProfileCompletion } from '@/hooks/useProfileCompletion';
+import { getProviderProfile } from "@/api/provider.api";
 
 function ProfileApp() {
   const [activeTab, setActiveTab] = useState('account-info');
-  const [userType, setuserType] = useState<string>('CUSTOMER');
+  const [userType, setUserType] = useState<string>('CUSTOMER');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,130 +20,109 @@ function ProfileApp() {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   useEffect(() => {
-    // --- ORIGINAL API FETCH (commented out) ---
-    // const fetchUserData = async () => {
-    //   setLoading(true);
-    //   setError(null);
-    //
-    //   try {
-    //     if (userId) {
-    //       const response = await axiosInstance.get(`/api/profiles/${userId}`);
-    //       const fetchedUser = response.data.data;
-    //       console.log("Fetched User Data: ", fetchedUser)
-    //       setUser(fetchedUser);
-    //       setuserType(fetchedUser.userType || type?.toUpperCase() || 'CUSTOMER');
-    //     } else {
-    //       throw new Error('No user ID provided');
-    //     }
-    //   } catch (err: any) {
-    //     console.error('Error fetching user data:', err);
-    //     setError(err.message || 'Failed to load user profile');
-    //
-    //     if (userId) {
-    //       setUser({
-    //         id: userId,
-    //         name: 'User Profile',
-    //         email: 'N/A',
-    //         userType: type?.toUpperCase() || 'CUSTOMER'
-    //       });
-    //       setuserType(type?.toUpperCase() || 'CUSTOMER');
-    //     }
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    //
-    // fetchUserData();
-    // --- END ORIGINAL API FETCH ---
+    const fetchUserData = async () => {
+      setLoading(true);
+      setError(null);
 
       try {
+        // Try API first
         if (userId) {
-          const response = await axiosInstance.get(`/api/admin/profiles/${userId}`);
-          const fetchedUser = response.data.data;
-          console.log("Fetched User Data: ", fetchedUser)
-          setUser(fetchedUser);
-          setUserType(fetchedUser.userType || type?.toUpperCase() || 'CUSTOMER');
+          try {
+            // Try admin endpoint
+            const response = await getProviderProfile(axiosInstance, userId);
+            const fetchedUser = response.data.data;
+            console.log("Fetched User Data from API: ", fetchedUser);
+            setUser(fetchedUser);
+            setUserType(fetchedUser.userType || type?.toUpperCase() || 'CUSTOMER');
+            setLoading(false);
+            return;
+          } catch (apiError) {
+            console.log('API fetch failed, trying localStorage...');
+            // If API fails, try localStorage
+          }
+        }
+
+        // 1. Primary source: React Router location state (passed from register pages)
+        const stateData = (location.state as any)?.userData;
+        if (stateData) {
+          console.log("Fetched User Data from location state: ", stateData);
+          setUser(stateData);
+          setUserType(stateData.userType || type?.toUpperCase() || 'CUSTOMER');
+          setLoading(false);
+          return;
+        }
+
+        // 2. Check localStorage "users" array by userId
+        if (userId) {
+          const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+          const foundUser = storedUsers.find((u: any) => String(u.id) === String(userId) || u.id === Number(userId));
+
+          if (foundUser) {
+            console.log("Fetched User Data from localStorage (users): ", foundUser);
+            setUser(foundUser);
+            setUserType(foundUser.userType || type?.toUpperCase() || 'CUSTOMER');
+            setLoading(false);
+            return;
+          }
+
+          // 3. Check localStorage "builders" array by userId (for builder profiles)
+          const storedBuilders = JSON.parse(localStorage.getItem('builders') || '[]');
+          const foundBuilder = storedBuilders.find((b: any) => String(b.id) === String(userId) || b.id === Number(userId));
+
+          if (foundBuilder) {
+            console.log("Fetched User Data from localStorage (builders): ", foundBuilder);
+            setUser(foundBuilder);
+            setUserType(foundBuilder.userType || type?.toUpperCase() || 'FUNDI');
+            setLoading(false);
+            return;
+          }
+
+          // 4. Check localStorage "customers" array by userId (for customer profiles)
+          const storedCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+          const foundCustomer = storedCustomers.find((c: any) => String(c.id) === String(userId) || c.id === Number(userId));
+
+          if (foundCustomer) {
+            console.log("Fetched User Data from localStorage (customers): ", foundCustomer);
+            setUser(foundCustomer);
+            setUserType(foundCustomer.userType || type?.toUpperCase() || 'CUSTOMER');
+            setLoading(false);
+            return;
+          }
+
+          // 5. Fallback: try the single "user" key (logged-in user)
+          const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+          if (singleUser && (String(singleUser.id) === String(userId) || singleUser.id === Number(userId))) {
+            console.log("Fetched User Data from localStorage (single user): ", singleUser);
+            setUser(singleUser);
+            setUserType(singleUser.userType || type?.toUpperCase() || 'CUSTOMER');
+            setLoading(false);
+            return;
+          }
+        }
+
+        // No user found – set a fallback stub
+        if (userId) {
+          setUser({
+            id: userId,
+            name: 'User Profile',
+            email: 'N/A',
+            userType: type?.toUpperCase() || 'CUSTOMER'
+          });
+          setUserType(type?.toUpperCase() || 'CUSTOMER');
+          setError('User not found in localStorage');
         } else {
-          throw new Error('No user ID provided');
+          setError('No user ID provided');
         }
       } catch (err: any) {
-        console.error('Error fetching user data:', err);
-        setError(err.message || 'Failed to load user profile');
-
-    try {
-      // 1. Primary source: React Router location state (passed from register pages)
-      const stateData = (location.state as any)?.userData;
-      if (stateData) {
-        console.log("Fetched User Data from location state: ", stateData);
-        setUser(stateData);
-        setuserType(stateData.userType || type?.toUpperCase() || 'CUSTOMER');
+        console.error('Error reading user data from localStorage:', err);
+        setError(err.message || 'Failed to load user profile from localStorage');
+      } finally {
         setLoading(false);
       }
     };
 
-      // 2. Check localStorage "users" array by userId
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const foundUser = storedUsers.find((u: any) => String(u.id) === String(userId) || u.id === Number(userId));
-
-      if (foundUser) {
-        console.log("Fetched User Data from localStorage (users): ", foundUser);
-        setUser(foundUser);
-        setuserType(foundUser.userType || type?.toUpperCase() || 'CUSTOMER');
-        setLoading(false);
-        return;
-      }
-
-      // 3. Check localStorage "builders" array by userId (for builder profiles)
-      const storedBuilders = JSON.parse(localStorage.getItem('builders') || '[]');
-      const foundBuilder = storedBuilders.find((b: any) => String(b.id) === String(userId) || b.id === Number(userId));
-
-      if (foundBuilder) {
-        console.log("Fetched User Data from localStorage (builders): ", foundBuilder);
-        setUser(foundBuilder);
-        setuserType(foundBuilder.userType || type?.toUpperCase() || 'FUNDI');
-        setLoading(false);
-        return;
-      }
-
-      // 4. Check localStorage "customers" array by userId (for customer profiles)
-      const storedCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
-      const foundCustomer = storedCustomers.find((c: any) => String(c.id) === String(userId) || c.id === Number(userId));
-
-      if (foundCustomer) {
-        console.log("Fetched User Data from localStorage (customers): ", foundCustomer);
-        setUser(foundCustomer);
-        setuserType(foundCustomer.userType || type?.toUpperCase() || 'CUSTOMER');
-        setLoading(false);
-        return;
-      }
-
-      // 5. Fallback: try the single "user" key (logged-in user)
-      const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
-      if (singleUser && (String(singleUser.id) === String(userId) || singleUser.id === Number(userId))) {
-        console.log("Fetched User Data from localStorage (single user): ", singleUser);
-        setUser(singleUser);
-        setuserType(singleUser.userType || type?.toUpperCase() || 'CUSTOMER');
-      } else if (userId) {
-        // No user found – set a fallback stub
-        setUser({
-          id: userId,
-          name: 'User Profile',
-          email: 'N/A',
-          userType: type?.toUpperCase() || 'CUSTOMER'
-        });
-        setuserType(type?.toUpperCase() || 'CUSTOMER');
-        setError('User not found in localStorage');
-      } else {
-        setError('No user ID provided');
-      }
-    } catch (err: any) {
-      console.error('Error reading user data from localStorage:', err);
-      setError(err.message || 'Failed to load user profile from localStorage');
-    } finally {
-      setLoading(false);
-    }
-    // --- END localStorage-based fetch ---
-  }, [userId, type, location.state]);
+    fetchUserData();
+  }, [userId]);
 
   if (loading) {
     return (
@@ -188,7 +168,6 @@ function ProfileApp() {
         userData={user}
       />
     </div>
-
   );
 }
 

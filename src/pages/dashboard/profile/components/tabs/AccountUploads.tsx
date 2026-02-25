@@ -74,7 +74,6 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
           academicCertificate: updatedDocs.academicCertificate?.url || "",
           cvUrl: updatedDocs.cv?.url || updatedDocs.cvUrl?.url || "",
           krapin: updatedDocs.kraPIN?.url || "",
-          practiceLicense: updatedDocs.practiceLicense?.url || "",
         };
       } else if (type === "contractor") {
         payload = {
@@ -140,7 +139,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
-    const status = userData?.adminApproved ? "approved" : "pending";
+    const status = userData?.status == 'VERIFIED' ? "approved" : "pending";
 
     if (profile) {
       // 1. Identity & Common Documents
@@ -334,7 +333,6 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
       return [
         ...individualBaseDocs,
         { key: "academicCertificate", name: "Academic Certificate", category: "certification" },
-        { key: "practiceLicense", name: "Practice License", category: "certification" },
         { key: "cv", name: "Curriculum Vitae (CV)", category: "certification" },
         { key: "portfolio1", name: "Portfolio - Project 1", category: "portfolio" },
         { key: "portfolio2", name: "Portfolio - Project 2", category: "portfolio" },
@@ -860,7 +858,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
               <StatusBadge status={overallStatus as DocumentStatus} />
 
               {/* Verify Button - Admin Only */}
-              {isAdmin && !userData?.adminApproved && (
+              {isAdmin && !userData?.status == 'VERIFIED' && (
                 <button
                   onClick={async () => {
                     setIsVerifying(true);
@@ -892,7 +890,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
               )}
 
               {/* Verified Badge */}
-              {userData?.adminApproved && (
+              {userData?.status == 'VERIFIED' && (
                 <span className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200">
                   <CheckCircle className="w-4 h-4" />
                   Verified
@@ -1064,7 +1062,7 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
           {/* Status indicator for non-admin users */}
           {!isAdmin && allDocuments.length > 0 && (
             <div className="mt-8 border-t pt-6">
-              {userData?.adminApproved ? (
+              {userData?.status == 'VERIFIED' ? (
                 <div className="bg-green-50 border border-green-200 rounded-xl p-6">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-8 h-8 text-green-600" />

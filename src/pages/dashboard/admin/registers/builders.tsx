@@ -29,8 +29,8 @@ const exportToExcel = (data: any[], filename: string) => {
       item.organizationName && item.organizationName.length > 1
         ? item.organizationName
         : item.contactfirstName && item.contactfirstName.length > 1
-        ? `${item.contactfirstName} ${item.contactlastName}`
-        : `${item.firstName} ${item.lastName}`,
+          ? `${item.contactfirstName} ${item.contactlastName}`
+          : `${item.firstName} ${item.lastName}`,
     Type:
       item.skills ||
       item.profession ||
@@ -44,7 +44,7 @@ const exportToExcel = (data: any[], filename: string) => {
     Created: item.createdAt
       ? new Date(item.createdAt).toLocaleDateString()
       : "N/A",
-    Status: item.adminApproved ? "Verified" : "Not Verified",
+    Status: item.status == 'VERIFIED' ? "Verified" : "Not Verified",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -86,17 +86,17 @@ const exportToPDF = async (
     item.organizationName && item.organizationName.length > 1
       ? item.organizationName
       : item.contactfirstName && item.contactfirstName.length > 1
-      ? `${item.contactfirstName} ${item.contactlastName}`
-      : `${item.firstName} ${item.lastName}`,
+        ? `${item.contactfirstName} ${item.contactlastName}`
+        : `${item.firstName} ${item.lastName}`,
     item.skills ||
-      item.profession ||
-      item.contractorTypes ||
-      item.hardwareTypes ||
-      "N/A",
+    item.profession ||
+    item.contractorTypes ||
+    item.hardwareTypes ||
+    "N/A",
     item.email || item.Email || "N/A",
     item.phoneNo || item.phone || item.phoneNumber || "N/A",
     item.county || "N/A",
-    item.adminApproved ? "Verified" : "Not Verified",
+    item.status == 'VERIFIED' ? "Verified" : "Not Verified",
   ]);
 
   try {
@@ -139,9 +139,8 @@ export default function BuildersAdmin() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getAllProviders(axiosInstance);
-        console.log(data?.hashSet);
-        setBuilders(data?.hashSet || []);
+        const response = await getAllProviders(axiosInstance);
+        setBuilders(Array.isArray(response.data) ? response.data : []);
       } catch (err: any) {
         setError(err.message || "Failed to fetch builders");
       } finally {
@@ -179,8 +178,8 @@ export default function BuildersAdmin() {
       !filters.verificationStatus || filters.verificationStatus === "All"
         ? true
         : filters.verificationStatus === "Verified"
-        ? builder?.adminApproved === true
-        : builder?.adminApproved === false;
+          ? builder?.status == 'VERIFIED' === true
+          : builder?.status == 'VERIFIED' === false;
 
     const searchValue = filters?.search?.toLowerCase() || "";
     const matchesSearch =
@@ -233,11 +232,10 @@ export default function BuildersAdmin() {
                   setActiveTab(nav.name);
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${
-                  activeTab === nav.name
-                    ? "bg-blue-900 text-white border-blue-900"
-                    : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
-                }`}
+                className={`px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
+                  ? "bg-blue-900 text-white border-blue-900"
+                  : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
+                  }`}
               >
                 {nav.name} (
                 {builders.filter((b) => b.userType === nav.name).length})
@@ -267,9 +265,8 @@ export default function BuildersAdmin() {
                 <Download className="h-4 w-4" />
                 Export
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    isExportDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`h-4 w-4 transition-transform ${isExportDropdownOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -366,10 +363,10 @@ export default function BuildersAdmin() {
                       {activeTab === "FUNDI"
                         ? "Skill"
                         : activeTab === "PROFESSIONAL"
-                        ? "Profession"
-                        : activeTab === "CONTRACTOR"
-                        ? "Contractor Type"
-                        : "Hardware Type"}
+                          ? "Profession"
+                          : activeTab === "CONTRACTOR"
+                            ? "Contractor Type"
+                            : "Hardware Type"}
                     </th>
                     {/* <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">{activeTab === "PROFESSIONAL" ? "Level" : "Grade"}</th> */}
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
@@ -399,8 +396,7 @@ export default function BuildersAdmin() {
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
                       onClick={() =>
                         navigate(
-                          `/dashboard/profile/${row.id || rowIndex}/${
-                            row.userType || activeTab
+                          `/dashboard/profile/${row.id || rowIndex}/${row.userType || activeTab
                           }`,
                           {
                             state: {
@@ -424,8 +420,8 @@ export default function BuildersAdmin() {
                           ? row.organizationName
                           : row.contactfirstName &&
                             row.contactfirstName.length > 1
-                          ? `${row.contactfirstName} ${row.contactlastName}`
-                          : `${row.firstName} ${row.lastName}`}
+                            ? `${row.contactfirstName} ${row.contactlastName}`
+                            : `${row.firstName} ${row.lastName}`}
                       </td>
 
                       <td className="px-3 py-4 whitespace-nowrap">
@@ -451,25 +447,24 @@ export default function BuildersAdmin() {
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.createdAt
                           ? new Date(row.createdAt).toLocaleString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                              timeZone: "Africa/Nairobi",
-                            }) + " EAT"
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                            timeZone: "Africa/Nairobi",
+                          }) + " EAT"
                           : "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            row.adminApproved
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${row.status == 'VERIFIED'
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                            }`}
                         >
-                          {row.adminApproved ? "Verified" : "Not Verified"}
+                          {row.status == 'VERIFIED' ? "Verified" : "Not Verified"}
                         </span>
                       </td>
                     </tr>

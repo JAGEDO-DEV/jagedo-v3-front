@@ -69,7 +69,7 @@ const Register = () => {
                     setEntity(entityRes.data);
                     setIsAssigned(entityRes.data.assignedServiceProviders?.length > 0);
                     setAssignedProviders(entityRes.data.assignedServiceProviders || []);
-                    setProviders(providersRes.hashSet.filter((provider) => provider.adminApproved));
+                    setProviders(providersRes.hashSet.filter((provider) => provider.status == 'VERIFIED'));
                 } catch (err) {
                     console.log("Error: ", err)
                     setError(`Failed to fetch ${currentEntityType} or providers.`);

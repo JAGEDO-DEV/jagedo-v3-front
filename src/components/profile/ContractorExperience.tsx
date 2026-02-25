@@ -90,7 +90,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  const isReadOnly = data?.adminApproved === true;
+  const isReadOnly = data?.status == 'VERIFIED' === true;
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {

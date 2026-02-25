@@ -23,7 +23,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const showVerificationMessage = userData.adminApproved;
+  const showVerificationMessage = userData.status == 'VERIFIED';
   const [avatarSrc, setAvatarSrc] = useState(
     userData?.profileImage,
   );
@@ -40,7 +40,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const [editValues, setEditValues] = useState({
     name: name || "",
     email: userData?.email ?? "",
-    phoneNumber: userData?.phoneNumber ?? "",
+    phone: userData?.phone ?? "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -126,7 +126,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     setEditValues({
       name: name || "",
       email: userData?.email || "",
-      phoneNumber: userData?.phoneNumber || "",
+      phone: userData?.phone || "",
     });
   };
 
@@ -135,7 +135,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     setEditValues({
       name: name || "",
       email: userData?.email || "",
-      phoneNumber: userData?.phoneNumber || "",
+      phone: userData?.phone || "",
     });
   };
 
@@ -173,8 +173,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         case "email":
           updates.email = editValues.email;
           break;
-        case "phoneNumber":
-          updates.phoneNumber = editValues.phoneNumber;
+        case "phone":
+          updates.phone = editValues.phone;
           break;
         default:
           throw new Error("Invalid field");
@@ -198,9 +198,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
           await updateProfileEmailAdmin(axiosInstance, userData.id, {
             email: editValues.email,
           });
-        } else if (field === "phoneNumber") {
+        } else if (field === "phone") {
           await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
-            phone: editValues.phoneNumber,
+            phone: editValues.phone,
           });
         }
         toast.success(
@@ -409,19 +409,19 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Phone Number</label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        {editingField === "phoneNumber" ? (
+                        {editingField === "phone" ? (
                           <>
                             <input
                               type="tel"
-                              value={editValues.phoneNumber}
-                              onChange={(e) => handleEditChange("phoneNumber", e.target.value)}
+                              value={editValues.phone}
+                              onChange={(e) => handleEditChange("phone", e.target.value)}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
                             <div className="flex items-center space-x-2">
                               <button
                                 type="button"
-                                onClick={() => handleEditSave("phoneNumber")}
+                                onClick={() => handleEditSave("phone")}
                                 disabled={isUpdating}
                                 className="text-green-600 hover:text-green-700 disabled:opacity-50"
                               >
@@ -445,13 +445,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="tel"
-                              value={userData?.phoneNumber || "N/A"}
+                              value={userData?.phone || "N/A"}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               readOnly
                             />
                             <button
                               type="button"
-                              onClick={() => handleEditStart("phoneNumber")}
+                              onClick={() => handleEditStart("phone")}
                               className="text-blue-900 cursor-pointer hover:opacity-75"
                             >
                               <FiEdit size={15} />
@@ -582,13 +582,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                         Phone Number
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        {editingField === "phoneNumber" ? (
+                        {editingField === "phone" ? (
                           <>
                             <input
                               type="tel"
-                              value={editValues.phoneNumber}
+                              value={editValues.phone}
                               onChange={(e) =>
-                                handleEditChange("phoneNumber", e.target.value)
+                                handleEditChange("phone", e.target.value)
                               }
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
@@ -596,7 +596,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                             <div className="flex items-center space-x-2">
                               <button
                                 type="button"
-                                onClick={() => handleEditSave("phoneNumber")}
+                                onClick={() => handleEditSave("phone")}
                                 disabled={isUpdating}
                                 className="text-green-600 hover:text-green-700 disabled:opacity-50"
                               >
@@ -620,13 +620,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="tel"
-                              value={userData.phoneNumber || ""}
+                              value={userData.phone || ""}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               readOnly
                             />
                             <button
                               type="button"
-                              onClick={() => handleEditStart("phoneNumber")}
+                              onClick={() => handleEditStart("phone")}
                               className="text-blue-900 cursor-pointer hover:opacity-75"
                             >
                               <FiEdit size={15} />

@@ -8,6 +8,7 @@ import { updateProfessionalExperience } from "@/api/experience.api";
 import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { PROFESSIONAL_USER } from "@/data/professionalGuidelines";
 
 interface FileItem {
     file: File | null;
@@ -21,25 +22,13 @@ interface AttachmentRow {
     files: FileItem[];
 }
 
-const PROJECT_REQUIREMENTS = {
-    senior: 5,
-    professional: 3,
-    graduate: 1,
-    student: 0,
-};
-
-const SPECIALIZATIONS_BY_CATEGORY: Record<string, string[]> = {
-    "Architect": ["Residential", "Commercial", "Industrial", "Urban"],
-    "Engineer": ["Structural", "Civil", "Electrical", "Mechanical"],
-    "Surveyor": ["Quantity", "Land", "Valuation"],
-    "Project Manager": ["Construction", "IT", "Infrastructure"]
-};
+const GUIDELINES = PROFESSIONAL_USER.experience;
 
 const ProffExperience = ({ data, refreshData }: any) => {
-    const [category, setCategory] = useState("Architect");
-    const [specialization, setSpecialization] = useState("Residential");
-    const [level, setLevel] = useState("Professional");
-    const [experience, setExperience] = useState("10+ years");
+    const [category, setCategory] = useState(GUIDELINES.categories[0]);
+    const [specialization, setSpecialization] = useState("");
+    const [level, setLevel] = useState(GUIDELINES.levels[1]);
+    const [experience, setExperience] = useState(GUIDELINES.yearsOfExperience[0]);
     const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
@@ -47,16 +36,16 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-    const isReadOnly = data?.adminApproved === true;
+    const isReadOnly = data?.status == 'VERIFIED' === true;
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
         if (data) {
             const up = data;
-            setCategory(up.profession || "Architect");
-            setSpecialization(up.specialization || "Residential");
-            setLevel(up.professionalLevel || "Professional");
-            setExperience(up.yearsOfExperience || "10+ years");
+            setCategory(up.profession || GUIDELINES.categories[0]);
+            setSpecialization(up.specialization || "");
+            setLevel(up.professionalLevel || GUIDELINES.levels[1]);
+            setExperience(up.yearsOfExperience || GUIDELINES.yearsOfExperience[0]);
 
             const existingProjects = up.professionalProjects || [];
             if (existingProjects.length > 0) {
@@ -88,8 +77,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
     }, [data]);
 
     const rowsToShow = useMemo(() => {
-        const levelKey = level.toLowerCase().trim() as keyof typeof PROJECT_REQUIREMENTS;
-        return PROJECT_REQUIREMENTS[levelKey] ?? 0;
+        return (GUIDELINES.projectsByLevel as any)[level] ?? 0;
     }, [level]);
 
     const handleFileChange = (rowId: number, file: File | null) => {
@@ -185,18 +173,31 @@ const ProffExperience = ({ data, refreshData }: any) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <input type="text" value={category} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                    <select
+                                        value={category}
+                                        onChange={(e) => {
+                                            setCategory(e.target.value);
+                                            setSpecialization(""); // Reset specialization when category changes
+                                        }}
+                                        disabled={isReadOnly}
+                                        className={inputStyles}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {GUIDELINES.categories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
                                     <select
                                         value={specialization}
                                         onChange={(e) => setSpecialization(e.target.value)}
-                                        disabled={isReadOnly}
+                                        disabled={isReadOnly || !category}
                                         className={inputStyles}
                                     >
                                         <option value="">Select Specialty</option>
-                                        {(SPECIALIZATIONS_BY_CATEGORY[category] || ["General"]).map(spec => (
+                                        {((GUIDELINES.specializations as any)[category] || []).map((spec: string) => (
                                             <option key={spec} value={spec}>{spec}</option>
                                         ))}
                                     </select>
@@ -205,11 +206,31 @@ const ProffExperience = ({ data, refreshData }: any) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                                    <input type="text" value={level} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                    <select
+                                        value={level}
+                                        onChange={(e) => setLevel(e.target.value)}
+                                        disabled={isReadOnly}
+                                        className={inputStyles}
+                                    >
+                                        <option value="">Select Level</option>
+                                        {GUIDELINES.levels.map(lvl => (
+                                            <option key={lvl} value={lvl}>{lvl}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-                                    <input type="text" value={experience} readOnly className="w-full p-3 bg-gray-200 border rounded-lg text-sm" />
+                                    <select
+                                        value={experience}
+                                        onChange={(e) => setExperience(e.target.value)}
+                                        disabled={isReadOnly}
+                                        className={inputStyles}
+                                    >
+                                        <option value="">Select Years</option>
+                                        {GUIDELINES.yearsOfExperience.map(yr => (
+                                            <option key={yr} value={yr}>{yr}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>

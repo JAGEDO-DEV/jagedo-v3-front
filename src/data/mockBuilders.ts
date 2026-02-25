@@ -100,8 +100,8 @@ export const STATUS_STYLES: Record<BuilderStatus, string> = {
 
 export const resolveStatus = (builder: Builder): BuilderStatus => {
   if (builder?.status) return builder.status;
-  if (builder?.adminApproved === true) return "VERIFIED";
-  if (builder?.adminApproved === false) return "PENDING";
+  if (builder?.status == 'VERIFIED'  === true) return "VERIFIED";
+  if (builder?.status == 'VERIFIED'  === false) return "PENDING";
   return "INCOMPLETE";
 };
 

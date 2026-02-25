@@ -35,7 +35,7 @@ const exportToExcel = (data: any[], filename: string) => {
     Estate: item.estate || "N/A",
     "Account Type": item.accountType || "N/A",
     "Registration Type": item.registrationType || "N/A",
-    Status: item.adminApproved ? "Verified" : "Not Verified",
+    Status: item.status == 'VERIFIED' ? "Verified" : "Not Verified",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -79,9 +79,9 @@ const exportToPDF = async (
     index + 1,
     item?.builderId || "N/A",
     `${item?.firstName ?? ""} ${item?.lastName ?? ""}`.trim() ||
-      `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
-      item?.organizationName ||
-      "N/A",
+    `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
+    item?.organizationName ||
+    "N/A",
     item.email || "N/A",
     item.phoneNumber || "N/A",
     item.gender || "N/A",
@@ -90,7 +90,7 @@ const exportToPDF = async (
     item.estate || "N/A",
     item.accountType || "N/A",
     item.registrationType || "Manual",
-    item.adminApproved ? "Verified" : "Not Verified",
+    item.status == 'VERIFIED' ? "Verified" : "Not Verified",
   ]);
 
   try {
@@ -134,8 +134,8 @@ export default function CustomersAdmin() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
-const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const navigate = useNavigate();
 
@@ -157,15 +157,15 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
   }, []);
 
   useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
-      setIsExportDropdownOpen(false);
-    }
-  };
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setIsExportDropdownOpen(false);
+      }
+    };
 
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => document.removeEventListener("mousedown", handleClickOutside);
-}, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const filteredCustomers = customers.filter((customer) => {
     const matchesTab =
       activeTab === "Individual"
@@ -224,19 +224,18 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                 key={nav.name}
                 type="button"
                 onClick={() => setActiveTab(nav.name)}
-                className={`w-full px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${
-                  activeTab === nav.name
+                className={`w-full px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
                     ? "bg-blue-900 text-white border-blue-900"
                     : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
-                }`}
+                  }`}
               >
                 {nav.name} (
                 {nav.name === "Individual"
                   ? customers.filter(
-                      (c) => c.accountType === "INDIVIDUAL" || !c.accountType
-                    ).length
+                    (c) => c.accountType === "INDIVIDUAL" || !c.accountType
+                  ).length
                   : customers.filter((c) => c.accountType === "ORGANIZATION")
-                      .length}
+                    .length}
                 )
               </button>
             ))}
@@ -266,9 +265,8 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                 <Download className="h-4 w-4" />
                 Export
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    isExportDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`h-4 w-4 transition-transform ${isExportDropdownOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -391,12 +389,10 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                         {(currentPage - 1) * rowsPerPage + rowIndex + 1}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        {`${row?.firstName ?? ""} ${
-                          row?.lastName ?? ""
-                        }`.trim() ||
-                          `${row?.contactfirstName ?? ""} ${
-                            row?.contactlastName ?? ""
+                        {`${row?.firstName ?? ""} ${row?.lastName ?? ""
                           }`.trim() ||
+                          `${row?.contactfirstName ?? ""} ${row?.contactlastName ?? ""
+                            }`.trim() ||
                           row?.organizationName}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
@@ -413,13 +409,12 @@ const exportDropdownRef = useRef<HTMLDivElement>(null);
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            row.adminApproved
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${row.status == 'VERIFIED'
                               ? "bg-green-100 text-green-800"
                               : "bg-yellow-100 text-yellow-800"
-                          }`}
+                            }`}
                         >
-                          {row.adminApproved ? "Verified" : "Not Verified"}
+                          {row.status == 'VERIFIED' ? "Verified" : "Not Verified"}
                         </span>
                       </td>
                     </tr>

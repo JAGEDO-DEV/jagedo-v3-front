@@ -65,11 +65,11 @@ export default function CustomerDetails({ jobData }: CustomerDetailsProps) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-500">Admin Approved</h3>
-            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${customerData.adminApproved
+            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${customerData.status == 'VERIFIED'
               ? 'bg-green-100 text-green-800'
               : 'bg-red-100 text-red-800'
               }`}>
-              {customerData.adminApproved ? 'Approved' : 'Not Approved'}
+              {customerData.status == 'VERIFIED' ? 'Approved' : 'Not Approved'}
             </span>
           </div>
           {customerData.zohoId && (

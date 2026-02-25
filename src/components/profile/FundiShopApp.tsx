@@ -19,7 +19,7 @@ const ShopAppPage = ({ data: profileData }) => {
     import: 'Batch Import Products'
   };
 
-  const isApproved = profileData?.adminApproved === true;
+  const isApproved = profileData?.status == 'VERIFIED' === true;
 
   const renderCurrentView = () => {
     switch (currentView) {

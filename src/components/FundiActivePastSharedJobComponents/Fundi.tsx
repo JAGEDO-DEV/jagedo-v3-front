@@ -32,7 +32,6 @@ interface FundiData {
     skills: string,
     hardwareTypes: string,
     profile: booelan,
-    adminApproved: boolean,
     zohoId: string
 }
 

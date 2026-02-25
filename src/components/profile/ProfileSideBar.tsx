@@ -65,7 +65,7 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
   };
 
   const userType = user?.userType?.toLowerCase();
-  const verified = user?.adminApproved;
+  const verified = user?.status == 'VERIFIED';
 
   const filteredBaseNavItems = baseNavItems.filter(
     (item) => !(userType === "admin" && item.id === "Account Uploads")
@@ -158,11 +158,11 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
                   key={item.id}
                   onClick={() => {
                     setActiveComponent(item.id);
-                    setIsMobileOpen(false); 
+                    setIsMobileOpen(false);
                   }}
                   className={`hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center gap-4 rounded-xl px-1.5 py-3 ${isActive
-                      ? "bg-blue-100 text-blue-700 font-bold"
-                      : "text-gray-700"
+                    ? "bg-blue-100 text-blue-700 font-bold"
+                    : "text-gray-700"
                     }`}
                 >
                   <ListItemPrefix>
