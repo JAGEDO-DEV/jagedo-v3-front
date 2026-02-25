@@ -11,7 +11,6 @@ interface AccountInfoProps {
   userData: any;
 }
 
-// --- Remove local storage helpers ---
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -19,7 +18,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const [askDeleteReason, setAskDeleteReason] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [showActionDropdown, setShowActionDropdown] = useState(false);
-  // Action reason modal state
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -154,7 +152,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   // --- localStorage-based edit save ---
   const handleEditSave = async (field: string) => {
-    if (!editValues[field]?.trim()) {
+    // Validation
+    if (field === "name") {
+      if (isOrganization) {
+        if (!editValues.organizationName?.trim()) {
+          alert("Organization name cannot be empty");
+          return;
+        }
+      } else {
+        if (!editValues.firstName?.trim() || !editValues.lastName?.trim()) {
+          alert("Both first and last name are required");
+          return;
+        }
+      }
+    } else if (!editValues[field as keyof typeof editValues]?.trim()) {
       alert(
         `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
       );

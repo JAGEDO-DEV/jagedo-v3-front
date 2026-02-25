@@ -453,67 +453,65 @@ export function CustomerSignupForm({
             <p className="text-gray-500 text-center mb-6">We'll use this for verification and important updates</p>
 
             {/* Phone Input Section */}
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                Phone number
-              </Label>
+            <div className="space-y-4">
+              <div className="space-y-2 flex flex-col items-center">
+                <Label htmlFor="phone" className="text-sm font-medium text-gray-700 text-center">
+                  Phone number
+                </Label>
 
-              <div
-                className={cn(
-                  "flex h-10 items-center w-full rounded-md border bg-white px-3 shadow-sm transition-all duration-200",
-                  "focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]/20",
-                  errors.phone ? "border-red-500 focus-within:ring-red-500/20" : "border-gray-300"
-                )}
-              >
-                {/* Country Code */}
-                <div className="flex items-center gap-2 pr-3 border-r border-gray-200 mr-3 select-none">
-                  <span className="text-lg">🇰🇪</span>
-                  <span className="text-sm font-medium text-gray-500">+254</span>
+                <div
+                  className={cn(
+                    "flex h-10 items-center w-[70%] mx-auto rounded-md border bg-white px-3 shadow-sm transition-all duration-200",
+                    "focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]/20",
+                    errors.phone ? "border-red-500 focus-within:ring-red-500/20" : "border-gray-300"
+                  )}
+                >
+                  {/* Country Code */}
+                  <div className="flex items-center gap-2 pr-3 border-r border-gray-200 mr-3 select-none">
+                    <span className="text-lg">🇰🇪</span>
+                    <span className="text-sm font-medium text-gray-500">+254</span>
+                  </div>
+
+                  {/* Phone Number Input */}
+                  <input
+                    id="phone"
+                    type="tel"
+                    placeholder="7XX XXX XXX"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const cleanValue = value.replace(/\D/g, '').slice(0, 9);
+                      if (cleanValue.length > 0 && !/^[17]/.test(cleanValue)) {
+                        return;
+                      }
+                      updateFormData({
+                        phone: cleanValue,
+                        fullPhoneNumber: `+254${cleanValue}`
+                      });
+                    }}
+                  />
                 </div>
 
-                {/* Phone Number Input */}
-                <input
-                  id="phone"
-                  type="tel"
-                  placeholder="7XX XXX XXX"
-                  className="flex-1 w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                  value={formData.phone}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    const cleanValue = value.replace(/\D/g, '').slice(0, 9);
-
-
-                    if (cleanValue.length > 0 && !/^[17]/.test(cleanValue)) {
-                      return;
-                    }
-
-                    updateFormData({
-                      phone: cleanValue,
-                      fullPhoneNumber: `+254${cleanValue}`
-                    });
-                  }}
-                />
+                {/* Error & Helper Text */}
+                {errors.phone ? (
+                  <p className="text-xs text-red-500 font-medium animate-in slide-in-from-top-1 text-center">
+                    {errors.phone}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-500 text-center">
+                    Format: 7XX... or 1XX... (do not include the first 0)
+                  </p>
+                )}
               </div>
 
-              {/* Error & Helper Text */}
-              {errors.phone ? (
-                <p className="text-xs text-red-500 font-medium animate-in slide-in-from-top-1">
-                  {errors.phone}
-                </p>
-              ) : (
-                <p className="text-[11px] text-gray-500">
-                  Format: 7XX... or 1XX... (do not include the first 0)
-                </p>
+              {formData.fullPhoneNumber && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg w-[70%] mx-auto text-center">
+                  <p className="text-sm text-gray-700">Full phone number:</p>
+                  <p className="font-medium">{formData.fullPhoneNumber}</p>
+                </div>
               )}
             </div>
-
-            {formData.fullPhoneNumber && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">Full phone number:</p>
-                <p className="font-medium">{formData.fullPhoneNumber}</p>
-              </div>
-            )}
           </div>
         )
 

@@ -620,27 +620,29 @@ export function ProviderSignupForm({
                         </div>
                         <h2 className="text-2xl font-semibold text-[rgb(0,0,122)] text-center mb-2">Enter Your Phone Number</h2>
                         <p className="text-gray-500 text-center mb-6">We'll use this for verification and important updates</p>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-gray-700 font-medium">Phone number</Label>
-                            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden shadow-sm transition-all duration-200 focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]/20 focus-within:shadow-md">
-                                <div className="px-3 py-3 bg-gray-50 text-gray-700 border-r border-gray-200 text-sm font-medium whitespace-nowrap">🇰🇪 +254</div>
-                                <input
-                                    id="phone"
-                                    type="tel"
-                                    placeholder="7XX XXX XXX"
-                                    className="flex-1 w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none px-4 py-3"
-                                    value={formData.phone}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        const cleanValue = value.replace(/\D/g, '').slice(0, 9);
-                                        if (cleanValue.length > 0 && !/^[17]/.test(cleanValue)) { return; }
-                                        updateFormData({ phone: cleanValue, fullPhoneNumber: `+254${cleanValue}` });
-                                    }}
-                                />
+                        <div className="space-y-4">
+                            <div className="space-y-2 flex flex-col items-center">
+                                <Label htmlFor="phone" className="text-gray-700 font-medium text-center">Phone number</Label>
+                                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden shadow-sm transition-all duration-200 focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]/20 focus-within:shadow-md w-[70%] mx-auto">
+                                    <div className="px-3 py-3 bg-gray-50 text-gray-700 border-r border-gray-200 text-sm font-medium whitespace-nowrap">🇰🇪 +254</div>
+                                    <input
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="7XX XXX XXX"
+                                        className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none px-4 py-3"
+                                        value={formData.phone}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const cleanValue = value.replace(/\D/g, '').slice(0, 9);
+                                            if (cleanValue.length > 0 && !/^[17]/.test(cleanValue)) { return; }
+                                            updateFormData({ phone: cleanValue, fullPhoneNumber: `+254${cleanValue}` });
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-500 text-center">Enter your 9-digit phone number starting with 7 or 1</p>
                             </div>
-                            <p className="text-xs text-gray-500">Enter your 9-digit phone number starting with 7 or 1</p>
                             {formData.fullPhoneNumber && (
-                                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                                <div className="mt-4 p-3 bg-gray-50 rounded-lg w-[70%] mx-auto text-center">
                                     <p className="text-sm text-gray-700">Full phone number:</p>
                                     <p className="font-medium">{formData.fullPhoneNumber}</p>
                                 </div>

@@ -96,8 +96,9 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
       }
     };
 
-    const uploadsComplete = requiredDocs.length === 0 ||
-      requiredDocs.every(doc => checkDocument(doc));
+    const uploadsComplete =
+      (profile.documentStatus === 'PENDING' || profile.documentStatus === 'VERIFIED') ||
+      (requiredDocs.length === 0 || requiredDocs.every(doc => checkDocument(doc)));
 
     // ============================================
     // EXPERIENCE COMPLETION
@@ -106,7 +107,9 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     let experienceComplete = false;
     const userTypeUpper = userType.toUpperCase();
 
-    if (userTypeUpper === 'CUSTOMER') {
+    if (userData?.experienceStatus === 'PENDING' || userData?.experienceStatus === 'VERIFIED') {
+      experienceComplete = true;
+    } else if (userTypeUpper === 'CUSTOMER') {
       // CUSTOMER doesn't have experience section
       experienceComplete = true;
     } else if (userTypeUpper === 'FUNDI') {
@@ -119,7 +122,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     } else if (userTypeUpper === 'PROFESSIONAL') {
       // PROFESSIONAL: needs profession, professionalLevel, yearsOfExperience, and professionalProjects
       const hasProfession = userData?.profession;
-      const hasLevel = userData?.professionalLevel;
+      const hasLevel = userData?.levelOrClass;
       const hasExperience = userData?.yearsOfExperience;
       const hasProjects = userData?.professionalProjects &&
         userData.professionalProjects.length > 0;

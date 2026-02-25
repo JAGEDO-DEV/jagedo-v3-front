@@ -520,7 +520,7 @@ export const updateBuilderLevel = async (
                 : userType === "PROFESSIONAL"
                     ? {
                         professionalProjects: userData.professionalProjects || [],
-                        level: editedFields.professionalLevel || userData.level,
+                        level: editedFields.professionalLevel || userData.levelOrClass || userData.level,
                         yearsOfExperience:
                             editedFields.yearsOfExperience ||
                             userData.yearsOfExperience,

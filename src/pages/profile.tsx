@@ -155,7 +155,8 @@ function ProfilePage() {
 
         const userType = user?.userType?.toLowerCase();
         const finalKeys = relevantKeys.filter(key => {
-            if (key === 'Products' && (userType === 'customer' || userType === 'contractor' || userType === 'hardware')) return false;
+            if (key === 'Products') return false;
+            if (key === 'Experience' && (userType === 'customer' || userType === 'hardware')) return false;
             return true;
         });
 

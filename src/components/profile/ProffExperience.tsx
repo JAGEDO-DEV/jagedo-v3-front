@@ -46,7 +46,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
             const up = data;
             setCategory(up.profession || GUIDELINES.categories[0]);
             setSpecialization(up.specialization || "");
-            setLevel(up.professionalLevel || GUIDELINES.levels[1]);
+            setLevel(up.levelOrClass || GUIDELINES.levels[1]);
             setExperience(up.yearsOfExperience || GUIDELINES.yearsOfExperience[0]);
 
             const existingProjects = up.professionalProjects || [];

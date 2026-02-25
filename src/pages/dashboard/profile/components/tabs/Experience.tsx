@@ -547,7 +547,7 @@ const Experience = ({ userData, isAdmin = false }) => {
             userData.professionalSpecialization ||
             defaultProfSpec,
           professionalLevel:
-            userData.professionalLevel || "",
+            userData.professionalLevel || userData.levelOrClass || "",
           yearsOfExperience:
             userData.yearsOfExperience || "",
         };
@@ -1494,7 +1494,7 @@ const Experience = ({ userData, isAdmin = false }) => {
         userData.id,
         userType,
         updatedFields,
-        userData.userProfile
+        (userData.userProfile || userData)
       );
 
       toast.success("Information updated successfully");

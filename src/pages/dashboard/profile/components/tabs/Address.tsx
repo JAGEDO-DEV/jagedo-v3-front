@@ -11,6 +11,7 @@ const getInitialAddress = (userData: any) => {
     country: userData?.country || "Kenya",
     county: userData?.county || "",
     subCounty: userData?.subCounty || "",
+    city: userData?.city || "",
     estate: userData?.estate || "",
   };
 };
@@ -44,6 +45,7 @@ const Address = ({ userData }) => {
         country: value,
         county: "",
         subCounty: "",
+        city: "",
         estate: "",
       });
     } else if (name === "county") {
@@ -70,6 +72,7 @@ const Address = ({ userData }) => {
       country: "",
       county: "",
       subCounty: "",
+      city: "",
       estate: "",
     });
   };
@@ -80,7 +83,6 @@ const Address = ({ userData }) => {
     try {
       await adminUpdateAddress(axiosInstance, address, userData.id);
       toast.success("Address Updated Successfully");
-      window.location.reload();
     } catch (err: any) {
       toast.error(err.message || "Failed to update address");
     } finally {
@@ -177,15 +179,32 @@ const Address = ({ userData }) => {
               </div>
             )}
 
+            {/* City */}
+            <div>
+              <label className="block text-sm font-medium">Town / City</label>
+              {isEditing ? (
+                <input
+                  name="city"
+                  value={address.city}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border-b"
+                  placeholder="Enter town or city"
+                />
+              ) : (
+                <p className="border-b px-4 py-2">{address.city}</p>
+              )}
+            </div>
+
             {/* Estate */}
             <div>
-              <label className="block text-sm font-medium">Estate / Town</label>
+              <label className="block text-sm font-medium">Estate</label>
               {isEditing ? (
                 <input
                   name="estate"
                   value={address.estate}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border-b"
+                  placeholder="Enter estate"
                 />
               ) : (
                 <p className="border-b px-4 py-2">{address.estate}</p>

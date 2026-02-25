@@ -262,11 +262,19 @@ export function ProfileCompletion({
         }
         setSecondaryContact((prev) => ({ ...prev, isLoading: true }));
         try {
-            const response = await initiateSecondaryVerification({
-                email: user.email,
+            const payload: any = {
                 otpDeliveryMethod: secondaryContact.contactType,
-                phoneNumber: secondaryContact.contact
-            });
+            };
+
+            if (secondaryContact.contactType === "EMAIL") {
+                payload.email = secondaryContact.contact;
+                payload.phoneNumber = user.phone || "";
+            } else {
+                payload.email = user.email || "";
+                payload.phoneNumber = secondaryContact.contact;
+            }
+
+            const response = await initiateSecondaryVerification(payload);
 
             if (response.data.success) {
                 toast.success(`OTP sent to ${secondaryContact.contact}`);
@@ -297,10 +305,16 @@ export function ProfileCompletion({
         setIsVerifying(true);
         try {
             const payload: any = {
-                email: user.email,
-                phoneNumber: secondaryContact.contact,
-                otp: secondaryContact.otp
+                otp: secondaryContact.otp,
             };
+
+            if (secondaryContact.contactType === "EMAIL") {
+                payload.email = secondaryContact.contact;
+                payload.phoneNumber = user.phone || "";
+            } else {
+                payload.email = user.email || "";
+                payload.phoneNumber = secondaryContact.contact;
+            }
 
             const response = await verifySecondaryVerification(payload);
 
