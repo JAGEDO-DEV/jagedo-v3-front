@@ -11,6 +11,8 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { updateContractorExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface ContractorCategory {
   id: string;
@@ -90,7 +92,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  const isReadOnly = data?.status == 'VERIFIED' === true;
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -307,9 +309,19 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           <form className="space-y-8" onSubmit={handleSubmit}>
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">Contractor Experience</h1>
 
+            {data?.experienceStatusReason && (
+              <Alert variant="destructive" className="mb-6">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Status Update</AlertTitle>
+                <AlertDescription>
+                  {data.experienceStatusReason}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {isReadOnly && (
               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
-                Your profile has been approved and is read-only. Contact support to request changes.
+                Your experience details have been submitted and are under review. Contact support to request changes.
               </div>
             )}
 

@@ -10,23 +10,24 @@ interface MainContentProps {
   activeTab: string;
   userType: string;
   userData?: any;
+  isAdmin?: boolean;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData }) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
         return <AccountInfo userData={userData} />;
       case 'address':
-        return <Address userData={userData}/>;
+        return <Address userData={userData} />;
       case 'account-uploads':
-        return <AccountUploads userData={userData}/>;
+        return <AccountUploads userData={userData} isAdmin={isAdmin} />;
       case 'experience':
         // Only show for builders, not customers
         if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} />;
         }
-        return <Experience userData={userData}/>;
+        return <Experience userData={userData} isAdmin={isAdmin} />;
       case 'products':
         // Only show for builders, not customers
         if (userType === 'CUSTOMER') {

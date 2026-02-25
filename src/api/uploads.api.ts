@@ -161,3 +161,36 @@ export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, docum
         throw new Error(error.response?.data?.message || "Failed to upload admin documents");
     }
 };
+
+export const adminVerifyDocuments = async (axiosInstance: any, userId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/verify`, { status: "VERIFIED" }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to verify documents");
+    }
+};
+
+export const adminRejectDocuments = async (axiosInstance: any, userId: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/reject`, { status: "REJECTED", reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to reject documents");
+    }
+};
+
+export const adminResubmitDocuments = async (axiosInstance: any, userId: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/resubmit`, { status: "RESUBMIT", reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to request document resubmission");
+    }
+};

@@ -38,7 +38,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
 
   const [editValues, setEditValues] = useState({
-    name: name || "",
+    firstName: userData?.firstName ?? "",
+    lastName: userData?.lastName ?? "",
+    organizationName: userData?.organizationName ?? "",
     email: userData?.email ?? "",
     phone: userData?.phone ?? "",
   });
@@ -124,7 +126,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const handleEditStart = (field: string) => {
     setEditingField(field);
     setEditValues({
-      name: name || "",
+      firstName: userData?.firstName ?? "",
+      lastName: userData?.lastName ?? "",
+      organizationName: userData?.organizationName ?? "",
       email: userData?.email || "",
       phone: userData?.phone || "",
     });
@@ -133,7 +137,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const handleEditCancel = () => {
     setEditingField(null);
     setEditValues({
-      name: name || "",
+      firstName: userData?.firstName ?? "",
+      lastName: userData?.lastName ?? "",
+      organizationName: userData?.organizationName ?? "",
       email: userData?.email || "",
       phone: userData?.phone || "",
     });
@@ -162,11 +168,10 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         case "name": {
           // For organizations, update organizationName; for individuals, update firstName/lastName
           if (isOrganization) {
-            updates.organizationName = editValues.name.trim();
+            updates.organizationName = editValues.organizationName.trim();
           } else {
-            const parts = editValues.name.trim().split(" ");
-            updates.firstName = parts[0] || "";
-            updates.lastName = parts.slice(1).join(" ") || "";
+            updates.firstName = editValues.firstName.trim();
+            updates.lastName = editValues.lastName.trim();
           }
           break;
         }
@@ -187,12 +192,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       // --- Backend Update ---
       try {
         if (field === "name") {
-          const namePayload = {
-            name: editValues.name.trim(),
-            contactName: isOrganization
-              ? `${userData?.firstName || ""} ${userData?.lastName || ""}`.trim()
-              : editValues.name.trim()
-          };
+          const namePayload: any = {};
+          if (isOrganization) {
+            namePayload.organizationName = editValues.organizationName.trim();
+          } else {
+            namePayload.firstName = editValues.firstName.trim();
+            namePayload.lastName = editValues.lastName.trim();
+          }
           await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
         } else if (field === "email") {
           await updateProfileEmailAdmin(axiosInstance, userData.id, {
@@ -358,8 +364,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="text"
-                              value={editValues.name}
-                              onChange={(e) => handleEditChange("name", e.target.value)}
+                              value={editValues.organizationName}
+                              onChange={(e) => handleEditChange("organizationName", e.target.value)}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
@@ -523,41 +529,58 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   <form className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Name</label>
-                      <div className="flex items-center border-b focus-within:border-blue-900 transition">
+                      <div className="flex flex-col gap-4 border-b pb-4">
                         {editingField === "name" ? (
-                          <>
-                            <input
-                              type="text"
-                              value={editValues.name}
-                              onChange={(e) =>
-                                handleEditChange("name", e.target.value)
-                              }
-                              className="w-full px-4 py-2 outline-none bg-transparent"
-                              disabled={isUpdating}
-                            />
-                            <div className="flex items-center space-x-2">
+                          <div className="space-y-4 w-full">
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</label>
+                              <input
+                                type="text"
+                                value={editValues.firstName}
+                                onChange={(e) =>
+                                  handleEditChange("firstName", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                disabled={isUpdating}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</label>
+                              <input
+                                type="text"
+                                value={editValues.lastName}
+                                onChange={(e) =>
+                                  handleEditChange("lastName", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                disabled={isUpdating}
+                              />
+                            </div>
+                            <div className="flex items-center justify-end space-x-2">
                               <button
                                 type="button"
                                 onClick={() => handleEditSave("name")}
                                 disabled={isUpdating}
-                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                               >
                                 {isUpdating ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
-                                  <FiCheck size={15} />
+                                  <FiCheck size={14} />
                                 )}
+                                Save
                               </button>
                               <button
                                 type="button"
                                 onClick={handleEditCancel}
                                 disabled={isUpdating}
-                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                               >
-                                <FiX size={15} />
+                                <FiX size={14} />
+                                Cancel
                               </button>
                             </div>
-                          </>
+                          </div>
                         ) : (
                           <>
                             <input

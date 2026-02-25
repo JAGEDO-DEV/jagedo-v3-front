@@ -9,6 +9,8 @@ import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { PROFESSIONAL_USER } from "@/data/professionalGuidelines";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface FileItem {
     file: File | null;
@@ -33,10 +35,10 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
     const [submitted, setSubmitted] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const isReadOnly = data?.status == 'VERIFIED' === true;
+    const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
@@ -167,6 +169,17 @@ const ProffExperience = ({ data, refreshData }: any) => {
         <div className="bg-gray-50 min-h-screen w-full p-2 sm:p-4 md:p-8">
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
                 <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
+
+                {data?.experienceStatusReason && (
+                    <Alert variant="destructive" className="mb-6">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>Status Update</AlertTitle>
+                        <AlertDescription>
+                            {data.experienceStatusReason}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {!submitted ? (
                     <form className="space-y-8" onSubmit={handleSubmit}>
                         <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200 space-y-4 shadow-inner">

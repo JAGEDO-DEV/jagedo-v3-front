@@ -13,9 +13,11 @@ import {
   uploadIndividualCustomerDocuments,
   uploadOrganizationCustomerDocuments
 } from "@/api/uploads.api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 import { uploadFile } from "@/utils/fileUpload";
 
-const DocumentCard = ({ label, url, onReplace, isUploading }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -31,21 +33,23 @@ const DocumentCard = ({ label, url, onReplace, isUploading }) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <label className="flex-1 cursor-pointer">
-            <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition">
-              <Upload className="w-4 h-4" />
-              Upload
-            </div>
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*,.pdf"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onReplace(file);
-              }}
-            />
-          </label>
+          {!disabled && (
+            <label className="flex-1 cursor-pointer">
+              <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition">
+                <Upload className="w-4 h-4" />
+                Upload
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onReplace(file);
+                }}
+              />
+            </label>
+          )}
         </div>
       </div>
     );
@@ -89,22 +93,24 @@ const DocumentCard = ({ label, url, onReplace, isUploading }) => {
             </a>
           </>
         )}
-        <label className={`flex-1 cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="flex items-center justify-center gap-1 py-2 px-2 border border-blue-200 rounded-lg text-blue-600 text-xs font-medium hover:bg-blue-50 transition">
-            <Upload className="w-3.5 h-3.5" />
-            {url ? "Replace" : "Upload"}
-          </div>
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*,.pdf"
-            disabled={isUploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onReplace(file);
-            }}
-          />
-        </label>
+        {!disabled && (
+          <label className={`flex-1 cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="flex items-center justify-center gap-1 py-2 px-2 border border-blue-200 rounded-lg text-blue-600 text-xs font-medium hover:bg-blue-50 transition">
+              <Upload className="w-3.5 h-3.5" />
+              {url ? "Replace" : "Upload"}
+            </div>
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*,.pdf"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onReplace(file);
+              }}
+            />
+          </label>
+        )}
       </div>
     </div>
   );
@@ -120,6 +126,8 @@ const AccountUploads = ({ data, refreshData }) => {
   const [pendingFiles, setPendingFiles] = useState({}); // Stores File objects pending upload
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
+
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.documentStatus);
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -315,6 +323,16 @@ const AccountUploads = ({ data, refreshData }) => {
               </p>
             </div>
 
+            {data?.documentStatusReason && (
+              <Alert variant="destructive" className="mb-6">
+                <InfoIcon className="h-4 w-4 text-red-600" />
+                <AlertTitle>Status Update</AlertTitle>
+                <AlertDescription>
+                  {data.documentStatusReason}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {fields.map(f => (
                 <DocumentCard
@@ -328,20 +346,22 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             <div className="flex justify-end">
-              <button
-                onClick={handleSaveDocuments}
-                disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
-                className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Uploads"
-                )}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={handleSaveDocuments}
+                  disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
+                  className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Uploads"
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -367,6 +387,16 @@ const AccountUploads = ({ data, refreshData }) => {
             </p>
           </div>
 
+          {data?.documentStatusReason && (
+            <Alert variant="destructive" className="mb-6">
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Status Update</AlertTitle>
+              <AlertDescription>
+                {data.documentStatusReason}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-gray-600 mb-4">Company Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -377,6 +407,7 @@ const AccountUploads = ({ data, refreshData }) => {
                   url={documents[f.key]}
                   onReplace={file => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
+                  disabled={isReadOnly}
                 />
               ))}
             </div>
@@ -403,12 +434,14 @@ const AccountUploads = ({ data, refreshData }) => {
                           url={documents[certKey]}
                           onReplace={file => replaceDocument(file, certKey)}
                           isUploading={isSubmitting && !!pendingFiles[certKey]}
+                          disabled={isReadOnly}
                         />
                         <DocumentCard
                           label={`${cat} Practice License`}
                           url={documents[licenseKey]}
                           onReplace={file => replaceDocument(file, licenseKey)}
                           isUploading={isSubmitting && !!pendingFiles[licenseKey]}
+                          disabled={isReadOnly}
                         />
                       </div>
                     </div>
@@ -419,20 +452,22 @@ const AccountUploads = ({ data, refreshData }) => {
           )}
 
           <div className="flex justify-end">
-            <button
-              onClick={handleSaveDocuments}
-              disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
-              className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Uploads"
-              )}
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={handleSaveDocuments}
+                disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
+                className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Uploads"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

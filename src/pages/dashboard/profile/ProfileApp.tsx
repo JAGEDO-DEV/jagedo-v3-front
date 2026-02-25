@@ -14,6 +14,7 @@ function ProfileApp() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { id: userId, role: type } = useParams<{ id: string; role: string }>();
   const location = useLocation();
   const completionStatus = useProfileCompletion(user, userType);
@@ -117,6 +118,10 @@ function ProfileApp() {
         console.error('Error reading user data from localStorage:', err);
         setError(err.message || 'Failed to load user profile from localStorage');
       } finally {
+        // Also check if logged in user is admin
+        const loggedInUser = JSON.parse(localStorage.getItem('user') || 'null');
+        const role = (loggedInUser?.userType || loggedInUser?.role || '')?.toString().toUpperCase();
+        setIsAdmin(role === 'ADMIN' || role === 'SUPER_ADMIN');
         setLoading(false);
       }
     };
@@ -166,6 +171,7 @@ function ProfileApp() {
         activeTab={activeTab}
         userType={userType}
         userData={user}
+        isAdmin={isAdmin}
       />
     </div>
   );

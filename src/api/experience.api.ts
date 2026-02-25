@@ -116,3 +116,36 @@ export const adminUpdateContractorExperience = async (axiosInstance: any, userId
         throw new Error(error.response?.data?.message || "Failed to update contractor experience");
     }
 };
+
+export const adminVerifyExperience = async (axiosInstance: any, userId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/experience/verify`, { status: "VERIFIED" }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to verify experience");
+    }
+};
+
+export const adminRejectExperience = async (axiosInstance: any, userId: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/experience/reject`, { status: "REJECTED", reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to reject experience");
+    }
+};
+
+export const adminResubmitExperience = async (axiosInstance: any, userId: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/experience/resubmit`, { status: "RESUBMIT", reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to request experience resubmission");
+    }
+};

@@ -86,56 +86,59 @@ function ProfilePage() {
             return docMap[userType] || [];
         };
 
-        const requiredDocs = getRequiredDocuments();
-        let uploadsComplete = false;
+        // const requiredDocs = getRequiredDocuments();
+        let uploadsComplete = (providerData?.documentStatus == "VERIFIED" || providerData?.documentStatus == "PENDING");
 
-        if (up) {
-            // Priority 1: Check the 'complete' flag from backend
-            if (up.profileComplete === true) {
-                uploadsComplete = true;
-            } else {
-                // Priority 2: Manual check of required documents
-                uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
-                    const value = up[key];
-                    return value !== null && value !== undefined && value !== '';
-                });
+        // if (up) {
+        //     // Priority 1: Check the 'complete' flag from backend
+        //     if (up.profileComplete === true) {
+        //         uploadsComplete = true;
+        //     } else {
+        //         // Priority 2: Manual check of required documents
+        //         uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
+        //             const value = up[key];
+        //             return value !== null && value !== undefined && value !== '';
+        //         });
 
-                // If there are no required docs for this type (shouldn't happen for providers), mark as complete
-                if (requiredDocs.length === 0) uploadsComplete = true;
-            }
-        }
+        //         // If there are no required docs for this type (shouldn't happen for providers), mark as complete
+        //         if (requiredDocs.length === 0) uploadsComplete = true;
+        //     }
+        // }
 
-        let experienceComplete = false;
-        if (up?.profileComplete === true) {
-            experienceComplete = true;
-        } else if (userType === 'fundi') {
-            const hasGrade = !!up?.grade;
-            const hasExperience = !!up?.experience;
-            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-            const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
+        let experienceComplete = (providerData?.experienceStatus == "VERIFIED" || providerData?.experienceStatus == "PENDING");
+        // if (up?.profileComplete === true) {
+        //     experienceComplete = true;
+        // } else if (userType === 'fundi') {
+        //     const hasGrade = !!up?.grade;
+        //     const hasExperience = !!up?.experience;
+        //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+        //     const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
 
-            const grade = up?.grade || "";
-            const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
+        //     const grade = up?.grade || "";
+        //     const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
 
-            // Re-calculate based on what's actually in the response
-            experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
-        } else if (userType === 'professional') {
-            const hasProfession = !!up?.profession;
-            const hasLevel = !!up?.professionalLevel;
-            const hasExperience = !!up?.yearsOfExperience;
-            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+        //     // Re-calculate based on what's actually in the response
+        //     experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
+        // } else if (userType === 'professional') {
+        //     const hasProfession = !!up?.profession;
+        //     const hasLevel = !!up?.professionalLevel;
+        //     const hasExperience = !!up?.yearsOfExperience;
+        //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
 
-            const level = up?.professionalLevel || "";
-            const isStudent = level.toLowerCase().includes("student");
+        //     const level = up?.professionalLevel || "";
+        //     const isStudent = level.toLowerCase().includes("student");
 
-            experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
-        } else if (userType === 'contractor') {
-            const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
-            const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
-            experienceComplete = hasExperiences && hasProjects;
-        } else {
-            experienceComplete = true; // Customer & Hardware
-        }
+        //     experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
+        // } else if (userType === 'contractor') {
+        //     const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
+        //     const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
+        //     experienceComplete = hasExperiences && hasProjects;
+        // } else {
+        //     experienceComplete = true; // Customer & Hardware
+        // }
+
+        console.log("Experience Complete: ", experienceComplete)
+        console.log("Uploads Complete: ", uploadsComplete)
 
         return {
             'Account Info': 'complete',

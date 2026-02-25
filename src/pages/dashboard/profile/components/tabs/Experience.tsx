@@ -10,11 +10,12 @@ import {
   PencilIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { UploadCloud, FileText, CheckCircle } from "lucide-react";
-import { FiCheck } from "react-icons/fi";
-import { SquarePen } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle, XCircle } from "lucide-react";
+import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
+import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
+import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 
@@ -335,7 +336,7 @@ const resolveSpecialization = (user: any) => {
 // Local storage sync omitted as per requirements.
 
 
-const Experience = ({ userData }) => {
+const Experience = ({ userData, isAdmin = false }) => {
 
   console.log("User Data: ", userData);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
@@ -346,10 +347,19 @@ const Experience = ({ userData }) => {
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState({});
+  const [isPendingAction, setIsPendingAction] = useState(false);
+  const [showGlobalActions, setShowGlobalActions] = useState(false);
+
+  // Action modal state
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    action: "approve" | "reject" | "resubmit" | null;
+  }>({ isOpen: false, action: null });
+  const [actionReason, setActionReason] = useState("");
 
   // Get user type from userData
   const userType = userData?.userType || "FUNDI";
-  const status = userData?.status;
+  const status = userData?.experienceStatus;
 
   // Statuses that should prefill/show existing data
   const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
@@ -1212,7 +1222,151 @@ const Experience = ({ userData }) => {
       ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
       : 0;
 
+  const closeActionModal = () => {
+    setActionModal({ isOpen: false, action: null });
+    setActionReason("");
+  };
+
+  const submitAction = async () => {
+    const { action } = actionModal;
+    setIsPendingAction(true);
+    try {
+      if (action === "approve") {
+        await adminVerifyExperience(axiosInstance, userData.id);
+        toast.success("Experience approved successfully");
+      } else if (action === "reject") {
+        await adminRejectExperience(axiosInstance, userData.id, actionReason);
+        toast.success("Experience rejected");
+      } else if (action === "resubmit") {
+        await adminResubmitExperience(axiosInstance, userData.id, actionReason);
+        toast.success("Resubmission requested");
+      }
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Action failed");
+    } finally {
+      setIsPendingAction(false);
+      closeActionModal();
+    }
+  };
+
+  const renderActionModal = () => {
+    if (!actionModal.isOpen) return null;
+
+    const { action } = actionModal;
+
+    const configs = {
+      approve: {
+        title: "Approve Experience",
+        description: `Are you sure you want to approve this user's experience?`,
+        buttonText: "Approve",
+        buttonColor: "bg-green-600 hover:bg-green-700",
+        needsReason: false,
+      },
+      reject: {
+        title: "Reject Experience",
+        description: `Please provide a reason for rejecting this experience submission:`,
+        buttonText: "Reject",
+        buttonColor: "bg-red-600 hover:bg-red-700",
+        needsReason: true,
+      },
+      resubmit: {
+        title: "Request Resubmission",
+        description: `Please specify what needs to be corrected in the experience profile:`,
+        buttonText: "Request Resubmission",
+        buttonColor: "bg-blue-600 hover:bg-blue-700",
+        needsReason: true,
+      },
+    };
+
+    const config = configs[action!];
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{config.title}</h3>
+          <p className="text-sm text-gray-600 mb-4">{config.description}</p>
+
+          {config.needsReason && (
+            <textarea
+              autoFocus
+              value={actionReason}
+              onChange={(e) => setActionReason(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              placeholder="Enter reason..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              rows={3}
+            />
+          )}
+
+          <div className="flex gap-3 mt-4">
+            <button
+              type="button"
+              disabled={isPendingAction}
+              onClick={submitAction}
+              className={`flex-1 py-2 px-4 text-white rounded-lg font-medium transition disabled:opacity-50 ${config.buttonColor}`}
+            >
+              {isPendingAction ? "Processing..." : config.buttonText}
+            </button>
+            <button
+              type="button"
+              disabled={isPendingAction}
+              onClick={closeActionModal}
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+
+  /* -------------------- Status Badge Component -------------------- */
+  const StatusBadge = ({ status, showIcon = true }: { status: string; showIcon?: boolean }) => {
+    const configs: Record<string, { bg: string; text: string; border: string; icon: any; label: string }> = {
+      pending: {
+        bg: "bg-amber-50",
+        text: "text-amber-700",
+        border: "border-amber-200",
+        icon: Clock,
+        label: "Pending Review",
+      },
+      VERIFIED: {
+        bg: "bg-green-50",
+        text: "text-green-700",
+        border: "border-green-200",
+        icon: CheckCircle,
+        label: "Approved",
+      },
+      REJECTED: {
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-200",
+        icon: XCircle,
+        label: "Rejected",
+      },
+      RESUBMIT: {
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-200",
+        icon: FiRefreshCw,
+        label: "Re-upload Required",
+      },
+    };
+
+    const config = configs[status] || configs.pending;
+    const Icon = config.icon;
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} border ${config.border}`}>
+        {showIcon && <Icon className="w-3 h-3" />}
+        {config.label}
+      </span>
+    );
+  };
   const [audioUrl, setAudioUrl] = useState("");
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1358,7 +1512,8 @@ const Experience = ({ userData }) => {
   return (
     <div className="flex">
       <Toaster position="top-center" richColors />
-      <div className="bg-gray-50 min-h-screen w-full">
+      <div className="bg-gray-50 min-h-screen w-full relative">
+        {renderActionModal()}
         <div className="max-w-6xl bg-white rounded-xl shadow-lg p-8">
           {/* Header with Approve Button */}
           <div className="flex items-center justify-between mb-8">
@@ -1366,38 +1521,90 @@ const Experience = ({ userData }) => {
               {userData?.userType} Experience
             </h1>
             <div className="flex items-center gap-3">
-              {(userData?.status == 'VERIFIED') ? (
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                  <FiCheck className="w-4 h-4" />
-                  Experience Approved
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsSavingInfo(true);
-                    try {
-                      await handleVerifyUser(
-                        axiosInstance,
-                        userData.id
-                      );
-                      toast.success("Experience section has been approved!");
-                      window.location.reload();
-                    } catch (error: any) {
-                      toast.error(error.message || "Failed to approve experience");
-                    } finally {
-                      setIsSavingInfo(false);
-                    }
-                  }}
-                  disabled={isSavingInfo}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  <FiCheck className="w-4 h-4" />
-                  {isSavingInfo ? "Processing..." : "Approve"}
-                </button>
+              <StatusBadge status={userData?.experienceStatus || "pending"} />
+              {/* Global Actions Dropdown - Admin Only */}
+              {isAdmin && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowGlobalActions(!showGlobalActions)}
+                    className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                  >
+                    Actions
+                    <FiChevronDown className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`} />
+                  </button>
+                  {showGlobalActions && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShowGlobalActions(false);
+                          setIsPendingAction(true);
+                          try {
+                            await adminVerifyExperience(axiosInstance, userData.id);
+                            toast.success("Experience approved successfully");
+                            window.location.reload();
+                          } catch (error: any) {
+                            toast.error(error.message || "Failed to approve experience");
+                          } finally {
+                            setIsPendingAction(false);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-gray-50 transition border-b border-gray-100"
+                      >
+                        <FiCheck className="w-4 h-4" />
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({ isOpen: true, action: "resubmit" });
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
+                      >
+                        <FiRefreshCw className="w-4 h-4" />
+                        Resubmit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({ isOpen: true, action: "reject" });
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
+
           </div>
+
+          {(userData?.experienceStatus === "REJECTED" || userData?.experienceStatus === "RESUBMIT") && userData?.experienceStatusReason && (
+            <div className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${userData.experienceStatus === "REJECTED" ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"
+              }`}>
+              <div className={`p-2 rounded-lg ${userData.experienceStatus === "REJECTED" ? "bg-red-100" : "bg-blue-100"
+                }`}>
+                <FiAlertCircle className={`w-5 h-5 ${userData.experienceStatus === "REJECTED" ? "text-red-600" : "text-blue-600"
+                  }`} />
+              </div>
+              <div>
+                <h3 className={`font-semibold text-sm ${userData.experienceStatus === "REJECTED" ? "text-red-900" : "text-blue-900"
+                  }`}>
+                  {userData.experienceStatus === "REJECTED" ? "Experience Rejected" : "Resubmission Required"}
+                </h3>
+                <p className={`text-sm mt-1 ${userData.experienceStatus === "REJECTED" ? "text-red-700" : "text-blue-700"
+                  }`}>
+                  {userData.experienceStatusReason}
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleEvaluationSubmit} className="space-y-8">
             {/* Skills Section - Card Based Design */}
@@ -1406,100 +1613,105 @@ const Experience = ({ userData }) => {
                 {userData?.userType} Information
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fields.map((field, index) => {
-                  // Skip contractor experience table - handled in Work Categories section
-                  if (userType.toLowerCase() === "contractor" && field.name === "experience") {
-                    return null;
-                  }
+              {userType.toLowerCase() !== "contractor" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fields.map((field, index) => {
+                    const isGradeField =
+                      field.name === "grade" || field.name === "professionalLevel";
+                    const fieldValue =
+                      typeof info[field.name] === "string" ? info[field.name] : "";
 
-                  const isGradeField = field.name === "grade" || field.name === "professionalLevel";
-                  const fieldValue = typeof info[field.name] === "string" ? info[field.name] : "";
+                    return (
+                      <div
+                        key={index}
+                        className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-sm font-medium text-gray-600">
+                            {field.label}
+                          </label>
+                          {!isEditingFields && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingFields({ ...info });
+                                setIsEditingFields(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 transition"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
 
-                  return (
-                    <div key={index} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-                        <label className="text-sm font-medium text-gray-600">
-                          {field.label}
-                        </label>
-                        {!isEditingFields && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingFields({ ...info });
-                              setIsEditingFields(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 transition"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
+                        {isGradeField ||
+                          field.name === "experience" ||
+                          field.name === "yearsOfExperience" ? (
+                          isEditingFields ? (
+                            <select
+                              value={editingFields[field.name] ?? fieldValue ?? ""}
+                              onChange={(e) =>
+                                setEditingFields((prev) => ({
+                                  ...prev,
+                                  [field.name]: e.target.value,
+                                }))
+                              }
+                              className="w-full p-3 border border-gray-300 rounded-lg text-sm"
+                            >
+                              <option value="" disabled>
+                                Select {field.label.toLowerCase()}
+                              </option>
+                              {field.options.map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <p className="text-gray-900 font-medium">
+                              {fieldValue || "Not Provided"}
+                            </p>
+                          )
+                        ) : (
+                          isEditingFields ? (
+                            <select
+                              value={editingFields[field.name] ?? fieldValue ?? ""}
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                setEditingFields((prev) => {
+                                  const updated = { ...prev, [field.name]: newValue };
+                                  if (
+                                    field.name === "skill" ||
+                                    field.name === "profession" ||
+                                    field.name === "category"
+                                  ) {
+                                    updated.specialization = "";
+                                  }
+                                  return updated;
+                                });
+                              }}
+                              className="w-full p-3 border border-gray-300 rounded-lg text-sm"
+                            >
+                              <option value="" disabled>
+                                Select {field.label.toLowerCase()}
+                              </option>
+                              {field.options.map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <p className="text-gray-900 font-medium">
+                              {fieldValue || "Not Provided"}
+                            </p>
+                          )
                         )}
                       </div>
-
-                      {isGradeField || field.name === "experience" || field.name === "yearsOfExperience" ? (
-                        // Experience field with dropdown
-                        isEditingFields ? (
-                          <select
-                            value={editingFields[field.name] ?? fieldValue ?? ""}
-                            onChange={(e) => {
-                              setEditingFields((prev) => ({
-                                ...prev,
-                                [field.name]: e.target.value,
-                              }));
-                            }}
-                            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="" disabled>
-                              Select {field.label.toLowerCase()}
-                            </option>
-                            {field.options.map((opt, i) => (
-                              <option key={i} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <p className="text-gray-900 font-medium">
-                            {fieldValue || "Not Provided"}
-                          </p>
-                        )
-                      ) : (
-                        // Skill/Specialization fields
-                        isEditingFields ? (
-                          <select
-                            value={editingFields[field.name] ?? fieldValue ?? ""}
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              setEditingFields((prev) => {
-                                const updated = { ...prev, [field.name]: newValue };
-                                // Reset specialization if the parent field changes
-                                if (field.name === "skill" || field.name === "profession" || field.name === "category") {
-                                  updated.specialization = "";
-                                }
-                                return updated;
-                              });
-                            }}
-                            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="" disabled>
-                              Select {field.label.toLowerCase()}
-                            </option>
-                            {field.options.map((opt, i) => (
-                              <option key={i} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <p className="text-gray-900 font-medium">
-                            {fieldValue || "Not Provided"}
-                          </p>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {isEditingFields && (
                 <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">

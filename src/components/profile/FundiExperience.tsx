@@ -7,6 +7,8 @@ import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface FileItem {
   file: File | null;
@@ -51,6 +53,8 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [experience, setExperience] = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
 
 
   /* ---------- LOAD FROM PROP ---------- */
@@ -183,6 +187,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       await updateFundiExperience(axiosInstance, payload);
 
       toast.success("Experience saved successfully!", { id: toastId });
+      setIsSubmitting(false); // Manually set sub to false here otherwise after success it might still stay true
       if (refreshData) refreshData();
     } catch (error: any) {
       console.error(error);
@@ -200,6 +205,16 @@ const FundiExperience = ({ data, refreshData }: any) => {
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
         <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
+
+        {data?.experienceStatusReason && (
+          <Alert variant="destructive" className="mb-6">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Status Update</AlertTitle>
+            <AlertDescription>
+              {data.experienceStatusReason}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
           <p className="font-semibold mb-1">Next Steps</p>
@@ -222,6 +237,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   <option value="">Select</option>
@@ -236,6 +252,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={grade}
                   onChange={e => setGrade(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   {Object.keys(requiredProjectsByGrade).map(g => (
@@ -249,6 +266,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={experience}
                   onChange={e => setExperience(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   {["10+ years", "5-10 years", "3-5 years", "1-3 years"].map(exp => (
@@ -277,6 +295,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                         <input
                           value={row.projectName}
                           onChange={e => handleProjectNameChange(row.id, e.target.value)}
+                          disabled={isReadOnly || isSubmitting}
                           placeholder="Project name..."
                           className="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none"
                         />
@@ -297,11 +316,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
                             </div>
                           ))}
                         </div>
-                        {row.files.length < 3 && (
+                        {row.files.length < 3 && !isReadOnly && (
                           <input
                             type="file"
                             accept="image/*"
                             onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
+                            disabled={isSubmitting}
                             className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           />
                         )}
@@ -313,15 +333,17 @@ const FundiExperience = ({ data, refreshData }: any) => {
             </div>
           )}
 
-          <div className="flex justify-end">
-            <button
-              disabled={isSubmitting}
-              className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-              {isSubmitting ? "Saving..." : "Save Experience"}
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end">
+              <button
+                disabled={isSubmitting}
+                className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                {isSubmitting ? "Saving..." : "Save Experience"}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
