@@ -63,7 +63,7 @@ const ProtectedRoute = ({
   }
 
   // If admin approval is required (for fundi, contractor, professional)
-  if (requireAdminApproved && user.status == "VERIFIED") {
+  if (requireAdminApproved && user.status !== "VERIFIED") {
     return <Navigate to={fallbackIfNotApproved} state={{ from: location }} replace />;
   }
 
