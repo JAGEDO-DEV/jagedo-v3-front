@@ -107,8 +107,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           id: exp.id || crypto.randomUUID(),
           category: exp.category || "",
           specialization: exp.specialization || "",
-          categoryClass: exp.categoryClass || "",
-          yearsOfExperience: exp.yearsOfExperience || "",
+          categoryClass: (exp.categoryClass || exp.class || "").replace(/\s+/g, ""),
+          yearsOfExperience: exp.yearsOfExperience || exp.years || "",
           certificate: exp.certificate || "",
           license: exp.license || "",
         })));
@@ -366,7 +366,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Class</option>
-                      {NCA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {Array.from(new Set([...NCA_CLASSES, cat.categoryClass].filter(Boolean))).map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
                     </select>
 
                     <select
@@ -380,7 +380,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Years</option>
-                      {YEARS_OF_EXPERIENCE.map(y => <option key={y} value={y}>{y}</option>)}
+                      {Array.from(new Set([...YEARS_OF_EXPERIENCE, cat.yearsOfExperience].filter(Boolean))).map(y => <option key={y as string} value={y as string}>{y as string}</option>)}
                     </select>
 
                     <div className="flex justify-end pr-2">

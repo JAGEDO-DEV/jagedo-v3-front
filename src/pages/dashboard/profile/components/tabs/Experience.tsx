@@ -482,7 +482,7 @@ const Experience = ({ userData, isAdmin = false }) => {
       return userData.contractorCategories.map((cat: any) => ({
         category: cat.category || "",
         specialization: cat.specialization || "",
-        class: cat.class || cat.categoryClass || "",
+        class: (cat.class || cat.categoryClass || "").replace(/\s+/g, ""),
         years: cat.years || cat.yearsOfExperience || "",
       }));
     }
@@ -491,7 +491,7 @@ const Experience = ({ userData, isAdmin = false }) => {
       return userData.contractorExperiences.map((exp: any) => ({
         category: exp.category || "",
         specialization: exp.specialization || "",
-        class: exp.categoryClass || exp.class || "",
+        class: (exp.categoryClass || exp.class || "").replace(/\s+/g, ""),
         years: exp.yearsOfExperience || exp.years || "",
       }));
     }
@@ -1825,8 +1825,8 @@ const Experience = ({ userData, isAdmin = false }) => {
                             disabled={!cat.category}
                           >
                             <option value="">Select specialization</option>
-                            {(CONTRACTOR_SPECIALIZATIONS[cat.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || []).map((spec, i) => (
-                              <option key={i} value={spec}>{spec}</option>
+                            {Array.from(new Set([...(CONTRACTOR_SPECIALIZATIONS[cat.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || []), cat.specialization].filter(Boolean))).map((spec, i) => (
+                              <option key={i} value={spec as string}>{spec as string}</option>
                             ))}
                           </select>
                         </div>
@@ -1846,8 +1846,8 @@ const Experience = ({ userData, isAdmin = false }) => {
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select class</option>
-                            {["NCA1", "NCA2", "NCA3", "NCA4", "NCA5", "NCA6", "NCA7", "NCA8"].map((c, i) => (
-                              <option key={i} value={c}>{c}</option>
+                            {Array.from(new Set(["NCA1", "NCA2", "NCA3", "NCA4", "NCA5", "NCA6", "NCA7", "NCA8", cat.class].filter(Boolean))).map((c, i) => (
+                              <option key={i} value={c as string}>{c as string}</option>
                             ))}
                           </select>
                         </div>
@@ -1867,8 +1867,8 @@ const Experience = ({ userData, isAdmin = false }) => {
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select experience</option>
-                            {["10+ years", "7-10 years", "5-7 years", "3-5 years", "1-3 years", "Less than 1 year"].map((y, i) => (
-                              <option key={i} value={y}>{y}</option>
+                            {Array.from(new Set(["10+ years", "7-10 years", "5-7 years", "3-5 years", "1-3 years", "Less than 1 year", cat.years].filter(Boolean))).map((y, i) => (
+                              <option key={i} value={y as string}>{y as string}</option>
                             ))}
                           </select>
                         </div>
