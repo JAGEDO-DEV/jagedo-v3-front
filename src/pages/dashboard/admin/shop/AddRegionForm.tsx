@@ -10,33 +10,34 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createRegion, RegionCreateRequest, getAllRegions } from '@/api/regions.api'; 
+import { createRegion, RegionCreateRequest, getAllRegions } from '@/api/regions.api';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 import { kenyanRegions, getCountiesForRegion } from '@/data/kenyanRegions';
 
 interface AddRegionFormProps {
   onBack: () => void;
   onSuccess: () => void;
+  predefinedType?: string;
 }
 
-export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps) {
+export default function AddRegionForm({ onBack, onSuccess, predefinedType }: AddRegionFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
-  const [existingRegions, setExistingRegions] = useState<any[]>([]); 
+  const [existingRegions, setExistingRegions] = useState<any[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('');
 
   const [formData, setFormData] = useState<RegionCreateRequest>({
     country: 'Kenya',
     name: '',
-    type: 'HARDWARE',
+    type: predefinedType || 'HARDWARE',
     counties: '',
     active: true,
     customerView: false,
     filterable: false
   });
 
-  
+
   useEffect(() => {
     const fetchExistingRegions = async () => {
       try {
@@ -51,18 +52,18 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
     fetchExistingRegions();
   }, []);
 
-  
+
   const availableCounties = useMemo(() => {
     return selectedRegion ? getCountiesForRegion(selectedRegion) : [];
   }, [selectedRegion]);
 
-  
+
   const handleRegionSelect = (region: string) => {
     setSelectedRegion(region);
     setFormData({ ...formData, name: region });
   };
 
-  
+
   const handleCountySelect = (county: string) => {
     setSelectedCounty(county);
     if (county && county !== selectedRegion) {
@@ -72,7 +73,7 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
     }
   };
 
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -81,14 +82,14 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
       return;
     }
 
-    
+
     const isDuplicate = existingRegions.some((region) => {
-      
+
       const existingName = region.name?.toLowerCase().trim();
       const newName = formData.name.toLowerCase().trim();
 
-      
-      
+
+
       return existingName === newName && region.type === formData.type;
     });
 
@@ -96,7 +97,7 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
       toast.error(`A region with the name "${formData.name}" and type "${formData.type}" already exists.`);
       return;
     }
-    
+
 
     try {
       setLoading(true);
@@ -117,7 +118,7 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
     }
   };
 
-  
+
   const handleDiscard = () => {
     onBack();
   };
@@ -159,7 +160,7 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   placeholder="Enter country name"
-                  readOnly                
+                  readOnly
                 />
               </div>
 
@@ -209,8 +210,12 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
 
               <div className="space-y-2">
                 <Label htmlFor="type">Type</Label>
-                <Select value={formData.type || 'HARDWARE'} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                  <SelectTrigger id="type">
+                <Select
+                  value={formData.type || 'HARDWARE'}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                  disabled={!!predefinedType}
+                >
+                  <SelectTrigger id="type" className={predefinedType ? "bg-gray-100 cursor-not-allowed" : ""}>
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>

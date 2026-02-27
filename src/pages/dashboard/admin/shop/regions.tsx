@@ -115,15 +115,15 @@ export default function ShopRegions() {
     }, []);
 
     const selectedCategoryType = categories.find(cat => cat.id === selectedCategory)?.type || "HARDWARE";
-    
+
     const filteredRegions = regions?.filter(
         (region) => {
             const matchesSearch =
                 region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 region.country.toLowerCase().includes(searchTerm.toLowerCase());
-            
+
             const matchesCategory = region.type === selectedCategoryType;
-            
+
             return matchesSearch && matchesCategory;
         }
     );
@@ -227,8 +227,7 @@ export default function ShopRegions() {
             );
             if (response.success) {
                 toast.success(
-                    `Region ${
-                        regionToToggle.active ? "disabled" : "enabled"
+                    `Region ${regionToToggle.active ? "disabled" : "enabled"
                     } successfully`
                 );
                 fetchRegions();
@@ -259,6 +258,7 @@ export default function ShopRegions() {
                     setShowAddRegion(false);
                     fetchRegions();
                 }}
+                predefinedType={selectedCategoryType}
             />
         );
     }
@@ -288,11 +288,10 @@ export default function ShopRegions() {
                     <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            selectedCategory === category.id
+                        className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedCategory === category.id
                                 ? "bg-[#00007A] text-white"
                                 : "bg-transparent text-black hover:bg-blue-50"
-                        }`}
+                            }`}
                     >
                         {category.label}
                     </button>
@@ -354,7 +353,7 @@ export default function ShopRegions() {
                                 </TableRow>
                             ) : (
                                 filteredRegions?.map((region, index) => (
-                                    <TableRow 
+                                    <TableRow
                                         key={region.id}
                                         className={!region.active ? "bg-gray-100 opacity-60 grayscale" : ""}
                                     >
@@ -577,8 +576,9 @@ export default function ShopRegions() {
                                         type: value
                                     })
                                 }
+                                disabled
                             >
-                                <SelectTrigger id="edit-type">
+                                <SelectTrigger id="edit-type" className="bg-gray-100 cursor-not-allowed">
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent>
