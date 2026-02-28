@@ -23,6 +23,7 @@ interface AddProductFormProps {
   onSuccess: () => void;
   product?: any;
   isEditMode?: boolean;
+  initialType?: string;
 }
 
 interface ProductFormData {
@@ -47,12 +48,12 @@ interface UploadedImage {
   displayName: string;
 }
 
-export default function AddProductForm({ onBack, onSuccess, product, isEditMode = false }: AddProductFormProps) {
+export default function AddProductForm({ onBack, onSuccess, product, isEditMode = false, initialType }: AddProductFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || '',
     description: product?.description || '',
-    type: product?.type || '',
+    type: product?.type || initialType || '',
     category: product?.category || '',
     subcategory: product?.subcategory || '',
     bId: product?.bId || '',
@@ -94,17 +95,23 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
     try {
       const response = await getAllCategories(axiosInstance);
       if (response.success) {
-        let filteredCategories = response.hashSet || [];
-        const typeToFilter = type || formData.type;
-        
+        const categoriesData = response.data || response.hashSet || [];
+
+        let filteredCategories = categoriesData;
+        const typeToFilter = (type || formData.type || "").trim().toUpperCase();
+
         if (typeToFilter && !isEditMode) {
-          const typeToFilterLower = typeToFilter.toLowerCase();
-          filteredCategories = filteredCategories.filter((cat: any) => {
-            const catTypeLower = cat.type ? cat.type.toLowerCase() : "";
-            return catTypeLower === typeToFilterLower || !cat.type;
+          filteredCategories = categoriesData.filter((cat: any) => {
+            const catType = (cat.type || "").trim().toUpperCase();
+
+            // Match type, or include null types in HARDWARE tab as fallback
+            return (
+              catType === typeToFilter ||
+              (typeToFilter === "HARDWARE" && !catType)
+            );
           });
         }
-        
+
         setCategories(filteredCategories);
       } else {
         toast.error("Failed to fetch categories");
@@ -126,14 +133,14 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
   const handleInputChange = (field: keyof ProductFormData, value: any) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      
+
       if (field === 'category') {
         const selectedCategory = categories.find((cat: any) => cat.name === value);
         if (selectedCategory) {
           updated.subcategory = selectedCategory.subCategory || '';
         }
       }
-      
+
       return updated;
     });
   };
@@ -287,7 +294,7 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="type" className="font-semibold">Type*</Label>
-              <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+              <Select disabled={isEditMode || !!initialType} value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type..." />
                 </SelectTrigger>

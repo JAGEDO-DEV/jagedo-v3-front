@@ -6,11 +6,7 @@ const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/products`;
 // GET /api/products
 export const getAllProducts = async (axiosInstance: any): Promise<any> => {
     try {
-        const response = await axiosInstance.get(`${API_BASE_URL}`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
+        const response = await axiosInstance.get(`${API_BASE_URL}`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to fetch products");
@@ -61,11 +57,7 @@ export const getProductsBySeller = async (axiosInstance: any): Promise<any> => {
 // GET /api/products/active
 export const getActiveProducts = async (axiosInstance: any): Promise<any> => {
     try {
-        const response = await axiosInstance.get(`${API_BASE_URL}/active`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
+        const response = await axiosInstance.get(`${API_BASE_URL}/active`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to fetch active products");
@@ -75,11 +67,7 @@ export const getActiveProducts = async (axiosInstance: any): Promise<any> => {
 // GET /api/products/{id}
 export const getProductById = async (axiosInstance: any, id: string | number): Promise<any> => {
     try {
-        const response = await axiosInstance.get(`${API_BASE_URL}/${id}`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
+        const response = await axiosInstance.get(`${API_BASE_URL}/${id}`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to fetch product");

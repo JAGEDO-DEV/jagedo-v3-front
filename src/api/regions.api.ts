@@ -40,11 +40,7 @@ export interface ApiResponse<T> {
 // API Functions
 export const getAllRegions = async (axiosInstance: any): Promise<ApiResponse<Region[]>> => {
   try {
-    const response = await axiosInstance.get(API_BASE_URL, {
-      headers: {
-        Authorization: getAuthHeaders()
-      }
-    });
+    const response = await axiosInstance.get(API_BASE_URL);
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch regions");
@@ -53,11 +49,7 @@ export const getAllRegions = async (axiosInstance: any): Promise<ApiResponse<Reg
 
 export const getActiveRegions = async (axiosInstance: any): Promise<ApiResponse<Region[]>> => {
   try {
-    const response = await axiosInstance.get(`${API_BASE_URL}/customers`, {
-      headers: {
-        Authorization: getAuthHeaders()
-      }
-    });
+    const response = await axiosInstance.get(`${API_BASE_URL}/customers`);
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch active regions");

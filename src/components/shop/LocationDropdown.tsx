@@ -3,8 +3,13 @@
 //@ts-nocheck
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { getAllRegions } from "@/api/regions.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { getAllRegions } from "@/api/regions.api";
+import axios from "axios";
+
+const publicAxios = axios.create({
+  baseURL: import.meta.env.VITE_SERVER_URL
+});
 
 
 interface Region {
@@ -39,17 +44,15 @@ const locationDescriptions: { [key: string]: string } = {
 };
 
 const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDropdownProps) => {
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRegionsAndSetDefault = async () => {
-      if (!axiosInstance) return;
       try {
         setIsLoading(true);
-        const response: ApiResponse = await getAllRegions(axiosInstance);
+        const response: ApiResponse = await getAllRegions(publicAxios);
 
         if (response && response.success && response.hashSet?.length > 0) {
           const activeRegions = response.hashSet.filter(region => region.active && region.customerView);

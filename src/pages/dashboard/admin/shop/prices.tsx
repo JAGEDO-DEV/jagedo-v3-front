@@ -342,8 +342,8 @@ export default function ShopPrices() {
                 prices: priceData.filter(price => price.price > 0) // Only save prices > 0
             };
 
-            const response = await axiosInstance.post(
-                `/api/products/${selectedProduct.id}/price`,
+            const response = await axiosInstance.put(
+                `/api/products/${selectedProduct.id}`,
                 payload
             );
 

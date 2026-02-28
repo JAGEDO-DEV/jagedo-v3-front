@@ -253,6 +253,7 @@ export default function ShopProducts() {
                 }}
                 product={editingProduct}
                 isEditMode={!!editingProduct}
+                initialType={selectedCategoryType}
             />
         );
     }

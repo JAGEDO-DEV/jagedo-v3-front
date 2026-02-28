@@ -81,10 +81,12 @@ export default function ShopAttributes() {
         productType: "",
         values: "",
         attributeGroup: "",
+        categoryId: "",
         filterable: false,
         active: true,
         customerView: false
     });
+    const [availableCategories, setAvailableCategories] = useState<any[]>([]);
 
     const categories = [
         { label: "Hardware", type: "HARDWARE" },
@@ -98,8 +100,10 @@ export default function ShopAttributes() {
             setLoading(true);
             const response = await getAllAttributes(axiosInstance);
             if (response.success) {
-                //@ts-ignore
-                setAttributes(response.hashSet);
+                const data = (response.data || response.hashSet) as Attribute[];
+                if (Array.isArray(data)) {
+                    setAttributes(data);
+                }
             }
         } catch (error) {
             console.error("Error fetching attributes:", error);
@@ -111,6 +115,20 @@ export default function ShopAttributes() {
 
     useEffect(() => {
         fetchAttributes();
+
+        // Fetch categories for the edit form
+        const fetchCategories = async () => {
+            try {
+                const { getAllCategories } = await import("@/api/categories.api");
+                const response = await getAllCategories(axiosInstance);
+                if (response.success) {
+                    setAvailableCategories(response.data || response.hashSet || []);
+                }
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchCategories();
     }, []);
 
     const filteredAttributes = attributes?.filter(
@@ -135,6 +153,8 @@ export default function ShopAttributes() {
             productType: attribute.productType,
             values: attribute.values,
             attributeGroup: attribute.attributeGroup,
+            //@ts-ignore
+            categoryId: attribute.categoryId?.toString() || "",
             filterable: attribute.filterable,
             active: attribute.active,
             customerView: attribute.customerView
@@ -145,7 +165,7 @@ export default function ShopAttributes() {
     const handleSaveEditAttribute = async () => {
         if (!editingAttribute) return;
 
-        const isDuplicate = attributes.some((attr) => 
+        const isDuplicate = attributes.some((attr) =>
             attr.id !== editingAttribute.id &&
             attr.type.toLowerCase().trim() === editFormData.type.toLowerCase().trim() &&
             attr.productType === editFormData.productType
@@ -341,13 +361,17 @@ export default function ShopAttributes() {
                                 </TableRow>
                             ) : (
                                 filteredAttributes?.map((attribute, index) => (
-                                    <TableRow 
+                                    <TableRow
                                         key={attribute.id}
                                         className={!attribute.active ? "bg-gray-100 opacity-60 grayscale" : ""}
                                     >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell className="font-medium">
                                             {attribute.type}
+                                        </TableCell>
+                                        <TableCell>
+                                            {/* @ts-ignore */}
+                                            {attribute.category?.name || attribute.attributeGroup || "N/A"}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline">
@@ -569,18 +593,36 @@ export default function ShopAttributes() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="edit-group">Attribute Group</Label>
-                            <Input
-                                id="edit-group"
-                                value={editFormData.attributeGroup}
-                                onChange={(e) =>
+                            <Label htmlFor="edit-group">Category (Attribute Group)</Label>
+                            <Select
+                                value={editFormData.categoryId}
+                                onValueChange={(value) => {
+                                    const selectedCat = availableCategories.find(c => c.id.toString() === value);
                                     setEditFormData({
                                         ...editFormData,
-                                        attributeGroup: e.target.value
-                                    })
-                                }
-                                placeholder="e.g., Physical Properties"
-                            />
+                                        //@ts-ignore
+                                        categoryId: value,
+                                        attributeGroup: selectedCat ? selectedCat.name : ""
+                                    });
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent className='bg-white'>
+                                    {availableCategories
+                                        .filter(cat =>
+                                            cat.active &&
+                                            ((cat.type || "").trim().toUpperCase() === editFormData.productType ||
+                                                (editFormData.productType === "HARDWARE" && !cat.type))
+                                        )
+                                        .map((cat) => (
+                                            <SelectItem key={cat.id.toString()} value={cat.id.toString()}>
+                                                {cat.name}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center space-x-2">

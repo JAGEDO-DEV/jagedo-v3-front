@@ -10,8 +10,6 @@ import { toast } from "react-hot-toast";
 import { createCategory, updateCategory, Category, CategoryCreateRequest, CategoryUpdateRequest } from "@/api/categories.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
-
-
 interface AddCategoryFormProps {
     onBack: () => void;
     onSuccess: () => void;
@@ -40,9 +38,9 @@ export default function AddCategoryForm({
     // Main category options
     const mainCategories = [
         { value: "HARDWARE", label: "Hardware" },
-        { value: "DESIGN", label: "Design" },
-        { value: "CUSTOM_PRODUCTS", label: "Custom Products" },
-        { value: "MACHINERY", label: "Machinery" }
+        { value: "FUNDI", label: "Custom Products" },
+        { value: "PROFESSIONAL", label: "Designs" },
+        { value: "CONTRACTOR", label: "Hire Machinery & Equipment" }
     ];
 
     useEffect(() => {
@@ -61,7 +59,7 @@ export default function AddCategoryForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!formData.name.trim()) {
             toast.error("Category name is required");
             return;
@@ -69,7 +67,7 @@ export default function AddCategoryForm({
 
         try {
             setLoading(true);
-            
+
             if (isEditMode && category) {
                 const updateData: CategoryUpdateRequest = {
                     id: category.id,
@@ -95,7 +93,7 @@ export default function AddCategoryForm({
                 await createCategory(axiosInstance, createData);
                 toast.success("Category created successfully");
             }
-            
+
             onSuccess();
         } catch (error: unknown) {
             console.error("Error saving category:", error);
@@ -126,10 +124,10 @@ export default function AddCategoryForm({
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
             {/* Header */}
-                <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
                 <Button variant="ghost" onClick={onBack} className="p-2">
                     <ArrowLeft className="h-5 w-5" />
-                    </Button>
+                </Button>
                 <h1 className="text-3xl font-bold">{isEditMode ? 'Edit Category' : 'Add Category'}</h1>
             </div>
 
@@ -223,19 +221,19 @@ export default function AddCategoryForm({
                 <div className="space-y-4">
                     <Label className="font-semibold">Status Settings</Label>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="space-y-0.5">
+                        <div className="space-y-0.5">
                             <Label htmlFor="active" className="text-base">Active Status</Label>
-                                <p className="text-sm text-muted-foreground">
-                                    Enable or disable this category
-                                </p>
-                            </div>
-                            <Switch
-                                id="active"
-                                checked={formData.active}
-                                onCheckedChange={(checked) => handleInputChange("active", checked)}
-                            />
-                    </div>
+                            <p className="text-sm text-muted-foreground">
+                                Enable or disable this category
+                            </p>
                         </div>
+                        <Switch
+                            id="active"
+                            checked={formData.active}
+                            onCheckedChange={(checked) => handleInputChange("active", checked)}
+                        />
+                    </div>
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end space-x-4 pt-6">
@@ -254,25 +252,25 @@ export default function AddCategoryForm({
                         style={{ backgroundColor: '#f3f4f6', color: '#00007A', borderColor: '#00007A' }}
                     >
                         Save Changes
-                            </Button>
-                            <Button 
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
-                                disabled={loading}
-                                style={{ backgroundColor: "#00007A", color: "white" }}
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        {isEditMode ? "Updating..." : "Creating..."}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        {isEditMode ? "Update Category" : "Create Category"}
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                        disabled={loading}
+                        style={{ backgroundColor: "#00007A", color: "white" }}
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                {isEditMode ? "Updating..." : "Creating..."}
+                            </>
+                        ) : (
+                            <>
+                                <Save className="h-4 w-4 mr-2" />
+                                {isEditMode ? "Update Category" : "Create Category"}
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
         </div>
     );

@@ -5,7 +5,7 @@ const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/product_categories`
 
 // Types
 export interface Category {
-    id: number;
+    id: number | string;
     name: string;
     active: boolean;
     subCategory?: string;
@@ -25,7 +25,7 @@ export interface CategoryCreateRequest {
 }
 
 export interface CategoryUpdateRequest {
-    id: number;
+    id: number | string;
     name: string;
     active: boolean;
     subCategory?: string;
@@ -46,11 +46,7 @@ export interface ApiResponse<T> {
 // GET /api/product_categories
 export const getAllCategories = async (axiosInstance: any): Promise<ApiResponse<Category[]>> => {
     try {
-        const response = await axiosInstance.get(API_BASE_URL, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
+        const response = await axiosInstance.get(API_BASE_URL);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to fetch categories");
@@ -60,11 +56,7 @@ export const getAllCategories = async (axiosInstance: any): Promise<ApiResponse<
 // GET /api/product_categories/active
 export const getActiveCategories = async (axiosInstance: any): Promise<ApiResponse<Category[]>> => {
     try {
-        const response = await axiosInstance.get(`${API_BASE_URL}/active`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
+        const response = await axiosInstance.get(`${API_BASE_URL}/active`);
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to fetch active categories");
@@ -116,7 +108,7 @@ export const updateCategory = async (axiosInstance: any, id: string | number, ca
 // PUT /api/product_categories/{id}/enable
 export const enableCategory = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Category>> => {
     try {
-        const response = await axiosInstance.put(`${API_BASE_URL}/${id}/enable`, {}, {
+        const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: true }, {
             headers: {
                 Authorization: getAuthHeaders()
             }
@@ -127,19 +119,10 @@ export const enableCategory = async (axiosInstance: any, id: string | number): P
     }
 };
 
-// Disable category (using update endpoint since there's no specific disable endpoint)
+// Disable category
 export const disableCategory = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Category>> => {
     try {
-        // First get the current category data
-        const currentCategory = await getCategoryById(axiosInstance, id);
-        
-        // Update with active set to false
-        const updateData: CategoryUpdateRequest = {
-            ...currentCategory.data,
-            active: false
-        };
-        
-        const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, updateData, {
+        const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: false }, {
             headers: {
                 Authorization: getAuthHeaders()
             }
@@ -153,13 +136,12 @@ export const disableCategory = async (axiosInstance: any, id: string | number): 
 // Toggle category status (enable/disable)
 export const toggleCategoryStatus = async (axiosInstance: any, id: string | number, currentStatus: boolean): Promise<ApiResponse<Category>> => {
     try {
-        if (currentStatus) {
-            // Currently active, so disable
-            return await disableCategory(axiosInstance, id);
-        } else {
-            // Currently inactive, so enable
-            return await enableCategory(axiosInstance, id);
-        }
+        const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: !currentStatus }, {
+            headers: {
+                Authorization: getAuthHeaders()
+            }
+        });
+        return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to toggle category status");
     }

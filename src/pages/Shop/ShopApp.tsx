@@ -94,25 +94,25 @@ const ShopApp = () => {
             baseProductList = products.filter(product => product.regionName === selectedLocationName);
         }
 
-        let categoryFilteredProducts;
+        const primaryCategoryFilters = CATEGORY_MAPPINGS[activeCategory] || [];
+        const categoryFilteredProducts = baseProductList.filter(product => {
+            const isCustom = product.custom;
+            const matchesCategoryMapping = primaryCategoryFilters.some(cat =>
+                product.type?.toLowerCase().includes(cat.toLowerCase())
+            );
 
-        if (activeCategory === 'custom') {
-            categoryFilteredProducts = baseProductList.filter(p => p.custom);
-        } else {
-            const primaryCategoryFilters = CATEGORY_MAPPINGS[activeCategory] || [];
-            categoryFilteredProducts = baseProductList.filter(product => {
-                const isCustom = product.custom;
-                const matchesType = primaryCategoryFilters.some(cat =>
-                    product.type.toLowerCase().includes(cat.toLowerCase())
-                );
+            // In the "custom" tab, show anything explicitly marked custom OR matching the "custom" mapping (like FUNDI)
+            if (activeCategory === 'custom') {
+                return isCustom || matchesCategoryMapping;
+            }
 
-                if (shouldApplyLocationFilter) {
-                    return !isCustom && matchesType;
-                }
+            // For other tabs (hardware, equipment, designs), only show non-custom items that match the category type mapping
+            if (shouldApplyLocationFilter) {
+                return !isCustom && matchesCategoryMapping;
+            }
 
-                return matchesType;
-            });
-        }
+            return matchesCategoryMapping;
+        });
 
         const activeSidebarFilters = selectedFilters.filter(f => f !== "All Products");
         if (activeSidebarFilters.length > 0) {

@@ -21,12 +21,13 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
   const [existingAttributes, setExistingAttributes] = useState<any[]>([]);
-  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [formData, setFormData] = useState<AttributeCreateRequest>({
     type: '',
     productType: defaultProductType,
     values: '',
     attributeGroup: '',
+    categoryId: '',
     filterable: false,
     active: true,
     customerView: false
@@ -43,18 +44,34 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
           getAllCategories(axiosInstance)
         ]);
 
-        if (attributesResponse.success && Array.isArray(attributesResponse.hashSet)) {
-          setExistingAttributes(attributesResponse.hashSet);
+        if (attributesResponse.success) {
+          const attributes = attributesResponse.data || attributesResponse.hashSet;
+          if (Array.isArray(attributes)) {
+            setExistingAttributes(attributes);
+          }
         }
 
-        if (categoriesResponse.success && Array.isArray(categoriesResponse.hashSet)) {
-          const filteredCategories = categoriesResponse.hashSet
-            .filter((cat: any) => 
-              cat.type?.toUpperCase() === defaultProductType.toUpperCase()
-            )
-            .map((cat: any) => cat.name);
+        if (categoriesResponse.success) {
+          const categories = categoriesResponse.data || categoriesResponse.hashSet;
+          if (Array.isArray(categories)) {
+            const defaultTypeUpper = (defaultProductType || "").trim().toUpperCase();
 
-          setAvailableGroups(filteredCategories);
+            const filteredCategories = categories
+              .filter((cat: any) => {
+                // Only include active categories
+                if (!cat.active) return false;
+
+                const catType = (cat.type || "").trim().toUpperCase();
+
+                // Match type, or include null types in HARDWARE tab as fallback
+                return (
+                  catType === defaultTypeUpper ||
+                  (defaultTypeUpper === "HARDWARE" && !catType)
+                );
+              });
+
+            setAvailableCategories(filteredCategories);
+          }
         }
 
       } catch (error) {
@@ -242,19 +259,26 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="attributeGroup">Attribute Group</Label>
+                <Label htmlFor="attributeGroup">Attribute Group (Category)</Label>
                 <Select
-                  value={formData.attributeGroup}
-                  onValueChange={(value) => setFormData({ ...formData, attributeGroup: value })}
+                  value={formData.categoryId?.toString()}
+                  onValueChange={(value) => {
+                    const selectedCat = availableCategories.find(c => c.id.toString() === value);
+                    setFormData({
+                      ...formData,
+                      categoryId: value,
+                      attributeGroup: selectedCat ? selectedCat.name : ''
+                    });
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select attribute group..." />
+                    <SelectValue placeholder="Select category..." />
                   </SelectTrigger>
                   <SelectContent className='bg-white'>
-                    {availableGroups.length > 0 ? (
-                      availableGroups.map((group, index) => (
-                        <SelectItem key={index} value={group}>
-                          {group}
+                    {availableCategories.length > 0 ? (
+                      availableCategories.map((cat) => (
+                        <SelectItem key={cat.id.toString()} value={cat.id.toString()}>
+                          {cat.name}
                         </SelectItem>
                       ))
                     ) : (

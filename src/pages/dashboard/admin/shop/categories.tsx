@@ -86,13 +86,22 @@ export default function ShopCategories() {
 
     const [selectedCategoryType, setSelectedCategoryType] = useState("HARDWARE");
 
-    const [editCategoryData, setEditCategoryData] = useState({
+    const [editCategoryData, setEditCategoryData] = useState<{
+        id: number | string;
+        name: string;
+        subCategory: string;
+        urlKey: string;
+        metaTitle: string;
+        metaKeywords: string;
+        type: string;
+    }>({
         id: 0,
         name: "",
         subCategory: "",
         urlKey: "",
         metaTitle: "",
-        metaKeywords: ""
+        metaKeywords: "",
+        type: ""
     });
     const [subCategoryData, setSubCategoryData] = useState({
         name: "",
@@ -119,7 +128,7 @@ export default function ShopCategories() {
             setLoading(true);
             const response = await getAllCategories(axiosInstance);
             if (response.success) {
-                setCategories(response.hashSet || []);
+                setCategories(response.data || []);
             } else {
                 toast.error("Failed to fetch categories");
             }
@@ -138,7 +147,8 @@ export default function ShopCategories() {
             subCategory: category.subCategory || "",
             urlKey: category.urlKey || "",
             metaTitle: category.metaTitle || "",
-            metaKeywords: category.metaKeywords || ""
+            metaKeywords: category.metaKeywords || "",
+            type: category.type || ""
         });
         setShowEditCategoryModal(true);
     };
@@ -157,7 +167,8 @@ export default function ShopCategories() {
                 subCategory: editCategoryData.subCategory.trim(),
                 urlKey: editCategoryData.urlKey.trim(),
                 metaTitle: editCategoryData.metaTitle.trim(),
-                metaKeywords: editCategoryData.metaKeywords.trim()
+                metaKeywords: editCategoryData.metaKeywords.trim(),
+                type: editCategoryData.type
             });
             toast.success("Category updated successfully");
             setShowEditCategoryModal(false);
@@ -315,7 +326,9 @@ export default function ShopCategories() {
 
         let matchesType = true;
         if (selectedCategoryType) {
-            matchesType = category.type === selectedCategoryType;
+            matchesType =
+                category.type === selectedCategoryType ||
+                (selectedCategoryType === "HARDWARE" && !category.type);
         }
 
         return matchesSearch && matchesStatus && matchesType;
@@ -873,7 +886,7 @@ export default function ShopCategories() {
                                 <label
                                     htmlFor="urlKey"
                                     className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
+                                >
                                     URL Key
                                 </label>
                                 <Input

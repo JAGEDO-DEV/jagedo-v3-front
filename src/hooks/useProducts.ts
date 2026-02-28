@@ -2,16 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import type { AxiosInstance } from "axios";
 import { getAllProducts } from "@/api/products.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import axios from "axios";
+
+const publicAxios = axios.create({
+    baseURL: import.meta.env.VITE_SERVER_URL
+});
 
 
 interface ApiPriceEntry {
-    regionId: number;
+    regionId: number | string;
     regionName: string;
     price: number;
 }
 
 interface RawApiProduct {
-    id: number;
+    id: number | string;
     name: string;
     description: string | null;
     type: string;
@@ -19,19 +24,20 @@ interface RawApiProduct {
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
     custom: boolean;
-    customPrice: number | null; 
+    customPrice: number | null;
     material: string | null;
     size: string | null;
     color: string | null;
     sku: string | null;
     bId: string | null;
     uom: string | null;
-    
+    active: boolean;
+    basePrice: number | null;
 }
 
 export interface Product {
     id: string;
-    productId: number;
+    productId: number | string;
     name: string;
     description?: string;
     type: string;
@@ -40,6 +46,8 @@ export interface Product {
     custom: boolean;
     regionName?: string;
     images: string[];
+    active: boolean;
+    isLocationAgnostic?: boolean;
     specifications: {
         material?: string;
         size?: string;
@@ -60,6 +68,7 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             type: rawProduct.type,
             category: rawProduct.category,
             images: rawProduct.images || [],
+            active: rawProduct.active,
             specifications: {
                 material: rawProduct.material ?? undefined,
                 size: rawProduct.size ?? undefined,
@@ -72,10 +81,10 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
 
         if (rawProduct.custom) {
             if (rawProduct.customPrice === null || typeof rawProduct.customPrice !== 'number') {
-                return []; 
+                return [];
             }
 
-            
+
             return [{
                 ...baseProductData,
                 id: `${rawProduct.id}-custom`,
@@ -83,28 +92,41 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
                 custom: true,
             }];
         }
-        
-        
-        return (rawProduct.prices || []).map(priceEntry => ({
+
+        // If it has specific regional prices, create one entry per region
+        if (rawProduct.prices && rawProduct.prices.length > 0) {
+            return rawProduct.prices.map(priceEntry => ({
+                ...baseProductData,
+                id: `${rawProduct.id}-${priceEntry.regionId}`,
+                price: priceEntry.price,
+                custom: false,
+                regionName: priceEntry.regionName,
+            }));
+        }
+
+        // Fallback: If no regional prices, use basePrice or 0
+        return [{
             ...baseProductData,
-            id: `${rawProduct.id}-${priceEntry.regionId}`,
-            price: priceEntry.price,
+            id: `${rawProduct.id}-base`,
+            price: rawProduct.basePrice ?? 0,
             custom: false,
-            regionName: priceEntry.regionName,
-        }));
+            regionName: "Default",
+            isLocationAgnostic: true
+        }];
     });
 };
 
 
-const fetchProducts = async (axiosInstance: AxiosInstance): Promise<Product[]> => {
+const fetchProducts = async (): Promise<Product[]> => {
     try {
-        const response = await getAllProducts(axiosInstance);
+        const response = await getAllProducts(publicAxios);
+        const data = response.data || response.hashSet;
 
-        if (!response.success || !Array.isArray(response.hashSet)) {
+        if (!response.success || !Array.isArray(data)) {
             throw new Error(response.message || "Failed to fetch products: Invalid API response format");
         }
-        
-        const rawProducts: RawApiProduct[] = response.hashSet;
+
+        const rawProducts: RawApiProduct[] = data;
         return transformAndFlattenProducts(rawProducts);
 
     } catch (error) {
@@ -115,12 +137,9 @@ const fetchProducts = async (axiosInstance: AxiosInstance): Promise<Product[]> =
 
 
 export const useProducts = () => {
-    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-
     return useQuery<Product[]>({
         queryKey: ["products"] as const,
-        queryFn: () => fetchProducts(axiosInstance),
-        enabled: !!axiosInstance,
+        queryFn: () => fetchProducts(),
         staleTime: 5 * 60 * 1000,
     });
 };

@@ -4,10 +4,11 @@ const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/product_attributes`
 
 // Types
 export interface Attribute {
-  id: number;
+  id: number | string;
   type: string;
   values: string;
   attributeGroup: string;
+  categoryId?: number | string;
   filterable: boolean;
   active: boolean;
   customerView: boolean;
@@ -17,16 +18,20 @@ export interface AttributeCreateRequest {
   type: string;
   values: string;
   attributeGroup: string;
+  productType?: string;
+  categoryId?: number | string;
   filterable: boolean;
   active: boolean;
   customerView: boolean;
 }
 
 export interface AttributeUpdateRequest {
-  id: number;
+  id: number | string;
   type: string;
   values: string;
   attributeGroup: string;
+  productType?: string;
+  categoryId?: number | string;
   filterable: boolean;
   active: boolean;
   customerView: boolean;
@@ -121,7 +126,7 @@ export const deleteAttribute = async (axiosInstance: any, id: string | number): 
 
 export const enableAttribute = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Attribute>> => {
   try {
-    const response = await axiosInstance.put(`${API_BASE_URL}/${id}/enable`, {}, {
+    const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: true }, {
       headers: {
         Authorization: getAuthHeaders()
       }
@@ -134,15 +139,7 @@ export const enableAttribute = async (axiosInstance: any, id: string | number): 
 
 export const disableAttribute = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Attribute>> => {
   try {
-    const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, {
-      id,
-      type: '',
-      values: '',
-      attributeGroup: '',
-      filterable: false,
-      active: false,
-      customerView: false
-    }, {
+    const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: false }, {
       headers: {
         Authorization: getAuthHeaders()
       }
@@ -154,9 +151,14 @@ export const disableAttribute = async (axiosInstance: any, id: string | number):
 };
 
 export const toggleAttributeStatus = async (axiosInstance: any, id: string | number, currentStatus: boolean): Promise<ApiResponse<Attribute>> => {
-  if (currentStatus) {
-    return disableAttribute(axiosInstance, id);
-  } else {
-    return enableAttribute(axiosInstance, id);
+  try {
+    const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, { active: !currentStatus }, {
+      headers: {
+        Authorization: getAuthHeaders()
+      }
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to toggle attribute status");
   }
 }; 
