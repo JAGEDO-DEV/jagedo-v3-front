@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from "react";
 import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
-import { Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Star, Shield, ShieldAlert, ShieldOff, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, updateAccountStatus } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -13,6 +12,7 @@ interface AccountInfoProps {
 
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
+  const navigate = useNavigate();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [showActionDropdown, setShowActionDropdown] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -239,6 +239,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     try {
       await updateAccountStatus(axiosInstance, userData.id, status, actionReason || undefined);
       toast.success(`User ${getActionLabel(pendingAction ?? "")}d successfully`);
+
+      // Navigate back after success
+      setTimeout(() => {
+        navigate(-1);
+      }, 1500);
     } catch (err: any) {
       toast.error(err.message || `Failed to ${getActionLabel(pendingAction ?? "").toLowerCase()} user`);
     }
@@ -268,20 +273,33 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
               <h1 className="text-2xl md:text-3xl font-bold mb-6">
                 Account Info
               </h1>
-              {showVerificationMessage && (
-                <div className="flex items-center space-x-1 mb-4">
-                  {[...Array(5)].map((_, index) => (
-                    <Star
-                      key={index}
-                      className="text-yellow-400 w-5 h-5"
-                      fill="currentColor"
-                    />
-                  ))}
-                  <span className="text-sm text-green-600 font-medium ml-2">
-                    Verified
-                  </span>
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${userData.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
+                  userData.status === 'SUSPENDED' ? 'bg-yellow-100 text-yellow-700' :
+                    userData.status === 'BLACKLISTED' ? 'bg-orange-100 text-orange-700' :
+                      userData.status === 'DELETED' ? 'bg-red-100 text-red-700' :
+                        'bg-blue-100 text-blue-700'
+                  }`}>
+                  {userData.status === 'VERIFIED' && <Shield className="w-3.5 h-3.5" />}
+                  {userData.status === 'SUSPENDED' && <ShieldAlert className="w-3.5 h-3.5" />}
+                  {userData.status === 'BLACKLISTED' && <ShieldOff className="w-3.5 h-3.5" />}
+                  {userData.status === 'DELETED' && <Trash2 className="w-3.5 h-3.5" />}
+                  {(userData.status === 'SIGNED_UP' || userData.status === 'PENDING') && <Clock className="w-3.5 h-3.5" />}
+                  <span>Status: {userData.status || 'N/A'}</span>
                 </div>
-              )}
+
+                {userData.status === 'VERIFIED' && (
+                  <div className="flex items-center space-x-1">
+                    {[...Array(5)].map((_, index) => (
+                      <Star
+                        key={index}
+                        className="text-yellow-400 w-4 h-4"
+                        fill="currentColor"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex flex-col items-start mb-6">
                 <img
                   alt="avatar"
@@ -755,10 +773,10 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
             {/* Action Reason Modal */}
             {pendingAction && (
               <div className={`border px-4 py-4 rounded mt-4 ${pendingAction === "delete" || pendingAction === "blacklist"
-                  ? "bg-red-50 border-red-300 text-red-800"
-                  : pendingAction === "verify"
-                    ? "bg-green-50 border-green-300 text-green-800"
-                    : "bg-blue-50 border-blue-300 text-blue-800"
+                ? "bg-red-50 border-red-300 text-red-800"
+                : pendingAction === "verify"
+                  ? "bg-green-50 border-green-300 text-green-800"
+                  : "bg-blue-50 border-blue-300 text-blue-800"
                 }`}>
                 <p className="font-medium mb-2">
                   {pendingAction === "verify"
@@ -779,10 +797,10 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                     type="button"
                     onClick={handleActionSubmit}
                     className={`text-white px-4 py-2 rounded transition ${pendingAction === "delete" || pendingAction === "blacklist"
-                        ? "bg-red-600 hover:bg-red-700"
-                        : pendingAction === "verify"
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "bg-blue-600 hover:bg-blue-700"
+                      ? "bg-red-600 hover:bg-red-700"
+                      : pendingAction === "verify"
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-blue-600 hover:bg-blue-700"
                       }`}
                   >
                     Confirm {getActionLabel(pendingAction)}

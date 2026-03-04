@@ -171,7 +171,7 @@ export const getAllProviders = async (axiosInstance: any) => {
 export const getAllCustomers = async (axiosInstance: any) => {
     try {
         const response = await axiosInstance.get(
-            `${import.meta.env.VITE_SERVER_URL}/api/users/by-type/CUSTOMER`,
+            `${import.meta.env.VITE_SERVER_URL}/api/users/customers`,
             {
                 headers: {
                     Authorization: getAuthHeaders()
@@ -633,13 +633,13 @@ export const unverifyUser = async (axiosInstance: any, userId: string): Promise<
 export const updateAccountStatus = async (
     axiosInstance: any,
     userId: string,
-    status: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE",
+    action: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE",
     reason?: string
 ): Promise<any> => {
     try {
         const response = await axiosInstance.put(
             `${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/account/status`,
-            { status, ...(reason ? { reason } : {}) },
+            { action, ...(reason ? { reason } : {}) },
             {
                 headers: {
                     Authorization: getAuthHeaders()

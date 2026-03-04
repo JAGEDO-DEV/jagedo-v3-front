@@ -24,11 +24,11 @@ const exportToExcel = (data: any[], filename: string) => {
     "Builder ID": item?.builderId || "N/A",
     Name:
       `${item?.firstName ?? ""} ${item?.lastName ?? ""}`.trim() ||
-      `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
+      item?.contactFullName ||
       item?.organizationName ||
       "N/A",
     Email: item.email || "N/A",
-    Phone: item.phoneNumber || "N/A",
+    Phone: item.phone || "N/A",
     Gender: item.gender || "N/A",
     County: item.county || "N/A",
     subCounty: item.subCounty || "N/A",
@@ -79,11 +79,11 @@ const exportToPDF = async (
     index + 1,
     item?.builderId || "N/A",
     `${item?.firstName ?? ""} ${item?.lastName ?? ""}`.trim() ||
-    `${item?.contactfirstName ?? ""} ${item?.contactlastName ?? ""}`.trim() ||
+    item?.contactFullName ||
     item?.organizationName ||
     "N/A",
     item.email || "N/A",
-    item.phoneNumber || "N/A",
+    item.phone || "N/A",
     item.gender || "N/A",
     item.county || "N/A",
     item.subCounty || "N/A",
@@ -145,8 +145,8 @@ export default function CustomersAdmin() {
       setError(null);
       try {
         const data = await getAllCustomers(axiosInstance);
-        setCustomers(data?.hashSet || []);
-        console.log(data?.hashSet);
+        setCustomers(data?.data || []);
+        console.log(data?.data);
       } catch (err: any) {
         setError(err.message || "Failed to fetch customers");
       } finally {
@@ -176,7 +176,7 @@ export default function CustomersAdmin() {
       customer?.firstName?.toLowerCase().includes(filters.name.toLowerCase()) ||
       customer?.lastName?.toLowerCase().includes(filters.name.toLowerCase());
     const matchesPhone =
-      !filters.phone || customer?.phoneNumber === filters.phone;
+      !filters.phone || customer?.phone === filters.phone;
     const matchesCounty =
       !filters.county ||
       customer?.county?.toLowerCase() === filters.county.toLowerCase();
@@ -186,9 +186,8 @@ export default function CustomersAdmin() {
       !searchValue ||
       customer?.firstName?.toLowerCase().includes(searchValue) ||
       customer?.lastName?.toLowerCase().includes(searchValue) ||
-      customer?.contactfirstName?.toLowerCase().includes(searchValue) ||
-      customer?.contactlastName?.toLowerCase().includes(searchValue) ||
-      customer?.phoneNumber?.toLowerCase().includes(searchValue) ||
+      customer?.contactFullName?.toLowerCase().includes(searchValue) ||
+      customer?.phone?.toLowerCase().includes(searchValue) ||
       customer?.email?.toLowerCase().includes(searchValue) ||
       customer?.organizationName?.toLowerCase().includes(searchValue) ||
       customer?.subCounty?.toLowerCase().includes(searchValue) ||
@@ -225,8 +224,8 @@ export default function CustomersAdmin() {
                 type="button"
                 onClick={() => setActiveTab(nav.name)}
                 className={`w-full px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
-                    ? "bg-blue-900 text-white border-blue-900"
-                    : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
+                  ? "bg-blue-900 text-white border-blue-900"
+                  : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
                   }`}
               >
                 {nav.name} (
@@ -391,15 +390,14 @@ export default function CustomersAdmin() {
                       <td className="px-3 py-4 whitespace-nowrap">
                         {`${row?.firstName ?? ""} ${row?.lastName ?? ""
                           }`.trim() ||
-                          `${row?.contactfirstName ?? ""} ${row?.contactlastName ?? ""
-                            }`.trim() ||
+                          row?.contactFullName ||
                           row?.organizationName}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.email || "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        {row.phoneNumber || "N/A"}
+                        {row.phone || "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.county || "N/A"}
@@ -410,8 +408,8 @@ export default function CustomersAdmin() {
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-semibold ${row.status == 'VERIFIED'
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
                             }`}
                         >
                           {row.status == 'VERIFIED' ? "Verified" : "Not Verified"}
