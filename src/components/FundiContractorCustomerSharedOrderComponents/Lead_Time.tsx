@@ -1,49 +1,15 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getProvierOrderRequestsById } from "@/api/orderRequests.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import Loader  from "../Loader";
+interface LeadTimeProps {
+  orderData: {
+    createdAt?: string;
+    deliveryConfirmedAt?: string;
+  };
+}
 
-const LeadTime = () => {
-  const { id } = useParams<{ id: string }>();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  
-  const [startDate, setStartDate] = useState<string>("");
-  const [deliveryDate, setDeliveryDate] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+const LeadTime = ({ orderData }: LeadTimeProps) => {
 
-  useEffect(() => {
-    if (!id) {
-      setError("Order ID is missing.");
-      setLoading(false);
-      return;
-    }
+  const { createdAt: startDate, deliveryConfirmedAt: deliveryDate } = orderData;
 
-    const fetchTimelineData = async () => {
-      try {
-        setLoading(true);
-        const response = await getProvierOrderRequestsById(axiosInstance, id);
-        if (response && response.success) {
-          const { createdAt, deliveryConfirmedAt } = response.data;
-          setStartDate(createdAt || "");
-          setDeliveryDate(deliveryConfirmedAt || "");
-        } else {
-          throw new Error(response.message || "Failed to fetch timeline data.");
-        }
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred.");
-        console.error("Error fetching lead time:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTimelineData();
-  }, [id]);
-
-  // Helper to format ISO date strings into a readable format
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "Not specified";
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -57,7 +23,6 @@ const LeadTime = () => {
       const start = new Date(startDate);
       const end = new Date(deliveryDate);
       
-      // Check for invalid date strings
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
           return 0;
       }
@@ -70,22 +35,6 @@ const LeadTime = () => {
     return 0;
   };
   
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader/>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 text-lg">
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   const duration = calculateDuration();
 
   return (
@@ -94,7 +43,6 @@ const LeadTime = () => {
         <div className="w-full max-w-6xl bg-white shadow-2xl rounded-2xl p-10 space-y-6">
           <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b pb-4">Delivery Timeline</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Start Date Display */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Start Date
@@ -104,7 +52,6 @@ const LeadTime = () => {
               </div>
             </div>
 
-            {/* Delivery Date Display */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Delivery Date
@@ -115,7 +62,6 @@ const LeadTime = () => {
             </div>
           </div>
 
-          {/* Duration Display */}
           <div className="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">Estimated Duration:</p>
             <p className="text-xl font-bold text-blue-900 mt-1">

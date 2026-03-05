@@ -37,6 +37,7 @@ const ProductUploadForm = ({ onCancel }) => {
         region: '',
         uom: '',
         category: '',
+        status: '',
     });
     const [productDesc, setProductDesc] = useState("");
     const [images, setImages] = useState([]);
@@ -131,6 +132,7 @@ const ProductUploadForm = ({ onCancel }) => {
                             sku: (existingProduct.sku || '').toString(),
                             price: (existingProduct.customPrice || existingProduct.basePrice || '').toString(),
                             category: existingProduct.category || '',
+                            status: existingProduct.status || '',
                         });
                         setProductDesc(existingProduct.description || '');
                         setImages(existingProduct.images || []);

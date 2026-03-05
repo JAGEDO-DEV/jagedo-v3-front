@@ -4,6 +4,7 @@ const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/product_attributes`
 
 // Types
 export interface Attribute {
+  productType: string;
   id: number | string;
   type: string;
   values: string;

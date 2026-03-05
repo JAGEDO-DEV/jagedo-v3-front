@@ -158,11 +158,11 @@ export const getProvierOrderRequestsById = async (axiosInstance: any, id: any): 
     }
 };
 
-export const assignOrderToProviders = async (axiosInstance: any, orderId: string, providerIds: string[]): Promise<any> => {
+export const assignOrderToProviders = async (axiosInstance: any, orderId: string, payload: any): Promise<any> => {
     try {
         const response = await axiosInstance.post(
-            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/assign-providers`,
-            { providerIds },
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/assign`,
+            payload,
             {
                 headers: {
                     Authorization: getAuthHeaders()
@@ -172,5 +172,154 @@ export const assignOrderToProviders = async (axiosInstance: any, orderId: string
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to assign order to providers");
+    }
+};
+
+export const addProviderNotes = async (axiosInstance: any, orderId: string, payload: any): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/service-provider/add-notes`,
+            payload,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to assign order to providers");
+    }
+};
+
+//Add Provider Fee
+export const addProviderFee = async (axiosInstance: any, orderId: string, payload: any): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/add-fee`,
+            payload,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to assign order to providers");
+    }
+};
+
+//Get Bidders for an order 
+export const getBiddersForOrder = async (axiosInstance: any, orderId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.get(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/bids`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to fetch bidders for the order");
+    }
+};
+
+//accept order bid
+export const acceptOrderBid = async (axiosInstance: any, orderId: number, bidId: number): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/accept-bid`,
+            null,
+            {
+                params: {
+                    bidId: bidId 
+                },
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to accept the bid for the order");
+    }
+};
+
+//Pay for order
+export const payForOrder = async (axiosInstance: any, orderId: string, payload: any): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/pay`,
+            payload,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to process payment for the order");
+    }
+};
+
+//Deliver order
+export const deliverOrder = async (axiosInstance: any, orderId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/deliver-order`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to deliver the order");
+    }
+};
+
+//Ship order
+export const shipOrder = async (axiosInstance: any, orderId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/ship-order`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to ship the order");
+    }
+};
+
+//Confirm order delivery
+export const confirmOrderDelivery = async (axiosInstance: any, orderId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/orders/${orderId}/confirm-order-delivery`,
+            null,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    }
+    catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to confirm order delivery");
     }
 };
