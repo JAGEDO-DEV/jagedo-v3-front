@@ -561,7 +561,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
   };
 
-  const openActionModal = (docKey: string, action: "approve" | "reject" | "reupload") => {
+  const openActionModal = (docKey: string, action: "approve" | "reject" | "resubmit") => {
     setActionModal({ isOpen: true, docKey, action });
     setActionReason("");
   };

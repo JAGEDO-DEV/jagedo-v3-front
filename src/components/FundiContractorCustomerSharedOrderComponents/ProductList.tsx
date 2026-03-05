@@ -1,26 +1,20 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getProvierOrderRequestsById, getOrderRequestsById } from "@/api/orderRequests.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { useGlobalContext } from "@/context/GlobalProvider";
-import { Loader } from "lucide-react";
-
-// Interface for the nested 'product' object from the API
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+//@ts-nocheck
 interface ApiProduct {
   id: number;
   name: string;
   images: string[];
+  customPrice?: number; 
 }
 
-// Interface for a single order item from the API, matching the provided JSON
 interface OrderItem {
   productName: string;
   quantity: number;
-  price: number; // Corresponds to the unit price
-  product: ApiProduct; // Nested product details
+  price: number;
+  product: ApiProduct;
 }
 
-// Interface for the component's internal state (remains the same)
 interface Product {
   id: number;
   name: string;
@@ -29,76 +23,37 @@ interface Product {
   rate: number;
 }
 
-const ProductList = () => {
-  const { id } = useParams<{ id: string }>();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const { user } = useGlobalContext();
-  const userType = user.userType;
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+interface ProductListProps {
+  orderData: {
+    items: OrderItem[];
+  };
+}
 
-  useEffect(() => {
-    if (!id) {
-      setError("Order ID is missing.");
-      setLoading(false);
-      return;
+const ProductList = ({ orderData }: ProductListProps) => {
+
+  const mappedProducts: Product[] = orderData.items.map((item: OrderItem) => {
+    
+    let effectiveRate = Number(item.price || 0);
+
+    
+    if (effectiveRate === 0 && item.product?.customPrice) {
+      effectiveRate = Number(item.product.customPrice);
     }
 
-    const fetchOrderItems = async () => {
-      try {
-        setLoading(true);
-        const fetchApi = userType?.toLowerCase() === 'customer'
-          ? getOrderRequestsById
-          : getProvierOrderRequestsById;
-        const response = await fetchApi(axiosInstance, id);
-
-        if (response && response.success) {
-          // Correctly map the API response to the component's state
-          const mappedProducts = response.data.items.map((item: OrderItem) => ({
-            id: item.product.id, // Correct: Use ID from the nested product object
-            name: item.productName || 'Unnamed Product',
-            // Correct: Safely access the first image from the images array
-            image: (item.product.images && item.product.images.length > 0)
-              ? item.product.images[0]
-              : '/logo.png',
-            quantity: item.quantity,
-            rate: item.price || 0, // Correct: Use 'price' for the rate
-          }));
-          setProducts(mappedProducts);
-        } else {
-          throw new Error(response.message || "Failed to fetch products.");
-        }
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred.");
-        console.error("Error fetching product list:", err);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      id: item.product.id,
+      name: item.productName || 'Unnamed Product',
+      image: (item.product.images && item.product.images.length > 0)
+        ? item.product.images[0]
+        : '/logo.png',
+      quantity: item.quantity,
+      rate: effectiveRate,
     };
-
-    fetchOrderItems();
-  }, [id, userType]); // Added axiosInstance to dependency array
+  });
 
   const calculateTotal = (quantity: number, rate: number) => quantity * rate;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader className="animate-spin h-10 w-10 text-gray-500" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 text-lg">
-        <p>Error: {error}</p>
-      </div>
-    );
-  }
-
-  if (products.length === 0) {
+  if (mappedProducts.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 text-lg">
         <p>No products found for this order.</p>
@@ -106,14 +61,11 @@ const ProductList = () => {
     );
   }
 
-  // The rest of the JSX rendering remains the same as it correctly uses the 'Product' interface
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-gray-100 py-4 md:py-10 px-4">
         <div className="w-full max-w-5xl bg-white shadow-lg rounded-xl p-3 md:p-6">
           <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">Product List</h2>
-
-          {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm text-left text-gray-700 border">
               <thead className="bg-gray-100 text-gray-600 uppercase">
@@ -126,7 +78,7 @@ const ProductList = () => {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
+                {mappedProducts.map((product) => (
                   <tr
                     key={product.id}
                     className="bg-white border-b hover:bg-gray-50 transition"
@@ -152,9 +104,8 @@ const ProductList = () => {
             </table>
           </div>
 
-          {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
-            {products.map((product) => (
+            {mappedProducts.map((product) => (
               <div
                 key={product.id}
                 className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
@@ -199,7 +150,6 @@ const ProductList = () => {
             ))}
           </div>
 
-          {/* Tablet Horizontal Scroll Table */}
           <div className="hidden sm:block lg:hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-700 border min-w-[600px]">
@@ -213,7 +163,7 @@ const ProductList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => (
+                  {mappedProducts.map((product) => (
                     <tr
                       key={product.id}
                       className="bg-white border-b hover:bg-gray-50 transition"

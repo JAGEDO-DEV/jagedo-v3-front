@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable react-hooks/exhaustive-deps */
+//@ts-ignore
 import { useState, useEffect, useCallback } from "react";
 import {
     Card,

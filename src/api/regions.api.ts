@@ -4,6 +4,8 @@ const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/regions`;
 
 // Types
 export interface Region {
+  counties: string;
+  type: string;
   id: number;
   country: string;
   name: string;

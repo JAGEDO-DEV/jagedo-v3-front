@@ -1,79 +1,68 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getProvierOrderRequestsById } from "@/api/orderRequests.api";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import Loader from "../Loader";
 
-// Interface for the fetched summary data
-interface SummaryData {
-  subtotal: number;
-  deliveryFee: number;
-  grandTotal: number;
+import React from 'react';
+
+interface GrandSummaryProps {
+  orderData: {
+    subTotal: number;
+    deliveryFee: number;
+    totalPrice: number;
+    
+    items?: any[];
+    productBids?: any[];
+    
+    [key: string]: any;
+  };
 }
 
-const GrandSummary = () => {
-  const { id } = useParams<{ id: string }>();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+const GrandSummary = ({ orderData }: GrandSummaryProps) => {
 
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
 
-  useEffect(() => {
-    if (!id) {
-      setError("Order ID is missing.");
-      setLoading(false);
-      return;
+  const calculateFinancials = () => {
+    
+    let effectiveSubTotal = Number(orderData.subTotal || 0);
+
+    
+    if (effectiveSubTotal === 0 && orderData.items && orderData.items.length > 0) {
+      effectiveSubTotal = orderData.items.reduce((acc: number, item: any) => {
+        let price = Number(item.price || 0);
+        const quantity = Number(item.quantity || 1);
+
+        
+        if (price === 0 && item.product?.customPrice) {
+          price = Number(item.product.customPrice);
+        }
+
+        return acc + (price * quantity);
+      }, 0);
     }
 
-    const fetchGrandSummary = async () => {
-      try {
-        setLoading(true);
-        const response = await getProvierOrderRequestsById(axiosInstance, id);
-        if (response && response.success) {
-          const { subTotal, deliveryFee, totalAmount } = response.data;
-          setSummaryData({
-            subtotal: subTotal,
-            deliveryFee: deliveryFee,
-            grandTotal: totalAmount,
-          });
-        } else {
-          throw new Error(response.message || "Failed to fetch order summary.");
-        }
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred.");
-        console.error("Error fetching grand summary:", err);
-      } finally {
-        setLoading(false);
-      }
+    
+    let effectiveDeliveryFee = Number(orderData.deliveryFee || 0);
+
+    
+    if (effectiveDeliveryFee === 0 && orderData.productBids && orderData.productBids.length > 0) {
+      effectiveDeliveryFee = Number(orderData.productBids[0].bidAmount || 0);
+    }
+
+    return {
+      subTotal: effectiveSubTotal,
+      deliveryFee: effectiveDeliveryFee,
+      grandTotal: effectiveSubTotal + effectiveDeliveryFee
     };
+  };
 
-    fetchGrandSummary();
-  }, [id]);
+  const { subTotal, deliveryFee, grandTotal } = calculateFinancials();
 
-  // Helper for currency formatting
+  
+
+  
   const formatCurrency = (amount: number | null | undefined) => {
     if (typeof amount !== 'number') {
       return "KES 0.00";
     }
-    return `KES ${amount.toLocaleString()}`;
+    return `KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
-  if (error || !summaryData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 text-lg">
-        <p>{error || "Could not load order summary."}</p>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -90,7 +79,7 @@ const GrandSummary = () => {
               <div className="flex justify-between items-center">
                 <span className="text-base font-medium">Subtotal</span>
                 <span className="text-base font-semibold">
-                  {formatCurrency(summaryData.subtotal)}
+                  {formatCurrency(subTotal)}
                 </span>
               </div>
 
@@ -98,7 +87,7 @@ const GrandSummary = () => {
               <div className="flex justify-between items-center">
                 <span className="text-base font-medium">Delivery Fee</span>
                 <span className="text-base font-semibold">
-                  {summaryData.deliveryFee > 0 ? formatCurrency(summaryData.deliveryFee) : "TBD"}
+                  {deliveryFee > 0 ? formatCurrency(deliveryFee) : "TBD"}
                 </span>
               </div>
             </div>
@@ -106,7 +95,7 @@ const GrandSummary = () => {
             {/* Grand Total */}
             <div className="flex justify-between font-bold text-green-700 text-base md:text-lg border-t pt-4 mt-4">
               <span>Grand Total</span>
-              <span>{formatCurrency(summaryData.grandTotal)}</span>
+              <span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
         </div>

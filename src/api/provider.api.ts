@@ -653,3 +653,20 @@ export const updateAccountStatus = async (
         );
     }
 };
+
+//Get user profile by id
+export const getUserProfileAdmin = async (axiosInstance: any, userId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.get(
+            `${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to get user profile");
+    }
+};
