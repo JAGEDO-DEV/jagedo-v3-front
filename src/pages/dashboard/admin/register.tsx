@@ -71,7 +71,7 @@ const Register = () => {
                     setAssignedProviders(entityRes.data.assignedServiceProviders || []);
                     setProviders(providersRes.hashSet.filter((provider) => provider.status == 'VERIFIED'));
                 } catch (err) {
-                    console.log("Error: ", err)
+                    
                     setError(`Failed to fetch ${currentEntityType} or providers.`);
                     toast.error("Failed to fetch data. Please try again.");
                 } finally {

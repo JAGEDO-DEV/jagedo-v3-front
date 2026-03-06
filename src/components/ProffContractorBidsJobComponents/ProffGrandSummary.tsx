@@ -29,7 +29,7 @@ const ProffGrandSummary = ({ onPrevClick, onNextClick, selectedBid, response }: 
       setIsReadOnly(false);
     }
   }, [response, selectedBid]);
-  console.log("selectedBid001, ", selectedBid)
+  
   // useMemo to perform all calculations based on the current context
   const calculatedTotals = useMemo(() => {
     let feesSum = 0;
@@ -51,7 +51,7 @@ const ProffGrandSummary = ({ onPrevClick, onNextClick, selectedBid, response }: 
     // Case 3: User is creating a new bid (editable)
     else {
       const savedFees = JSON.parse(localStorage.getItem('professionalFeesWithWorkPlans') || '[]');
-      console.log("saveDFees: ", savedFees)
+      
       feesSum = savedFees.reduce((total: number, item: FeeItem) => total + (item.amount || 0), 0);
 
       // const savedExpenses = JSON.parse(localStorage.getItem("expenses") || '[]');
@@ -80,7 +80,7 @@ const ProffGrandSummary = ({ onPrevClick, onNextClick, selectedBid, response }: 
     setGrandTotal(calculatedTotals.grandTotal);
   }, [calculatedTotals]);
 
-  console.log(feesTotal)
+  
   const summaryRows = [
     { no: 1, description: feeDescription, amount: feesTotal },
     // { no: 2, description: "Other Expenses", amount: expensesTotal },

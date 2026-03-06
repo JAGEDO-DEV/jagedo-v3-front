@@ -71,7 +71,7 @@ const PaymentReceipt = ({ data, onBack }) => {
         phone: method === "mpesa" ? phoneNumber : "",
         s3ReceiptKey: s3ReceiptKey,
       };
-      console.log("paymentPayload: ", paymentPayload);
+      
       const response = await payContractorProfessionalJobRequest(axiosInstance, id, paymentPayload);
 
       if (response.success) {

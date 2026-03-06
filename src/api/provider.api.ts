@@ -504,8 +504,8 @@ export const updateBuilderLevel = async (
                         }/api/profiles/hardware`
                         : "";
     try {
-        console.log("EDITING FIELDS: ", editedFields);
-        console.log("USER DATA: ", userData);
+        
+        
 
         const data =
             userType === "FUNDI"

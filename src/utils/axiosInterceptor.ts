@@ -37,11 +37,7 @@ const useAxiosWithAuth = (url: any) => {
                 const originalRequest = error.config;
                 const status = error.response?.status;
                 
-                console.log('[Interceptor] API Error:', {
-                    status,
-                    url: originalRequest?.url,
-                    message: error.response?.data?.message || error.message
-                });
+                
                 
                 if ((status === 401 || status === 403) && !originalRequest._retry) {
                     originalRequest._retry = true;
@@ -50,7 +46,7 @@ const useAxiosWithAuth = (url: any) => {
 
                     if (refreshToken && status === 401) {
                         try {
-                            console.log('[Interceptor] Attempting to refresh token...');
+                            
                             const response = await axios.post(
                                 `${
                                     import.meta.env.VITE_STAGING_API
@@ -65,17 +61,17 @@ const useAxiosWithAuth = (url: any) => {
                             const newRefreshToken = res.refreshToken;
                             localStorage.setItem("token", newAccessToken);
                             localStorage.setItem("refreshToken", newRefreshToken);
-                            console.log('[Interceptor] Token refreshed successfully');
+                            
                             return instance(originalRequest);
                         } catch (error) {
                             console.error("[Interceptor] Error refreshing token:", error);
-                            console.log('[Interceptor] Redirecting to login (token refresh failed)');
+                            ');
                             logout();
                             navigate("/login");
                             return Promise.reject(error);
                         }
                     } else {
-                        console.log('[Interceptor] Token expired/invalid - redirecting to login');
+                        
                         logout();
                         navigate("/login");
                         return Promise.reject(new Error('Session expired. Please login again.'));

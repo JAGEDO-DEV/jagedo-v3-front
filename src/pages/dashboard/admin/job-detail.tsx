@@ -59,7 +59,7 @@ const JobDetail = () => {
                 return;
             }
             const response = await getJobRequestById(axiosInstance, id);
-            console.log("Response: ", response.data)
+            
             setJob(response.data);
             setJobIsAssigned(response.data?.assignedServiceProviders?.length > 0);
             // Initialize admin notes and attachments if they exist

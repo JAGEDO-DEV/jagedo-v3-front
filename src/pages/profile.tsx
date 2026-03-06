@@ -137,8 +137,8 @@ function ProfilePage() {
         //     experienceComplete = true; // Customer & Hardware
         // }
 
-        console.log("Experience Complete: ", experienceComplete)
-        console.log("Uploads Complete: ", uploadsComplete)
+        
+        
 
         return {
             'Account Info': 'complete',

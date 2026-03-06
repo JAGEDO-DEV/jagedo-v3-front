@@ -55,8 +55,6 @@ const ParsedPreviewTable = ({ file }) => {
 
         setProducts(mappedProducts);
 
-        // console.log("Headers:", headers);
-        // console.log("Index of 'Price':", headerIndexMap.price);
 
       } catch (err) {
         console.error("Error parsing file:", err);

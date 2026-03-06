@@ -320,7 +320,7 @@ const Reviews: React.FC = () => {
         </div>
     }
 
-    console.log("Reviews: ", reviews)
+    
 
     return (
         <div className="space-y-6">

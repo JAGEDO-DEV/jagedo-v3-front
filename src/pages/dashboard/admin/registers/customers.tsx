@@ -146,7 +146,7 @@ export default function CustomersAdmin() {
       try {
         const data = await getAllCustomers(axiosInstance);
         setCustomers(data?.data || []);
-        console.log(data?.data);
+        
       } catch (err: any) {
         setError(err.message || "Failed to fetch customers");
       } finally {

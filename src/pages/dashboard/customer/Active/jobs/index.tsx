@@ -73,7 +73,7 @@ function ActiveCustomerJobsPageContainer() {
         const fetchJobData = async () => {
             if (id) {
                 try {
-                    console.log(`Fetching all data for past job: ${id}`);
+                    
                     const response = await getJobRequestById(axiosInstance, id);
                     setJobRequestData(response.data);
                 } catch (error) {

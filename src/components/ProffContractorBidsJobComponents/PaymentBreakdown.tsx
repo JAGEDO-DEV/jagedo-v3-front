@@ -122,7 +122,7 @@ const PaymentBreakdown = ({ onPrevClick, onNextClick, selectedBid, response }: P
 
     // Sync derived values into component state for UI rendering
     useEffect(() => {
-        console.log("derivedValues ", derivedValues)
+        
         setProfessionalFeeSubtotal(derivedValues.professionalFeeSubtotal);
         setExpensesSubtotal(derivedValues.expensesSubtotal);
         setTotalAmount(derivedValues.totalAmount);

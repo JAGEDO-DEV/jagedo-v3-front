@@ -137,7 +137,7 @@ export const approveMilestoneCompletion = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -165,7 +165,7 @@ export const requestMilestonePayment = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -192,7 +192,7 @@ export const approveMilestonePayment = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -219,7 +219,7 @@ export const rejectMilestonePayment = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -248,7 +248,7 @@ export const updateProgressWorkPlan = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -277,7 +277,7 @@ export const startProgressWorkPlan = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -306,7 +306,7 @@ export const completeProgressWorkPlan = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );
@@ -336,7 +336,7 @@ export const approveProgressWorkPlan = async (
         );
         return response.data;
     } catch (error: any) {
-        console.log("errorraga: ", error)
+        
         throw new Error(
             error.response?.data?.message || "Failed to update milestone progress"
         );

@@ -44,7 +44,7 @@ const ProffContractorFee = ({ onPrevClick, onNextClick, selectedBid, response }:
   const storageKey = 'professionalFeesWithWorkPlans';
   const workPlanStorageKey = 'professionalFeesWithWorkPlans';
   const uomOptions = ["Hours", "Days", "Unit", "Litres", "Kg"];
-  console.log("seleREs", response)
+  
 
   // Save to localStorage whenever workPlans change
   useEffect(() => {
@@ -55,7 +55,7 @@ const ProffContractorFee = ({ onPrevClick, onNextClick, selectedBid, response }:
 
   useEffect(() => {
     if (selectedBid) {
-      console.log("selectedBid", selectedBid)
+      
       setIsReadOnly(true);
       const bidWorkPlans = selectedBid.workPlans?.map((plan: any) => ({
         billName: plan.name || plan.billName,
@@ -78,7 +78,7 @@ const ProffContractorFee = ({ onPrevClick, onNextClick, selectedBid, response }:
 
     if (response) {
       if (response.stage !== 'BID_INVITED') {
-        console.log("BID_SUBMITTED")
+        
         setIsReadOnly(true);
         const apiWorkPlans = response.userBid?.workPlans || [];
         const transformedWorkPlans = apiWorkPlans.map((plan: any) => ({
@@ -143,8 +143,8 @@ const ProffContractorFee = ({ onPrevClick, onNextClick, selectedBid, response }:
 
   const handleInputChange = (workPlanIndex: number, itemIndex: number, field: keyof FeeItem, value: string | number) => {
     if (isReadOnly) return;
-    console.log("field: ", field)
-    console.log("value: ", value)
+    
+    
 
     const updatedWorkPlans = [...workPlans];
     const workPlan = { ...updatedWorkPlans[workPlanIndex] };
@@ -170,7 +170,7 @@ const ProffContractorFee = ({ onPrevClick, onNextClick, selectedBid, response }:
     updatedWorkPlans[workPlanIndex] = workPlan;
     setWorkPlans(updatedWorkPlans);
 
-    console.log("updatedWorkPlans", updatedWorkPlans)
+    
   };
 
   const addNewItem = (workPlanIndex: number) => {

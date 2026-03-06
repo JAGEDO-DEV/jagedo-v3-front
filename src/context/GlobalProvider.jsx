@@ -65,12 +65,12 @@ export const GlobalProvider = ({ children }) => {
 
         if (!userData.isSuperAdmin && isSuperAdmin) {
           userData.isSuperAdmin = true;
-          console.log('[GlobalProvider] Auto-fixed SUPER_ADMIN flag');
+          
         }
 
         if (!userData.isAdmin && isAdmin) {
           userData.isAdmin = true;
-          console.log('[GlobalProvider] Auto-fixed isAdmin flag');
+          
         }
 
         // Update localStorage if any changes were made

@@ -220,11 +220,7 @@ export const BulkSmsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         getAllProviders(axiosInstance),
         getSmsHistory(axiosInstance)
       ]);
-console.log("Fetched data:", {
-        customers: customersResponse?.hashSet?.length || 0,
-        builders: buildersResponse?.hashSet?.length || 0,
-        history: historyResponse?.length || 0
-      });
+
       setCustomers(customersResponse?.hashSet || []);
       setBuilders(buildersResponse?.hashSet || []);
       setSmsHistory(historyResponse || []);

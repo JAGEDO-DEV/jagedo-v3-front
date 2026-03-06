@@ -87,7 +87,7 @@ export const JobSpecificationPage = () => {
     );
   }
 
-  console.log("Job: ", job)
+  
 
   if (!job) {
     return (

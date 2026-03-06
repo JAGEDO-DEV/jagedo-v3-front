@@ -339,7 +339,7 @@ const resolveSpecialization = (user: any) => {
 
 const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
-  console.log("User Data: ", userData);
+  
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
@@ -1015,10 +1015,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         }))
         .filter((project) => project.files.length > 0);
 
-      console.log(
-        "Updating local project state:",
-        cleanAttachments,
-      );
+      
 
       const projectData = cleanAttachments.flatMap((project) =>
         project.files.map((file) => ({
@@ -1508,7 +1505,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
     if (audioUrlFromData) {
       setAudioUrl(audioUrlFromData);
-      console.log("Existing audio file found:", audioUrlFromData);
+      
     }
   }, [userData]);
 
@@ -1564,7 +1561,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   // --- localStorage-based evaluation submit ---
   const handleEvaluationSubmit = async (e) => {
-    console.log("handleEvaluationSubmit");
+    
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage("");

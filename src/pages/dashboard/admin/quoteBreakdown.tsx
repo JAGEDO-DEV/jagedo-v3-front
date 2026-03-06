@@ -38,15 +38,15 @@ function AdminBidBreakDown() {
 
             if (response.success && response.data) {
                 setJobData(response.data);
-                console.log('Job Data:', response.data);
-                console.log('Bid ID from navigation:', bidId);
+                
+                
 
                 // Find the selected bid from submittedBids array
                 if (bidId && response.data.submittedBids) {
                     const foundBid = response.data.submittedBids.find((bid: any) => bid.id === parseInt(bidId));
                     if (foundBid) {
                         setSelectedBid(foundBid);
-                        console.log('Selected Bid:', foundBid);
+                        
                     } else {
                         console.warn('Bid not found with ID:', bidId);
                     }

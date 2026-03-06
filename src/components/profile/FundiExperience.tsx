@@ -52,7 +52,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [grade, setGrade] = useState("G1: Master Fundi");
   const [experience, setExperience] = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
-  const [skill, setSkill] = useState("Plumber");
+  const [skill, setSkill] = useState(data?.skills || "Plumber");
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
@@ -65,13 +65,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
       setGrade(up.grade || "G1: Master Fundi");
       setExperience(up.experience || "10+ years");
       setSpecialization(up.specialization || "");
+      setSkill(up.skills || "Plumber");
 
-      // Fundi projects are in previousJobPhotoUrls, Professional/Contractor usually in professionalProjects
       const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
 
       if (projectSource.length > 0) {
-        // If it's previousJobPhotoUrls, it might be a list of { projectName, fileUrl: { url } }
-        // We group them by projectName to fit the UI model
+
         const groupedMap = new Map<string, any[]>();
 
         projectSource.forEach((p: any) => {
@@ -86,7 +85,6 @@ const FundiExperience = ({ data, refreshData }: any) => {
           } else if (p.url) {
             url = p.url;
           } else if (Array.isArray(p.files)) {
-            // Handle professionalProjects style where files is an array
             p.files.forEach((f: string) => groupedMap.get(name)?.push({ file: null, previewUrl: f }));
             return;
           }
@@ -158,14 +156,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
     const toastId = toast.loading("Uploading photos and saving...");
 
     try {
-      // 1. Upload files and collect URLs
       const flattenedProjectFiles: { projectName: string; fileUrl: string }[] = [];
 
       for (const att of valid) {
         for (const fItem of att.files) {
           let url = fItem.previewUrl;
           if (fItem.file) {
-            // It's a new file, upload it
             url = await uploadFile(fItem.file);
           }
           flattenedProjectFiles.push({
@@ -175,7 +171,6 @@ const FundiExperience = ({ data, refreshData }: any) => {
         }
       }
 
-      // 2. Build Payload
       const payload = {
         skill: skill,
         specialization: specialization,
@@ -184,11 +179,10 @@ const FundiExperience = ({ data, refreshData }: any) => {
         previousJobPhotoUrls: flattenedProjectFiles
       };
 
-      // 3. API Call
       await updateFundiExperience(axiosInstance, payload);
 
       toast.success("Experience saved successfully!", { id: toastId });
-      setIsSubmitting(false); // Manually set sub to false here otherwise after success it might still stay true
+      setIsSubmitting(false);
       if (refreshData) refreshData();
     } catch (error: any) {
       console.error(error);

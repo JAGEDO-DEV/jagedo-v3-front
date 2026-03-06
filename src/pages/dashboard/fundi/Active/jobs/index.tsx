@@ -116,9 +116,9 @@ function ActiveJobPageContainer() {
     };
 
     const token = localStorage.getItem('token')
-    console.log(token)
+    
     const decodedToken = jwtDecode(token)
-    console.log(decodedToken)
+    
     const authConfig = {
         flow: 'TOKEN',
         credentials: {

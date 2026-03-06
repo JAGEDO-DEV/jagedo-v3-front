@@ -9,8 +9,6 @@ export default function ChatWidgetWrapper() {
 
     const sessionId = uuidv4();
 
-    // console.log("NEXUS KEY: ",import.meta.env.VITE_NEXUS_KEY)
-
 
   useEffect(() => {
     const chatWidget = new ChatWidget({

@@ -32,7 +32,7 @@ const FileUploader = ({ onFileUpload }: FileUploaderProps) => {
     try {
       // const uploaded = await uploadFileAlternative(uploadedFile, fileName);
       const uploaded = await uploadFile(uploadedFile);
-      console.log("Uploaded: ", uploaded)
+      
       /*
         UploadedFile {
             id: string;

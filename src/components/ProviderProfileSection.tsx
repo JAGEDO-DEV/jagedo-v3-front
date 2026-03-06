@@ -165,7 +165,6 @@
 //     const fields = getFields(userType);
 
 
-//     console.log("Form: ", form)
 
 //     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
 //         const { name, value, type } = e.target;

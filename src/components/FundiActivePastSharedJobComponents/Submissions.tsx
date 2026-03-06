@@ -102,14 +102,14 @@ const Submissions = () => {
 
     // Upload files to server using new API
     const uploadFilesToServer = async (files: File[]): Promise<string[]> => {
-        console.log('Uploading files:', files.map(f => f.name));
+        
         const uploadPromises = files.map(async (file) => {
             const url = await uploadFileNew(axiosInstance, file, file.name);
-            console.log('File uploaded successfully:', file.name, 'URL:', url);
+            
             return url;
         });
         const urls = await Promise.all(uploadPromises);
-        console.log('All files uploaded, URLs:', urls);
+        
         return urls;
     };
 
@@ -129,17 +129,14 @@ const Submissions = () => {
         try {
             const attachmentUrls = await uploadFilesToServer(adminFiles);
 
-            console.log('Submitting admin notes with data:', {
-                attachments: attachmentUrls,
-                adminNotes: adminActiveNotes
-            });
+            
 
             const response = await addAdminActiveNotes(axiosInstance, jobId, {
                 attachments: attachmentUrls,
                 adminNotes: adminActiveNotes
             });
 
-            console.log('Admin notes submission response:', response);
+            
 
             if (response.status === 200 || response.success) {
                 setMessage({

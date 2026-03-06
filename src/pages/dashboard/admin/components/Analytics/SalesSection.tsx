@@ -155,7 +155,7 @@ export const SalesSection: React.FC<SalesSectionProps> = ({
         setLoading(true);
         setError(null);
         const response = await getSalesAnalytics(axiosInstance);
-        console.log("Sales analytics:", response);
+        
         setSalesData(response);
       } catch (error: any) {
         setError(error.message || "Failed to load sales data");

@@ -47,9 +47,9 @@ const formatCurrency = (amount) => {
 };
 
 const QuoteSection = ({ billSummary, grandTotal, expandedBill, setExpandedBill }) => {
-    console.log("billSummary", billSummary)
-    console.log("grandTotal", grandTotal)
-    console.log("expandedBuk ", expandedBill)
+    
+    
+    
 
     const toggleBill = (id) => {
         setExpandedBill(expandedBill === id ? null : id);
@@ -173,7 +173,7 @@ const ProjectQuoteForm = () => {
         }
 
         const { workPlans, professionalFeeSubtotal, jagedoCommission, payableToServiceProvider, expensesSubtotal } = jobData.assignedBid;
-        console.log(jobData.assignedBid)
+        
         const summary = [];
 
         if (workPlans && workPlans.length > 0) {
@@ -200,7 +200,7 @@ const ProjectQuoteForm = () => {
                     details: [],
                 });
             }
-            console.log("summary", summary)
+            
             // Process expense work plans (if any exist with type EXPENSE)
             // const expenseWorkPlans = workPlans.filter(plan => plan.type === "EXPENSE");
 

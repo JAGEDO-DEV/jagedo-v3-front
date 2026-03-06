@@ -10,6 +10,5 @@ export const approvePayment = async (axiosInstance: any, jobId: any, bidId: any)
         return response.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Failed to approve payment");
-        console.log(error);
     }
 }

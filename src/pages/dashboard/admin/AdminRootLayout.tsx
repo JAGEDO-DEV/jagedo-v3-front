@@ -45,7 +45,7 @@ export default function AdminRootLayout() {
                 text = parsed.text || text;
               }
             } catch (e) {
-              console.log("Notification message is not JSON:", e);
+              
               if (text.includes("Signup")) title = "New User Signup";
               else if (text.includes("profile")) title = "Profile Update";
               else if (text.includes("approved")) title = "Account Approved";

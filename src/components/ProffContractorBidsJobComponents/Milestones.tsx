@@ -42,10 +42,10 @@ const Milestones = ({ onPrevClick, onNextClick, selectedBid, response }: Milesto
       return { milestones: apiMilestones, totalBidAmount: total };
     }
 
-    // Calculate total from workPlans structure
+    
     const workPlansData = JSON.parse(localStorage.getItem("professionalFeesWithWorkPlans") || "[]");
-    console.log("workPlansData", workPlansData)
-    // Sum all amounts from all items in all work plans
+    
+    
     const total = workPlansData.reduce((sum: number, workPlan: any) => {
       const workPlanTotal = workPlan.items?.reduce((itemSum: number, item: any) => {
         return itemSum + (item.amount || 0);
@@ -55,7 +55,7 @@ const Milestones = ({ onPrevClick, onNextClick, selectedBid, response }: Milesto
 
     let generatedMilestones: MilestoneItem[] = [];
 
-    // Generate milestones based on the total amount
+    
     if (total < 100000) {
       generatedMilestones = [{
         name: "Milestone 1",
@@ -101,7 +101,7 @@ const Milestones = ({ onPrevClick, onNextClick, selectedBid, response }: Milesto
           amount: total - (amountPerMilestone * 2)
         },
       ];
-    } else { // total > 3000000
+    } else { 
       generatedMilestones = [
         {
           name: "Milestone 1",

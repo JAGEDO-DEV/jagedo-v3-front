@@ -43,9 +43,9 @@ export function InvoiceDetail({ invoice, onPayment, onBack }: InvoiceDetailProps
     const subtotal = invoice?.discountedPrice;
     const platformFee = invoice?.jagedoFee;
     const totalBeforeVat = subtotal;
-    console.log("Total Before VAT:", totalBeforeVat);
+    
     const totalInclusivePlatformFee = subtotal;
-    console.log("Total Inclusive Platform Fee:", totalInclusivePlatformFee);
+    
     const vatAmount = isFundi ? 0 : totalInclusivePlatformFee * 0.16;
     const finalTotal = totalInclusivePlatformFee + vatAmount;
 

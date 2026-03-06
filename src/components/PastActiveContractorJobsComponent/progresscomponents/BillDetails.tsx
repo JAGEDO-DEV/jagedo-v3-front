@@ -42,7 +42,7 @@ const BillDetails = () => {
                         const foundWorkPlan = jobData.assignedBid.workPlans.find(
                             (wp) => wp.id === parseInt(billid)
                         );
-                        console.log("foundWorkPlan", foundWorkPlan)
+                        
                         if (foundWorkPlan) {
                             setWorkPlan(foundWorkPlan);
                         } else {
@@ -106,7 +106,7 @@ const BillDetails = () => {
     };
 
     const handleSaveItem = async (items) => {
-        console.log(items);
+        
         // return;
         // setSavingItemId(item.id);
         try {

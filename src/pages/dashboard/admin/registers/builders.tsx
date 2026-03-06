@@ -211,7 +211,7 @@ export default function BuildersAdmin() {
     currentPage * rowsPerPage
   );
 
-  console.log(paginatedData);
+  
 
   const updateFilter = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

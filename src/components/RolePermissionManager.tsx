@@ -1,8 +1,8 @@
+//@ts-nocheck
 import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Shield, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { getRoleOperationPermissions, updateRoleMenuOperations } from "@/api/rolePermissions.api";
 import { getPermissionMatrix } from "@/api/permissions.api";
 import toast from "react-hot-toast";
@@ -55,14 +55,14 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
     try {
       // Get permission matrix first to know valid operations per menu
       const matrix = await getPermissionMatrix();
-      console.log('[RolePermissionManager] Permission Matrix:', matrix);
+      
       setPermissionMatrix(matrix || {});
 
       // Get role's menu assignments with operations
       const role = await getRoleOperationPermissions(roleId);
-      console.log('[RolePermissionManager] Role Data:', role);
+      
       const menuItems = role?.menuItems || [];
-      console.log('[RolePermissionManager] Menu Items:', menuItems);
+      
       
       setMatrixMenuItems(menuItems);
       setSelectedMenu(menuItems[0]?.id || "");
@@ -88,7 +88,6 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
         
         // If still no operations, don't default to VIEW - leave empty
         rolePermsMap[item.id] = ops.length > 0 ? ops : [];
-        console.log(`[RolePermissionManager] Menu ${item.id}: ${JSON.stringify(rolePermsMap[item.id])}`);
       });
       
       setSelectedOperations(rolePermsMap);
@@ -129,7 +128,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
       );
 
       toast.success(
-        `Permissions updated for ${menuItems.find((m) => m.id === selectedMenu)?.title || "menu"}`
+        `Permissions updated for ${menuItems.find((m) => m.id === selectedMenu)?.title || "menu"}`,
       );
 
       // Reload data

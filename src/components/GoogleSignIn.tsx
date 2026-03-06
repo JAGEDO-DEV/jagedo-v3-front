@@ -31,7 +31,7 @@ export default function GoogleSignIn() {
     };
 
     const handleSuccess = async (res: CredentialResponse) => {
-        console.log("Google Res: ", res);
+        
         const idToken = res?.credential;
         if (!idToken) {
             toast.error('No credential from Google');

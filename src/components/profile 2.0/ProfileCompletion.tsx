@@ -39,7 +39,7 @@ export function ProfileCompletion({
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
 
-    console.log("User: ", user);
+    
 
     const [personalInfo, setPersonalInfo] = useState({
         firstName: user?.firstName || "",
