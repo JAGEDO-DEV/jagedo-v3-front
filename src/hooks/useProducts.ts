@@ -60,6 +60,11 @@ export interface Product {
 
 
 const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] => {
+    const REGION_AGNOSTIC_TYPES = [
+        "Custom Products", "Windows", "Doors", "Gates", "FUNDI",
+        "Plans", "Designs", "PROFESSIONAL"
+    ];
+
     return rawProducts.flatMap((rawProduct): Product[] => {
         const baseProductData = {
             productId: rawProduct.id,
@@ -79,17 +84,19 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             },
         };
 
-        if (rawProduct.custom) {
-            if (rawProduct.customPrice === null || typeof rawProduct.customPrice !== 'number') {
-                return [];
-            }
+        const isRegionAgnostic =
+            rawProduct.custom ||
+            REGION_AGNOSTIC_TYPES.some(t => rawProduct.type?.toLowerCase().includes(t.toLowerCase()));
 
-
+        if (isRegionAgnostic) {
+            const price = rawProduct.customPrice ?? rawProduct.basePrice ?? 0;
             return [{
                 ...baseProductData,
                 id: `${rawProduct.id}-custom`,
-                price: rawProduct.customPrice,
-                custom: true,
+                price: price,
+                custom: rawProduct.custom,
+                isLocationAgnostic: true,
+                regionName: "Universal"
             }];
         }
 

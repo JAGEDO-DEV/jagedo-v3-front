@@ -65,7 +65,6 @@ const useAxiosWithAuth = (url: any) => {
                             return instance(originalRequest);
                         } catch (error) {
                             console.error("[Interceptor] Error refreshing token:", error);
-                            ');
                             logout();
                             navigate("/login");
                             return Promise.reject(error);
