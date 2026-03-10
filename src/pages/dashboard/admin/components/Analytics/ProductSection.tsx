@@ -72,7 +72,17 @@ export const ProductSection: React.FC<{ timePeriod: string }> = ({ timePeriod })
           getMostViewedProducts(axiosInstance, period),
         ]);
         setUploadTrends(tr.data.trends || []);
-        setApprovalStats({ approved: ap.data.approved, rejected: ap.data.rejected });
+        const toNumber = (value: any) => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : 0;
+        };
+        const approved = toNumber(
+          ap.data?.approved ?? ap.data?.approvedCount ?? ap.data?.approved_count ?? ap.data?.totalApproved ?? ap.data?.total_approved
+        );
+        const rejected = toNumber(
+          ap.data?.rejected ?? ap.data?.rejectedCount ?? ap.data?.rejected_count ?? ap.data?.totalRejected ?? ap.data?.total_rejected
+        );
+        setApprovalStats({ approved, rejected });
         setCategoryPerformance(cp.data.categories || []);
         setSupplierActivity(sa.data.suppliers || []);
         setMostViewedProducts(mvp.data.products || []);
@@ -101,6 +111,11 @@ export const ProductSection: React.FC<{ timePeriod: string }> = ({ timePeriod })
     );
   }
 
+  const approvalChartData = [
+    { label: "Approved", value: approvalStats.approved },
+    { label: "Rejected", value: approvalStats.rejected },
+  ];
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Product Analytics</h2>
@@ -126,9 +141,10 @@ export const ProductSection: React.FC<{ timePeriod: string }> = ({ timePeriod })
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-              <Pie data={[approvalStats]} dataKey="approved" nameKey="label" outerRadius={80} fill="#10b981">
-                <Cell fill="#10b981" />
-                <Cell fill="#ef4444" />
+              <Pie data={approvalChartData} dataKey="value" nameKey="label" outerRadius={80}>
+                {approvalChartData.map((entry, index) => (
+                  <Cell key={entry.label} fill={index === 0 ? "#10b981" : "#ef4444"} />
+                ))}
               </Pie>
               <Tooltip />
             </PieChart>
