@@ -1,4 +1,3 @@
-/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -7,6 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { loginUser, verifyOtpLogin, phoneLogin } from "@/api/auth.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
+import { getProviderProfile } from "@/api/provider.api";
+import axios from "axios";
+
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidPhone = (phone) => /^\d{10}$/.test(phone);
@@ -33,7 +36,19 @@ const Input = (props) => (
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setUser, setIsLoggedIn } = useGlobalContext();
+  const { user: contextUser, setUser, setIsLoggedIn } = useGlobalContext();
+
+  const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
+
+  const handleProfileComplete = () => {
+    setShowProfileCompletionModal(false);
+    if (registeredUser) {
+      redirectUser(registeredUser);
+    } else if (contextUser) {
+      redirectUser(contextUser);
+    }
+  };
 
   const [isOtpFlow, setIsOtpFlow] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
@@ -161,7 +176,7 @@ export default function Login() {
 
       completeLoginWithApiResponse(response);
     } catch (error) {
-      
+
       toast.error(error?.response?.data?.message || "Invalid credentials");
       setIsLoading(false);
     }
@@ -222,7 +237,7 @@ export default function Login() {
   };
 
 
-  const completeLoginWithApiResponse = (response) => {
+  const completeLoginWithApiResponse = async (response) => {
     const { user, accessToken } = response;
     if (!user || !accessToken) {
       toast.error("Invalid response from server");
@@ -230,11 +245,11 @@ export default function Login() {
       return;
     }
 
-    // Normalize user data for consistency
+    
     if (user && typeof user === 'object' && user.userType) {
       const typeUpper = String(user.userType).toUpperCase();
       user.userType = typeUpper;
-      // Preserve isSuperAdmin from backend, default to false if not provided
+      
       if (user.isSuperAdmin === undefined || user.isSuperAdmin === null) {
         user.isSuperAdmin = typeUpper === 'SUPER_ADMIN';
       }
@@ -247,6 +262,22 @@ export default function Login() {
 
     setUser(user);
     setIsLoggedIn(true);
+
+    if (user.profileStatus === "INCOMPLETE") {
+      try {
+        setIsLoading(true);
+        const profileResponse = await getProviderProfile(axios, user.id);
+        const profileData = profileResponse?.data || profileResponse;
+        setRegisteredUser({ ...user, ...profileData });
+        setShowProfileCompletionModal(true);
+      } catch (error) {
+        console.error("Error fetching provider profile:", error);
+        toast.error("Failed to fetch profile details");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     toast.success("Login successful!");
 
@@ -456,6 +487,14 @@ export default function Login() {
           </p>
         </div>
       </div>
+      <ProfileCompletionModal
+        isOpen={showProfileCompletionModal}
+        user={registeredUser}
+        accountType={"CONTRACTOR" as any}
+        userType="CONTRACTOR"
+        onComplete={handleProfileComplete}
+        onClose={() => setShowProfileCompletionModal(false)}
+      />
     </div>
   );
 }

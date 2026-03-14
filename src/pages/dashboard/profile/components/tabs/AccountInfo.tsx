@@ -10,7 +10,6 @@ interface AccountInfoProps {
   userData: any;
 }
 
-
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const navigate = useNavigate();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -25,7 +24,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   const [editingField, setEditingField] = useState<string | null>(null);
 
-  // Handle display name - use organizationName for organizations, firstName + lastName for individuals
+  
   const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
     userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
   const name = isOrganization && userData?.organizationName
@@ -41,40 +40,40 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- Remove localStorage-based load on mount ---
+  
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
   };
 
-  // --- localStorage-based image change with Base64 persistence ---
+  
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file size (max 5MB)
+      
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        alert("Image size must be less than 5MB");
-        event.target.value = ""; // Reset input
+        toast.error("Image size must be less than 5MB");
+        event.target.value = ""; 
         return;
       }
 
-      // Check file type
+      
       if (!file.type.startsWith("image/")) {
-        alert("Please upload an image file");
-        event.target.value = ""; // Reset input
+        toast.error("Please upload an image file");
+        event.target.value = ""; 
         return;
       }
 
-      // Convert to Base64 for persistence
+      
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64String = e.target?.result as string;
 
-        // Set state immediately to show preview
+        
         setAvatarSrc(base64String);
 
-        // --- Backend Update Only ---
+        
         try {
           await updateProfileImageAdmin(
             axiosInstance,
@@ -82,23 +81,24 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
             userData.id,
           );
           toast.success("Profile image updated on server");
-          event.target.value = ""; // Reset input
+          event.target.value = ""; 
         } catch (apiErr: any) {
           console.error("Failed to update image on server:", apiErr);
           toast.error(apiErr.message || "Failed to sync image with server");
-          event.target.value = ""; // Reset input
+          setAvatarSrc(userData?.profileImage); 
+          event.target.value = ""; 
         }
       };
       reader.onerror = () => {
-        alert("Failed to read image file");
-        event.target.value = ""; // Reset input
+        toast.error("Failed to read image file");
+        event.target.value = ""; 
       };
-      reader.readAsDataURL(file); // Convert file to Base64
+      reader.readAsDataURL(file); 
     }
   };
 
 
-  // Edit handlers
+  
   const handleEditStart = (field: string) => {
     setEditingField(field);
     setEditValues({
@@ -128,23 +128,23 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }));
   };
 
-  // --- localStorage-based edit save ---
+  
   const handleEditSave = async (field: string) => {
-    // Validation
+    
     if (field === "name") {
       if (isOrganization) {
         if (!editValues.organizationName?.trim()) {
-          alert("Organization name cannot be empty");
+          toast.error("Organization name cannot be empty");
           return;
         }
       } else {
         if (!editValues.firstName?.trim() || !editValues.lastName?.trim()) {
-          alert("Both first and last name are required");
+          toast.error("Both first and last name are required");
           return;
         }
       }
     } else if (!editValues[field as keyof typeof editValues]?.trim()) {
-      alert(
+      toast.error(
         `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
       );
       return;
@@ -155,7 +155,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       const updates: Record<string, any> = {};
       switch (field) {
         case "name": {
-          // For organizations, update organizationName; for individuals, update firstName/lastName
+          
           if (isOrganization) {
             updates.organizationName = editValues.organizationName.trim();
           } else {
@@ -174,54 +174,46 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
           throw new Error("Invalid field");
       }
 
-      // Update userData in-place for the current render (not strictly necessary if we refresh)
-      Object.assign(userData, updates);
-
-
-      // --- Backend Update ---
-      try {
-        if (field === "name") {
-          const namePayload: any = {};
-          if (isOrganization) {
-            namePayload.organizationName = editValues.organizationName.trim();
-          } else {
-            namePayload.firstName = editValues.firstName.trim();
-            namePayload.lastName = editValues.lastName.trim();
-          }
-          await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
-        } else if (field === "email") {
-          await updateProfileEmailAdmin(axiosInstance, userData.id, {
-            email: editValues.email,
-          });
-        } else if (field === "phone") {
-          await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
-            phone: editValues.phone,
-          });
+      
+      if (field === "name") {
+        const namePayload: any = {};
+        if (isOrganization) {
+          namePayload.organizationName = editValues.organizationName.trim();
+        } else {
+          namePayload.firstName = editValues.firstName.trim();
+          namePayload.lastName = editValues.lastName.trim();
         }
-        toast.success(
-          `${field.charAt(0).toUpperCase() + field.slice(1)} updated on server`,
-        );
-      } catch (apiErr: any) {
-        console.error(`Failed to update ${field} on server:`, apiErr);
-        toast.error(apiErr.message || `Failed to sync ${field} with server`);
+        await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
+      } else if (field === "email") {
+        await updateProfileEmailAdmin(axiosInstance, userData.id, {
+          email: editValues.email,
+        });
+      } else if (field === "phone") {
+        await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
+          phone: editValues.phone,
+        });
       }
+      
+      toast.success(
+        `${field.charAt(0).toUpperCase() + field.slice(1)} updated on server`,
+      );
 
+      
+      Object.assign(userData, updates);
       setEditingField(null);
-      // alert(
-      //   `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`,
-      // );
     } catch (error: any) {
       console.error(`Failed to update ${field}:`, error);
-      alert(error.message || `Failed to update ${field}`);
+      toast.error(error.message || `Failed to update ${field} on server`);
+      
+      handleEditCancel();
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // --- Unified action handler using new account/status endpoint ---
   const handleActionSubmit = async () => {
     if (!actionReason.trim() && pendingAction !== "verify") {
-      alert("Please enter a reason for this action.");
+      toast.error("Please enter a reason for this action.");
       return;
     }
 
@@ -240,7 +232,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       await updateAccountStatus(axiosInstance, userData.id, status, actionReason || undefined);
       toast.success(`User ${getActionLabel(pendingAction ?? "")}d successfully`);
 
-      // Navigate back after success
+      
       setTimeout(() => {
         navigate(-1);
       }, 1500);

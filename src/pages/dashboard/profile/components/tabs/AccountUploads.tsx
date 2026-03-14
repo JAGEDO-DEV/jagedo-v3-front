@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useEffect, useState } from "react";
 import { FiDownload, FiEye, FiUpload, FiCheck, FiRefreshCw, FiChevronDown, FiAlertCircle } from "react-icons/fi";
 import { FileText, Image, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -36,7 +36,7 @@ interface UploadedDocument {
 
 interface AccountUploadsProps {
   userData: any;
-  isAdmin?: boolean; // When true, shows admin actions (approve, reject, etc.)
+  isAdmin?: boolean; 
 }
 
 const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
@@ -49,10 +49,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isPendingAction, setIsPendingAction] = useState(false);
 
-  // Global actions dropdown state
+  
   const [showGlobalActions, setShowGlobalActions] = useState(false);
 
-  // Action modal state
+  
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     docKey?: string;
@@ -92,7 +92,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
 
-        // Add dynamic category fields
+        
         const contractorCategories = userData?.contractorCategories || userData?.contractorExperiences || [];
         if (Array.isArray(contractorCategories)) {
           contractorCategories.forEach((cat: any) => {
@@ -142,16 +142,16 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
   };
 
-  /* -------------------- Load documents based on status -------------------- */
+  
   useEffect(() => {
-    // 1. Start with documents from userProfile if available
+    
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
     const status = userData?.status == 'VERIFIED' ? "approved" : "pending";
 
     if (profile) {
-      // 1. Identity & Common Documents
+      
       if (profile.idFrontUrl) {
         initialDocs.idFront = {
           name: "National ID Front",
@@ -180,7 +180,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      // 2. Fundi Specific
+      
       if (profile.certificateUrl) {
         initialDocs.certificate = {
           name: "Trade Certificate",
@@ -191,7 +191,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      // 3. Professional Specific
+      
       if (profile.academicCertificateUrl) {
         initialDocs.academicCertificate = {
           name: "Academic Certificate",
@@ -220,7 +220,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      // 4. Contractor & Organization Specific
+      
       if (profile.businessPermit || profile.singleBusinessPermit) {
         initialDocs.businessPermit = {
           name: "Business Permit",
@@ -230,7 +230,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           status: status as DocumentStatus,
         };
       }
-      // Map either businessRegistration, certificateOfIncorporation, or registrationCertificateUrl
+      
       const bizRegUrl = profile.businessRegistration || profile.certificateOfIncorporation || profile.registrationCertificateUrl;
       if (bizRegUrl) {
         initialDocs.certificateOfIncorporation = {
@@ -260,7 +260,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      // 4b. Dynamic Contractor Category Documents
+      
       const contractorCategories = profile.contractorExperiences || [];
       if (Array.isArray(contractorCategories)) {
         contractorCategories.forEach((cat: any, index: number) => {
@@ -292,7 +292,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         });
       }
 
-      // 5. Portfolio / Projects
+      
       const projects = profile.professionalProjects || profile.contractorProjects || profile.previousJobPhotoUrls;
       if (Array.isArray(projects)) {
         projects.forEach((proj: any, index: number) => {
@@ -311,22 +311,22 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     setIsLoaded(true);
   }, [userData]);
 
-  /* -------------------- Document Configuration by User Type -------------------- */
+  
   const getDocumentConfig = (): DocumentItem[] => {
-    // ===== INDIVIDUAL ACCOUNTS =====
-    // Customer (Individual), Fundi, Professional - same base requirements
+    
+    
     const individualBaseDocs: DocumentItem[] = [
       { key: "idFront", name: "National ID - Front", category: "id" },
       { key: "idBack", name: "National ID - Back", category: "id" },
       { key: "kraPIN", name: "KRA PIN Certificate", category: "certification" },
     ];
 
-    // Individual Customer
+    
     if (accountType === "individual" && userType === "customer") {
       return individualBaseDocs;
     }
 
-    // Fundi (Individual builder)
+    
     if (userType === "fundi") {
       return [
         ...individualBaseDocs,
@@ -337,7 +337,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       ];
     }
 
-    // Professional (Individual builder)
+    
     if (userType === "professional") {
       return [
         ...individualBaseDocs,
@@ -349,8 +349,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       ];
     }
 
-    // ===== ORGANIZATION ACCOUNTS =====
-    // Customer (Organization), Contractor, Hardware - same base requirements
+    
+    
     const organizationBaseDocs: DocumentItem[] = [
       { key: "certificateOfIncorporation", name: "Certificate of Incorporation", category: "business" },
       { key: "businessPermit", name: "Business Permit", category: "business" },
@@ -358,19 +358,19 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       { key: "companyProfile", name: "Company Profile", category: "certification" },
     ];
 
-    // Organization Customer
+    
     if (userType === "customer") {
       return organizationBaseDocs;
     }
 
-    // Contractor (Organization builder)
+    
     if (userType === "contractor") {
       const baseDocs: DocumentItem[] = [
         ...organizationBaseDocs,
         { key: "ncaCertificate", name: "NCA Certificate", category: "certification" },
       ];
 
-      // Add category-based documents from contractor categories
+      
       const contractorCategories = userData?.contractorCategories || userData?.contractorExperiences;
       if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
         contractorCategories.forEach((cat: any, index: number) => {
@@ -381,7 +381,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           const certKey = `${categoryKey}_CERTIFICATE`;
           const licenseKey = `${categoryKey}_LICENSE`;
 
-          // Add certificate and license for each category
+          
           baseDocs.push({
             key: certKey,
             name: `${categoryName} Certificate`,
@@ -396,7 +396,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         });
       }
 
-      // Add general portfolio items (if no categories yet)
+      
       if (!Array.isArray(contractorCategories) || contractorCategories.length === 0) {
         baseDocs.push(
           { key: "portfolio1", name: "Portfolio - Project 1", category: "portfolio" },
@@ -408,7 +408,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       return baseDocs;
     }
 
-    // Hardware (Organization builder)
+    
     if (userType === "hardware") {
       return [
         { key: "businessRegistration", name: "Business Registration", category: "business" },
@@ -424,13 +424,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
   const allDocuments = getDocumentConfig();
 
-  // Group documents by category
+  
   const idDocuments = allDocuments.filter((d) => d.category === "id");
   const certifications = allDocuments.filter((d) => d.category === "certification");
   const portfolios = allDocuments.filter((d) => d.category === "portfolio");
   const businessDocs = allDocuments.filter((d) => d.category === "business");
 
-  // Calculate overall status
+  
   const uploadedCount = allDocuments.filter((d) => documents[d.key]).length;
   const totalRequired = allDocuments.filter((d) => d.category !== "portfolio").length;
   const requiredUploaded = allDocuments.filter(
@@ -442,7 +442,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const overallStatus = approvedCount >= totalRequired ? "approved" : "pending";
 
 
-  /* -------------------- Upload Handler -------------------- */
+  
   const handleUpload = async (file: File, key: string) => {
     setUploadingFiles((p) => ({ ...p, [key]: true }));
 
@@ -473,7 +473,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
   };
 
-  /* -------------------- Delete Handler -------------------- */
+  
   const handleDelete = async (key: string) => {
     const updated = { ...documents };
     delete updated[key];
@@ -486,7 +486,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
   };
 
-  /* -------------------- Admin Action Handlers -------------------- */
+  
   const handleApprove = async (key: string) => {
     const now = new Date().toISOString();
     const updatedDocs = {
@@ -597,7 +597,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       return;
     }
 
-    // Per-document actions (old logic, keeping for compatibility if needed or and adapting)
+    
     if (action === "approve" && docKey) {
       handleApprove(docKey);
     } else if (action === "reject" && docKey) {
@@ -607,7 +607,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
   };
 
-  /* -------------------- Status Badge Component -------------------- */
+  
   const StatusBadge = ({ status, showIcon = true }: { status: string; showIcon?: boolean }) => {
     const configs: Record<string, { bg: string; text: string; border: string; icon: any; label: string }> = {
       pending: {
@@ -679,13 +679,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     );
   };
 
-  /* -------------------- Document Card Component -------------------- */
+  
   const DocumentCard = ({ doc }: { doc: DocumentItem }) => {
     const uploaded = documents[doc.key];
     const isUploading = uploadingFiles[doc.key];
 
     if (!uploaded) {
-      // Empty state - needs upload
+      
       return (
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-start gap-3 mb-3">
@@ -725,7 +725,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       );
     }
 
-    // Uploaded state
+    
     const status = uploaded.status || "pending";
     const iconBgColor = status === "approved" ? "bg-green-50" : status === "rejected" ? "bg-red-50" : "bg-amber-50";
     const iconColor = status === "approved" ? "text-green-600" : status === "rejected" ? "text-red-600" : "text-amber-600";
@@ -745,7 +745,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           </div>
         </div>
 
-        {/* Status Reason / Context */}
+        {}
         {uploaded.statusReason && (
           <div className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected" ? "bg-red-50 text-red-700" :
             status === "reupload_requested" ? "bg-blue-50 text-blue-700" :
@@ -767,7 +767,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           </div>
         )}
 
-        {/* Action buttons - View, Download, Replace */}
+        {}
         <div className="flex gap-2 flex-wrap">
           <a
             href={uploaded.url}
@@ -806,7 +806,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     );
   };
 
-  /* -------------------- Section Component -------------------- */
+  
   const DocumentSection = ({
     title,
     docs,
@@ -828,7 +828,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     );
   };
 
-  /* -------------------- Action Modal -------------------- */
+  
   const renderActionModal = () => {
     if (!actionModal.isOpen) return null;
 
@@ -902,7 +902,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     );
   };
 
-  /* -------------------- Main UI -------------------- */
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-center" />
@@ -910,7 +910,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
       <div className="p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
+          {}
           <div className="flex items-start justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Uploaded Documents</h1>
@@ -921,7 +921,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             <div className="flex items-center gap-3">
               <StatusBadge status={userData?.documentStatus || overallStatus} />
 
-              {/* Global Actions Dropdown - Admin Only */}
+              {}
               {isAdmin && (
                 <div className="relative">
                   <button
@@ -1002,7 +1002,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             </div>
           )}
 
-          {/* Progress indicator */}
+          {}
           <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="font-medium text-gray-900">
@@ -1019,14 +1019,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               )}
             </div>
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden relative">
-              {/* Uploaded Progress (Amber) */}
+              {}
               <div
                 className="absolute h-full bg-amber-500 transition-all duration-500 opacity-60"
                 style={{
                   width: `${totalRequired > 0 ? (requiredUploaded / totalRequired) * 100 : 0}%`,
                 }}
               />
-              {/* Approved Progress (Green) - Layers on top */}
+              {}
               <div
                 className="absolute h-full bg-green-500 transition-all duration-500"
                 style={{
@@ -1046,7 +1046,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             )}
           </div>
 
-          {/* Document Sections */}
+          {}
           {businessDocs.length > 0 && (
             <DocumentSection title="Business Documents" docs={businessDocs} />
           )}
@@ -1063,7 +1063,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             <DocumentSection title="Portfolios (Optional)" docs={portfolios} />
           )}
 
-          {/* Empty state */}
+          {}
           {allDocuments.length === 0 && (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -1077,7 +1077,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           )}
 
 
-          {/* Status indicator for non-admin users */}
+          {}
           {!isAdmin && allDocuments.length > 0 && (
             <div className="mt-8 border-t pt-6">
               {userData?.status == 'VERIFIED' ? (
