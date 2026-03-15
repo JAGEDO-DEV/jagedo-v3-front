@@ -83,7 +83,6 @@ const Submissions = () => {
     };
 
     const uploadFilesToServer = async (files: File[]): Promise<string[]> => {
-        );
         const uploadPromises = files.map(async (file) => {
             const url = await uploadFileNew(axiosInstance, file, file.name);
             
