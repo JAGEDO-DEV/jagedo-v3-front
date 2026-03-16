@@ -108,16 +108,34 @@ export const EngagementSection: React.FC<{ timePeriod: string }> = ({ timePeriod
           <CardDescription>OTP authentication success and failure rates</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={[otpStats]} dataKey="success" nameKey="label" outerRadius={80} fill="#10b981">
-                <Cell fill="#10b981" />
-                <Cell fill="#ef4444" />
-              </Pie>
-              <Tooltip formatter={(value) => `${value} attempts`} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          {(() => {
+            const otpPieData = [
+              { label: "Success", value: otpStats.success, color: "#10b981" },
+              { label: "Failure", value: otpStats.failure, color: "#ef4444" },
+            ].filter((d) => d.value > 0);
+
+            return otpPieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={otpPieData}
+                    dataKey="value"
+                    nameKey="label"
+                    outerRadius={80}
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {otpPieData.map((entry, index) => (
+                      <Cell key={`otp-cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `${value} attempts`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No OTP stats available</div>
+            );
+          })()}
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="p-3 bg-green-50 rounded">
               <p className="text-sm text-gray-600">Success</p>
