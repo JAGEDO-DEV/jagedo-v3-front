@@ -17,6 +17,8 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
   const [mainImage, setMainImage] = useState(product.images?.[0]);
 
   const { isLoggedIn } = useGlobalContext();
+  const detailPricePrefix = product.showFromPrice ? "From KSH" : "KSH";
+  const gridPricePrefix = product.showFromPrice ? "From Ksh" : "Ksh";
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -67,7 +69,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <div className="text-3xl font-bold text-green-600 mb-4">
-              KSH {product.price.toLocaleString()}
+              {detailPricePrefix} {product.price.toLocaleString()}
             </div>
             <p className="text-gray-500 mb-6">{product.description || "No description available."}</p>
 
@@ -125,7 +127,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
           <div className="flex-grow" />
           <div className="flex justify-between items-center mt-4 pt-4">
             <p className="text-lg font-bold text-green-600">
-              Ksh {product.price.toLocaleString()}
+              {gridPricePrefix} {product.price.toLocaleString()}
             </p>
             <button
               onClick={handleAddToCartClick}

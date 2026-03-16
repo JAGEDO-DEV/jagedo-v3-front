@@ -53,14 +53,43 @@ export const filterProducts = ({
 
     const activeSidebarFilters = selectedSidebarFilters.filter(f => f !== "All Products");
 
-    if (activeSidebarFilters.length > 0) {
-        return categoryFilteredProducts.filter(product =>
+    const sidebarFilteredProducts = activeSidebarFilters.length > 0
+        ? categoryFilteredProducts.filter(product =>
             activeSidebarFilters.every(filter =>
                 product.category?.toLowerCase() === filter.toLowerCase() ||
                 product.name.toLowerCase().includes(filter.toLowerCase())
             )
-        );
+        )
+        : categoryFilteredProducts;
+
+    const hasSelectedLocation = !!selectedLocationName && selectedLocationName !== "All Regions";
+    if (!hasSelectedLocation) {
+        const grouped = new Map<string, { base: Product; minPrice: number; count: number }>();
+        sidebarFilteredProducts.forEach((product) => {
+            const key = String(product.productId ?? product.id);
+            const entry = grouped.get(key);
+            if (!entry) {
+                grouped.set(key, { base: product, minPrice: product.price, count: 1 });
+            } else {
+                entry.minPrice = Math.min(entry.minPrice, product.price);
+                entry.count += 1;
+            }
+        });
+
+        return Array.from(grouped.values()).map(({ base, minPrice, count }) => {
+            if (count === 1) {
+                return base;
+            }
+            return {
+                ...base,
+                id: `${base.productId}-all`,
+                price: minPrice,
+                showFromPrice: true,
+                isAggregated: true,
+                regionName: undefined,
+            };
+        });
     }
 
-    return categoryFilteredProducts;
+    return sidebarFilteredProducts;
 };

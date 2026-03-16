@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getAllRegions } from "@/api/regions.api";
 import axios from "axios";
@@ -17,6 +17,7 @@ interface Region {
   country: string;
   name: string;
   code: string;
+  type: string;
   active: boolean;
   customerView: boolean;
   filterable: boolean;
@@ -32,7 +33,8 @@ interface ApiResponse {
 
 interface LocationDropdownProps {
   selectedLocationName: string | null;
-  onSelectLocation: (name: string) => void;
+  onSelectLocation: (name: string | null) => void;
+  categoryTypes?: string[];
 }
 
 const locationDescriptions: { [key: string]: string } = {
@@ -43,13 +45,13 @@ const locationDescriptions: { [key: string]: string } = {
   Central: "Central region covers the highlands of Kenya, including Nyeri, Murang'a, and Kiambu.",
 };
 
-const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDropdownProps) => {
+const LocationDropdown = ({ selectedLocationName, onSelectLocation, categoryTypes = [] }: LocationDropdownProps) => {
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRegionsAndSetDefault = async () => {
+    const fetchRegions = async () => {
       try {
         setIsLoading(true);
         const response: ApiResponse = await getAllRegions(publicAxios);
@@ -57,12 +59,6 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDr
         if (response && response.success && response.hashSet?.length > 0) {
           const activeRegions = response.hashSet.filter(region => region.active && region.customerView);
           setRegions(activeRegions);
-
-          if (activeRegions.length > 0 && !selectedLocationName) {
-            const nairobiRegion = activeRegions.find(region => region.name === "Nairobi");
-            const defaultRegionName = nairobiRegion ? nairobiRegion.name : activeRegions[0].name;
-            onSelectLocation(defaultRegionName);
-          }
           setError(null);
         } else {
           setError(response.message || "No locations found.");
@@ -75,14 +71,27 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDr
       }
     };
 
-    fetchRegionsAndSetDefault();
+    fetchRegions();
   }, []);
 
-  const handleSelectChange = (name: string) => {
-    onSelectLocation(name);
-  };
+  const filteredRegions = useMemo(() => {
+    if (!categoryTypes.length) {
+      return regions;
+    }
+    return regions.filter(region => categoryTypes.includes(region.type));
+  }, [regions, categoryTypes]);
 
-  const selectedRegion = regions.find(region => region.name === selectedLocationName);
+  useEffect(() => {
+    if (!selectedLocationName) return;
+    const hasSelected = filteredRegions.some(region => region.name === selectedLocationName);
+    if (!hasSelected) {
+      onSelectLocation(null);
+    }
+  }, [filteredRegions, selectedLocationName, onSelectLocation]);
+
+  const handleSelectChange = (name: string) => onSelectLocation(name);
+
+  const selectedRegion = filteredRegions.find(region => region.name === selectedLocationName);
 
   if (isLoading) {
     return <div>Loading locations...</div>;
@@ -90,6 +99,10 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDr
 
   if (error) {
     return <div className="text-red-500 p-4">{error}</div>;
+  }
+
+  if (!filteredRegions.length) {
+    return <div className="text-muted-foreground p-4">No locations available for this category.</div>;
   }
 
   return (
@@ -106,7 +119,7 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation }: LocationDr
               </SelectTrigger>
               <SelectContent className="bg-white">
                 {/* REMOVED: The "All Regions" SelectItem is gone */}
-                {regions.map((region) => (
+                {filteredRegions.map((region) => (
                   <SelectItem key={region.id} value={region.name}>
                     {region.name}
                   </SelectItem>

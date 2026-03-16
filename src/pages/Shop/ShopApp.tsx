@@ -29,13 +29,20 @@ import { useCart } from "@/context/CartContext";
 const ITEMS_PER_PAGE = 12;
 const INITIAL_FILTERS = ["All Products"];
 
-const CATEGORIES_WITHOUT_LOCATION_FILTER = ['custom', 'designs'];
+const CATEGORIES_WITHOUT_LOCATION_FILTER: string[] = [];
 
 const CATEGORY_MAPPINGS: Record<string, string[]> = {
     hardware: ["Cement", "Pipes and Fittings", "Reinforcement Bars", "Steel", "Aluminum", "Glass", "HARDWARE"],
     custom: ["Custom Products", "Windows", "Doors", "Gates", "FUNDI"],
     equipment: ["Equipment", "Machinery", "Tools", "CONTRACTOR"],
     designs: ["Plans", "Designs", "PROFESSIONAL"],
+};
+
+const LOCATION_CATEGORY_TYPES: Record<string, string[]> = {
+    hardware: ["HARDWARE"],
+    custom: ["FUNDI"],
+    equipment: ["CONTRACTOR"],
+    designs: ["PROFESSIONAL"],
 };
 
 const ShopApp = () => {
@@ -49,6 +56,11 @@ const ShopApp = () => {
     const navigate = useNavigate();
     const { data: products = [], isLoading, error } = useProducts();
     const { addToCart } = useCart();
+
+    const locationCategoryTypes = useMemo(
+        () => LOCATION_CATEGORY_TYPES[activeCategory] || [],
+        [activeCategory]
+    );
 
     useEffect(() => {
         setSelectedFilters(INITIAL_FILTERS);
@@ -73,7 +85,17 @@ const ShopApp = () => {
         };
     }, [isSidebarOpen]);
 
-    const handleLocationSelect = useCallback((locationName: string) => {
+    useEffect(() => {
+        if (!selectedProduct?.isAggregated || !selectedLocationName) return;
+        const match = products.find(
+            product => product.productId === selectedProduct.productId && product.regionName === selectedLocationName
+        );
+        if (match) {
+            setSelectedProduct(match);
+        }
+    }, [selectedLocationName, products, selectedProduct]);
+
+    const handleLocationSelect = useCallback((locationName: string | null) => {
         setSelectedLocationName(locationName);
     }, []);
 
@@ -83,14 +105,11 @@ const ShopApp = () => {
         }
 
         const shouldApplyLocationFilter = !CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory);
-
-        if (shouldApplyLocationFilter && !selectedLocationName) {
-            return [];
-        }
+        const hasSelectedLocation = !!selectedLocationName;
 
         let baseProductList = products;
 
-        if (shouldApplyLocationFilter) {
+        if (shouldApplyLocationFilter && selectedLocationName) {
             baseProductList = products.filter(product => product.regionName === selectedLocationName);
         }
 
@@ -115,16 +134,44 @@ const ShopApp = () => {
         });
 
         const activeSidebarFilters = selectedFilters.filter(f => f !== "All Products");
-        if (activeSidebarFilters.length > 0) {
-            return categoryFilteredProducts.filter(product =>
+        const sidebarFilteredProducts = activeSidebarFilters.length > 0
+            ? categoryFilteredProducts.filter(product =>
                 activeSidebarFilters.some(filter =>
                     product.type.toLowerCase().includes(filter.toLowerCase()) ||
                     product.name.toLowerCase().includes(filter.toLowerCase())
                 )
-            );
+            )
+            : categoryFilteredProducts;
+
+        if (!hasSelectedLocation) {
+            const grouped = new Map<string, { base: Product; minPrice: number; count: number }>();
+            sidebarFilteredProducts.forEach((product) => {
+                const key = String(product.productId ?? product.id);
+                const entry = grouped.get(key);
+                if (!entry) {
+                    grouped.set(key, { base: product, minPrice: product.price, count: 1 });
+                } else {
+                    entry.minPrice = Math.min(entry.minPrice, product.price);
+                    entry.count += 1;
+                }
+            });
+
+            return Array.from(grouped.values()).map(({ base, minPrice, count }) => {
+                if (count === 1) {
+                    return base;
+                }
+                return {
+                    ...base,
+                    id: `${base.productId}-all`,
+                    price: minPrice,
+                    showFromPrice: true,
+                    isAggregated: true,
+                    regionName: undefined,
+                };
+            });
         }
 
-        return categoryFilteredProducts;
+        return sidebarFilteredProducts;
     }, [products, activeCategory, selectedFilters, selectedLocationName]);
 
     const paginatedProducts = useMemo(() => {
@@ -158,7 +205,16 @@ const ShopApp = () => {
     const handleProductClick = (product: Product) => setSelectedProduct(product);
     const handleBackToGrid = () => setSelectedProduct(null);
 
+    const ensureLocationSelected = (product: Product) => {
+        if (!selectedLocationName && product.isAggregated) {
+            toast.error("Please select a location to see the exact price.");
+            return false;
+        }
+        return true;
+    };
+
     const handleAddToCartAndNavigate = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -169,6 +225,7 @@ const ShopApp = () => {
     };
 
     const handleGridAddToCartAndNavigate = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -178,6 +235,7 @@ const ShopApp = () => {
     };
 
     const handleBuyNow = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`Proceeding to checkout for ${product.name}`);
@@ -256,6 +314,7 @@ const ShopApp = () => {
                         <LocationDropdown
                             selectedLocationName={selectedLocationName}
                             onSelectLocation={handleLocationSelect}
+                            categoryTypes={locationCategoryTypes}
                         />
                     )}
                     <Sidebar

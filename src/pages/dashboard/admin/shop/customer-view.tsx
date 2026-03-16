@@ -19,7 +19,7 @@ import { useProducts, Product } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
 
 const INITIAL_FILTERS = ["All Products"];
-const CATEGORIES_WITHOUT_LOCATION_FILTER = ['custom', 'designs'];
+const CATEGORIES_WITHOUT_LOCATION_FILTER: string[] = [];
 
 const CATEGORY_MAPPINGS: Record<string, string[]> = {
     hardware: ["HARDWARE"],
@@ -43,6 +43,8 @@ const ShopApp = () => {
     const { data: products = [], isLoading, error } = useProducts();
     const { addToCart } = useCart();
 
+    const categoryTypes = useMemo(() => CATEGORY_MAPPINGS[activeCategory] || [], [activeCategory]);
+
     useEffect(() => {
         setSelectedFilters(INITIAL_FILTERS);
         setCurrentPage(1);
@@ -56,7 +58,17 @@ const ShopApp = () => {
         setCurrentPage(1);
     }, [selectedFilters, selectedLocationName, itemsPerPage]);
 
-    const handleLocationSelect = useCallback((locationName: string) => {
+    useEffect(() => {
+        if (!selectedProduct?.isAggregated || !selectedLocationName) return;
+        const match = products.find(
+            product => product.productId === selectedProduct.productId && product.regionName === selectedLocationName
+        );
+        if (match) {
+            setSelectedProduct(match);
+        }
+    }, [selectedLocationName, products, selectedProduct]);
+
+    const handleLocationSelect = useCallback((locationName: string | null) => {
         setSelectedLocationName(locationName);
     }, []);
 
@@ -102,7 +114,16 @@ const ShopApp = () => {
     const handleProductClick = (product: Product) => setSelectedProduct(product);
     const handleBackToGrid = () => setSelectedProduct(null);
 
+    const ensureLocationSelected = (product: Product) => {
+        if (!selectedLocationName && product.isAggregated) {
+            toast.error("Please select a location to see the exact price.");
+            return false;
+        }
+        return true;
+    };
+
     const handleAddToCartAndNavigate = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -113,12 +134,14 @@ const ShopApp = () => {
     };
 
     const handleGridAddToCartAndNavigate = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) toast.success(`${product.name} added to cart!`);
         else toast.error(result.message);
     };
 
     const handleBuyNow = (product: Product) => {
+        if (!ensureLocationSelected(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`Proceeding to checkout for ${product.name}`);
@@ -147,7 +170,11 @@ const ShopApp = () => {
                         <button onClick={() => setIsSidebarOpen(false)}><X className="h-6 w-6" /></button>
                     </div>
                     {!CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory) && (
-                        <LocationDropdown selectedLocationName={selectedLocationName} onSelectLocation={handleLocationSelect} activeCategory={activeCategory} />
+                        <LocationDropdown
+                            selectedLocationName={selectedLocationName}
+                            onSelectLocation={handleLocationSelect}
+                            categoryTypes={categoryTypes}
+                        />
                     )}
                     <Sidebar category={activeCategory} filters={selectedFilters} onFilterChange={handleFilterChange} products={products} />
                 </aside>
