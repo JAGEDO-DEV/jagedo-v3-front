@@ -173,6 +173,17 @@ export const adminVerifyDocuments = async (axiosInstance: any, userId: string): 
     }
 };
 
+export const adminUpdateSingleDocumentStatus = async (axiosInstance: any, userId: string, documentKey: string, status: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/single/status`, { documentKey, status, reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to update document status");
+    }
+};
+
 export const adminRejectDocuments = async (axiosInstance: any, userId: string, reason: string): Promise<any> => {
     try {
         const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/reject`, { status: "REJECTED", reason }, {

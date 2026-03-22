@@ -52,8 +52,13 @@ function AccountInfo({ data, refreshData }) {
   useEffect(() => {
     if (data) {
       // Map API Data to Profile Structure
+      const isOrgData = data?.accountType?.toLowerCase() === "organization" || 
+                        data?.accountType?.toLowerCase() === "business" || 
+                        data?.userType === "CONTRACTOR" || 
+                        data?.userType === "HARDWARE";
+
       const mappedProfile = {
-        name: data.organizationName || `${data.firstName || ""} ${data.lastName || ""}`.trim(),
+        name: isOrgData ? (data.organizationName || "") : `${data.firstName || ""} ${data.lastName || ""}`.trim(),
         firstName: data.firstName || "",
         lastName: data.lastName || "",
         email: data.email || "",
@@ -196,7 +201,10 @@ function AccountInfo({ data, refreshData }) {
 
   if (!profile) return <div className="p-10">Loading info...</div>;
 
-  const isOrg = profile.type === "ORGANIZATION" || profile.type === "organization";
+  const isOrg = profile.type?.toLowerCase() === "organization" || 
+                profile.type?.toLowerCase() === "business" || 
+                profile.userType === "CONTRACTOR" || 
+                profile.userType === "HARDWARE";
 
   return (
     <section className="w-full max-w-4xl bg-white rounded-xl shadow-md p-8">
@@ -231,8 +239,10 @@ function AccountInfo({ data, refreshData }) {
       {/* Organization vs Individual Fields */}
       {isOrg ? (
         <>
-          <Field label="Organization Name" value={profile.organizationName} />
-          <Field label="Contact Person (Optional)" value={profile.contactFullName} />
+          <Field label={profile.userType === "HARDWARE" ? "Hardware Name" : "Company Name"} value={profile.organizationName} />
+          {profile.userType === "CUSTOMER" && (
+            <Field label="Contact Full Name" value={profile.contactFullName} />
+          )}
         </>
       ) : (
         <>

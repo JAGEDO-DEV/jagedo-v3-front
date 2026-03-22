@@ -25,16 +25,17 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const [editingField, setEditingField] = useState<string | null>(null);
 
   
-  const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
+  const isOrganization = userData?.accountType?.toLowerCase() === "business" || userData?.accountType?.toLowerCase() === "organization" ||
     userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
-  const name = isOrganization && userData?.organizationName
-    ? userData.organizationName
+  const name = isOrganization
+    ? (userData?.organizationName ?? "")
     : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
 
   const [editValues, setEditValues] = useState({
     firstName: userData?.firstName ?? "",
     lastName: userData?.lastName ?? "",
     organizationName: userData?.organizationName ?? "",
+    contactFullName: userData?.contactFullName ?? "",
     email: userData?.email ?? "",
     phone: userData?.phone ?? "",
   });
@@ -105,6 +106,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       firstName: userData?.firstName ?? "",
       lastName: userData?.lastName ?? "",
       organizationName: userData?.organizationName ?? "",
+      contactFullName: userData?.contactFullName ?? "",
       email: userData?.email || "",
       phone: userData?.phone || "",
     });
@@ -116,6 +118,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       firstName: userData?.firstName ?? "",
       lastName: userData?.lastName ?? "",
       organizationName: userData?.organizationName ?? "",
+      contactFullName: userData?.contactFullName ?? "",
       email: userData?.email || "",
       phone: userData?.phone || "",
     });
@@ -131,10 +134,14 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   
   const handleEditSave = async (field: string) => {
     
-    if (field === "name") {
+    if (field === "name" || field === "contactFullName") {
       if (isOrganization) {
-        if (!editValues.organizationName?.trim()) {
+        if (!editValues.organizationName?.trim() && field === "name") {
           toast.error("Organization name cannot be empty");
+          return;
+        }
+        if (userData?.userType === "CUSTOMER" && userData?.accountType === "ORGANIZATION" && !editValues.contactFullName?.trim() && field === "contactFullName") {
+          toast.error("Contact person name cannot be empty");
           return;
         }
       } else {
@@ -155,13 +162,16 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       const updates: Record<string, any> = {};
       switch (field) {
         case "name": {
-          
           if (isOrganization) {
             updates.organizationName = editValues.organizationName.trim();
           } else {
             updates.firstName = editValues.firstName.trim();
             updates.lastName = editValues.lastName.trim();
           }
+          break;
+        }
+        case "contactFullName": {
+          updates.contactFullName = editValues.contactFullName.trim();
           break;
         }
         case "email":
@@ -184,6 +194,10 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
           namePayload.lastName = editValues.lastName.trim();
         }
         await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
+      } else if (field === "contactFullName") {
+        await updateProfileNameAdmin(axiosInstance, userData.id, {
+          contactFullName: editValues.contactFullName.trim()
+        });
       } else if (field === "email") {
         await updateProfileEmailAdmin(axiosInstance, userData.id, {
           email: editValues.email,
@@ -318,8 +332,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   Basic Info
                 </h2>
 
-                {/* ORGANIZATION SPECIFIC SECTION (CONTRACTOR & HARDWARE) */}
-                {(userData?.userType === "HARDWARE" || userData?.userType === "CONTRACTOR") && (
+                {/* ORGANIZATION SPECIFIC SECTION (CONTRACTOR, HARDWARE & ORGANIZATION CUSTOMER) */}
+                {(userData?.userType === "HARDWARE" || userData?.userType === "CONTRACTOR" || (userData?.userType === "CUSTOMER" && userData?.accountType === "ORGANIZATION")) && (
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg mb-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">
@@ -487,11 +501,68 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                         )}
                       </div>
                     </div>
+                    {/* Contact Full Name for Organization Customers */}
+                    {userData?.userType === "CUSTOMER" && userData?.accountType === "ORGANIZATION" && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium">Contact Full Name</label>
+                        <div className="flex items-center border-b focus-within:border-blue-900 transition">
+                          {editingField === "contactFullName" ? (
+                            <>
+                              <input
+                                type="text"
+                                value={editValues.contactFullName}
+                                onChange={(e) => handleEditChange("contactFullName", e.target.value)}
+                                className="w-full px-4 py-2 outline-none bg-transparent"
+                                disabled={isUpdating}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditSave("contactFullName")}
+                                  disabled={isUpdating}
+                                  className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                >
+                                  {isUpdating ? (
+                                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <FiCheck size={15} />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditCancel}
+                                  disabled={isUpdating}
+                                  className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                >
+                                  <FiX size={15} />
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="text"
+                                value={userData?.contactFullName || "N/A"}
+                                className="w-full px-4 py-2 outline-none bg-transparent"
+                                readOnly
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleEditStart("contactFullName")}
+                                className="text-blue-900 cursor-pointer hover:opacity-75"
+                              >
+                                <FiEdit size={15} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* INDIVIDUAL USERS (FUNDI, PROFESSIONAL, CUSTOMER) */}
-                {userData?.userType !== "HARDWARE" && userData?.userType !== "CONTRACTOR" && (
+                {/* INDIVIDUAL USERS (FUNDI, PROFESSIONAL, INDIVIDUAL CUSTOMER) */}
+                {userData?.userType !== "HARDWARE" && userData?.userType !== "CONTRACTOR" && !(userData?.userType === "CUSTOMER" && userData?.accountType === "ORGANIZATION") && (
                   <form className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Name</label>
