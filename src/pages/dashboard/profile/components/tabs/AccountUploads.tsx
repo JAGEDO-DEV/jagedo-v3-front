@@ -153,28 +153,31 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     if (profile) {
       
       if (profile.idFrontUrl) {
-        initialDocs.idFront = {
-          name: "National ID Front",
+        const key = userType === "hardware" ? "ownerIdFront" : "idFront";
+        initialDocs[key] = {
+          name: userType === "hardware" ? "Owner ID - Front" : "National ID Front",
           url: profile.idFrontUrl,
-          type: "idFront",
+          type: key,
           uploadedAt: "Existing",
           status: status as DocumentStatus,
         };
       }
       if (profile.idBackUrl) {
-        initialDocs.idBack = {
-          name: "National ID Back",
+        const key = userType === "hardware" ? "ownerIdBack" : "idBack";
+        initialDocs[key] = {
+          name: userType === "hardware" ? "Owner ID - Back" : "National ID Back",
           url: profile.idBackUrl,
-          type: "idBack",
+          type: key,
           uploadedAt: "Existing",
           status: status as DocumentStatus,
         };
       }
       if (profile.krapin || profile.kraPIN) {
-        initialDocs.kraPIN = {
+        const key = userType === "hardware" ? "krapin" : "kraPIN";
+        initialDocs[key] = {
           name: "KRA PIN Certificate",
           url: (profile.krapin || profile.kraPIN) as string,
-          type: "kraPIN",
+          type: key,
           uploadedAt: "Existing",
           status: status as DocumentStatus,
         };
@@ -233,10 +236,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       
       const bizRegUrl = profile.businessRegistration || profile.certificateOfIncorporation || profile.registrationCertificateUrl;
       if (bizRegUrl) {
-        initialDocs.certificateOfIncorporation = {
-          name: "Registration Document",
+        const key = userType === "hardware" ? "businessRegistration" : "certificateOfIncorporation";
+        initialDocs[key] = {
+          name: userType === "hardware" ? "Business Registration" : "Registration Document",
           url: bizRegUrl as string,
-          type: "certificateOfIncorporation",
+          type: key,
           uploadedAt: "Existing",
           status: status as DocumentStatus,
         };

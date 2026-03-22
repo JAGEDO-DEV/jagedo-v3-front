@@ -263,7 +263,7 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    if (user.profileStatus === "INCOMPLETE") {
+    if (user.profileStatus === "INCOMPLETE_PROFILE") {
       try {
         setIsLoading(true);
         const profileResponse = await getProviderProfile(axios, user.id);
