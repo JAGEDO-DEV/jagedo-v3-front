@@ -322,10 +322,10 @@ const deepMerge = (target: any, source: any): any => {
 const resolveSpecialization = (user: any) => {
   if (!user) return "";
 
-  
+
   if (user.specialization) return user.specialization;
 
-  
+
   if (user.fundispecialization) return user.fundispecialization;
   if (user.professionalSpecialization) return user.professionalSpecialization;
   if (user.contractorSpecialization) return user.contractorSpecialization;
@@ -338,30 +338,30 @@ const resolveSpecialization = (user: any) => {
 
 const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
-  
+
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
 
-  
+
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState({});
   const [isPendingAction, setIsPendingAction] = useState(false);
   const [showGlobalActions, setShowGlobalActions] = useState(false);
 
-  
+
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     action: "approve" | "reject" | "resubmit" | null;
   }>({ isOpen: false, action: null });
   const [actionReason, setActionReason] = useState("");
 
-  
+
   const userType = userData?.userType || "FUNDI";
   const status = userData?.experienceStatus;
 
-  
+
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -372,11 +372,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       setIsLoadingQuestions(true);
       try {
         const response = await getEvaluationQuestions(axiosInstance, "FUNDI");
-        
-        const extractedData = Array.isArray(response) 
-          ? response 
+
+        const extractedData = Array.isArray(response)
+          ? response
           : (response?.data && Array.isArray(response.data) ? response.data : []);
-        
+
         setAvailableQuestions(extractedData);
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
@@ -391,7 +391,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   }, [userType, userData?.id]);
 
-  
+
   useEffect(() => {
     if (availableQuestions.length > 0) {
       const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
@@ -401,7 +401,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         const initial = availableQuestions.map((q: any) => ({
           id: q.id,
           text: q.text,
-          type: q.type, 
+          type: q.type,
           options: q.options || [],
           answer: "",
           score: 0,
@@ -433,15 +433,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           { ans: evaluation.quotationFormulation, sc: evaluation.quotationFormulaScore }
         ];
         if (legacyFields[index]) {
-            answer = legacyFields[index].ans || "";
-            score = legacyFields[index].sc || 0;
+          answer = legacyFields[index].ans || "";
+          score = legacyFields[index].sc || 0;
         }
       }
 
       return {
         id: q.id,
         text: q.text,
-        type: q.type, 
+        type: q.type,
         options: q.options || [],
         answer,
         score,
@@ -451,11 +451,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setQuestions(prefilled);
   };
 
-  
+
   const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
   const getInitialAttachments = () => {
-    
+
     if (!userData) {
       return [];
     }
@@ -530,7 +530,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const getProjectFieldName = () => {
     switch (userType) {
       case "FUNDI":
@@ -566,7 +566,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     [key: string]: boolean;
   }>({});
   const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
-  
+
   const getInitialCategories = (): ContractorCategory[] => {
     if (userData?.contractorCategories && Array.isArray(userData.contractorCategories)) {
       return userData.contractorCategories.map((cat: any) => ({
@@ -576,7 +576,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         years: cat.years || cat.yearsOfExperience || "",
       }));
     }
-    
+
     if (userData?.contractorExperiences && Array.isArray(userData.contractorExperiences)) {
       return userData.contractorExperiences.map((exp: any) => ({
         category: exp.category || "",
@@ -605,7 +605,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setCategories(categories.filter((_, i) => i !== index));
   };
 
-  
+
   const getInitialInfo = () => {
     if (!userData) {
       return getDefaultInfo();
@@ -912,9 +912,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   const fields = getFieldsConfig();
 
-  
 
-  
+
+
   const handleFileUpload = (e, rowIndex) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
@@ -931,7 +931,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         ...selectedFiles.map((file) => ({
           name: file.name,
           url: URL.createObjectURL(file),
-          rawFile: file, 
+          rawFile: file,
         })),
       );
       updatedAttachments = newAttachments;
@@ -942,7 +942,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  
+
   const getRequiredProjectCount = () => {
     const currentGrade = isEditingFields ? editingFields.grade : info.grade;
     const currentLevel = isEditingFields ? editingFields.professionalLevel : info.professionalLevel;
@@ -953,17 +953,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         if (currentGrade === "G2: Skilled") return 2;
         if (currentGrade === "G3: Semi-skilled") return 1;
         if (currentGrade === "G4: Unskilled") return 0;
-        return 0; 
+        return 0;
       case "PROFESSIONAL":
         if (currentLevel === "Senior") return 3;
         if (currentLevel === "Professional") return 2;
         if (currentLevel === "Graduate") return 1;
         if (currentLevel === "Student") return 0;
-        return 0; 
+        return 0;
       case "CONTRACTOR":
-        return 1; 
+        return 1;
       case "HARDWARE":
-        return 2; 
+        return 2;
       default:
         return 0;
     }
@@ -975,7 +975,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     requiredProjectCount - attachments.length,
   );
 
-  
+
   const handleAddNewProject = (
     projectId: string,
     projectName: string,
@@ -998,7 +998,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       files: files.map((file) => ({
         name: file.name,
         url: URL.createObjectURL(file),
-        rawFile: file, 
+        rawFile: file,
       })),
     };
 
@@ -1011,9 +1011,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setUploadingProjects((prev) => ({ ...prev, [projectId]: false }));
   };
 
-  
 
-  
+
+
   const updateUserProjects = (updatedAttachments) => {
     try {
       const profile = userData?.userProfile || {};
@@ -1028,7 +1028,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         }))
         .filter((project) => project.files.length > 0);
 
-      
+
 
       const projectData = cleanAttachments.flatMap((project) =>
         project.files.map((file) => ({
@@ -1055,7 +1055,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleReplaceFile = (e, rowIndex, fileIndex) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1073,7 +1073,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         newAttachments[rowIndex].files[fileIndex] = {
           name: file.name,
           url: URL.createObjectURL(file),
-          rawFile: file, 
+          rawFile: file,
         };
       }
       updatedAttachments = newAttachments;
@@ -1085,7 +1085,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  
+
   const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
@@ -1108,9 +1108,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  
 
-  
+
+
   const addNewQuestion = () => {
     if (!isAdmin) return;
 
@@ -1128,7 +1128,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setQuestions((prev) => [...prev, newQuestion]);
   };
 
-  
+
   const handleSaveNewQuestion = async (draft: any) => {
     if (!draft.isDraft) return;
 
@@ -1144,7 +1144,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       const response = await createEvaluationQuestion(axiosInstance, payload);
       const realQuestion = response?.data || response;
 
-      
+
       setQuestions((prev) =>
         (Array.isArray(prev) ? prev : []).map((q) =>
           q.id === draft.id
@@ -1158,7 +1158,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         ),
       );
 
-      
+
       setAvailableQuestions((prev) => [...(Array.isArray(prev) ? prev : []), realQuestion]);
 
       toast.success("Question created and synced");
@@ -1169,7 +1169,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleDeleteQuestion = async (questionId: any) => {
     const q = questions.find((item) => item.id === questionId);
     if (!q) return;
@@ -1178,7 +1178,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       return;
 
     if (q.isDraft) {
-      
+
       setQuestions((prev) => prev.filter((item) => item.id !== questionId));
       return;
     }
@@ -1197,11 +1197,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleUpdateTemplate = async (questionId: any, text: string, type: string, options?: string[]) => {
     if (!isAdmin) return;
 
-    
+
     const q = questions.find((item) => item.id === questionId);
     if (!q || q.isDraft) return;
 
@@ -1223,14 +1223,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
 
-  
 
-  
-  
 
-  
 
-  
+
+
+
+
+
   useEffect(() => {
     const initialNewProjects: { [key: string]: any } = {};
     for (let i = 0; i < Math.min(missingProjectCount, 3); i++) {
@@ -1266,7 +1266,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       ),
     );
 
-    
+
     if (isAdmin) {
       const q = questions.find((item) => item.id === id);
       if (q && !q.isDraft) {
@@ -1388,8 +1388,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     if (!evaluation) return null;
 
-    
-    
+
+
     const displayQuestions = questions.length > 0 ? questions : (evaluation.responses || []);
 
     return (
@@ -1452,8 +1452,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
               </h4>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10 custom-audio-player">
-                Your browser does not support the audio element.
-              </audio>
+                  Your browser does not support the audio element.
+                </audio>
               </div>
             </div>
           )}
@@ -1512,22 +1512,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
-  
+
   useEffect(() => {
-    
+
     const stored = localStorage.getItem("showVerificationMessage");
     if (stored === "true") {
       setShowVerificationMessage(true);
     }
 
-    
+
     const isVerified = userData?.userProfile?.fundiEvaluation?.isVerified;
 
     if (isVerified) {
       setShowVerificationMessage(true);
     }
 
-    
+
     const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     const audioUrlFromData =
       evaluation?.audioUrl ||
@@ -1535,11 +1535,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
     if (audioUrlFromData) {
       setAudioUrl(audioUrlFromData);
-      
+
     }
   }, [userData]);
 
-  
+
   const handleVerify = async () => {
     setIsVerifying(true);
     const userId = userData.id;
@@ -1561,13 +1561,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleClose = () => {
     localStorage.removeItem("showVerificationMessage");
     setShowVerificationMessage(false);
   };
 
-  
+
   const handleAudioUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1589,9 +1589,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleEvaluationSubmit = async (e) => {
-    
+
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage("");
@@ -1604,8 +1604,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
 
     const body = {
-      
-      
+
+
       hasMajorWorks: questions[0]?.answer || "",
       materialsUsed: questions[1]?.answer || "",
       essentialEquipment: questions[2]?.answer || "",
@@ -1616,7 +1616,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       essentialEquipmentScore: questions[2]?.score || 0,
       quotationFormulaScore: questions[3]?.score || 0,
 
-      
+
       responses: questions.map(q => ({
         questionId: q.id,
         text: q.text,
@@ -1647,20 +1647,20 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  
+
   const handleSaveChanges = async () => {
     setIsSavingInfo(true);
     const toastId = toast.loading("Saving all changes...");
     try {
       if (!userData?.id) throw new Error("User ID not found");
 
-      
+
       const updatedAttachments = await Promise.all(
         attachments.map(async (project) => {
           const updatedFiles = await Promise.all(
             project.files.map(async (f) => {
               if (f.rawFile) {
-                
+
                 const uploaded = await uploadFile(f.rawFile);
                 return { name: f.name, url: uploaded.url };
               }
@@ -1671,7 +1671,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         })
       );
 
-      
+
       let response;
       if (userType === "FUNDI") {
         const flattenedProjectFiles = updatedAttachments.flatMap((project) =>
@@ -1725,7 +1725,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         response = await adminUpdateContractorExperience(axiosInstance, userData.id, payload);
       } else {
-        
+
         await updateBuilderLevel(
           axiosInstance,
           userData.id,
@@ -1888,7 +1888,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             {field.label}
                           </label>
-                          {!isEditingFields && isAdmin && (
+                          {!isEditingFields && isAdmin && !(userType === "FUNDI" && field.name === "skill") && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1902,7 +1902,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           )}
                         </div>
 
-                        {isEditingFields ? (
+                        {isEditingFields && !(userType === "FUNDI" && field.name === "skill") ? (
                           <select
                             value={editingFields[field.name] ?? fieldValue ?? ""}
                             onChange={(e) => {
@@ -2001,10 +2001,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               const newCategory = e.target.value;
                               const updated = [...categories];
                               updated[index].category = newCategory;
-                              updated[index].specialization = ""; 
+                              updated[index].specialization = "";
                               setCategories(updated);
 
-                              
+
                               if (newCategory) {
                                 const projectExists = attachments.some(
                                   (att) => att.projectName?.toLowerCase().includes(newCategory.toLowerCase())
@@ -2225,7 +2225,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               {isAdmin && (
                                 <button
                                   type="button"
-                                  onClick={() => handleRemoveFile(index, 0)} 
+                                  onClick={() => handleRemoveFile(index, 0)}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                   title="Delete Project Row"
                                 >
@@ -2691,7 +2691,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               newTotal -
                               prev.reduce((sum, q) => sum + q.score, 0);
                             if (updated.length > 0) {
-                              
+
                               updated[updated.length - 1].score += diff;
                             }
                             return [...updated];
@@ -2734,18 +2734,18 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                     </div>
 
                     <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-2">
-                        {isEditingEvaluation && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              prefillQuestionsFromData();
-                              setIsEditingEvaluation(false);
-                            }}
-                            className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium"
-                          >
-                            Cancel Edit
-                          </button>
-                        )}
+                      {isEditingEvaluation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            prefillQuestionsFromData();
+                            setIsEditingEvaluation(false);
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
                       {
                         <button
                           type="submit"

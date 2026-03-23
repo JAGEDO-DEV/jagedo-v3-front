@@ -21,8 +21,15 @@ export function ProfileCompletionModal({
   userType,
   onComplete
 }: ProfileCompletionModalProps) {
+  const handleRedirectClose = () => {
+    if (onClose) {
+      onClose();
+    }
+    window.location.href = "http://localhost:8080";
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleRedirectClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide p-0 border-0 bg-transparent shadow-none sm:max-w-4xl focus:outline-none [&>button]:hidden">
         <div className="bg-white rounded-lg overflow-hidden w-full">
           <ProfileCompletion
@@ -30,7 +37,7 @@ export function ProfileCompletionModal({
             accountType={accountType}
             userType={userType}
             onComplete={onComplete}
-            onCancel={onClose}
+            onCancel={handleRedirectClose}
             isModal={true}
           />
         </div>

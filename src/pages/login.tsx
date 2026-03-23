@@ -256,12 +256,6 @@ export default function Login() {
       user.isAdmin = typeUpper === 'ADMIN' || user.isSuperAdmin;
     }
 
-    if (user?.status === "DELETED") {
-      toast.error("Your account has been deleted.");
-      setIsLoading(false);
-      return;
-    }
-    
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("token", accessToken);
 
@@ -269,7 +263,7 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    if (user.profileStatus === "INCOMPLETE" && !user.isAdmin && !user.isSuperAdmin) {
+    if (user.status === "SIGNED_UP") {
       try {
         setIsLoading(true);
         const profileResponse = await getProviderProfile(axios, user.id);

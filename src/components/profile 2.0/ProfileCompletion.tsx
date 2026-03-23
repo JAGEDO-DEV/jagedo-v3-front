@@ -362,6 +362,7 @@ export function ProfileCompletion({
         if (onCancel) {
             onCancel();
         }
+        window.location.href = "http://localhost:8080";
     };
 
     const stepInfo = [
