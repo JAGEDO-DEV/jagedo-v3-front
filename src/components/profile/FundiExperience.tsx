@@ -55,7 +55,18 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [skill, setSkill] = useState(data?.skills || "Plumber");
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+
+  // Map status codes to user-friendly messages
+  const getStatusMessage = (status: string): string => {
+    const statusMap: { [key: string]: string } = {
+      'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
+      'APRVD': 'Your submission has been approved.',
+      'PEND': 'Your submission is pending review.',
+      'RESUBMIT': 'Please resubmit your experience for review.',
+    };
+    return statusMap[status] || status;
+  };
 
 
   /* ---------- LOAD FROM PROP ---------- */
@@ -64,7 +75,8 @@ const FundiExperience = ({ data, refreshData }: any) => {
       const up = data;
       setGrade(up.grade || "G1: Master Fundi");
       setExperience(up.experience || "10+ years");
-      setSpecialization(up.specialization || "");
+      // Ensure specialization is set from data
+      setSpecialization(up.specialization?.trim() || "");
       setSkill(up.skills || "Plumber");
 
       const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
@@ -181,7 +193,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
       await updateFundiExperience(axiosInstance, payload);
 
-      toast.success("Experience saved successfully!", { id: toastId });
+      toast.success("Experience submitted successfully! Your submission is now pending review.", { id: toastId });
       setIsSubmitting(false);
       if (refreshData) refreshData();
     } catch (error: any) {
@@ -206,7 +218,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Status Update</AlertTitle>
             <AlertDescription>
-              {data.experienceStatusReason}
+              {getStatusMessage(data.experienceStatusReason)}
             </AlertDescription>
           </Alert>
         )}
@@ -237,8 +249,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 >
                   <option value="">Select</option>
                   {fundiSpecializations.map(spec => (
-                    <option key={spec}>{spec}</option>
+                    <option key={spec} value={spec}>{spec}</option>
                   ))}
+                  {specialization && !fundiSpecializations.includes(specialization) && (
+                    <option key={specialization} value={specialization}>{specialization}</option>
+                  )}
                 </select>
               </div>
 

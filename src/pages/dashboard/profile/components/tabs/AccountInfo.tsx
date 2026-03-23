@@ -475,8 +475,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                       </div>
                     </div>
 
-                    {/* Contact Full Name — CONTRACTOR only */}
-                    {userData?.userType === "CONTRACTOR" && (
+                    {/* Contact Full Name — CONTRACTOR and HARDWARE */}
+                    {(userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE") && (
                       <div className="space-y-2">
                         <label className="block text-sm font-medium">
                           Contact Full Name

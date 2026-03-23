@@ -380,33 +380,32 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
 
     if (userType === "fundi") {
-      return [
+      const fundiDocs: DocumentItem[] = [
         ...individualBaseDocs,
         {
           key: "certificate",
           name: "Trade Certificate",
           category: "certification",
         },
-        {
-          key: "portfolio1",
-          name: "Portfolio - Project 1",
-          category: "portfolio",
-        },
-        {
-          key: "portfolio2",
-          name: "Portfolio - Project 2",
-          category: "portfolio",
-        },
-        {
-          key: "portfolio3",
-          name: "Portfolio - Project 3",
-          category: "portfolio",
-        },
       ];
+      
+      // Add portfolio projects from fundiEvaluation if available
+      const fundiProjects = userData?.fundiEvaluation;
+      if (Array.isArray(fundiProjects) && fundiProjects.length > 0) {
+        fundiProjects.forEach((project: any, index: number) => {
+          fundiDocs.push({
+            key: `portfolio${index + 1}`,
+            name: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
+            category: "portfolio",
+          });
+        });
+      }
+      
+      return fundiDocs;
     }
 
     if (userType === "professional") {
-      return [
+      const profDocs: DocumentItem[] = [
         ...individualBaseDocs,
         {
           key: "academicCertificate",
@@ -414,22 +413,21 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           category: "certification",
         },
         { key: "cv", name: "Curriculum Vitae (CV)", category: "certification" },
-        {
-          key: "portfolio1",
-          name: "Portfolio - Project 1",
-          category: "portfolio",
-        },
-        {
-          key: "portfolio2",
-          name: "Portfolio - Project 2",
-          category: "portfolio",
-        },
-        {
-          key: "portfolio3",
-          name: "Portfolio - Project 3",
-          category: "portfolio",
-        },
       ];
+      
+      // Add portfolio projects from professionalProjects if available
+      const profProjects = userData?.professionalProjects;
+      if (Array.isArray(profProjects) && profProjects.length > 0) {
+        profProjects.forEach((project: any, index: number) => {
+          profDocs.push({
+            key: `portfolio${index + 1}`,
+            name: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
+            category: "portfolio",
+          });
+        });
+      }
+      
+      return profDocs;
     }
 
     const organizationBaseDocs: DocumentItem[] = [
@@ -560,7 +558,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   ).length;
   const approvedCount = allDocuments.filter(
     (d) =>
-      d.category !== "portfolio" && documents[d.key]?.status === "approved",
+      d.category !== "portfolio" && (documents[d.key]?.status === "approved" || documents[d.key]?.status === "VERIFIED"),
   ).length;
   const overallStatus = approvedCount >= totalRequired ? "approved" : "pending";
 
