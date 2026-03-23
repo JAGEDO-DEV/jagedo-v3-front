@@ -74,7 +74,13 @@ function ProfilePage() {
   const isArrayFilled = (arr) => Array.isArray(arr) && arr.length > 0;
 
   const getAccountInfoFields = (userType, accountType) => {
-    if (accountType === "organization") {
+    const isOrgType =
+      accountType === "organization" ||
+      accountType === "business" ||
+      userType === "contractor" || // ✅ always org-based
+      userType === "hardware"; // ✅ always org-based
+
+    if (isOrgType) {
       return ["organizationName", "phone", "email"];
     }
 
@@ -121,18 +127,107 @@ function ProfilePage() {
         ],
         hardware: [
           "businessRegistration",
+          "businessPermit",
           "krapin",
-          "singleBusinessPermit",
-          "companyProfile",
+          "idFrontUrl",
+          "idBackUrl",
         ],
       };
       return docMap[userType] || [];
     };
 
     // const requiredDocs = getRequiredDocuments();
-    let uploadsComplete =
-      providerData?.documentStatus == "VERIFIED" ||
-      providerData?.documentStatus == "PENDING";
+    let uploadsComplete = false;
+
+    // If verified by admin, definitely complete
+    if (providerData?.documentStatus === "VERIFIED") {
+      uploadsComplete = true;
+    } else {
+      // For contractors: check base docs + all category-specific certificates & licenses
+      // For others: check if all required base documents are present
+      if (userType === "contractor") {
+        // Contractors need: (businessRegistration OR certificateOfIncorporation) + businessPermit + krapin + companyProfile
+        const hasBusinessReg =
+          up?.businessRegistration || up?.certificateOfIncorporation;
+        const hasPermit = up?.businessPermit;
+        const hasKrapin = up?.krapin;
+        const hasCompanyProfile = up?.companyProfile;
+
+        const baseDocsComplete = !!(
+          hasBusinessReg &&
+          hasPermit &&
+          hasKrapin &&
+          hasCompanyProfile
+        );
+
+        // Check if all category-specific docs are present
+        let categoryDocsComplete = true;
+        const contractorCategories =
+          up?.contractorCategories || up?.contractorExperiences || [];
+
+        if (
+          Array.isArray(contractorCategories) &&
+          contractorCategories.length > 0
+        ) {
+          // For each category, check if both certificate AND license are uploaded
+          categoryDocsComplete = contractorCategories.every((cat: any) => {
+            const categoryName = cat.category || "";
+            if (!categoryName) return true; // Skip if no category name
+
+            const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
+            const certKey = `${categoryKey}_CERTIFICATE`;
+            const licenseKey = `${categoryKey}_LICENSE`;
+
+            const hasCert = cat.certificate || up?.[certKey];
+            const hasLicense = cat.license || up?.[licenseKey];
+
+            return !!(hasCert && hasLicense);
+          });
+        }
+
+        uploadsComplete = baseDocsComplete && categoryDocsComplete;
+      } else if (userType === "professional") {
+        // Professionals need: ID front/back + academic cert + CV + KRA PIN
+        // Practice license is optional
+        // Check with fallback field names (some might be stored without "Url" suffix)
+        const hasIdFront = up?.idFrontUrl || up?.idFront;
+        const hasIdBack = up?.idBackUrl || up?.idBack;
+        const hasAcademicCert =
+          up?.academicCertificateUrl || up?.academicCertificate;
+        const hasCv = up?.cvUrl || up?.cv;
+        const hasKrapin = up?.krapin;
+
+        uploadsComplete = !!(
+          hasIdFront &&
+          hasIdBack &&
+          hasAcademicCert &&
+          hasCv &&
+          hasKrapin
+        );
+      } else if (userType === "fundi") {
+        // Fundi need: ID front/back + certificate + KRA PIN
+        // Check with fallback field names
+        const hasIdFront = up?.idFrontUrl || up?.idFront;
+        const hasIdBack = up?.idBackUrl || up?.idBack;
+        const hasCertificate = up?.certificateUrl || up?.certificate;
+        const hasKrapin = up?.krapin;
+
+        uploadsComplete = !!(
+          hasIdFront &&
+          hasIdBack &&
+          hasCertificate &&
+          hasKrapin
+        );
+      } else {
+        const requiredDocs = getRequiredDocuments();
+        uploadsComplete =
+          requiredDocs.length > 0 &&
+          requiredDocs.every((key) => {
+            const value = up?.[key];
+            return value !== null && value !== undefined && value !== "";
+          });
+      }
+    }
 
     // if (up) {
     //     // Priority 1: Check the 'complete' flag from backend
@@ -190,12 +285,13 @@ function ProfilePage() {
     // ✅ Address
     const addressFields = getAddressFields();
     const addressComplete = isSectionComplete(up, addressFields);
+
     return {
-      'Account Info': accountComplete ? 'complete' : 'incomplete',
-    'Address': addressComplete ? 'complete' : 'incomplete',
+      "Account Info": accountComplete ? "complete" : "incomplete",
+      Address: addressComplete ? "complete" : "incomplete",
       "Account Uploads": uploadsComplete ? "complete" : "incomplete",
       Experience: experienceComplete ? "complete" : "incomplete",
-      Products: "incomplete",
+      // Products: "incomplete",
       Activities: "complete",
     };
   }, [

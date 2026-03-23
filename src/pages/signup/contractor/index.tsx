@@ -146,17 +146,28 @@ export default function ContractorSignup() {
 
     const handleProfileComplete = async (profileData: any) => {
         try {
-            // Prepare the complete profile payload
+            // Prepare the complete profile payload with all profile completion data
             const completeProfilePayload = {
                 email: registeredUser.email,
+                // Personal info
                 contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
+                // Location
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
+                // Reference/How did you hear
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                // Secondary contact verification
+                secondaryContact: profileData.secondaryContactVerification?.contact || "",
+                secondaryContactType: profileData.secondaryContactVerification?.contactType || "PHONE",
+                secondaryContactVerifiedOtp: profileData.secondaryContactVerification?.otp || "",
+                // For contractors, interested services are not applicable
+                interestedServices: [],
             };
 
             // Call the complete profile API

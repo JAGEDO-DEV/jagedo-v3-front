@@ -123,7 +123,7 @@ export const uploadHardwareDocuments = async (axiosInstance: any, documents: any
     }
 };
 
-export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any): Promise<any> => {
+export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any, clearRejectionReason: boolean = false): Promise<any> => {
     try {
         let url;
 
@@ -151,7 +151,13 @@ export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, docum
                 throw new Error("Invalid user type");
         }
 
-        const response = await axiosInstance.put(url, documents, {
+        // Include flag to clear rejection reason if this is a resubmission
+        const payload = {
+            ...documents,
+            ...(clearRejectionReason && { clearDocumentStatusReason: true })
+        };
+
+        const response = await axiosInstance.put(url, payload, {
             headers: {
                 Authorization: getAuthHeaders()
             }

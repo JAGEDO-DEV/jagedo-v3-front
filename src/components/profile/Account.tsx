@@ -240,7 +240,7 @@ function AccountInfo({ data, refreshData }) {
           <Field label="Last Name" value={profile.lastName} />
         </>
       )}
-
+    {/* <Field label="Phone Number" value={profile.contactFullName} /> */}
       {/* PHONE */}
       <EditableField
         label="Account Phone"

@@ -73,7 +73,7 @@ export function ProfileCompletion({
         isOtpSent: false,
         isVerified: false,
         isLoading: false,
-        resendTimer: 120,
+        resendTimer: 10,
         canResend: false,
     });
 
@@ -283,7 +283,7 @@ export function ProfileCompletion({
                     isOtpSent: true,
                     isLoading: false,
                     otp: "",
-                    resendTimer: 120,
+                    resendTimer: 10,
                     canResend: false,
                 }));
             } else {

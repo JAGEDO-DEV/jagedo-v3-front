@@ -129,3 +129,17 @@ export const approveProduct = async (axiosInstance: any, id: string | number): P
         throw new Error(error.response?.data?.message || "Failed to approve product");
     }
 };
+
+// POST /api/products/bulk
+export const bulkCreateProducts = async (axiosInstance: any, products: any[]): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(`${API_BASE_URL}/bulk`, { products }, {
+            headers: {
+                Authorization: getAuthHeaders()
+            }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to upload products");
+    }
+};

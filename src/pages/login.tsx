@@ -256,6 +256,12 @@ export default function Login() {
       user.isAdmin = typeUpper === 'ADMIN' || user.isSuperAdmin;
     }
 
+    if (user?.status === "DELETED") {
+      toast.error("Your account has been deleted.");
+      setIsLoading(false);
+      return;
+    }
+    
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("token", accessToken);
 
@@ -263,21 +269,21 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    // if (user.profileStatus === "INCOMPLETE") {
-    //   try {
-    //     setIsLoading(true);
-    //     const profileResponse = await getProviderProfile(axios, user.id);
-    //     const profileData = profileResponse?.data || profileResponse;
-    //     setRegisteredUser({ ...user, ...profileData });
-    //     setShowProfileCompletionModal(true);
-    //   } catch (error) {
-    //     console.error("Error fetching provider profile:", error);
-    //     toast.error("Failed to fetch profile details");
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    //   return;
-    // }
+    if (user.profileStatus === "INCOMPLETE" && !user.isAdmin && !user.isSuperAdmin) {
+      try {
+        setIsLoading(true);
+        const profileResponse = await getProviderProfile(axios, user.id);
+        const profileData = profileResponse?.data || profileResponse;
+        setRegisteredUser({ ...user, ...profileData });
+        setShowProfileCompletionModal(true);
+      } catch (error) {
+        console.error("Error fetching provider profile:", error);
+        toast.error("Failed to fetch profile details");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     toast.success("Login successful!");
 

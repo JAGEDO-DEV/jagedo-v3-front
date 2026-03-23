@@ -85,7 +85,7 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
   const uploadsItem = filteredBaseNavItems.find(i => i.id === "Account Uploads");
   if (uploadsItem) finalNavItems.push(uploadsItem);
 
-  if ((userType === "professional" || userType === "fundi") && verified) {
+  if ((userType === "professional" || userType === "fundi" || userType === "hardware" || userType === "contractor" ) && verified) {
     finalNavItems.push(productsItem);
   }
 
@@ -151,8 +151,7 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
               const isActive = activeComponent === item.id;
               const status = completionStatus[item.id] || 'incomplete';
               const isComplete = status === 'complete';
-              console.log(`Rendering ${item.id} - Status: ${status} - isComplete: ${isComplete}`);
-              const showStatus = item.id !== 'Activities';
+              const showStatus = item.id !== 'Activities' && item.id !== 'Products';
 
               return (
                 <ListItem
