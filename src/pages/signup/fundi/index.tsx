@@ -152,34 +152,35 @@ export default function FundiSignup() {
     };
 
     const handleProfileComplete = async (profileData: any) => {
+        console.log("Profile Completion started with data:", profileData);
+
         try {
 
             const completeProfilePayload = {
-                email: registeredUser.email,
+                email: formData.email,
                 firstName: profileData.firstName || "",
                 lastName: profileData.lastName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",
-                townCity: profileData.town || "",
-                estateVillage: profileData.estate || "",
+                townCity: profileData.town || "", // Ensure mapping is correct
+                estateVillage: profileData.estate || "", // Ensure mapping is correct
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
             };
 
+            console.log("Sending payload to API:", completeProfilePayload);
 
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                // Use the user object returned from backend as source of truth
                 const finalUser = response.data.user;
 
-                // Sync with localStorage and Global Context
                 localStorage.setItem("user", JSON.stringify(finalUser));
                 setUser(finalUser);
                 setIsLoggedIn(true);
 
-                toast.success("Profile completed! Redirecting to dashboard...");
+                toast.success("Profile completed! Redirecting...");
                 setShowProfileCompletionModal(false);
 
                 setTimeout(() => {
@@ -190,7 +191,7 @@ export default function FundiSignup() {
             }
 
         } catch (error: any) {
-            console.error("Profile completion error:", error);
+            console.error("Profile completion error in index.tsx:", error);
             toast.error(error.response?.data?.message || "Error completing profile");
         }
     };

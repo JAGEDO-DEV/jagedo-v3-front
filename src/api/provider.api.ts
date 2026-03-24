@@ -23,6 +23,28 @@ export const updateProfilePhoneNumber = async (
     }
 };
 
+export const updateProfileName = async (
+    axiosInstance: any,
+    payload: { firstName?: string; lastName?: string; organizationName?: string; contactFullName?: string }
+): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(
+            `${import.meta.env.VITE_SERVER_URL}/api/profiles/name`,
+            payload,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message || "Failed to update provider profile name"
+        );
+    }
+};
+
 export const requestPhoneUpdateOtp = async (
     axiosInstance: any,
     phone: any

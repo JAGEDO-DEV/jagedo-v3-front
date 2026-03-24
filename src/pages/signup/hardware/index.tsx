@@ -149,7 +149,9 @@ export default function HardwareSignup() {
         try {
 
             const completeProfilePayload = {
-                email: registeredUser.email,
+                email: formData.email || "",
+                firstName: profileData.firstName || "",
+                lastName: profileData.lastName || "",
                 contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
@@ -158,6 +160,10 @@ export default function HardwareSignup() {
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                idNumber: profileData.idNumber || "",
+                idType: profileData.idType || "NATIONAL_ID",
             };
 
 

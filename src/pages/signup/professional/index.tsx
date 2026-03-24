@@ -126,9 +126,10 @@ export default function ProfessionalSignup() {
         try {
 
             const completeProfilePayload = {
-                email: registeredUser.email,
+                email: formData.email,
                 firstName: profileData.firstName || "",
-                lastName: profileData.lastName || "",
+                lastName: profileData.lastName || "" ,
+                contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
@@ -136,8 +137,13 @@ export default function ProfessionalSignup() {
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                idNumber: profileData.idNumber || "",
+                idType: profileData.idType || "NATIONAL_ID",
             };
 
+            console.log("PROFESSIONAL PAYLOAD BEING SENT:", completeProfilePayload);
 
             const response = await completeProfile(completeProfilePayload);
 

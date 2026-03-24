@@ -150,10 +150,10 @@ export default function CustomerSignup() {
     };
 
     const handleProfileComplete = async (profileData: any) => {
+        console.log("Profile Completion started with data:", profileData);
         try {
-
             const completeProfilePayload = {
-                email: registeredUser.email,
+                email: formData.email,
                 firstName: profileData.firstName || "",
                 lastName: profileData.lastName || "",
                 organizationName: profileData.organizationName || "",
@@ -164,9 +164,13 @@ export default function CustomerSignup() {
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                idNumber: profileData.idNumber || "",
+                idType: profileData.idType || "NATIONAL_ID",
             };
 
-
+            console.log("Sending payload to API:", completeProfilePayload);
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
@@ -189,7 +193,7 @@ export default function CustomerSignup() {
             }
 
         } catch (error: any) {
-            console.error("Profile completion error:", error);
+            console.error("Profile completion error in customer/index.tsx:", error);
             toast.error(error.response?.data?.message || "Error completing profile");
         }
     };

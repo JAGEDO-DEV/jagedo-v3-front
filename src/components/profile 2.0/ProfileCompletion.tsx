@@ -39,7 +39,7 @@ export function ProfileCompletion({
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
 
-    
+
 
     const [personalInfo, setPersonalInfo] = useState({
         firstName: user?.firstName || "",
@@ -172,16 +172,17 @@ export function ProfileCompletion({
         ? counties[location.county as keyof typeof counties] || []
         : [];
 
-    const isOrganizationType = accountType === "ORGANIZATION" || accountType === "CONTRACTOR" || accountType === "HARDWARE";
+    const isOrganizationType = accountType === "ORGANIZATION";
 
 
     const validateStep1 = (): boolean => {
-        if (accountType === "INDIVIDUAL") {
+        if (!isOrganizationType) {
             return (
                 personalInfo.firstName.trim().length >= 2 &&
                 personalInfo.lastName.trim().length >= 2
             );
-        } else {
+        }
+        else {
             return (
                 personalInfo.organizationName.trim().length >= 3 &&
                 personalInfo.contactFullName.trim().length >= 3
@@ -347,8 +348,12 @@ export function ProfileCompletion({
                     contact: secondaryContact.contact,
                     contactType: secondaryContact.contactType,
                     otp: secondaryContact.otp,
+                    isVerified: secondaryContact.isVerified,
                 },
             };
+
+            console.log("FINAL PROFILE DATA IN MODAL SUBMIT:", profileData);
+
             await onComplete(profileData);
         } catch (error) {
             console.error(error);
@@ -524,7 +529,6 @@ export function ProfileCompletion({
 
                     {currentStep === 2 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* ... Location step remains unchanged ... */}
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-50 mb-4">
                                     <MapPin className="h-8 w-8 text-emerald-600" />
@@ -758,9 +762,9 @@ export function ProfileCompletion({
                                 </Label>
                                 <Input
                                     value={secondaryContact.contact}
-                                    onChange={(e) => setSecondaryContact({ ...secondaryContact, contact: e.target.value })}
-                                    placeholder={`Enter your ${secondaryContact.contactType.toLowerCase()}`}
-                                    className="w-full border-gray-300"
+                                    readOnly
+                                    placeholder={`Your ${secondaryContact.contactType.toLowerCase()}`}
+                                    className="w-full border-gray-300 bg-gray-100 cursor-not-allowed select-none"
                                 />
                             </div>
                             {!secondaryContact.isOtpSent ? (

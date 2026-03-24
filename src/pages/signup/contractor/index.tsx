@@ -145,32 +145,27 @@ export default function ContractorSignup() {
     };
 
     const handleProfileComplete = async (profileData: any) => {
+        console.log("Profile Completion started with data:", profileData);
         try {
-            // Prepare the complete profile payload with all profile completion data
             const completeProfilePayload = {
-                email: registeredUser.email,
-                // Personal info
+                email: formData.email,
+                firstName: profileData.firstName || "",
+                lastName: profileData.lastName || "",
                 contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
-                // Location
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
-                // Reference/How did you hear
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
                 referralDetail: profileData.referralDetail || "",
                 socialMediaOther: profileData.socialMediaOther || "",
-                // Secondary contact verification
-                secondaryContact: profileData.secondaryContactVerification?.contact || "",
-                secondaryContactType: profileData.secondaryContactVerification?.contactType || "PHONE",
-                secondaryContactVerifiedOtp: profileData.secondaryContactVerification?.otp || "",
-                // For contractors, interested services are not applicable
-                interestedServices: [],
+                idNumber: profileData.idNumber || "",
+                idType: profileData.idType || "NATIONAL_ID",
             };
 
-            // Call the complete profile API
+            console.log("Sending payload to API:", completeProfilePayload);
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
@@ -193,7 +188,7 @@ export default function ContractorSignup() {
             }
 
         } catch (error: any) {
-            console.error("Profile completion error:", error);
+            console.error("Profile completion error in contractor/index.tsx:", error);
             toast.error(error.response?.data?.message || "Error completing profile");
         }
     };
