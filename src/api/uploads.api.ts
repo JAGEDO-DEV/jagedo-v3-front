@@ -123,7 +123,7 @@ export const uploadHardwareDocuments = async (axiosInstance: any, documents: any
     }
 };
 
-export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any): Promise<any> => {
+export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, documents: any, userType: string, id: any, accountType: any, clearRejectionReason: boolean = false): Promise<any> => {
     try {
         let url;
 
@@ -151,7 +151,13 @@ export const adminDynamicUpdateAccountUploads = async (axiosInstance: any, docum
                 throw new Error("Invalid user type");
         }
 
-        const response = await axiosInstance.put(url, documents, {
+        // Include flag to clear rejection reason if this is a resubmission
+        const payload = {
+            ...documents,
+            ...(clearRejectionReason && { clearDocumentStatusReason: true })
+        };
+
+        const response = await axiosInstance.put(url, payload, {
             headers: {
                 Authorization: getAuthHeaders()
             }
@@ -170,6 +176,17 @@ export const adminVerifyDocuments = async (axiosInstance: any, userId: string): 
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to verify documents");
+    }
+};
+
+export const adminUpdateSingleDocumentStatus = async (axiosInstance: any, userId: string, documentKey: string, status: string, reason: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/documents/single/status`, { documentKey, status, reason }, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to update document status");
     }
 };
 

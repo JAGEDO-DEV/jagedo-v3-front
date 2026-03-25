@@ -8,7 +8,8 @@ import {
   updateProfileEmail,
   requestPhoneUpdateOtp,
   requestEmailUpdateOtp,
-  updateProfileImage
+  updateProfileImage,
+  updateProfileName
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
@@ -28,8 +29,13 @@ function AccountInfo({ data, refreshData }) {
   // Edit states
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
   const [phoneValue, setPhoneValue] = useState("");
   const [emailValue, setEmailValue] = useState("");
+  const [firstNameValue, setFirstNameValue] = useState("");
+  const [lastNameValue, setLastNameValue] = useState("");
+  const [orgNameValue, setOrgNameValue] = useState("");
+  const [contactNameValue, setContactNameValue] = useState("");
   const [phoneValid, setPhoneValid] = useState(false);
   const [emailValid, setEmailValid] = useState(false);
 
@@ -46,14 +52,20 @@ function AccountInfo({ data, refreshData }) {
   const [isVerifyingPhoneOtp, setIsVerifyingPhoneOtp] = useState(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
     if (data) {
       // Map API Data to Profile Structure
+      const isOrgData = data?.accountType?.toLowerCase() === "organization" || 
+                        data?.accountType?.toLowerCase() === "business" || 
+                        data?.userType === "CONTRACTOR" || 
+                        data?.userType === "HARDWARE";
+
       const mappedProfile = {
-        name: data.organizationName || `${data.firstName || ""} ${data.lastName || ""}`.trim(),
+        name: isOrgData ? (data.organizationName || "") : `${data.firstName || ""} ${data.lastName || ""}`.trim(),
         firstName: data.firstName || "",
         lastName: data.lastName || "",
         email: data.email || "",
@@ -68,6 +80,10 @@ function AccountInfo({ data, refreshData }) {
       setProfile(mappedProfile);
       setPhoneValue(mappedProfile.phone);
       setEmailValue(mappedProfile.email);
+      setFirstNameValue(mappedProfile.firstName);
+      setLastNameValue(mappedProfile.lastName);
+      setOrgNameValue(mappedProfile.organizationName);
+      setContactNameValue(mappedProfile.contactFullName);
 
       if (mappedProfile.avatar) {
         setImageSrc(mappedProfile.avatar);
@@ -196,11 +212,44 @@ function AccountInfo({ data, refreshData }) {
 
   if (!profile) return <div className="p-10">Loading info...</div>;
 
-  const isOrg = profile.type === "ORGANIZATION" || profile.type === "organization";
+  const isOrg = profile?.type?.toLowerCase() === "organization" || 
+                profile?.type?.toLowerCase() === "business" || 
+                profile?.userType === "CONTRACTOR" || 
+                profile?.userType === "HARDWARE";
+
+  const handleNameSave = async () => {
+    setIsUpdatingName(true);
+    try {
+      const payload = isOrg
+        ? { organizationName: orgNameValue, contactFullName: contactNameValue }
+        : { firstName: firstNameValue, lastName: lastNameValue };
+
+      await updateProfileName(axiosInstance, payload);
+      toast.success("Name updated successfully");
+      setIsEditingName(false);
+      if (refreshData) refreshData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  if (!profile) return <div className="p-10">Loading info...</div>;
 
   return (
     <section className="w-full max-w-4xl bg-white rounded-xl shadow-md p-8">
-      <h1 className="text-3xl font-bold mb-6">Account Info</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Account Info</h1>
+        {!isEditingName && (
+          <button
+            onClick={() => setIsEditingName(true)}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+          >
+            <FiEdit /> Edit Names
+          </button>
+        )}
+      </div>
 
       {/* Avatar */}
       <div className="flex flex-col items-start mb-8">
@@ -230,17 +279,64 @@ function AccountInfo({ data, refreshData }) {
 
       {/* Organization vs Individual Fields */}
       {isOrg ? (
-        <>
-          <Field label="Organization Name" value={profile.organizationName} />
-          <Field label="Contact Person (Optional)" value={profile.contactFullName} />
-        </>
+        <div className="space-y-4 mb-6">
+          <SimpleEditableField 
+            label={profile.userType === "HARDWARE" ? "Hardware Name" : "Company Name"} 
+            value={orgNameValue} 
+            editing={isEditingName} 
+            onChange={setOrgNameValue} 
+          />
+          {(profile.userType === "CUSTOMER" || profile.userType === "CONTRACTOR" || profile.userType === "HARDWARE") && (
+            <SimpleEditableField 
+              label="Contact Full Name" 
+              value={contactNameValue} 
+              editing={isEditingName} 
+              onChange={setContactNameValue} 
+            />
+          )}
+        </div>
       ) : (
-        <>
-          <Field label="First Name" value={profile.firstName} />
-          <Field label="Last Name" value={profile.lastName} />
-        </>
+        <div className="space-y-4 mb-6">
+          <SimpleEditableField 
+            label="First Name" 
+            value={firstNameValue} 
+            editing={isEditingName} 
+            onChange={setFirstNameValue} 
+          />
+          <SimpleEditableField 
+            label="Last Name" 
+            value={lastNameValue} 
+            editing={isEditingName} 
+            onChange={setLastNameValue} 
+          />
+        </div>
       )}
 
+      {isEditingName && (
+        <div className="flex gap-3 mb-8">
+          <button
+            disabled={isUpdatingName}
+            onClick={handleNameSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition sm:w-32"
+          >
+            {isUpdatingName ? "Saving..." : "Save"}
+          </button>
+          <button
+            disabled={isUpdatingName}
+            onClick={() => {
+              setIsEditingName(false);
+              setFirstNameValue(profile.firstName);
+              setLastNameValue(profile.lastName);
+              setOrgNameValue(profile.organizationName);
+              setContactNameValue(profile.contactFullName);
+            }}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition sm:w-32"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    {/* <Field label="Phone Number" value={profile.contactFullName} /> */}
       {/* PHONE */}
       <EditableField
         label="Account Phone"
@@ -293,6 +389,20 @@ function AccountInfo({ data, refreshData }) {
     </section>
   );
 }
+
+const SimpleEditableField = ({ label, value, editing, onChange }) => (
+  <div className="space-y-2 mb-4">
+    <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <input
+      value={value || ""}
+      readOnly={!editing}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full px-4 py-2 border-b bg-transparent outline-none transition-colors ${
+        editing ? 'border-blue-500 focus:border-blue-700' : 'border-gray-300'
+      }`}
+    />
+  </div>
+);
 
 const Field = ({ label, value }) => (
   <div className="space-y-2 mb-4">

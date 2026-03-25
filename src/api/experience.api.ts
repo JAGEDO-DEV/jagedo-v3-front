@@ -202,7 +202,7 @@ export const uploadEvaluationAudio = async (axiosInstance: any, audioFile: File)
         const formData = new FormData();
         formData.append("file", audioFile);
         
-        const response = await axiosInstance.post("/v1/files/upload-audio", formData, {
+        const response = await axiosInstance.post("/api/files/upload-audio", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
                 Authorization: getAuthHeaders()
@@ -213,5 +213,28 @@ export const uploadEvaluationAudio = async (axiosInstance: any, audioFile: File)
         return response.data?.data || response.data?.url || response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to upload audio");
+    }
+};
+
+export const updateEvaluation = async (
+    axiosInstance: any,
+    id: string,
+    data: any
+) => {
+    try {
+        const response = await axiosInstance.put(
+            `${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${id}/fundi/evaluation/edit`,
+            data,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message || "Failed to edit evaluation"
+        );
     }
 };

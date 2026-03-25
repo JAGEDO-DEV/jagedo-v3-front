@@ -48,7 +48,7 @@ export default function ContractorSignup() {
     });
 
 
-    //const totalSteps = formData.accountType === "ORGANIZATION" ? 6: 5;
+
     const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
@@ -113,25 +113,25 @@ export default function ContractorSignup() {
     };
 
     const handleSubmit = async () => {
-        // 1. Prepare the registration payload
+
         const registrationPayload = {
             email: formData.email,
             password: formData.password,
         };
 
         try {
-            // 2. Call the complete registration API
+
             const response = await handleCompleteRegistration(registrationPayload);
 
             if (response.data.success) {
                 toast.success("Account created successfully. Please complete your profile.");
 
-                // Store user data and token
+
                 const userData = response.data.user;
                 localStorage.setItem("token", response.data.accessToken || response.data.token);
                 localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
-                // Set registered user and show profile completion modal
+
                 setRegisteredUser(userData);
                 setShowProfileCompletionModal(true);
             } else {
@@ -145,10 +145,12 @@ export default function ContractorSignup() {
     };
 
     const handleProfileComplete = async (profileData: any) => {
+        console.log("Profile Completion started with data:", profileData);
         try {
-            // Prepare the complete profile payload
             const completeProfilePayload = {
-                email: registeredUser.email,
+                email: formData.email,
+                firstName: profileData.firstName || "",
+                lastName: profileData.lastName || "",
                 contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
@@ -157,16 +159,20 @@ export default function ContractorSignup() {
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                idNumber: profileData.idNumber || "",
+                idType: profileData.idType || "NATIONAL_ID",
             };
 
-            // Call the complete profile API
+            console.log("Sending payload to API:", completeProfilePayload);
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                // Use the user object returned from backend as source of truth
+
                 const finalUser = response.data.user;
 
-                // Sync with localStorage and Global Context
+
                 localStorage.setItem("user", JSON.stringify(finalUser));
                 setUser(finalUser);
                 setIsLoggedIn(true);
@@ -182,7 +188,7 @@ export default function ContractorSignup() {
             }
 
         } catch (error: any) {
-            console.error("Profile completion error:", error);
+            console.error("Profile completion error in contractor/index.tsx:", error);
             toast.error(error.response?.data?.message || "Error completing profile");
         }
     };

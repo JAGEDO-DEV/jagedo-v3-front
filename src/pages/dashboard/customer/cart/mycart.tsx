@@ -9,6 +9,26 @@ const CartPage = () => {
     const navigate = useNavigate();
 
     const handleCheckout = () => {
+        const token = localStorage.getItem("token");
+        const userStr = localStorage.getItem("user");
+        let user = null;
+        try {
+            user = userStr ? JSON.parse(userStr) : null;
+        } catch {
+            user = null;
+        }
+
+        if (!token || !user) {
+            navigate("/login", { state: { from: "/customer/checkout" } });
+            return;
+        }
+
+        const role = (user.userType || user.role || "").toString().toUpperCase();
+        if (role !== "CUSTOMER") {
+            navigate("/login", { state: { from: "/customer/checkout" } });
+            return;
+        }
+
         navigate("/customer/checkout");
     };
 

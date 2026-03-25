@@ -77,19 +77,18 @@ const Address = ({ userData }) => {
     });
   };
 
-  // --- Corrected API call ---
   const handleEdit = async () => {
-    setIsSubmitting(true);
-    try {
-      await adminUpdateAddress(axiosInstance, address, userData.id);
-      toast.success("Address Updated Successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update address");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  setIsSubmitting(true);
+  try {
+    await adminUpdateAddress(axiosInstance, address, userData.id);
+    toast.success("Address Updated Successfully");
+    setTimeout(() => window.location.reload(), 1500); 
+  } catch (err: any) {
+    toast.error(err.message || "Failed to update address");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   return (
     <div className="bg-white flex">
       <Toaster position="top-center" richColors />

@@ -78,9 +78,58 @@ export function ProviderSignupForm({
         "Water Engineer"
     ];
 
+    // Common email domain typos
+    const commonEmailTypos = {
+        'gnail.com': 'gmail.com',
+        'gmial.com': 'gmail.com',
+        'gmai.com': 'gmail.com',
+        'gmil.com': 'gmail.com',
+        'gmali.com': 'gmail.com',
+        'yahooo.com': 'yahoo.com',
+        'yaho.com': 'yahoo.com',
+        'yhoo.com': 'yahoo.com',
+        'yaho.co.uk': 'yahoo.co.uk',
+        'outlook.con': 'outlook.com',
+        'outlok.com': 'outlook.com',
+        'outloo.com': 'outlook.com',
+        'hotmial.com': 'hotmail.com',
+        'hotmai.com': 'hotmail.com'
+    };
+
+    // Validate email format and check for typos
+    const validateEmailFormat = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (!emailRegex.test(email)) {
+            return { valid: false, message: 'Please enter a valid email address' };
+        }
+        
+        const domain = email.split('@')[1]?.toLowerCase();
+        if (domain && commonEmailTypos[domain]) {
+            return {
+                valid: false,
+                message: `Did you mean ${email.split('@')[0]}@${commonEmailTypos[domain]}?`,
+                suggestion: `${email.split('@')[0]}@${commonEmailTypos[domain]}`
+            };
+        }
+        
+        return { valid: true, message: '' };
+    };
+
     useEffect(() => {
-        if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+        if (!formData.email) {
             setEmailStatus('idle');
+            return;
+        }
+
+        // Validate email format and check for typos first
+        const validation = validateEmailFormat(formData.email);
+        if (!validation.valid) {
+            setEmailStatus('idle');
+            if (validation.suggestion) {
+                // Show typo suggestion
+                toast.error(validation.message);
+            }
             return;
         }
 
@@ -168,8 +217,10 @@ export function ProviderSignupForm({
                 if (!formData.email) {
                     toast.error("Email is required");
                     return false;
-                } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-                    toast.error("Please enter a valid email address");
+                }
+                const emailValidation = validateEmailFormat(formData.email);
+                if (!emailValidation.valid) {
+                    toast.error(emailValidation.message);
                     return false;
                 }
                 break;

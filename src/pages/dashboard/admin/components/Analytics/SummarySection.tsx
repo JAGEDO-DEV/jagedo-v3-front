@@ -134,6 +134,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({ timePeriod, init
     if (rawAnalyticsData) {
       const filtered = filterDataByTimePeriod(rawAnalyticsData, timePeriod);
       setAnalyticsData(filtered);
+      console.log("Filtered Analytics Data:", filtered); // Debug log
     }
   }, [timePeriod, rawRequestsData, rawAnalyticsData]);
 
@@ -178,7 +179,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({ timePeriod, init
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
           title="Total Users"
-          value={analyticsData?.totalUsers || "0"}
+          value={analyticsData?.totalCustomers + analyticsData?.totalBuilders || "0"}
           change="10%"
           trend="up"
           icon={<Users className="h-4 w-4 text-muted-foreground" />}

@@ -14,13 +14,12 @@ import { UploadCloud, FileText, CheckCircle, XCircle, EyeIcon, InfoIcon as Lucid
 import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle, FiInfo } from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
-import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio } from "@/api/experience.api";
+import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
+import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio, updateEvaluation } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
 
 
-// Specialization options by user type
 const FUNDI_SPECIALIZATIONS = {
   Mason: [
     "Block Work & Brick Laying",
@@ -305,7 +304,7 @@ const CONTRACTOR_SPECIALIZATIONS = {
 };
 
 
-// --- Helper: deep merge objects ---
+
 const deepMerge = (target: any, source: any): any => {
   const result = { ...target };
   for (const key in source) {
@@ -318,15 +317,15 @@ const deepMerge = (target: any, source: any): any => {
   return result;
 };
 
-// --- Helper: update a user in all localStorage arrays ---
+
 
 const resolveSpecialization = (user: any) => {
   if (!user) return "";
 
-  // 1. New unified field
+
   if (user.specialization) return user.specialization;
 
-  // 2. Backward compatibility
+
   if (user.fundispecialization) return user.fundispecialization;
   if (user.professionalSpecialization) return user.professionalSpecialization;
   if (user.contractorSpecialization) return user.contractorSpecialization;
@@ -334,97 +333,51 @@ const resolveSpecialization = (user: any) => {
   return "";
 };
 
-// Local storage sync omitted as per requirements.
+
 
 
 const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
-  
+
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
 
-  // Loading States
+
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState({});
   const [isPendingAction, setIsPendingAction] = useState(false);
   const [showGlobalActions, setShowGlobalActions] = useState(false);
 
-  // Action modal state
+
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     action: "approve" | "reject" | "resubmit" | null;
   }>({ isOpen: false, action: null });
   const [actionReason, setActionReason] = useState("");
 
-  // Get user type from userData
+
   const userType = userData?.userType || "FUNDI";
   const status = userData?.experienceStatus;
 
-  // Evaluation questions from backend
+
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
 
-  // Fetch available questions on mount
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
         const response = await getEvaluationQuestions(axiosInstance, "FUNDI");
-        const data = Array.isArray(response) ? response : (response?.data && Array.isArray(response.data) ? response.data : []);
-        setAvailableQuestions(data);
 
-        // Map templates to evaluation state if not already prefilled from evaluation results
-        const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-        if (!PREFILL_STATUSES.includes(status) || !evaluation) {
-          const initial = data.map((q: any) => ({
-            id: q.id,
-            text: q.text,
-            type: q.type.toLowerCase(),
-            options: q.options || [],
-            answer: "",
-            score: 0,
-            isEditing: false,
-          }));
-          setQuestions(initial);
-        } else {
-          // Map dynamic questions to existing evaluation answers
-          const prefilled = data.map((q: any, index: number) => {
-            let answer = "";
-            let score = 0;
+        const extractedData = Array.isArray(response)
+          ? response
+          : (response?.data && Array.isArray(response.data) ? response.data : []);
 
-            // 1. Try to find in dynamic responses array if it exists
-            const savedResponse = evaluation.responses?.find((r: any) => r.questionId === q.id || r.text === q.text);
-
-            if (savedResponse) {
-              answer = savedResponse.answer;
-              score = savedResponse.score;
-            } else if (index < 4) {
-              // 2. Fallback to legacy fixed fields for the first 4 questions
-              const legacyFields = [
-                { ans: evaluation.hasMajorWorks, sc: evaluation.majorWorksScore },
-                { ans: evaluation.materialsUsed, sc: evaluation.materialsUsedScore },
-                { ans: evaluation.essentialEquipment, sc: evaluation.essentialEquipmentScore },
-                { ans: evaluation.quotationFormulation, sc: evaluation.quotationFormulaScore }
-              ];
-              answer = legacyFields[index].ans || "";
-              score = legacyFields[index].sc || 0;
-            }
-
-            return {
-              id: q.id,
-              text: q.text,
-              type: q.type.toLowerCase(),
-              options: q.options || [],
-              answer,
-              score,
-              isEditing: false,
-            };
-          });
-          setQuestions(prefilled);
-        }
+        setAvailableQuestions(extractedData);
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
         toast.error("Failed to load evaluation questions");
@@ -438,11 +391,71 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   }, [userType, userData?.id]);
 
-  // Statuses that should prefill/show existing data
+
+  useEffect(() => {
+    if (availableQuestions.length > 0) {
+      const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+      if (evaluation) {
+        prefillQuestionsFromData();
+      } else {
+        const initial = availableQuestions.map((q: any) => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          options: q.options || [],
+          answer: "",
+          score: 0,
+          isEditing: false,
+        }));
+        setQuestions(initial);
+      }
+    }
+  }, [availableQuestions, userData?.fundiEvaluation, userData?.userProfile?.fundiEvaluation]);
+
+  const prefillQuestionsFromData = () => {
+    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+    if (!evaluation || !availableQuestions.length) return;
+
+    const prefilled = availableQuestions.map((q: any, index: number) => {
+      let answer = "";
+      let score = 0;
+
+      const savedResponse = evaluation.responses?.find((r: any) => r.questionId === q.id || r.text === q.text);
+
+      if (savedResponse) {
+        answer = savedResponse.answer;
+        score = savedResponse.score;
+      } else if (index < 4) {
+        const legacyFields = [
+          { ans: evaluation.hasMajorWorks, sc: evaluation.majorWorksScore },
+          { ans: evaluation.materialsUsed, sc: evaluation.materialsUsedScore },
+          { ans: evaluation.essentialEquipment, sc: evaluation.essentialEquipmentScore },
+          { ans: evaluation.quotationFormulation, sc: evaluation.quotationFormulaScore }
+        ];
+        if (legacyFields[index]) {
+          answer = legacyFields[index].ans || "";
+          score = legacyFields[index].sc || 0;
+        }
+      }
+
+      return {
+        id: q.id,
+        text: q.text,
+        type: q.type,
+        options: q.options || [],
+        answer,
+        score,
+        isEditing: false,
+      };
+    });
+    setQuestions(prefilled);
+  };
+
+
   const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
   const getInitialAttachments = () => {
-    // If no profile, return empty
+
     if (!userData) {
       return [];
     }
@@ -517,7 +530,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // Get project field name based on user type
+
   const getProjectFieldName = () => {
     switch (userType) {
       case "FUNDI":
@@ -553,7 +566,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     [key: string]: boolean;
   }>({});
   const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
-  // Initialize categories from userData or defaults
+
   const getInitialCategories = (): ContractorCategory[] => {
     if (userData?.contractorCategories && Array.isArray(userData.contractorCategories)) {
       return userData.contractorCategories.map((cat: any) => ({
@@ -563,7 +576,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         years: cat.years || cat.yearsOfExperience || "",
       }));
     }
-    // Fallback: try contractorExperiences if it's an array
+
     if (userData?.contractorExperiences && Array.isArray(userData.contractorExperiences)) {
       return userData.contractorExperiences.map((exp: any) => ({
         category: exp.category || "",
@@ -592,7 +605,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setCategories(categories.filter((_, i) => i !== index));
   };
 
-  // Initialize info from userData based on user type
+
   const getInitialInfo = () => {
     if (!userData) {
       return getDefaultInfo();
@@ -899,9 +912,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   const fields = getFieldsConfig();
 
-  // --- END ORIGINAL ---
 
-  // --- localStorage-based file upload (using local object URLs) ---
+
+
   const handleFileUpload = (e, rowIndex) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
@@ -918,7 +931,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         ...selectedFiles.map((file) => ({
           name: file.name,
           url: URL.createObjectURL(file),
-          rawFile: file, // Store the raw file for upload during final save
+          rawFile: file,
         })),
       );
       updatedAttachments = newAttachments;
@@ -929,7 +942,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  // Get required project count based on user type and level
+
   const getRequiredProjectCount = () => {
     const currentGrade = isEditingFields ? editingFields.grade : info.grade;
     const currentLevel = isEditingFields ? editingFields.professionalLevel : info.professionalLevel;
@@ -940,17 +953,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         if (currentGrade === "G2: Skilled") return 2;
         if (currentGrade === "G3: Semi-skilled") return 1;
         if (currentGrade === "G4: Unskilled") return 0;
-        return 0; // default for unknown grades
+        return 0;
       case "PROFESSIONAL":
         if (currentLevel === "Senior") return 3;
         if (currentLevel === "Professional") return 2;
         if (currentLevel === "Graduate") return 1;
         if (currentLevel === "Student") return 0;
-        return 0; // default for unknown levels
+        return 0;
       case "CONTRACTOR":
-        return 1; // Standard for contractors
+        return 1;
       case "HARDWARE":
-        return 2; // Standard for hardware
+        return 2;
       default:
         return 0;
     }
@@ -962,7 +975,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     requiredProjectCount - attachments.length,
   );
 
-  // --- localStorage-based add new project ---
+
   const handleAddNewProject = (
     projectId: string,
     projectName: string,
@@ -985,7 +998,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       files: files.map((file) => ({
         name: file.name,
         url: URL.createObjectURL(file),
-        rawFile: file, // Store the raw file
+        rawFile: file,
       })),
     };
 
@@ -998,9 +1011,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setUploadingProjects((prev) => ({ ...prev, [projectId]: false }));
   };
 
-  // --- END ORIGINAL ---
 
-  // --- localStorage-based updateUserProjects ---
+
+
   const updateUserProjects = (updatedAttachments) => {
     try {
       const profile = userData?.userProfile || {};
@@ -1015,7 +1028,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         }))
         .filter((project) => project.files.length > 0);
 
-      
+
 
       const projectData = cleanAttachments.flatMap((project) =>
         project.files.map((file) => ({
@@ -1042,7 +1055,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // --- localStorage-based replace file ---
+
   const handleReplaceFile = (e, rowIndex, fileIndex) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1060,7 +1073,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         newAttachments[rowIndex].files[fileIndex] = {
           name: file.name,
           url: URL.createObjectURL(file),
-          rawFile: file, // Store the raw file
+          rawFile: file,
         };
       }
       updatedAttachments = newAttachments;
@@ -1072,7 +1085,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  // --- localStorage-based remove file ---
+
   const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
@@ -1095,9 +1108,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-  // (Legacy evaluation logic removed in favor of dynamic backend templates)
 
-  // Add a new question draft (Local only)
+
+
   const addNewQuestion = () => {
     if (!isAdmin) return;
 
@@ -1115,7 +1128,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setQuestions((prev) => [...prev, newQuestion]);
   };
 
-  // Save a new question draft to the backend
+
   const handleSaveNewQuestion = async (draft: any) => {
     if (!draft.isDraft) return;
 
@@ -1131,7 +1144,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       const response = await createEvaluationQuestion(axiosInstance, payload);
       const realQuestion = response?.data || response;
 
-      // Replace draft with real question in state
+
       setQuestions((prev) =>
         (Array.isArray(prev) ? prev : []).map((q) =>
           q.id === draft.id
@@ -1145,7 +1158,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         ),
       );
 
-      // Update available templates
+
       setAvailableQuestions((prev) => [...(Array.isArray(prev) ? prev : []), realQuestion]);
 
       toast.success("Question created and synced");
@@ -1156,7 +1169,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // Delete a question (Sync with backend if not draft)
+
   const handleDeleteQuestion = async (questionId: any) => {
     const q = questions.find((item) => item.id === questionId);
     if (!q) return;
@@ -1165,7 +1178,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       return;
 
     if (q.isDraft) {
-      // Just remove from local state
+
       setQuestions((prev) => prev.filter((item) => item.id !== questionId));
       return;
     }
@@ -1184,11 +1197,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // Update a specific question template
+
   const handleUpdateTemplate = async (questionId: any, text: string, type: string, options?: string[]) => {
     if (!isAdmin) return;
 
-    // Only update template for non-drafts. Drafts are saved via handleSaveNewQuestion
+
     const q = questions.find((item) => item.id === questionId);
     if (!q || q.isDraft) return;
 
@@ -1210,14 +1223,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
 
-  // (Deleted in favor of handleDeleteQuestion)
 
-  // Initialize questions state
-  // (Moved to useEffect above)
 
-  // Initialize new projects state
 
-  // Initialize new projects state
+
+
+
+
+
   useEffect(() => {
     const initialNewProjects: { [key: string]: any } = {};
     for (let i = 0; i < Math.min(missingProjectCount, 3); i++) {
@@ -1253,7 +1266,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       ),
     );
 
-    // If admin and NOT a draft, sync to backend
+
     if (isAdmin) {
       const q = questions.find((item) => item.id === id);
       if (q && !q.isDraft) {
@@ -1375,16 +1388,31 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     if (!evaluation) return null;
 
-    // Use current questions state which we already prefilled in useEffect
-    // or fallback to evaluation object responses
+
+
     const displayQuestions = questions.length > 0 ? questions : (evaluation.responses || []);
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
         <div className="bg-blue-900 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
-            <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
+            </div>
+            {isAdmin && !isEditingEvaluation && (
+              <button
+                type="button"
+                onClick={() => {
+                  prefillQuestionsFromData();
+                  setIsEditingEvaluation(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold transition-colors border border-white/20"
+              >
+                <SquarePen className="w-3.5 h-3.5 text-blue-300" />
+                Edit Evaluation
+              </button>
+            )}
           </div>
           <div className="bg-white/10 px-4 py-1 rounded-full border border-white/20">
             <span className="text-sm font-semibold text-white">
@@ -1423,7 +1451,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 Audio Feedback Reference
               </h4>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <audio src={evaluation.audioUrl} controls className="w-full" />
+                <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10 custom-audio-player">
+                  Your browser does not support the audio element.
+                </audio>
               </div>
             </div>
           )}
@@ -1482,22 +1512,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
-  // Load initial values from localStorage and userData
+
   useEffect(() => {
-    // Check localStorage for verification message
+
     const stored = localStorage.getItem("showVerificationMessage");
     if (stored === "true") {
       setShowVerificationMessage(true);
     }
 
-    // Check if user is already verified from userData (same source for all user types)
+
     const isVerified = userData?.userProfile?.fundiEvaluation?.isVerified;
 
     if (isVerified) {
       setShowVerificationMessage(true);
     }
 
-    // Set audio URL if it exists in evaluation data (same source for all user types)
+
     const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     const audioUrlFromData =
       evaluation?.audioUrl ||
@@ -1505,11 +1535,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
     if (audioUrlFromData) {
       setAudioUrl(audioUrlFromData);
-      
+
     }
   }, [userData]);
 
-  // --- localStorage-based verify ---
+
   const handleVerify = async () => {
     setIsVerifying(true);
     const userId = userData.id;
@@ -1531,13 +1561,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // When close is clicked
+
   const handleClose = () => {
     localStorage.removeItem("showVerificationMessage");
     setShowVerificationMessage(false);
   };
 
-  // --- Real audio upload ---
+
   const handleAudioUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1559,9 +1589,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // --- localStorage-based evaluation submit ---
+
   const handleEvaluationSubmit = async (e) => {
-    
+
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage("");
@@ -1574,8 +1604,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
 
     const body = {
-      // Map based on current dynamic questions
-      // For backward compatibility with existing fixed fields (if they exist)
+
+
       hasMajorWorks: questions[0]?.answer || "",
       materialsUsed: questions[1]?.answer || "",
       essentialEquipment: questions[2]?.answer || "",
@@ -1586,7 +1616,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       essentialEquipmentScore: questions[2]?.score || 0,
       quotationFormulaScore: questions[3]?.score || 0,
 
-      // Full dynamic data
+
       responses: questions.map(q => ({
         questionId: q.id,
         text: q.text,
@@ -1600,9 +1630,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     };
 
     try {
-      await submitEvaluation(axiosInstance, profileId, body);
-      setSubmitMessage("Evaluation submitted successfully!");
-      toast.success("Evaluation submitted successfully!");
+      await updateEvaluation(axiosInstance, profileId, body);
+      setSubmitMessage("Evaluation updated successfully!");
+      toast.success("Evaluation updated successfully!");
+      setIsEditingEvaluation(false);
       if (refetch) {
         refetch();
       } else {
@@ -1616,20 +1647,20 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-  // --- Consolidated Save Changes ---
+
   const handleSaveChanges = async () => {
     setIsSavingInfo(true);
     const toastId = toast.loading("Saving all changes...");
     try {
       if (!userData?.id) throw new Error("User ID not found");
 
-      // 1. Handle File Uploads for all projects
+
       const updatedAttachments = await Promise.all(
         attachments.map(async (project) => {
           const updatedFiles = await Promise.all(
             project.files.map(async (f) => {
               if (f.rawFile) {
-                // Upload new file and get remote URL
+
                 const uploaded = await uploadFile(f.rawFile);
                 return { name: f.name, url: uploaded.url };
               }
@@ -1640,7 +1671,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         })
       );
 
-      // 2. Prepare payload based on user type
+
       let response;
       if (userType === "FUNDI") {
         const flattenedProjectFiles = updatedAttachments.flatMap((project) =>
@@ -1694,7 +1725,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         response = await adminUpdateContractorExperience(axiosInstance, userData.id, payload);
       } else {
-        // Fallback for Hardware or other types
+
         await updateBuilderLevel(
           axiosInstance,
           userData.id,
@@ -1857,7 +1888,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             {field.label}
                           </label>
-                          {!isEditingFields && isAdmin && (
+                          {!isEditingFields && isAdmin && !(userType === "FUNDI" && field.name === "skill") && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1871,7 +1902,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           )}
                         </div>
 
-                        {isEditingFields ? (
+                        {isEditingFields && !(userType === "FUNDI" && field.name === "skill") ? (
                           <select
                             value={editingFields[field.name] ?? fieldValue ?? ""}
                             onChange={(e) => {
@@ -1970,10 +2001,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               const newCategory = e.target.value;
                               const updated = [...categories];
                               updated[index].category = newCategory;
-                              updated[index].specialization = ""; // Reset specialization when category changes
+                              updated[index].specialization = "";
                               setCategories(updated);
 
-                              // Auto-add a project row for this category if not already exists
+
                               if (newCategory) {
                                 const projectExists = attachments.some(
                                   (att) => att.projectName?.toLowerCase().includes(newCategory.toLowerCase())
@@ -2085,6 +2116,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
               </div>
             )}
 
+
             {/* {userType} Project Attachments */}
             <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
@@ -2193,7 +2225,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               {isAdmin && (
                                 <button
                                   type="button"
-                                  onClick={() => handleRemoveFile(index, 0)} // Assuming removing the whole project if needed or just first file
+                                  onClick={() => handleRemoveFile(index, 0)}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                   title="Delete Project Row"
                                 >
@@ -2385,19 +2417,19 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             )}
             {/* Evaluation Results Summary */}
             {userType.toLowerCase() === "fundi" &&
-              (userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && renderEvaluationResults()}
+              (userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && !isEditingEvaluation && renderEvaluationResults()}
 
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
+              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  {userType} Evaluation Guidelines
+                  {userType} Evaluation {isEditingEvaluation ? "Update" : "Guidelines"}
                 </h2>
               )}
 
             {/* Scoring Criteria Description */}
             {userType.toLowerCase() === "fundi" &&
-              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
+              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <h3 className="font-semibold text-blue-900 text-sm mb-2">
                     Scoring Criteria:
@@ -2421,12 +2453,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
+              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-800">
-                        Evaluation Form
+                        Evaluation Form {isEditingEvaluation && "(Editing)"}
                       </h2>
                       {(userData?.userProfile?.skill || userData?.skills) && (
                         <p className="text-sm text-gray-500 mt-1">
@@ -2507,7 +2539,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-[10px] uppercase font-bold text-gray-400">Type:</span>
                               <select
-                                value={q.type}
+                                value={q.type?.toUpperCase()}
                                 onChange={(e) => {
                                   const newType = e.target.value;
                                   setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, type: newType } : item));
@@ -2515,14 +2547,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 }}
                                 className="text-[10px] border-none bg-gray-100 rounded px-1 py-0.5 focus:ring-0"
                               >
-                                <option value="open">OPEN</option>
-                                <option value="radio">RADIO</option>
-                                <option value="checkbox">CHECKBOX</option>
+                                <option value="OPEN">OPEN</option>
+                                <option value="RADIO">RADIO</option>
+                                <option value="CHECKBOX">CHECKBOX</option>
                               </select>
                             </div>
                           )}
 
-                          {q.type === "radio" || q.type === "select" ? (
+                          {q.type?.toUpperCase() === "RADIO" || q.type?.toUpperCase() === "SELECT" ? (
                             <div className="space-y-2">
                               <select
                                 value={q.answer}
@@ -2549,7 +2581,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                         if (val) {
                                           const newOpts = [...(q.options || []), val];
                                           setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                          handleUpdateTemplate(q.id, q.text, q.type, newOpts);
+                                          handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
                                           e.currentTarget.value = '';
                                         }
                                       }
@@ -2559,7 +2591,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 </div>
                               )}
                             </div>
-                          ) : q.type === "checkbox" ? (
+                          ) : q.type?.toUpperCase() === "CHECKBOX" ? (
                             <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
                               {q.options?.map((opt, i) => (
                                 <label key={i} className="flex items-center gap-2 cursor-pointer group">
@@ -2584,7 +2616,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                       onClick={() => {
                                         const newOpts = q.options.filter((_, idx) => idx !== i);
                                         setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                        handleUpdateTemplate(q.id, q.text, q.type, newOpts);
+                                        handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
                                       }}
                                       className="hidden group-hover:block text-red-400 hover:text-red-600"
                                     >
@@ -2603,7 +2635,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                       if (val) {
                                         const newOpts = [...(q.options || []), val];
                                         setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                        handleUpdateTemplate(q.id, q.text, q.type, newOpts);
+                                        handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
                                         e.currentTarget.value = '';
                                       }
                                     }
@@ -2659,7 +2691,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               newTotal -
                               prev.reduce((sum, q) => sum + q.score, 0);
                             if (updated.length > 0) {
-                              // Distribute difference to the last question (or first if you prefer)
+
                               updated[updated.length - 1].score += diff;
                             }
                             return [...updated];
@@ -2694,19 +2726,33 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           <p className="text-green-600 text-sm mb-2">
                             Audio uploaded successfully!
                           </p>
-                          <audio controls src={audioUrl} className="w-full" />
+                          <audio key={audioUrl} src={audioUrl} controls className="w-full h-10 shadow-sm rounded-lg overflow-hidden">
+                            Your browser does not support the audio element.
+                          </audio>
                         </div>
                       )}
                     </div>
 
                     <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-2">
+                      {isEditingEvaluation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            prefillQuestionsFromData();
+                            setIsEditingEvaluation(false);
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
                       {
                         <button
                           type="submit"
                           className="w-full sm:w-auto bg-blue-800 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-medium"
                           disabled={isSubmitting}
                         >
-                          {isSubmitting ? "Submitting..." : "Submit Evaluation"}
+                          {isSubmitting ? "Submitting..." : (isEditingEvaluation ? "Update Evaluation" : "Submit Evaluation")}
                         </button>
                       }
                       {submitMessage && (

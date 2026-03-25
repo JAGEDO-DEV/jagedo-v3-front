@@ -43,6 +43,8 @@ export interface Product {
     type: string;
     category: string;
     price: number;
+    showFromPrice?: boolean;
+    isAggregated?: boolean;
     custom: boolean;
     regionName?: string;
     images: string[];
@@ -60,11 +62,6 @@ export interface Product {
 
 
 const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] => {
-    const REGION_AGNOSTIC_TYPES = [
-        "Custom Products", "Windows", "Doors", "Gates", "FUNDI",
-        "Plans", "Designs", "PROFESSIONAL"
-    ];
-
     return rawProducts.flatMap((rawProduct): Product[] => {
         const baseProductData = {
             productId: rawProduct.id,
@@ -84,41 +81,25 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             },
         };
 
-        const isRegionAgnostic =
-            rawProduct.custom ||
-            REGION_AGNOSTIC_TYPES.some(t => rawProduct.type?.toLowerCase().includes(t.toLowerCase()));
-
-        if (isRegionAgnostic) {
-            const price = rawProduct.customPrice ?? rawProduct.basePrice ?? 0;
-            return [{
-                ...baseProductData,
-                id: `${rawProduct.id}-custom`,
-                price: price,
-                custom: rawProduct.custom,
-                isLocationAgnostic: true,
-                regionName: "Universal"
-            }];
-        }
-
         // If it has specific regional prices, create one entry per region
         if (rawProduct.prices && rawProduct.prices.length > 0) {
             return rawProduct.prices.map(priceEntry => ({
                 ...baseProductData,
                 id: `${rawProduct.id}-${priceEntry.regionId}`,
                 price: priceEntry.price,
-                custom: false,
+                custom: rawProduct.custom,
                 regionName: priceEntry.regionName,
             }));
         }
 
-        // Fallback: If no regional prices, use basePrice or 0
+        // Fallback: If no regional prices, treat as location-agnostic (shows under all regions unless UI chooses strict matching)
         return [{
             ...baseProductData,
             id: `${rawProduct.id}-base`,
             price: rawProduct.basePrice ?? 0,
-            custom: false,
-            regionName: "Default",
-            isLocationAgnostic: true
+            custom: rawProduct.custom,
+            regionName: "Universal",
+            isLocationAgnostic: true,
         }];
     });
 };

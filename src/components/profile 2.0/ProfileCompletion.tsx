@@ -39,7 +39,7 @@ export function ProfileCompletion({
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
 
-    
+
 
     const [personalInfo, setPersonalInfo] = useState({
         firstName: user?.firstName || "",
@@ -73,7 +73,7 @@ export function ProfileCompletion({
         isOtpSent: false,
         isVerified: false,
         isLoading: false,
-        resendTimer: 120,
+        resendTimer: 10,
         canResend: false,
     });
 
@@ -172,16 +172,17 @@ export function ProfileCompletion({
         ? counties[location.county as keyof typeof counties] || []
         : [];
 
-    const isOrganizationType = accountType === "ORGANIZATION" || accountType === "CONTRACTOR" || accountType === "HARDWARE";
+    const isOrganizationType = accountType === "ORGANIZATION";
 
 
     const validateStep1 = (): boolean => {
-        if (accountType === "INDIVIDUAL") {
+        if (!isOrganizationType) {
             return (
                 personalInfo.firstName.trim().length >= 2 &&
                 personalInfo.lastName.trim().length >= 2
             );
-        } else {
+        }
+        else {
             return (
                 personalInfo.organizationName.trim().length >= 3 &&
                 personalInfo.contactFullName.trim().length >= 3
@@ -283,7 +284,7 @@ export function ProfileCompletion({
                     isOtpSent: true,
                     isLoading: false,
                     otp: "",
-                    resendTimer: 120,
+                    resendTimer: 10,
                     canResend: false,
                 }));
             } else {
@@ -347,8 +348,12 @@ export function ProfileCompletion({
                     contact: secondaryContact.contact,
                     contactType: secondaryContact.contactType,
                     otp: secondaryContact.otp,
+                    isVerified: secondaryContact.isVerified,
                 },
             };
+
+            console.log("FINAL PROFILE DATA IN MODAL SUBMIT:", profileData);
+
             await onComplete(profileData);
         } catch (error) {
             console.error(error);
@@ -362,6 +367,7 @@ export function ProfileCompletion({
         if (onCancel) {
             onCancel();
         }
+        window.location.href = "http://localhost:8080";
     };
 
     const stepInfo = [
@@ -397,7 +403,7 @@ export function ProfileCompletion({
     return (
         <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-50 py-8")}>
             <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
-                {/* Header */}
+                
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h1 className={cn("font-bold text-gray-800", isModal ? "text-2xl" : "text-3xl")}>
@@ -417,7 +423,7 @@ export function ProfileCompletion({
                     )}
                 </div>
 
-                {/* Step Indicators */}
+                
                 <div className="flex items-center justify-between mb-6 px-2">
                     {stepInfo.map((step, index) => {
                         const StepIcon = step.icon;
@@ -454,7 +460,7 @@ export function ProfileCompletion({
                     })}
                 </div>
 
-                {/* Progress Bar */}
+                
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
                     <div
                         className="bg-blue-600 h-1.5 rounded-full transition-all duration-500 ease-out"
@@ -523,7 +529,6 @@ export function ProfileCompletion({
 
                     {currentStep === 2 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* ... Location step remains unchanged ... */}
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-50 mb-4">
                                     <MapPin className="h-8 w-8 text-emerald-600" />
@@ -607,7 +612,7 @@ export function ProfileCompletion({
 
                     {currentStep === 3 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* Header */}
+                            
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-50 mb-4">
                                     <MessageSquare className="h-8 w-8 text-violet-600" />
@@ -616,7 +621,7 @@ export function ProfileCompletion({
                                 <p className="text-sm text-gray-500 mt-1">How did you find us?</p>
                             </div>
 
-                            {/* How did you hear about us */}
+                            
                             <div className="space-y-2">
                                 <Label>How did you hear about us? *</Label>
                                 <Select
@@ -639,7 +644,7 @@ export function ProfileCompletion({
                                 </Select>
                             </div>
 
-                            {/* Referral Details */}
+                            
                             {["SOCIAL_MEDIA", "DIRECT_REFERRAL", "OTHER"].includes(reference.howDidYouHearAboutUs) && (
                                 <div className="space-y-2 animate-fade-in">
                                     <Label>
@@ -692,7 +697,7 @@ export function ProfileCompletion({
                                 </div>
                             )}
 
-                            {/* CUSTOMER ONLY: Interested Services - hide for service providers */}
+                            
                             {(userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
                                 !(userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType)) && (
 
@@ -715,7 +720,7 @@ export function ProfileCompletion({
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        {/* Show input only when "Other" is selected */}
+                                        
                                         {reference.interestedServices.includes("Other") && (
                                             <div className="mt-3 space-y-2">
                                                 <Label>Please specify the other service *</Label>
@@ -736,7 +741,7 @@ export function ProfileCompletion({
 
                     {currentStep === 4 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* ... Verification step remains unchanged ... */}
+                            
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 mb-4">
                                     <ShieldCheck className="h-8 w-8 text-amber-600" />
@@ -757,9 +762,9 @@ export function ProfileCompletion({
                                 </Label>
                                 <Input
                                     value={secondaryContact.contact}
-                                    onChange={(e) => setSecondaryContact({ ...secondaryContact, contact: e.target.value })}
-                                    placeholder={`Enter your ${secondaryContact.contactType.toLowerCase()}`}
-                                    className="w-full border-gray-300"
+                                    readOnly
+                                    placeholder={`Your ${secondaryContact.contactType.toLowerCase()}`}
+                                    className="w-full border-gray-300 bg-gray-100 cursor-not-allowed select-none"
                                 />
                             </div>
                             {!secondaryContact.isOtpSent ? (

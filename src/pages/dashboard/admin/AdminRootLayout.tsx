@@ -16,6 +16,7 @@ import { NotificationsModal } from "@/components/NotificationsModal";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 import { toast } from "react-hot-toast";
+import { getProviderProfile } from "@/api/provider.api";
 
 export default function AdminRootLayout() {
   const navigate = useNavigate();
@@ -27,6 +28,14 @@ export default function AdminRootLayout() {
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
   const [notificationsPopoverOpen, setNotificationsPopoverOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const resolveProfileImageSrc = (src?: string | null) => {
+    if (!src) return null;
+    if (src.startsWith("http") || src.startsWith("data:")) return src;
+    const base = (import.meta.env.VITE_SERVER_URL || "").replace(/\/$/, "");
+    return `${base}${src.startsWith("/") ? "" : "/"}${src}`;
+  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -68,6 +77,21 @@ export default function AdminRootLayout() {
     };
     if (user) fetchNotifications();
   }, [user]);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        if (!user?.id) return;
+        const profile = await getProviderProfile(axiosInstance, user.id);
+        // getProviderProfile returns response.data
+        const img = profile?.data?.profileImage || profile?.profileImage || null;
+        setProfileImage(img);
+      } catch (error) {
+        // keep silent; we'll fall back to default avatar
+      }
+    };
+    fetchProfileImage();
+  }, [axiosInstance, user?.id]);
 
   const handleMarkAsRead = (notificationId: string | number) => {
     setNotifications(prev =>
@@ -156,8 +180,17 @@ export default function AdminRootLayout() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className="relative h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a63e]">
-                        <img src="/images/customer-1.jpeg" alt="User avatar" width={40} height={40} className="rounded-full object-cover border" />
+                      <button
+                        type="button"
+                        className="relative h-8 w-8 overflow-hidden rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a63e]"
+                      >
+                        <img
+                          src={resolveProfileImageSrc(profileImage) || "/images/customer-1.jpeg"}
+                          alt="User avatar"
+                          width={32}
+                          height={32}
+                          className="h-full w-full rounded-full object-cover border"
+                        />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">

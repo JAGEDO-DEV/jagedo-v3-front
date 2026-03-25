@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
@@ -93,6 +94,7 @@ function ProfileApp() {
 
   return (
     <div className="min-h-screen flex bg-white">
+      <Toaster position="top-center" richColors />
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
