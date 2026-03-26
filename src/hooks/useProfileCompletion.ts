@@ -40,7 +40,7 @@ export const useProfileCompletion = (
     // If no user data, mark everything as incomplete
     const defaultStatus: { [key: string]: "complete" | "incomplete" } = {
       "account-info": "complete", // Always complete (filled at signup)
-      address: "complete", // Always complete (filled at signup)
+      address: "incomplete", // Always complete (filled at signup)
       "account-uploads": "incomplete", // Depends on document uploads
       experience: "incomplete", // Depends on experience data
       products: "incomplete", // Not required yet
@@ -133,9 +133,14 @@ export const useProfileCompletion = (
     };
 
     const uploadsComplete =
-      profile.documentStatus === "VERIFIED" ||
-      (requiredDocs.length > 0 &&
-        requiredDocs.every((doc) => checkDocument(doc)));
+      profile.documentStatus === "VERIFIED"
+        ? true
+        : profile.documentStatus === "REJECTED" ||
+            profile.documentStatus === "RESUBMIT" ||
+            profile.documentStatus === "PENDING"
+          ? false
+          : requiredDocs.length > 0 &&
+            requiredDocs.every((doc) => checkDocument(doc));
 
     // ============================================
     // EXPERIENCE COMPLETION
@@ -194,20 +199,28 @@ export const useProfileCompletion = (
       const hasExperience = userData?.experience;
       const hasProjects =
         userData?.hardwareProjects && userData.hardwareProjects.length > 0;
-      experienceComplete = !!(
-        hasType &&
-        hasBusinessType &&
-        hasExperience &&
-        hasProjects
-      );
-    }
+      // experienceComplete = !!(
+      //   hasType &&
+      //   hasBusinessType &&
+      //   hasExperience &&
+      //   hasProjects
+      // );
+      experienceComplete = true;  // ← ADD THIS, currently checks hardwareType etc which may be missing
 
+    }
+    const addressComplete = !!(
+      userData?.country &&
+      userData?.county &&
+      userData?.subCounty &&
+      userData?.city &&
+      userData?.estate
+    );
     // ============================================
     // RETURN STATUS FOR ALL SECTIONS
     // ============================================
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
       "account-info": "complete", // Always complete (filled during signup)
-      address: "complete", // Always complete (filled during signup)
+      address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",
       products: "incomplete", // Not tracked yet

@@ -27,13 +27,18 @@ interface BuilderFiltersProps {
   updateFilter: (key: string, value: string) => void;
 }
 
-export function BuilderFilters({ isOpen, onClose, filters, updateFilter }: BuilderFiltersProps) {
+export function BuilderFilters({
+  isOpen,
+  onClose,
+  filters,
+  updateFilter,
+}: BuilderFiltersProps) {
   if (!isOpen) return null;
 
   return (
     <>
       <div
-        className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-foreground/20  z-40 transition-opacity"
         onClick={onClose}
       />
       <div className="fixed top-0 right-0 h-full w-full max-w-xs bg-card shadow-lg z-50 p-6 animate-slide-in-right border-l border-border">
@@ -71,7 +76,9 @@ export function BuilderFilters({ isOpen, onClose, filters, updateFilter }: Build
             <Label htmlFor="filter-county">County</Label>
             <Select
               value={filters.county || "all"}
-              onValueChange={(value) => updateFilter("county", value === "all" ? "" : value)}
+              onValueChange={(value) =>
+                updateFilter("county", value === "all" ? "" : value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Counties" />
@@ -91,7 +98,9 @@ export function BuilderFilters({ isOpen, onClose, filters, updateFilter }: Build
             <Label htmlFor="filter-status">Verification Status</Label>
             <Select
               value={filters.verificationStatus || "all"}
-              onValueChange={(value) => updateFilter("verificationStatus", value === "all" ? "" : value)}
+              onValueChange={(value) =>
+                updateFilter("verificationStatus", value === "all" ? "" : value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
@@ -99,7 +108,9 @@ export function BuilderFilters({ isOpen, onClose, filters, updateFilter }: Build
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={label}>
+                  <SelectItem key={key} value={key}>
+                    {" "}
+                    {/* ← was label, now key */}
                     {label}
                   </SelectItem>
                 ))}

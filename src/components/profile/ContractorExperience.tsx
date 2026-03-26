@@ -72,7 +72,7 @@ const SPECIALIZATIONS: { [key: string]: string[] } = {
   ],
 };
 
-const NCA_CLASSES = ["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5"];
+const NCA_CLASSES = ["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5" , "NCA 6", "NCA 7", "NCA 8"];
 const YEARS_OF_EXPERIENCE = ["10+ years", "5-10 years", "3-5 years", "1-3 years"];
 
 const SLUG_MAP: { [key: string]: string } = {

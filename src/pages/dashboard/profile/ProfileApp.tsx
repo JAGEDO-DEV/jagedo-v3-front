@@ -108,6 +108,8 @@ function ProfileApp() {
         userData={user}
         isAdmin={isAdmin}
         refetch={fetchUserData}
+                completionStatus={completionStatus}
+
       />
     </div>
   );

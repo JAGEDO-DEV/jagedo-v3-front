@@ -79,7 +79,6 @@ function ProfilePage() {
       accountType === "business" ||
       userType === "contractor" || // ✅ always org-based
       userType === "hardware"; // ✅ always org-based
-      
 
     if (isOrgType) {
       return ["organizationName", "phone", "email"];
@@ -89,7 +88,7 @@ function ProfilePage() {
   };
 
   const getAddressFields = () => {
-    return ["country", "county", "city"];
+    return ["country", "county", "subCounty", "city", "estate"];
   };
 
   const isSectionComplete = (data, fields) => {
@@ -99,7 +98,7 @@ function ProfilePage() {
   const completionStatus = useMemo(() => {
     const userType = user?.userType?.toLowerCase() || "";
     // Prioritize providerData from API, fallback to user
-    const up = providerData || user;
+    const up = providerData;
     const accountType = user?.accountType?.toLowerCase();
 
     const getRequiredDocuments = () => {
@@ -143,6 +142,11 @@ function ProfilePage() {
     // If verified by admin, definitely complete
     if (providerData?.documentStatus === "VERIFIED") {
       uploadsComplete = true;
+    } else if (
+      providerData?.documentStatus === "REJECTED" ||
+      providerData?.documentStatus === "RESUBMIT"
+    ) {
+      uploadsComplete = false;
     } else {
       // For contractors: check base docs + all category-specific certificates & licenses
       // For others: check if all required base documents are present
@@ -188,33 +192,28 @@ function ProfilePage() {
 
         uploadsComplete = baseDocsComplete && categoryDocsComplete;
       } else if (userType === "professional") {
-        // Professionals need: ID front/back + academic cert + CV + KRA PIN
-        // Practice license is optional
-        // Check with fallback field names (some might be stored without "Url" suffix)
-        const hasIdFront = up?.idFrontUrl || up?.idFront;
-        const hasIdBack = up?.idBackUrl || up?.idBack;
-        const hasAcademicCert =
-          up?.academicCertificateUrl || up?.academicCertificate;
-        const hasCv = up?.cvUrl || up?.cv;
-        const hasKrapin = up?.krapin;
+        if (providerData?.documentStatus === "REJECTED") {
+          uploadsComplete = false;
+        } else {
+          const hasIdFront = !!up?.idFrontUrl;
+          const hasIdBack = !!up?.idBackUrl;
+          const hasAcademicCert = !!up?.academicCertificateUrl;
+          const hasCv = !!up?.cvUrl;
+          const hasKrapin = !!up?.krapin;
 
-        uploadsComplete = !!(
-          hasIdFront &&
-          hasIdBack &&
-          hasAcademicCert &&
-          hasCv &&
-          hasKrapin
-        );
+          uploadsComplete =
+            hasIdFront && hasIdBack && hasAcademicCert && hasCv && hasKrapin;
+        }
       } else if (userType === "fundi") {
         // Fundi need: ID front/back + certificate + KRA PIN
         // Check with fallback field names
-        const hasIdFront = !!(up?.idFrontUrl);
-        const hasIdBack = !!(up?.idBackUrl);
-        const hasCertificate = !!(up?.certificateUrl);
-        const hasKrapin = !!(up?.krapin);
+        const hasIdFront = !!up?.idFrontUrl;
+        const hasIdBack = !!up?.idBackUrl;
+        const hasCertificate = !!up?.certificateUrl;
+        const hasKrapin = !!up?.krapin;
 
-        uploadsComplete = hasIdFront && hasIdBack && hasCertificate && hasKrapin;
-
+        uploadsComplete =
+          hasIdFront && hasIdBack && hasCertificate && hasKrapin;
       } else {
         const requiredDocs = getRequiredDocuments();
         uploadsComplete =
@@ -281,7 +280,7 @@ function ProfilePage() {
 
     // ✅ Address
     const addressFields = getAddressFields();
-    const addressComplete = isSectionComplete(up, addressFields);
+    const addressComplete = up ? isSectionComplete(up, addressFields) : false;
 
     return {
       "Account Info": accountComplete ? "complete" : "incomplete",

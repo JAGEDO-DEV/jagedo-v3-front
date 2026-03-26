@@ -211,7 +211,7 @@ const AccountUploads = ({ data, refreshData }) => {
   };
 
   const generalFields = [
-    { label: "Business Registration", key: "businessRegistration" },
+    { label: "Certificate of Incorporation", key: "businessRegistration" },
     { label: "Business Permit", key: "businessPermit" },
     { label: "KRA PIN", key: "krapin" },
     { label: "Company Profile", key: "companyProfile" },
@@ -438,7 +438,7 @@ const AccountUploads = ({ data, refreshData }) => {
         response = await uploadProfessionalDocuments(axiosInstance, payload);
       } else if (userType === "contractor") {
         const payload = {
-          businessRegistration: updatedUrls.businessRegistration || null,
+          certificateOfIncorporation: updatedUrls.certificateOfIncorporation  || null,
           businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
           companyProfile: updatedUrls.companyProfile || null,

@@ -12,13 +12,15 @@ interface MainContentProps {
   userData?: any;
   isAdmin?: boolean;
   refetch?: () => void;
+    completionStatus?: Record<string, string>; // ← add
+
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch }) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch , completionStatus}) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
-        return <AccountInfo userData={userData} />;
+          return <AccountInfo userData={userData} completionStatus={completionStatus} />;
       case 'address':
         return <Address userData={userData} />;
       case 'account-uploads':
@@ -37,7 +39,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
         //@ts-nocheck
         return <Products userData={userData} userType={userType} />;
       default:
-        return <AccountInfo userData={userData} />;
+        return <AccountInfo userData={userData} completionStatus={completionStatus}/>;
     }
   };
 

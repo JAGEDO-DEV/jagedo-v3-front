@@ -1182,7 +1182,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                             setIsPendingAction(false);
                           }
                         }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100"
+                        disabled={userData.documentStatus === "VERIFIED"}
+                        className="disabled:opacity-10 w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100"
                       >
                         <FiCheck className="w-4 h-4" />
                         Approve
