@@ -228,26 +228,7 @@ const AccountUploads = ({ data, refreshData }) => {
   
   const baseFields = defaultFields[userType] || [];
   
-  // Add portfolio items dynamically based on user type
   let fields = [...baseFields];
-  if (userType === "professional" && data?.professionalProjects) {
-    const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
-    projects.forEach((project, index) => {
-      fields.push({
-        label: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
-        key: `portfolio${index + 1}`,
-      });
-    });
-  }
-  if (userType === "fundi" && data?.previousJobPhotoUrls) {
-    const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
-    projects.forEach((project, index) => {
-      fields.push({
-        label: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
-        key: `portfolio${index + 1}`,
-      });
-    });
-  }
   
   const hasPendingFiles = Object.keys(pendingFiles).length > 0;
   const hasAllRequiredDocs = fields.every((f) => !!documents[f.key]);
@@ -305,15 +286,12 @@ const AccountUploads = ({ data, refreshData }) => {
         Object.keys(data.documentDetails).forEach((backendKey) => {
           const detail = data.documentDetails[backendKey];
           
-          // Handle both { status: 'VERIFIED' } and direct value 'VERIFIED'
           let actualStatus = detail?.status || detail;
           console.log(actualStatus)
-          const status = actualStatus === 'VERIFIED' ? 'approved' : actualStatus === 'RESUBMIT' ? 'resubmit' :actualStatus === 'REJECTED' ? 'rejected': 'pending';
-          
-          let actualStatus = detail?.status || detail;
           let status = 'pending';
           if (actualStatus === 'VERIFIED') status = 'approved';
-          else if (actualStatus === 'REJECTED' || actualStatus === 'RESUBMIT') status = 'rejected';
+          else if (actualStatus === 'RESUBMIT') status = 'resubmit';
+          else if (actualStatus === 'REJECTED') status = 'rejected';
           else if (actualStatus === 'REPLACED') status = 'pending';
           
           
@@ -362,25 +340,6 @@ const AccountUploads = ({ data, refreshData }) => {
       }
 
       
-      if (userType === "professional" && data.professionalProjects) {
-        const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
-        projects.forEach((project, index) => {
-          const key = `portfolio${index + 1}`;
-          docsMap[key] = project.fileUrl;
-          const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
-          statusMap[key] = portfolioStatus;
-        });
-      }
-      if (userType === "fundi" && data.previousJobPhotoUrls) {
-        const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
-        projects.forEach((project, index) => {
-          const key = `portfolio${index + 1}`;
-          const url = typeof project.fileUrl === 'object' ? project.fileUrl?.url : project.fileUrl;
-          docsMap[key] = url;
-          const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
-          statusMap[key] = portfolioStatus;
-        });
-      }
 
       setDocuments(docsMap);
       setApprovalStatus(statusMap);
@@ -396,8 +355,7 @@ const AccountUploads = ({ data, refreshData }) => {
 
   const handleSaveDocuments = async () => {
     setIsSubmitting(true);
-    // Check if all rejected documents have been replaced
-    const rejectedFields = fields.filter(f => approvalStatus[f.key] === 'rejected');
+    const rejectedFields = fields.filter(f => approvalStatus[f.key] === 'rejected' || approvalStatus[f.key] === 'resubmit');
     const missingReplacements = rejectedFields.filter(f => !pendingFiles[f.key]);
 
     if (missingReplacements.length > 0) {
