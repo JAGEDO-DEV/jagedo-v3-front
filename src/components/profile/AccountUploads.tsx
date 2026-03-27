@@ -299,7 +299,10 @@ const AccountUploads = ({ data, refreshData }) => {
           
           
           let actualStatus = detail?.status || detail;
-          const status = actualStatus === 'VERIFIED' ? 'approved' : 'pending';
+          let status = 'pending';
+          if (actualStatus === 'VERIFIED') status = 'approved';
+          else if (actualStatus === 'REJECTED' || actualStatus === 'RESUBMIT') status = 'rejected';
+          else if (actualStatus === 'REPLACED') status = 'pending';
           
           
           const fieldKey = Object.keys(keyMapping).find(
@@ -382,6 +385,16 @@ const AccountUploads = ({ data, refreshData }) => {
 
   const handleSaveDocuments = async () => {
     setIsSubmitting(true);
+    // Check if all rejected documents have been replaced
+    const rejectedFields = fields.filter(f => approvalStatus[f.key] === 'rejected');
+    const missingReplacements = rejectedFields.filter(f => !pendingFiles[f.key]);
+
+    if (missingReplacements.length > 0) {
+      toast.error(`Please replace all rejected documents: ${missingReplacements.map(f => f.label).join(", ")}`);
+      setIsSubmitting(false);
+      return;
+    }
+
     const uploadToast = toast.loading("Processing your documents...");
 
     try {
