@@ -973,7 +973,32 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
                   )}
               </div>
             </div>
-            {/* Actions dropdown — always visible for admins */}
+            {/* Actions dropdown — visible based on user type and submission status */}
+            {(() => {
+              const uType = userData?.userType?.toUpperCase();
+              const docStatus = userData?.documentStatus;
+              const expStatus = userData?.experienceStatus;
+              const acctStatus = userData?.status;
+
+              // Already actioned users (verified, suspended, blacklisted) — always show actions
+              const isAlreadyActioned = ["VERIFIED", "SUSPENDED", "BLACKLISTED"].includes(acctStatus);
+
+              // "Submitted" means status is anything other than INCOMPLETE
+              const hasSubmittedDocs = docStatus && docStatus !== "INCOMPLETE";
+              const hasSubmittedExperience = expStatus && expStatus !== "INCOMPLETE";
+
+              const isBuilder = ["FUNDI", "PROFESSIONAL", "CONTRACTOR"].includes(uType);
+              const isNonBuilder = uType === "HARDWARE" || uType === "CUSTOMER";
+
+              const showActions =
+                isAlreadyActioned ||
+                (isBuilder && hasSubmittedExperience && hasSubmittedDocs) ||
+                (isNonBuilder && hasSubmittedDocs);
+
+              if (!showActions) return null;
+
+              return (
+                <>
             <div className="mt-6">
               <div className="relative inline-block">
                 <button
@@ -1113,6 +1138,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
                 </div>
               </div>
             )}
+                </>
+              );
+            })()}
           </section>
         </div>
       </div>
