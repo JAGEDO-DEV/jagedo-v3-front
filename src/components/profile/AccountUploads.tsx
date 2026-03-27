@@ -34,7 +34,7 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
-  if (status === "REJECTED") {
+  if (status === "rejected") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
@@ -42,7 +42,7 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
-  if (status === "RESUBMIT") {
+  if (status === "resubmit") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
@@ -53,7 +53,7 @@ const StatusBadge = ({ status }) => {
   return null;
 };
 
-const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status = "pending" }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -307,7 +307,8 @@ const AccountUploads = ({ data, refreshData }) => {
           
           // Handle both { status: 'VERIFIED' } and direct value 'VERIFIED'
           let actualStatus = detail?.status || detail;
-          const status = actualStatus === 'VERIFIED' ? 'approved' : 'pending';
+          console.log(actualStatus)
+          const status = actualStatus === 'VERIFIED' ? 'approved' : actualStatus === 'RESUBMIT' ? 'resubmit' :actualStatus === 'REJECTED' ? 'rejected': 'pending';
           
           // Map backend key back to field key
           const fieldKey = Object.keys(keyMapping).find(
