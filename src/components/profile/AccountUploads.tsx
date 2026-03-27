@@ -159,7 +159,7 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status = "
 
 const AccountUploads = ({ data, refreshData }) => {
   const { user } = useGlobalContext();
-  // ✅ Use data prop first (more reliable), fall back to global context
+  
   const userType = (data?.userType || user?.userType || "").toLowerCase();
   const accountType = (data?.accountType || user?.accountType || "").toLowerCase();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -170,7 +170,7 @@ const AccountUploads = ({ data, refreshData }) => {
   const [categories, setCategories] = useState([]);
   const [approvalStatus, setApprovalStatus] = useState({});
 
-  // ✅ Define all field configs at the top level
+  
   const defaultFields = {
     customer:
       accountType.toLowerCase() === "individual"
@@ -199,7 +199,7 @@ const AccountUploads = ({ data, refreshData }) => {
       { label: "Academics Certificate", key: "academicCertificateUrl" },
       { label: "CV", key: "cvUrl" },
       { label: "KRA PIN", key: "krapin" },
-      // Portfolio items added dynamically in component logic
+      
     ],
     hardware: [
       { label: "Business Registration", key: "businessRegistration" },
@@ -217,10 +217,10 @@ const AccountUploads = ({ data, refreshData }) => {
     { label: "Company Profile", key: "companyProfile" },
   ];
 
-  // ✅ Derived values — all depend on top-level declarations above
+  
   const baseFields = defaultFields[userType] || [];
   
-  // Add portfolio items dynamically for professional and fundi users
+  
   let fields = [...baseFields];
   if ((userType === "professional" || userType === "fundi") && data?.professionalProjects) {
     const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
@@ -257,7 +257,7 @@ const AccountUploads = ({ data, refreshData }) => {
     data?.documentStatus,
   );
 
-  // Calculate approval statistics
+  
   const totalUploaded = fields.filter((f) => !!documents[f.key]).length;
   const totalApproved = fields.filter((f) => approvalStatus[f.key] === "approved").length;
   const totalPending = fields.filter((f) => !!documents[f.key] && approvalStatus[f.key] !== "approved").length;
@@ -269,39 +269,39 @@ const AccountUploads = ({ data, refreshData }) => {
       const catNames = [];
       const statusMap = {};
 
-      // ✅ Map field keys to backend storage keys
+      
       const keyMapping = {
-        // Customer individual
+        
         idFrontUrl: "idFront",
         idBackUrl: "idBack",
-        // Customer organization
+        
         businessPermit: "businessPermit",
         certificateOfIncorporation: "certificateOfIncorporation",
-        // Fundi
+        
         certificateUrl: "certificate",
-        // Professional
+        
         academicCertificateUrl: "academicCertificate",
         cvUrl: "cvUrl",
         practiceLicense: "practiceLicense",
-        // Hardware
-        // (idFrontUrl -> idFront, idBackUrl -> idBack already listed)
+        
+        
         businessRegistration: "businessRegistration",
-        // Contractor
+        
         companyProfile: "companyProfile",
-        // All types - ✅ IMPORTANT: Backend uses "kraPIN" (capital P)
+        
         krapin: "kraPIN",
       };
 
-      // Extract approval status from documentDetails
+      
       if (data.documentDetails) {
         Object.keys(data.documentDetails).forEach((backendKey) => {
           const detail = data.documentDetails[backendKey];
           
-          // Handle both { status: 'VERIFIED' } and direct value 'VERIFIED'
+          
           let actualStatus = detail?.status || detail;
           const status = actualStatus === 'VERIFIED' ? 'approved' : 'pending';
           
-          // Map backend key back to field key
+          
           const fieldKey = Object.keys(keyMapping).find(
             (k) => keyMapping[k] === backendKey
           ) || backendKey;
@@ -310,7 +310,7 @@ const AccountUploads = ({ data, refreshData }) => {
         });
       }
 
-      // Apply global document status as default for any document not explicitly set
+      
       const globalStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
       const baseFields = defaultFields[userType] || [];
       baseFields.forEach((field) => {
@@ -346,13 +346,13 @@ const AccountUploads = ({ data, refreshData }) => {
         }
       }
 
-      // Load portfolio items for professional and fundi
+      
       if (userType === "professional" && data.professionalProjects) {
         const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
           docsMap[key] = project.fileUrl;
-          // Portfolio items follow global document status
+          
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
@@ -362,7 +362,7 @@ const AccountUploads = ({ data, refreshData }) => {
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
           docsMap[key] = project.fileUrl;
-          // Portfolio items follow global document status
+          
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
@@ -388,7 +388,7 @@ const AccountUploads = ({ data, refreshData }) => {
       const updatedUrls = { ...documents };
       const filesToUpload = Object.keys(pendingFiles);
 
-      // 1. Upload all pending files
+      
       for (const key of filesToUpload) {
         const file = pendingFiles[key];
         try {
@@ -400,7 +400,7 @@ const AccountUploads = ({ data, refreshData }) => {
         }
       }
 
-      // 2. Prepare payload based on user type
+      
       let response;
       if (userType === "customer") {
         if (accountType === "individual") {
@@ -477,7 +477,7 @@ const AccountUploads = ({ data, refreshData }) => {
     }
   };
 
-  // ✅ Non-contractor render
+  
   if (userType !== "contractor") {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -585,7 +585,7 @@ const AccountUploads = ({ data, refreshData }) => {
     );
   }
 
-  // ✅ Contractor render
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 lg:p-8">

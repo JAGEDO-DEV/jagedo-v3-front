@@ -278,7 +278,7 @@ export function ProfileCompletion({
             const response = await initiateSecondaryVerification(payload);
 
             if (response.data.success) {
-                toast.success(`OTP sent to ${secondaryContact.contact}`);
+                toast.success(`OTP sent to ${secondaryContact.contact}. Please Also Check your email spam folder,`);
                 setSecondaryContact((prev) => ({
                     ...prev,
                     isOtpSent: true,
@@ -367,7 +367,7 @@ export function ProfileCompletion({
         if (onCancel) {
             onCancel();
         }
-        window.location.href = "http://localhost:8080";
+        window.location.href = import.meta.env.VITE_APP_URL;
     };
 
     const stepInfo = [
@@ -802,13 +802,60 @@ export function ProfileCompletion({
                                         </p>
                                     )}
                                     {secondaryContact.canResend && (
-                                        <Button
-                                            onClick={handleSendOtp}
-                                            variant="outline"
-                                            className="w-full h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
-                                        >
-                                            Resend Verification Code
-                                        </Button>
+                                        <div className="space-y-4 pt-2">
+                                            <Button
+                                                onClick={handleSendOtp}
+                                                variant="outline"
+                                                className="w-full h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
+                                            >
+                                                Resend Verification Code
+                                            </Button>
+
+                                            <div className="relative">
+                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-gray-200" />
+                                                <span className="relative z-10 mx-auto block w-max bg-white px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                                                    OR
+                                                </span>
+                                            </div>
+
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    const newMethod = secondaryContact.contactType === "EMAIL" ? "PHONE" : "EMAIL";
+                                                    const newContact = newMethod === "PHONE" ? user?.phone : user?.email;
+                                                    if (!newContact) {
+                                                        toast.error(`No ${newMethod.toLowerCase()} found in your profile to use as an alternative.`);
+                                                        return;
+                                                    }
+                                                    setSecondaryContact(prev => ({
+                                                        ...prev,
+                                                        contactType: newMethod,
+                                                        contact: newContact,
+                                                        isOtpSent: false,
+                                                        otp: "",
+                                                        resendTimer: 10,
+                                                        canResend: false
+                                                    }));
+                                                }}
+                                                className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-sm font-semibold h-10 transition-all duration-200"
+                                            >
+                                                Try verifying using my {secondaryContact.contactType === "EMAIL" ? "phone number" : "email address"}
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {secondaryContact.contactType === "EMAIL" && secondaryContact.isOtpSent && !secondaryContact.isVerified && (
+                                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 animate-in fade-in slide-in-from-top-2 duration-500">
+                                            <div className="flex gap-3">
+                                                <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-bold text-amber-900">Having trouble finding the code?</p>
+                                                    <p className="text-xs text-amber-700 leading-relaxed">
+                                                        Please check your <strong className="font-semibold underline">Spam</strong> or <strong className="font-semibold underline">Junk</strong> folder. Email providers sometimes flag automated codes erroneously.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
 
 
