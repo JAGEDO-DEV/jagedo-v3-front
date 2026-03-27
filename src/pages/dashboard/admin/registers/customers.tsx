@@ -8,11 +8,12 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getAllCustomers } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { generatePDF } from "@/utils/pdfExport";
+import { BuilderStatus } from "@/data/mockBuilders"; // Import the status type
+import { StatusBadge } from "./StatusBadge"; // Import the StatusBadge component
 
 const navItems = [{ name: "Individual" }, { name: "Organization" }];
 
-// Export to PDF function
-
+// Export to Excel function (unchanged)
 const exportToExcel = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
     alert("No data to export");
@@ -64,7 +65,7 @@ const exportToExcel = (data: any[], filename: string) => {
   );
 };
 
-// Updated Export to PDF function with more fields
+// Updated Export to PDF function with more fields (unchanged)
 const exportToPDF = async (
   data: any[],
   filename: string,
@@ -129,6 +130,7 @@ export default function CustomersAdmin() {
     name: "",
     phone: "",
     county: "",
+    verificationStatus: "", // Added status filter
     search: "",
   });
   const [customers, setCustomers] = useState<any[]>([]);
@@ -166,6 +168,7 @@ export default function CustomersAdmin() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  
   const filteredCustomers = customers.filter((customer) => {
     const matchesTab =
       activeTab === "Individual"
@@ -180,6 +183,9 @@ export default function CustomersAdmin() {
     const matchesCounty =
       !filters.county ||
       customer?.county?.toLowerCase() === filters.county.toLowerCase();
+    const matchesVerificationStatus =
+      !filters.verificationStatus ||
+      customer?.status === filters.verificationStatus;
 
     const searchValue = filters?.search?.toLowerCase() || "";
     const matchesSearch =
@@ -198,6 +204,7 @@ export default function CustomersAdmin() {
       matchesName &&
       matchesPhone &&
       matchesCounty &&
+      matchesVerificationStatus &&
       matchesSearch
     );
   });
@@ -373,7 +380,7 @@ export default function CustomersAdmin() {
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Status
                     </th>
-                  </tr>
+                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginatedData.map((row, rowIndex) => (
@@ -406,14 +413,9 @@ export default function CustomersAdmin() {
                         {row.subCounty || "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${row.status == 'VERIFIED'
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                            }`}
-                        >
-                          {row.status == 'VERIFIED' ? "Verified" : "Not Verified"}
-                        </span>
+                        <StatusBadge
+                          status={(row.status as BuilderStatus) || "INCOMPLETE"}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -496,10 +498,11 @@ export default function CustomersAdmin() {
         </div>
       </div>
 
+      {/* Filter Modal with Status Filter Added */}
       {isFilterOpen && (
         <div className="fixed inset-0 z-40 overflow-hidden">
           <div
-            className="fixed inset-0 bg-gray-200/30 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-gray-200/30 transition-opacity"
             onClick={() => setIsFilterOpen(false)}
           />
           <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform">
@@ -562,6 +565,25 @@ export default function CustomersAdmin() {
                       ))}
                     </select>
                   </div>
+                  {/* Added Status Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      className="w-full border rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                      value={filters.verificationStatus}
+                      onChange={(e) => updateFilter("verificationStatus", e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="VERIFIED">Verified</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="INCOMPLETE">Incomplete</option>
+                      <option value="BLACKLISTED">blacklisted</option>
+                      <option value="DELETED">deleted</option>
+                      <option value="REJECTED">Rejected</option>
+                    </select>
+                  </div>
                 </form>
               </div>
               <div className="p-6 border-t">
@@ -575,6 +597,7 @@ export default function CustomersAdmin() {
                         name: "",
                         phone: "",
                         county: "",
+                        verificationStatus: "",
                       }));
                       setCurrentPage(1);
                     }}

@@ -22,10 +22,12 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 interface AccountInfoProps {
   userData: any;
   completionStatus?: Record<string, string>; // ← add
-
 }
 
-const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus }) => {
+const AccountInfo: React.FC<AccountInfoProps> = ({
+  userData,
+  completionStatus,
+}) => {
   const navigate = useNavigate();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [showActionDropdown, setShowActionDropdown] = useState(false);
@@ -35,21 +37,21 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
   const showVerificationMessage = userData.status == "VERIFIED";
   const [avatarSrc, setAvatarSrc] = useState(userData?.profileImage);
 
- const allSectionsComplete = completionStatus
-  ? Object.entries(completionStatus)
-      .filter(([key]) => {
-        // Exclude non-required sections (handle both formats)
-        if (key === "Activities" || key === "activities") return false;
-        if (key === "Products" || key === "products") return false;
-        // HARDWARE and CUSTOMER have no Experience requirement
-        if (key === "Experience" || key === "experience") {
-          const uType = userData?.userType?.toUpperCase();
-          if (uType === "HARDWARE" || uType === "CUSTOMER") return false;
-        }
-        return true;
-      })
-      .every(([, val]) => val === "complete")
-  : false;
+  const allSectionsComplete = completionStatus
+    ? Object.entries(completionStatus)
+        .filter(([key]) => {
+          // Exclude non-required sections (handle both formats)
+          if (key === "Activities" || key === "activities") return false;
+          if (key === "Products" || key === "products") return false;
+          // HARDWARE and CUSTOMER have no Experience requirement
+          if (key === "Experience" || key === "experience") {
+            const uType = userData?.userType?.toUpperCase();
+            if (uType === "HARDWARE" || uType === "CUSTOMER") return false;
+          }
+          return true;
+        })
+        .every(([, val]) => val === "complete")
+    : false;
 
   const displayStatus =
     userData.status === "SIGNED_UP" && allSectionsComplete
@@ -357,75 +359,269 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
         <div className="w-full px-4">
           <section className="w-full max-w-3xl mx-auto py-6">
             <div className="bg-white rounded-xl p-6">
-              <h1 className="text-2xl md:text-3xl font-bold mb-6">
-                Account Info
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                <div
-                  className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    userData.status === "VERIFIED"
-                      ? "bg-green-100 text-green-700"
-                      : userData.status === "SUSPENDED"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : userData.status === "BLACKLISTED"
-                          ? "bg-orange-100 text-orange-700"
-                          : userData.status === "DELETED"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-blue-100 text-blue-700"
-                  }`}
-                >
-                  {userData.status === "VERIFIED" && (
-                    <Shield className="w-3.5 h-3.5" />
-                  )}
-                  {userData.status === "SUSPENDED" && (
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                  )}
-                  {userData.status === "BLACKLISTED" && (
-                    <ShieldOff className="w-3.5 h-3.5" />
-                  )}
-                  {userData.status === "DELETED" && (
-                    <Trash2 className="w-3.5 h-3.5" />
-                  )}
-                  {(userData.status === "SIGNED_UP" ||
-                    userData.status === "PENDING") && (
-                    <Clock className="w-3.5 h-3.5" />
-                  )}
-                    <span>Status: {displayStatus || "N/A"}</span>
-                </div>
+              <div className="flex flex-row justify-between">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold mb-6">
+                    Account Info
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 mb-6">
+                    <div
+                      className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                        userData.status === "VERIFIED"
+                          ? "bg-green-100 text-green-700"
+                          : userData.status === "SUSPENDED"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : userData.status === "BLACKLISTED"
+                              ? "bg-orange-100 text-orange-700"
+                              : userData.status === "DELETED"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {userData.status === "VERIFIED" && (
+                        <Shield className="w-3.5 h-3.5" />
+                      )}
+                      {userData.status === "SUSPENDED" && (
+                        <ShieldAlert className="w-3.5 h-3.5" />
+                      )}
+                      {userData.status === "BLACKLISTED" && (
+                        <ShieldOff className="w-3.5 h-3.5" />
+                      )}
+                      {userData.status === "DELETED" && (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      {(userData.status === "SIGNED_UP" ||
+                        userData.status === "PENDING") && (
+                        <Clock className="w-3.5 h-3.5" />
+                      )}
+                      <span>Status: {displayStatus || "N/A"}</span>
+                    </div>
 
-                {userData.status === "VERIFIED" && (
-                  <div className="flex items-center space-x-1">
-                    {[...Array(5)].map((_, index) => (
-                      <Star
-                        key={index}
-                        className="text-yellow-400 w-4 h-4"
-                        fill="currentColor"
-                      />
-                    ))}
+                    {userData.status === "VERIFIED" && (
+                      <div className="flex items-center space-x-1">
+                        {[...Array(5)].map((_, index) => (
+                          <Star
+                            key={index}
+                            className="text-yellow-400 w-4 h-4"
+                            fill="currentColor"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="flex flex-col items-start mb-6">
+                    <img
+                      alt="avatar"
+                      src={avatarSrc || "/profile.jpg"}
+                      className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleButtonClick}
+                      className="mt-4 text-blue-900 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Changed Photo
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+                <div>
+                  {/* Actions dropdown — visible based on user type and submission status */}
+                  {(() => {
+                    const uType = userData?.userType?.toUpperCase();
+                    const docStatus = userData?.documentStatus;
+                    const expStatus = userData?.experienceStatus;
+                    const acctStatus = userData?.status;
+
+                    // Already actioned users (verified, suspended, blacklisted) — always show actions
+                    const isAlreadyActioned = [
+                      "VERIFIED",
+                      "SUSPENDED",
+                      "BLACKLISTED",
+                    ].includes(acctStatus);
+
+                    // "Submitted" means status is anything other than INCOMPLETE
+                    const hasSubmittedDocs =
+                      docStatus && docStatus !== "INCOMPLETE";
+                    const hasSubmittedExperience =
+                      expStatus && expStatus !== "INCOMPLETE";
+
+                    const isBuilder = [
+                      "FUNDI",
+                      "PROFESSIONAL",
+                      "CONTRACTOR",
+                    ].includes(uType);
+                    const isNonBuilder =
+                      uType === "HARDWARE" || uType === "CUSTOMER";
+
+                    const showActions =
+                      isAlreadyActioned ||
+                      (isBuilder &&
+                        hasSubmittedExperience &&
+                        hasSubmittedDocs) ||
+                      (isNonBuilder && hasSubmittedDocs);
+
+                    if (!showActions) return null;
+
+                    return (
+                      <>
+                        <div className="mt-6">
+                          <div className="relative inline-block">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowActionDropdown(!showActionDropdown)
+                              }
+                              className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                            >
+                              Actions
+                              <FiChevronDown
+                                className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
+                                size={16}
+                              />
+                            </button>
+                            {showActionDropdown && (
+                              <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                                {/* Verify — only shown when user is NOT yet verified */}
+                                {!showVerificationMessage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const missing =
+                                        getMissingRequiredFields();
+                                      if (missing.length > 0) {
+                                        toast.error(
+                                          `Cannot verify: missing ${missing.join(", ")}`,
+                                          { duration: 5000 },
+                                        );
+                                        setShowActionDropdown(false);
+                                        return;
+                                      }
+                                      setPendingAction("verify");
+                                      setShowActionDropdown(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
+                                  >
+                                    Verify
+                                  </button>
+                                )}
+                                {/* Unverify — only shown when user IS verified */}
+                                {showVerificationMessage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPendingAction("unverify");
+                                      setShowActionDropdown(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                                  >
+                                    Unverify
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPendingAction("suspend");
+                                    setShowActionDropdown(false);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-yellow-700"
+                                >
+                                  Suspend
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPendingAction("blacklist");
+                                    setShowActionDropdown(false);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
+                                >
+                                  Blacklist
+                                </button>
+                                <div className="border-t my-1" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPendingAction("delete");
+                                    setShowActionDropdown(false);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Reason Modal */}
+                        {pendingAction && (
+                          <div
+                            className={`border px-4 py-4 rounded mt-4 ${
+                              pendingAction === "delete" ||
+                              pendingAction === "blacklist"
+                                ? "bg-red-50 border-red-300 text-red-800"
+                                : pendingAction === "verify"
+                                  ? "bg-green-50 border-green-300 text-green-800"
+                                  : "bg-blue-50 border-blue-300 text-blue-800"
+                            }`}
+                          >
+                            <p className="font-medium mb-2">
+                              {pendingAction === "verify"
+                                ? "Confirm verification of this user?"
+                                : `Please provide a reason for ${getActionLabel(pendingAction).toLowerCase()}ing this user:`}
+                            </p>
+                            {pendingAction !== "verify" && (
+                              <textarea
+                                value={actionReason}
+                                onChange={(e) =>
+                                  setActionReason(e.target.value)
+                                }
+                                placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
+                                className="w-full mt-2 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={3}
+                              />
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-3">
+                              <button
+                                type="button"
+                                onClick={handleActionSubmit}
+                                className={`text-white px-4 py-2 rounded transition ${
+                                  pendingAction === "delete" ||
+                                  pendingAction === "blacklist"
+                                    ? "bg-red-600 hover:bg-red-700"
+                                    : pendingAction === "verify"
+                                      ? "bg-green-600 hover:bg-green-700"
+                                      : "bg-blue-600 hover:bg-blue-700"
+                                }`}
+                              >
+                                Confirm {getActionLabel(pendingAction)}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPendingAction(null);
+                                  setActionReason("");
+                                }}
+                                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
-              <div className="flex flex-col items-start mb-6">
-                <img
-                  alt="avatar"
-                  src={avatarSrc || "/profile.jpg"}
-                  className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
-                />
-                <button
-                  type="button"
-                  onClick={handleButtonClick}
-                  className="mt-4 text-blue-900 hover:text-blue-700 text-sm font-medium"
-                >
-                  Changed Photo
-                </button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </div>
+
               <div className="space-y-6">
                 <h2 className="text-xl md:text-2xl font-semibold border-b pb-2">
                   Basic Info
@@ -973,174 +1169,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
                   )}
               </div>
             </div>
-            {/* Actions dropdown — visible based on user type and submission status */}
-            {(() => {
-              const uType = userData?.userType?.toUpperCase();
-              const docStatus = userData?.documentStatus;
-              const expStatus = userData?.experienceStatus;
-              const acctStatus = userData?.status;
-
-              // Already actioned users (verified, suspended, blacklisted) — always show actions
-              const isAlreadyActioned = ["VERIFIED", "SUSPENDED", "BLACKLISTED"].includes(acctStatus);
-
-              // "Submitted" means status is anything other than INCOMPLETE
-              const hasSubmittedDocs = docStatus && docStatus !== "INCOMPLETE";
-              const hasSubmittedExperience = expStatus && expStatus !== "INCOMPLETE";
-
-              const isBuilder = ["FUNDI", "PROFESSIONAL", "CONTRACTOR"].includes(uType);
-              const isNonBuilder = uType === "HARDWARE" || uType === "CUSTOMER";
-
-              const showActions =
-                isAlreadyActioned ||
-                (isBuilder && hasSubmittedExperience && hasSubmittedDocs) ||
-                (isNonBuilder && hasSubmittedDocs);
-
-              if (!showActions) return null;
-
-              return (
-                <>
-            <div className="mt-6">
-              <div className="relative inline-block">
-                <button
-                  type="button"
-                  onClick={() => setShowActionDropdown(!showActionDropdown)}
-                  className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                >
-                  Actions
-                  <FiChevronDown
-                    className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
-                    size={16}
-                  />
-                </button>
-                {showActionDropdown && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
-                    {/* Verify — only shown when user is NOT yet verified */}
-                    {!showVerificationMessage && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const missing = getMissingRequiredFields();
-                          if (missing.length > 0) {
-                            toast.error(
-                              `Cannot verify: missing ${missing.join(", ")}`,
-                              { duration: 5000 },
-                            );
-                            setShowActionDropdown(false);
-                            return;
-                          }
-                          setPendingAction("verify");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
-                      >
-                        Verify
-                      </button>
-                    )}
-                    {/* Unverify — only shown when user IS verified */}
-                    {showVerificationMessage && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingAction("unverify");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                      >
-                        Unverify
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingAction("suspend");
-                        setShowActionDropdown(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-yellow-700"
-                    >
-                      Suspend
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingAction("blacklist");
-                        setShowActionDropdown(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
-                    >
-                      Blacklist
-                    </button>
-                    <div className="border-t my-1" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingAction("delete");
-                        setShowActionDropdown(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Reason Modal */}
-            {pendingAction && (
-              <div
-                className={`border px-4 py-4 rounded mt-4 ${
-                  pendingAction === "delete" || pendingAction === "blacklist"
-                    ? "bg-red-50 border-red-300 text-red-800"
-                    : pendingAction === "verify"
-                      ? "bg-green-50 border-green-300 text-green-800"
-                      : "bg-blue-50 border-blue-300 text-blue-800"
-                }`}
-              >
-                <p className="font-medium mb-2">
-                  {pendingAction === "verify"
-                    ? "Confirm verification of this user?"
-                    : `Please provide a reason for ${getActionLabel(pendingAction).toLowerCase()}ing this user:`}
-                </p>
-                {pendingAction !== "verify" && (
-                  <textarea
-                    value={actionReason}
-                    onChange={(e) => setActionReason(e.target.value)}
-                    placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
-                    className="w-full mt-2 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                )}
-                <div className="mt-3 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={handleActionSubmit}
-                    className={`text-white px-4 py-2 rounded transition ${
-                      pendingAction === "delete" ||
-                      pendingAction === "blacklist"
-                        ? "bg-red-600 hover:bg-red-700"
-                        : pendingAction === "verify"
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                  >
-                    Confirm {getActionLabel(pendingAction)}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPendingAction(null);
-                      setActionReason("");
-                    }}
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-                </>
-              );
-            })()}
           </section>
         </div>
       </div>

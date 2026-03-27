@@ -238,7 +238,7 @@ function AccountInfo({ data, refreshData }) {
   if (!profile) return <div className="p-10">Loading info...</div>;
 
   return (
-    <section className="w-full max-w-4xl bg-white rounded-xl shadow-md p-8">
+    <section className="w-full max-w-6xl bg-white rounded-xl shadow-md p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Account Info</h1>
         {!isEditingName && (

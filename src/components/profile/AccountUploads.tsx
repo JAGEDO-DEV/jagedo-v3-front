@@ -42,10 +42,18 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
+  if (status === "resubmit") {
+    return (
+      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+        <AlertCircle className="w-3.5 h-3.5" />
+        Resubmit
+      </div>
+    );
+  }
   return null;
 };
 
-const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status = "pending" }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -299,7 +307,8 @@ const AccountUploads = ({ data, refreshData }) => {
           
           // Handle both { status: 'VERIFIED' } and direct value 'VERIFIED'
           let actualStatus = detail?.status || detail;
-          const status = actualStatus === 'VERIFIED' ? 'approved' : 'pending';
+          console.log(actualStatus)
+          const status = actualStatus === 'VERIFIED' ? 'approved' : actualStatus === 'RESUBMIT' ? 'resubmit' :actualStatus === 'REJECTED' ? 'rejected': 'pending';
           
           // Map backend key back to field key
           const fieldKey = Object.keys(keyMapping).find(
@@ -492,12 +501,12 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             {data?.documentStatusReason && (
-              <Alert variant="destructive" className="mb-6">
-                <InfoIcon className="h-4 w-4 text-red-600" />
-                <AlertTitle>Status Update</AlertTitle>
-                <AlertDescription>{data.documentStatusReason}</AlertDescription>
-              </Alert>
-            )}
+            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Status Update</AlertTitle>
+              <AlertDescription>{data.documentStatusReason}</AlertDescription>
+            </Alert>
+          )}
 
             {/* ✅ Approval Status Summary */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
