@@ -110,19 +110,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // Core rule
   const isTabDisabled = (itemId: string) => {
-  if (itemId === "account-uploads") {
-    const expStatus = userData?.experienceStatus;
-    const docStatus = userData?.documentStatus;
-
-    // Block if experience section isn't complete
-    if (userType !== "CUSTOMER" && completionStatus["experience"] !== "complete") {
-      return true;
-    }
-
-    
-  }
-  return false;
-};
+    return false;
+  };
 
 console.log(isTabDisabled('account-uploads'))
   const handleBackToDashboard = () => {

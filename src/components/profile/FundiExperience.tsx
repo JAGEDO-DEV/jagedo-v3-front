@@ -30,16 +30,18 @@ const requiredProjectsByGrade: { [key: string]: number } = {
 
 const FUNDI_SPECIALIZATIONS = {
   mason: [
-    "Block Work & Brick Laying",
+    "Block Masonry",
     "Plastering & Rendering",
-    "Stone Masonry",
-    "Concrete Work",
+    "Stone Restoration",
+    "Chimney Work",
+    "Concrete Masonry",
     "Foundation Work",
     "Structural Masonry",
     "Decorative Masonry",
     "Tile Setting",
     "Waterproofing",
     "Restoration & Repair",
+    "Bricklaying"
   ],
   electrician: [
     "Residential Wiring",
