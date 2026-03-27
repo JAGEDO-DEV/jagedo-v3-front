@@ -197,12 +197,12 @@ const ProffExperience = ({ data, refreshData }: any) => {
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
                 <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
 
-                {data?.experienceStatusReason && (
+                {data?.experienceStatus !== 'INCOMPLETE' && (
                     <Alert variant="destructive" className="mb-6">
                         <InfoIcon className="h-4 w-4" />
                         <AlertTitle>Status Update</AlertTitle>
                         <AlertDescription>
-                            {data.experienceStatusReason}
+                            {data.experienceStatus}
                         </AlertDescription>
                     </Alert>
                 )}

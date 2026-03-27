@@ -1967,7 +1967,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                   <button
                     type="button"
                     onClick={() => setShowGlobalActions(!showGlobalActions)}
-                    className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                    disabled={userData?.experienceStatus === "VERIFIED"}
+                    className={`flex items-center gap-2 py-2 px-4 text-white rounded-lg text-sm font-medium transition ${
+                      userData?.experienceStatus === "VERIFIED"
+                        ? "bg-gray-400 cursor-not-allowed opacity-60"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                   >
                     Actions
                     <FiChevronDown
@@ -1976,6 +1981,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                   </button>
                   {showGlobalActions && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      {/* Approve — only when not already VERIFIED */}
+                      {userData?.experienceStatus !== "VERIFIED" && (
                       <button
                         type="button"
                         disabled={!readyToApprove || isPendingAction}
@@ -2017,6 +2024,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                           </span>
                         )}
                       </button>
+                      )}
+                      {/* Resubmit — only when not already VERIFIED */}
+                      {userData?.experienceStatus !== "VERIFIED" && (
                       <button
                         type="button"
                         onClick={() => {
@@ -2028,6 +2038,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                         <FiRefreshCw className="w-4 h-4" />
                         Resubmit
                       </button>
+                      )}
+                      {/* Reject — only when not already VERIFIED or REJECTED */}
+                      {userData?.experienceStatus !== "VERIFIED" && userData?.experienceStatus !== "REJECTED" && (
                       <button
                         type="button"
                         onClick={() => {
@@ -2039,6 +2052,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                         <XCircle className="w-4 h-4" />
                         Reject
                       </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2900,38 +2914,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                             </>
                           )}
 
-                          {/* Question Type Selector (Admin Only) */}
-                          {isAdmin && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-[10px] uppercase font-bold text-gray-400">
-                                Type:
-                              </span>
-                              <select
-                                value={q.type?.toUpperCase()}
-                                onChange={(e) => {
-                                  const newType = e.target.value;
-                                  setQuestions((prev) =>
-                                    prev.map((item) =>
-                                      item.id === q.id
-                                        ? { ...item, type: newType }
-                                        : item,
-                                    ),
-                                  );
-                                  handleUpdateTemplate(
-                                    q.id,
-                                    q.text,
-                                    newType,
-                                    q.options,
-                                  );
-                                }}
-                                className="text-[10px] border-none bg-gray-100 rounded px-1 py-0.5 focus:ring-0"
-                              >
-                                <option value="OPEN">OPEN</option>
-                                <option value="RADIO">RADIO</option>
-                                <option value="CHECKBOX">CHECKBOX</option>
-                              </select>
-                            </div>
-                          )}
+                          {/* Question Type — always OPEN */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] uppercase font-bold text-gray-400">
+                              Type:
+                            </span>
+                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">
+                              OPEN
+                            </span>
+                          </div>
 
                           {q.type?.toUpperCase() === "RADIO" ||
                           q.type?.toUpperCase() === "SELECT" ? (

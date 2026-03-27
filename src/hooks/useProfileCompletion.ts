@@ -135,12 +135,13 @@ export const useProfileCompletion = (
     const uploadsComplete =
       profile.documentStatus === "VERIFIED"
         ? true
-        : profile.documentStatus === "REJECTED" ||
-            profile.documentStatus === "RESUBMIT" ||
-            profile.documentStatus === "PENDING"
-          ? false
-          : requiredDocs.length > 0 &&
-            requiredDocs.every((doc) => checkDocument(doc));
+        : profile.documentStatus === "PENDING"
+          ? true
+          : profile.documentStatus === "REJECTED" ||
+              profile.documentStatus === "RESUBMIT"
+            ? false
+            : requiredDocs.length > 0 &&
+              requiredDocs.every((doc) => checkDocument(doc));
 
     // ============================================
     // EXPERIENCE COMPLETION
@@ -231,8 +232,8 @@ export const useProfileCompletion = (
       userData?.experienceStatus === "VERIFIED" ||
       userData?.experienceStatus === "PENDING"
     ) {
-      // Status is good AND fields must actually be filled
-      experienceComplete = fieldsComplete;
+      // Backend has accepted the submission — show as complete
+      experienceComplete = true;
     } else if (
       userData?.experienceStatus === "RESUBMIT" ||
       userData?.experienceStatus === "REJECTED"

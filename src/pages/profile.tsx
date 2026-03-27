@@ -146,6 +146,8 @@ function ProfilePage() {
 
     if (providerData?.documentStatus === "VERIFIED") {
       uploadsComplete = true;
+    } else if (providerData?.documentStatus === "PENDING") {
+      uploadsComplete = true;
     } else if (
       providerData?.documentStatus === "REJECTED" ||
       providerData?.documentStatus === "RESUBMIT"
@@ -300,7 +302,7 @@ function ProfilePage() {
 
     const status = up?.experienceStatus;
     if (status === "VERIFIED" || status === "PENDING") {
-      experienceComplete = fieldsComplete;
+      experienceComplete = true;
     } else if (status === "REJECTED" || status === "RESUBMIT") {
       experienceComplete = false;
     } else {

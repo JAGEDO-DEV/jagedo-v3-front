@@ -223,6 +223,8 @@ const FundiExperience = ({ data, refreshData }: any) => {
           </Alert>
         )}
 
+        {/* Show Next Steps only if fundi has submitted experience but hasn't been evaluated yet */}
+        {!data?.fundiEvaluation && data?.experienceStatus && data.experienceStatus !== 'INCOMPLETE' && data.experienceStatus !== 'VERIFIED' && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
           <p className="font-semibold mb-1">Next Steps</p>
           <ul className="list-disc pl-5 space-y-1">
@@ -230,6 +232,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
             <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
           </ul>
         </div>
+        )}
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="bg-gray-50 p-6 rounded-xl border">

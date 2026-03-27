@@ -220,9 +220,9 @@ const AccountUploads = ({ data, refreshData }) => {
   // ✅ Derived values — all depend on top-level declarations above
   const baseFields = defaultFields[userType] || [];
   
-  // Add portfolio items dynamically for professional and fundi users
+  // Add portfolio items dynamically based on user type
   let fields = [...baseFields];
-  if ((userType === "professional" || userType === "fundi") && data?.professionalProjects) {
+  if (userType === "professional" && data?.professionalProjects) {
     const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
     projects.forEach((project, index) => {
       fields.push({
@@ -231,8 +231,8 @@ const AccountUploads = ({ data, refreshData }) => {
       });
     });
   }
-  if (userType === "fundi" && data?.fundiEvaluation) {
-    const projects = Array.isArray(data.fundiEvaluation) ? data.fundiEvaluation : [];
+  if (userType === "fundi" && data?.previousJobPhotoUrls) {
+    const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
     projects.forEach((project, index) => {
       fields.push({
         label: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
@@ -352,17 +352,16 @@ const AccountUploads = ({ data, refreshData }) => {
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
           docsMap[key] = project.fileUrl;
-          // Portfolio items follow global document status
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
       }
-      if (userType === "fundi" && data.fundiEvaluation) {
-        const projects = Array.isArray(data.fundiEvaluation) ? data.fundiEvaluation : [];
+      if (userType === "fundi" && data.previousJobPhotoUrls) {
+        const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
-          docsMap[key] = project.fileUrl;
-          // Portfolio items follow global document status
+          const url = typeof project.fileUrl === 'object' ? project.fileUrl?.url : project.fileUrl;
+          docsMap[key] = url;
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
