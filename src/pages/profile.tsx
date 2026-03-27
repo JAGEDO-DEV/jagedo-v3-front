@@ -80,7 +80,6 @@ function ProfilePage() {
       userType === "hardware";
 
     if (isOrgType) {
-
       const showsContactName =
         userType === "customer" ||
         userType === "contractor" ||
@@ -90,7 +89,6 @@ function ProfilePage() {
         ? ["organizationName", "contactFullName", "phone", "email"]
         : ["organizationName", "phone", "email"];
     }
-
 
     return ["firstName", "lastName", "phone", "email"];
   };
@@ -104,9 +102,7 @@ function ProfilePage() {
   };
 
   const completionStatus = useMemo(() => {
-
     const up = providerData || user;
-
 
     const userType = (up?.userType || "").toLowerCase();
     const accountType = (up?.accountType || "").toLowerCase();
@@ -156,10 +152,7 @@ function ProfilePage() {
     ) {
       uploadsComplete = false;
     } else {
-
-
       if (userType === "contractor") {
-
         const hasBusinessReg =
           up?.businessRegistration || up?.certificateOfIncorporation;
         const hasPermit = up?.businessPermit;
@@ -181,7 +174,6 @@ function ProfilePage() {
           Array.isArray(contractorCategories) &&
           contractorCategories.length > 0
         ) {
-
           categoryDocsComplete = contractorCategories.every((cat: any) => {
             const categoryName = cat.category || "";
             if (!categoryName) return true;
@@ -232,13 +224,91 @@ function ProfilePage() {
       }
     }
 
-    let experienceComplete =
-      providerData?.experienceStatus == "VERIFIED" ||
-      providerData?.experienceStatus == "PENDING";
+    let experienceComplete = false;
+    const userTypeUpper = (up?.userType || "").toUpperCase();
+
+    // Helper: required projects based on grade/level
+    const getRequiredProjectCount = () => {
+      if (userTypeUpper === "FUNDI") {
+        const grade = up?.grade;
+        if (grade === "G1: Master Fundi") return 3;
+        if (grade === "G2: Skilled") return 2;
+        if (grade === "G3: Semi-skilled") return 1;
+        return 0;
+      }
+      if (userTypeUpper === "PROFESSIONAL") {
+        const level = up?.professionalLevel;
+        if (level === "Senior") return 3;
+        if (level === "Professional") return 2;
+        if (level === "Graduate") return 1;
+        return 0;
+      }
+      if (userTypeUpper === "CONTRACTOR") return 1;
+      if (userTypeUpper === "HARDWARE") return 2;
+      return 0;
+    };
+
+    const requiredProjects = getRequiredProjectCount();
+
+    // Get projects array based on user type
+    const getProjectsArray = () => {
+      switch (userTypeUpper) {
+        case "FUNDI":
+          return up?.previousJobPhotoUrls || [];
+        case "PROFESSIONAL":
+          return up?.professionalProjects || [];
+        case "CONTRACTOR":
+          return up?.contractorProjects || [];
+        case "HARDWARE":
+          return up?.hardwareProjects || [];
+        default:
+          return [];
+      }
+    };
+
+    const projects = getProjectsArray();
+    const hasEnoughProjects = projects.length >= requiredProjects;
+
+    // Check other required fields per user type
+    let fieldsComplete = false;
+    if (userTypeUpper === "CUSTOMER") {
+      fieldsComplete = true; // No experience section for customers
+    } else if (userTypeUpper === "FUNDI") {
+      const hasGrade = !!up?.grade;
+      const hasExperience = !!up?.experience;
+      fieldsComplete = hasGrade && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "PROFESSIONAL") {
+      const hasProfession = !!up?.profession;
+      const hasLevel = !!up?.professionalLevel;
+      const hasExperience = !!up?.yearsOfExperience;
+      fieldsComplete =
+        hasProfession && hasLevel && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "CONTRACTOR") {
+      const hasType = !!up?.contractorType;
+      const hasLevel = !!up?.licenseLevel;
+      const hasExperience =
+        !!up?.contractorExperiences && up.contractorExperiences.length > 0;
+      fieldsComplete =
+        hasType && hasLevel && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "HARDWARE") {
+      const hasType = !!up?.hardwareType;
+      const hasBusinessType = !!up?.businessType;
+      const hasExperience = !!up?.experience;
+      fieldsComplete =
+        hasType && hasBusinessType && hasExperience && hasEnoughProjects;
+    }
+
+    const status = up?.experienceStatus;
+    if (status === "VERIFIED" || status === "PENDING") {
+      experienceComplete = fieldsComplete;
+    } else if (status === "REJECTED" || status === "RESUBMIT") {
+      experienceComplete = false;
+    } else {
+      experienceComplete = fieldsComplete;
+    }
 
     const accountFields = getAccountInfoFields(userType, accountType);
     const accountComplete = isSectionComplete(up, accountFields);
-
 
     const addressFields = getAddressFields();
     const addressComplete = up ? isSectionComplete(up, addressFields) : false;
@@ -282,10 +352,8 @@ function ProfilePage() {
     return Math.round((completedCount / finalKeys.length) * 100);
   }, [completionStatus, user]);
 
-
   const renderContent = () => {
     const userType = (user?.userType || "").toLowerCase();
-
 
     const props = {
       data: providerData,
@@ -393,10 +461,11 @@ function ProfilePage() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${progressPercentage === 100
+                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
+                      progressPercentage === 100
                         ? "bg-green-500"
                         : "bg-blue-600"
-                      }`}
+                    }`}
                     style={{ width: `${progressPercentage}%` }}
                   ></div>
                 </div>

@@ -119,10 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       return true;
     }
 
-    // Block if documents were rejected or need resubmission
-    if (docStatus === "RESUBMIT" || docStatus === "REJECTED") {
-      return true;
-    }
+    
   }
   return false;
 };

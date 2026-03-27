@@ -3,23 +3,27 @@ import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
-import { loginUser, verifyOtpLogin, phoneLogin } from "@/api/auth.api";
+import {
+  loginUser,
+  verifyOtpLogin,
+  phoneLogin,
+  completeProfile,
+} from "@/api/auth.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
 import { getProviderProfile } from "@/api/provider.api";
 import axios from "axios";
 
-
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidPhone = (phone) => /^\d{10}$/.test(phone);
-
 
 const Button = ({ children, disabled, ...props }) => (
   <button
     disabled={disabled}
-    className={`w-full h-12 rounded-lg bg-[#00007a] text-white font-medium ${disabled ? "opacity-50" : "hover:bg-[#00007a]/90"
-      }`}
+    className={`w-full h-12 rounded-lg bg-[#00007a] text-white font-medium ${
+      disabled ? "opacity-50" : "hover:bg-[#00007a]/90"
+    }`}
     {...props}
   >
     {children}
@@ -33,21 +37,35 @@ const Input = (props) => (
   />
 );
 
-
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user: contextUser, setUser, setIsLoggedIn } = useGlobalContext();
 
-  const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+  const [showProfileCompletionModal, setShowProfileCompletionModal] =
+    useState(false);
   const [registeredUser, setRegisteredUser] = useState(null);
 
-  const handleProfileComplete = () => {
-    setShowProfileCompletionModal(false);
-    if (registeredUser) {
-      redirectUser(registeredUser);
-    } else if (contextUser) {
-      redirectUser(contextUser);
+  const handleProfileComplete = async (profileData: any) => {
+    try {
+      const payload = {
+        email: registeredUser?.email || contextUser?.email,
+        ...profileData,
+      };
+      const response = await completeProfile(payload);
+      if (response.data?.success) {
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setShowProfileCompletionModal(false);
+        toast.success("Profile Completed!");
+        redirectUser(updatedUser); // redirect to appropriate dashboard
+      } else {
+        toast.error(response.data?.message || "Failed to complete profile");
+      }
+    } catch (error: any) {
+      console.error("Profile completion error:", error);
+      toast.error(error.response?.data?.message || "Error completing profile");
     }
   };
 
@@ -77,15 +95,15 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [otpSent, otpTimer]);
 
-
-
   const validateForm = () => {
     const errs = {};
     const phone = formData.email.replace(/\D/g, "");
     const email = formData.email.trim();
 
     if (!formData.email) {
-      errs.email = isOtpFlow ? "Phone number is required" : "Phone number or email is required";
+      errs.email = isOtpFlow
+        ? "Phone number is required"
+        : "Phone number or email is required";
     }
 
     if (isOtpFlow) {
@@ -105,22 +123,22 @@ export default function Login() {
     return Object.keys(errs).length === 0;
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     if (isOtpFlow) {
-
-
       if (!otpSent) {
         setIsLoading(true);
         const phoneNumber = formData.email.replace(/\D/g, "");
 
         try {
-
-          const moddedPhoneNumber = phoneNumber.startsWith("254") ? phoneNumber : phoneNumber.startsWith('0') ? phoneNumber.replace("0", "254") : `254${phoneNumber}`
+          const moddedPhoneNumber = phoneNumber.startsWith("254")
+            ? phoneNumber
+            : phoneNumber.startsWith("0")
+              ? phoneNumber.replace("0", "254")
+              : `254${phoneNumber}`;
 
           await phoneLogin({ phoneNumber: moddedPhoneNumber });
 
@@ -136,7 +154,6 @@ export default function Login() {
         return;
       }
 
-
       if (otp.length !== 6) {
         toast.error("Enter 6-digit OTP");
         return;
@@ -146,9 +163,16 @@ export default function Login() {
       try {
         const phoneNumber = formData.email.replace(/\D/g, "");
 
-        const moddedPhoneNumber = phoneNumber.startsWith("254") ? phoneNumber : phoneNumber.startsWith('0') ? phoneNumber.replace("0", "254") : `254${phoneNumber}`
+        const moddedPhoneNumber = phoneNumber.startsWith("254")
+          ? phoneNumber
+          : phoneNumber.startsWith("0")
+            ? phoneNumber.replace("0", "254")
+            : `254${phoneNumber}`;
 
-        const response = await verifyOtpLogin({ phoneNumber: moddedPhoneNumber, otp });
+        const response = await verifyOtpLogin({
+          phoneNumber: moddedPhoneNumber,
+          otp,
+        });
 
         completeLoginWithApiResponse(response);
       } catch (error) {
@@ -159,30 +183,23 @@ export default function Login() {
       return;
     }
 
-
-
-
     setIsLoading(true);
     try {
       const username = formData.email.trim();
       const password = formData.password;
 
-
       const response = await loginUser({
         username,
         password,
-        firebaseToken: ""
+        firebaseToken: "",
       });
-
 
       completeLoginWithApiResponse(response);
     } catch (error) {
-
       toast.error(error?.response?.data?.message || "Invalid credentials");
       setIsLoading(false);
     }
   };
-
 
   const handleGoogleSuccess = (googleUser) => {
     setIsGoogleLoading(true);
@@ -214,7 +231,7 @@ export default function Login() {
 
   const completeLogin = (username, password) => {
     const user = MOCK_USERS.find(
-      (u) => u.username === username && u.password === password
+      (u) => u.username === username && u.password === password,
     );
 
     if (!user) {
@@ -237,7 +254,6 @@ export default function Login() {
     redirectUser(user);
   };
 
-
   const completeLoginWithApiResponse = async (response) => {
     const { user, accessToken } = response;
     if (!user || !accessToken) {
@@ -246,20 +262,18 @@ export default function Login() {
       return;
     }
 
-    
-    if (user && typeof user === 'object' && user.userType) {
+    if (user && typeof user === "object" && user.userType) {
       const typeUpper = String(user.userType).toUpperCase();
       user.userType = typeUpper;
-      
+
       if (user.isSuperAdmin === undefined || user.isSuperAdmin === null) {
-        user.isSuperAdmin = typeUpper === 'SUPER_ADMIN';
+        user.isSuperAdmin = typeUpper === "SUPER_ADMIN";
       }
-      user.isAdmin = typeUpper === 'ADMIN' || user.isSuperAdmin;
+      user.isAdmin = typeUpper === "ADMIN" || user.isSuperAdmin;
     }
 
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("token", accessToken);
-
 
     setUser(user);
     setIsLoggedIn(true);
@@ -281,7 +295,6 @@ export default function Login() {
     }
 
     toast.success("Login successful!");
-
 
     redirectUser(user);
   };
@@ -333,7 +346,6 @@ export default function Login() {
     navigate(path);
   };
 
-
   const toggleOtpFlow = () => {
     setIsOtpFlow(!isOtpFlow);
     setOtpSent(false);
@@ -349,9 +361,7 @@ export default function Login() {
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
         <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12 mb-6" />
 
-        <h1 className="text-2xl font-semibold text-center mb-4">
-          User Login
-        </h1>
+        <h1 className="text-2xl font-semibold text-center mb-4">User Login</h1>
 
         <p className="text-gray-600 mb-6 text-center">
           {isOtpFlow
@@ -388,8 +398,7 @@ export default function Login() {
           )}
           {isOtpFlow && otpSent && otpTimer > 0 && (
             <p className="text-sm text-gray-500">
-              Didn’t receive OTP? You can resend in{" "}
-              {Math.floor(otpTimer / 60)}:
+              Didn’t receive OTP? You can resend in {Math.floor(otpTimer / 60)}:
               {(otpTimer % 60).toString().padStart(2, "0")}
             </p>
           )}
@@ -400,22 +409,26 @@ export default function Login() {
               onClick={async () => {
                 try {
                   const phoneNumber = formData.email.replace(/\D/g, "");
-                  const moddedPhoneNumber = phoneNumber.startsWith("254") ? phoneNumber : phoneNumber.startsWith('0') ? phoneNumber.replace("0", "254") : `254${phoneNumber}`
+                  const moddedPhoneNumber = phoneNumber.startsWith("254")
+                    ? phoneNumber
+                    : phoneNumber.startsWith("0")
+                      ? phoneNumber.replace("0", "254")
+                      : `254${phoneNumber}`;
                   await phoneLogin({ phoneNumber: moddedPhoneNumber });
                   setOtp("");
                   setOtpTimer(120);
                   toast.success("OTP resent successfully");
                 } catch (error) {
                   console.error("Resend OTP error:", error);
-                  toast.error(error?.response?.data?.message || "Failed to resend OTP");
+                  toast.error(
+                    error?.response?.data?.message || "Failed to resend OTP",
+                  );
                 }
               }}
             >
               Resend OTP
             </button>
           )}
-
-
 
           {!isOtpFlow && (
             <div className="relative">
@@ -435,9 +448,7 @@ export default function Login() {
                 {showPassword ? <EyeOff /> : <Eye />}
               </button>
               {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
               <div className="flex justify-end mt-2">
                 <button
@@ -467,7 +478,11 @@ export default function Login() {
             {isLoading ? (
               <Loader2 className="mx-auto animate-spin" />
             ) : isOtpFlow ? (
-              otpSent ? "Verify OTP" : "Send OTP"
+              otpSent ? (
+                "Verify OTP"
+              ) : (
+                "Send OTP"
+              )
             ) : (
               "Login"
             )}
@@ -505,7 +520,3 @@ export default function Login() {
     </div>
   );
 }
-
-
-
-

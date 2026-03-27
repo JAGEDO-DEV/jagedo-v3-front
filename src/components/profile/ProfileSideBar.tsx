@@ -16,11 +16,16 @@ import {
   FaArrowLeft,
   FaClock,
   FaBars,
-  FaTimes
+  FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-function ProfileSide({ activeComponent, setActiveComponent, user, completionStatus }) {
+function ProfileSide({
+  activeComponent,
+  setActiveComponent,
+  user,
+  completionStatus,
+}) {
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -65,27 +70,49 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
   };
 
   const userType = user?.userType?.toLowerCase();
-  const verified = user?.status == 'VERIFIED';
+  const verified = user?.status == "VERIFIED";
+
+  // Determine if user is a service provider (has experience section)
+  const serviceProviderTypes = [
+    "fundi",
+    "professional",
+    "contractor",
+    "hardware",
+  ];
+  const isServiceProvider = serviceProviderTypes.includes(userType);
+  const isExperienceComplete = completionStatus?.["Experience"] === "complete";
 
   const filteredBaseNavItems = baseNavItems.filter(
-    (item) => !(userType === "admin" && item.id === "Account Uploads")
+    (item) => !(userType === "admin" && item.id === "Account Uploads"),
   );
 
   const finalNavItems = [];
 
   finalNavItems.push(
-    filteredBaseNavItems.find(i => i.id === "Account Info"),
-    filteredBaseNavItems.find(i => i.id === "Address"),
+    filteredBaseNavItems.find((i) => i.id === "Account Info"),
+    filteredBaseNavItems.find((i) => i.id === "Address"),
   );
 
-  if (userType !== "customer" && userType !== "hardware" && userType !== "admin") {
+  if (
+    userType !== "customer" &&
+    userType !== "hardware" &&
+    userType !== "admin"
+  ) {
     finalNavItems.push(experienceItem);
   }
 
-  const uploadsItem = filteredBaseNavItems.find(i => i.id === "Account Uploads");
+  const uploadsItem = filteredBaseNavItems.find(
+    (i) => i.id === "Account Uploads",
+  );
   if (uploadsItem) finalNavItems.push(uploadsItem);
 
-  if ((userType === "professional" || userType === "fundi" || userType === "hardware" || userType === "contractor" ) && verified) {
+  if (
+    (userType === "professional" ||
+      userType === "fundi" ||
+      userType === "hardware" ||
+      userType === "contractor") &&
+    verified
+  ) {
     finalNavItems.push(productsItem);
   }
 
@@ -109,7 +136,6 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
       >
         {/* Header Section */}
         <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200">
-
           {/* Controls: Menu Toggle (Mobile) + Back Button */}
           <div className="flex flex-col gap-4 sm:gap-0">
             {/* Mobile Toggle Button */}
@@ -117,7 +143,11 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
               onClick={() => setIsMobileOpen(!isMobileOpen)}
               className="sm:hidden flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-2 transition-colors"
             >
-              {isMobileOpen ? <FaTimes className="h-5 w-5" /> : <FaBars className="h-5 w-5" />}
+              {isMobileOpen ? (
+                <FaTimes className="h-5 w-5" />
+              ) : (
+                <FaBars className="h-5 w-5" />
+              )}
             </button>
 
             {/* Back Button */}
@@ -127,14 +157,18 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
             >
               <FaArrowLeft className="h-5 w-5" />
               {/* Show 'Back' text if mobile menu is open OR if on desktop */}
-              <span className={`font-semibold ${isMobileOpen ? "inline" : "hidden"} sm:inline`}>
+              <span
+                className={`font-semibold ${isMobileOpen ? "inline" : "hidden"} sm:inline`}
+              >
                 Back
               </span>
             </button>
           </div>
 
           {/* Title Area - Hidden on mobile closed state */}
-          <div className={`text-center mt-6 ${isMobileOpen ? "block" : "hidden"} sm:block`}>
+          <div
+            className={`text-center mt-6 ${isMobileOpen ? "block" : "hidden"} sm:block`}
+          >
             <Typography variant="h5" color="blue-gray" className="font-bold">
               Profile Management
             </Typography>
@@ -149,40 +183,47 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
           <List className="space-y-1">
             {finalNavItems.filter(Boolean).map((item) => {
               const isActive = activeComponent === item.id;
-              const status = completionStatus[item.id] || 'incomplete';
-              const isComplete = status === 'complete';
-              const showStatus = item.id !== 'Activities' && item.id !== 'Products';
+              const status = completionStatus?.[item.id] || "incomplete";
+              const isComplete = status === "complete";
+              const showStatus =
+                item.id !== "Activities" && item.id !== "Products";
+              const isDisabled =
+                isServiceProvider &&
+                !isExperienceComplete &&
+                item.id === "Account Uploads";
 
               return (
                 <ListItem
                   key={item.id}
                   onClick={() => {
+                    if (isDisabled) return;
                     setActiveComponent(item.id);
                     setIsMobileOpen(false);
                   }}
-                  className={`hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center gap-4 rounded-xl px-1.5 py-3 ${isActive
-                    ? "bg-blue-100 text-blue-700 font-bold"
-                    : "text-gray-700"
-                    }`}
+                  className={`hover:bg-blue-50 transition-all duration-200 cursor-pointer flex items-center gap-4 rounded-xl px-1.5 py-3 ${
+                    isActive
+                      ? "bg-blue-100 text-blue-700 font-bold"
+                      : "text-gray-700"
+                  } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <ListItemPrefix>
-                    <div>
-                      {item.icon}
-                    </div>
+                    <div>{item.icon}</div>
                   </ListItemPrefix>
 
                   {/* Show Label if mobile menu is open OR on desktop */}
-                  <span className={`text-sm font-medium flex-1 ${isMobileOpen ? "inline" : "hidden"} sm:inline`}>
+                  <span
+                    className={`text-sm font-medium flex-1 ${isMobileOpen ? "inline" : "hidden"} sm:inline`}
+                  >
                     {item.label}
                   </span>
 
                   {/* Show Status if mobile menu is open OR on desktop */}
                   {showStatus && (
                     <span
-                      className={`ml-auto text-xs font-semibold ${isComplete ? 'text-green-600' : 'text-red-600'} 
+                      className={`ml-auto text-xs font-semibold ${isComplete ? "text-green-600" : "text-red-600"} 
                       ${isMobileOpen ? "inline" : "hidden"} sm:inline`}
                     >
-                      {isComplete ? 'Complete' : 'Incomplete'}
+                      {isComplete ? "Complete" : "Incomplete"}
                     </span>
                   )}
                 </ListItem>

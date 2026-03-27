@@ -346,6 +346,7 @@ export function ProfileCompletion({
                 : { firstName, lastName };
 
             const profileData = {
+                email: user?.email,
                 ...restPersonalInfo,
                 ...nameFields,
                 ...location,
