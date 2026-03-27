@@ -168,7 +168,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
-  // Map status codes to user-friendly messages
+  
   const getStatusMessage = (status: string): string => {
     const statusMap: { [key: string]: string } = {
       'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
@@ -186,10 +186,15 @@ const FundiExperience = ({ data, refreshData }: any) => {
       const up = data;
       setGrade(up.grade || "G1: Master Fundi");
       setExperience(up.experience || "10+ years");
-      // Ensure specialization is set from data
-      setSpecialization(up.specialization?.trim() || "");
-      setSkill((up.skills || "plumber").toLowerCase());
-
+      
+      
+      const currentSkill = (up.skills || "plumber").toLowerCase();
+      setSkill(currentSkill);
+      
+      
+      const currentSpec = up.specialization?.trim() || "";
+      setSpecialization(currentSpec);
+      
       const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
 
       if (projectSource.length > 0) {
@@ -295,7 +300,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       }
 
       const payload = {
-        skill: skill,
+        skills: skill,
         specialization: specialization,
         grade: grade,
         experience: experience,
@@ -417,7 +422,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   value={skill}
                   onChange={e => {
                     setSkill(e.target.value);
-                    setSpecialization(""); // Reset specialization when skill changes
+                    setSpecialization(""); 
                   }}
                   disabled={isReadOnly}
                   className={inputStyles}
