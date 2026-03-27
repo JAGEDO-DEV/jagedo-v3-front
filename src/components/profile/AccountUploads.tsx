@@ -34,11 +34,19 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
-  if (status === "rejected") {
+  if (status === "REJECTED") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
         Rejected
+      </div>
+    );
+  }
+  if (status === "RESUBMIT") {
+    return (
+      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+        <AlertCircle className="w-3.5 h-3.5" />
+        Resubmit
       </div>
     );
   }
@@ -493,12 +501,12 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             {data?.documentStatusReason && (
-              <Alert variant="destructive" className="mb-6">
-                <InfoIcon className="h-4 w-4 text-red-600" />
-                <AlertTitle>Status Update</AlertTitle>
-                <AlertDescription>{data.documentStatusReason}</AlertDescription>
-              </Alert>
-            )}
+            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Status Update</AlertTitle>
+              <AlertDescription>{data.documentStatusReason}</AlertDescription>
+            </Alert>
+          )}
 
             {/* ✅ Approval Status Summary */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
