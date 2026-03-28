@@ -53,7 +53,7 @@ const StatusBadge = ({ status }) => {
   return null;
 };
 
-const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status, reason }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -96,13 +96,13 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) 
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            status === "approved" ? "bg-green-50" : status === "rejected" ? "bg-red-50" : "bg-amber-50"
+            status === "approved" ? "bg-green-50" : status === "rejected" || status === "resubmit" ? "bg-red-50" : "bg-amber-50"
           }`}>
             {isUploading ? (
               <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
             ) : (
               <FileText className={`w-5 h-5 ${
-                status === "approved" ? "text-green-600" : status === "rejected" ? "text-red-600" : "text-amber-600"
+                status === "approved" ? "text-green-600" : status === "rejected" || status === "resubmit" ? "text-red-600" : "text-amber-600"
               }`} />
             )}
           </div>
@@ -117,6 +117,20 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) 
           <StatusBadge status={status} />
         </div>
       </div>
+
+      {(status === "rejected" || status === "resubmit") && reason && (
+        <div className={`mb-4 p-2.5 rounded-lg text-xs flex items-start gap-2 ${
+          status === "rejected" ? "bg-red-50 text-red-700 border border-red-100" : "bg-blue-50 text-blue-700 border border-blue-100"
+        }`}>
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <span className="font-bold uppercase text-[10px] block mb-1">
+              {status === "rejected" ? "Rejection Reason" : "Update Required"}
+            </span>
+            {reason}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 flex-wrap">
         {!isUploading && url && (
@@ -194,6 +208,7 @@ const AccountUploads = ({ data, refreshData }) => {
               key: "certificateOfIncorporation",
             },
             { label: "KRA PIN", key: "krapin" },
+            { label: "Company Profile", key: "companyProfile" },
           ],
     fundi: [
       { label: "ID Front", key: "idFrontUrl" },
@@ -231,16 +246,49 @@ const AccountUploads = ({ data, refreshData }) => {
   let fields = [...baseFields];
   
   const hasPendingFiles = Object.keys(pendingFiles).length > 0;
-  const hasAllRequiredDocs = fields.every((f) => !!documents[f.key]);
+  
+  const isSatisfied = (fieldKey) => {
+    const sObj = approvalStatus[fieldKey];
+    const status = (typeof sObj === 'object' ? sObj?.status : sObj) || 'pending';
+    const isReplaced = !!pendingFiles[fieldKey];
+    
+    
+    if (status === "approved" || status === "pending") return true;
+    
+    
+    if ((status === "rejected" || status === "resubmit") && isReplaced) return true;
+    
+    return false;
+  };
+
+  const hasAllRequiredDocs = fields.every((f) => !!documents[f.key] && isSatisfied(f.key));
 
   const allContractorDocs = [
     ...generalFields,
     ...categories.flatMap((cat) => {
       const k = cat.toUpperCase().replace(/\s+/g, "_");
-      return [{ key: `${k}_CERTIFICATE` }, { key: `${k}_LICENSE` }];
+      return [
+        { key: `${k}_CERTIFICATE`, label: `${cat} Certificate` },
+        { key: `${k}_LICENSE`, label: `${cat} Practice License` },
+      ];
     }),
   ];
-  const hasAllContractorDocs = allContractorDocs.every((f) => !!documents[f.key]);
+
+  const rejectedDocLabels = [
+    ...fields,
+    ...(userType === "contractor" ? allContractorDocs : []),
+  ]
+    .filter((f) => {
+      const sObj = approvalStatus[f.key];
+      const status =
+        (typeof sObj === "object" ? sObj?.status : sObj) || "pending";
+      
+      return (
+        (status === "rejected" || status === "resubmit") && !pendingFiles[f.key]
+      );
+    })
+    .map((f) => f.label);
+  const hasAllContractorDocs = allContractorDocs.every((f) => !!documents[f.key] && isSatisfied(f.key));
 
   const isReadOnly = !["PENDING", "RESUBMIT", "INCOMPLETE"].includes(
     data?.documentStatus,
@@ -255,6 +303,10 @@ const AccountUploads = ({ data, refreshData }) => {
   useEffect(() => {
     if (data) {
       const docsMap = { ...data };
+      if (data.kraPIN && !data.krapin) docsMap.krapin = data.kraPIN;
+      if (data.certificateOfIncorporation && !data.businessRegistration) docsMap.businessRegistration = data.certificateOfIncorporation;
+      if (data.businessRegistration && !data.certificateOfIncorporation) docsMap.certificateOfIncorporation = data.businessRegistration;
+      
       const catNames = [];
       const statusMap = {};
 
@@ -287,19 +339,19 @@ const AccountUploads = ({ data, refreshData }) => {
           const detail = data.documentDetails[backendKey];
           
           let actualStatus = detail?.status || detail;
-          console.log(actualStatus)
+          const reason = detail?.reason || "";
+          
           let status = 'pending';
           if (actualStatus === 'VERIFIED') status = 'approved';
           else if (actualStatus === 'RESUBMIT') status = 'resubmit';
           else if (actualStatus === 'REJECTED') status = 'rejected';
           else if (actualStatus === 'REPLACED') status = 'pending';
           
-          
           const fieldKey = Object.keys(keyMapping).find(
             (k) => keyMapping[k] === backendKey
           ) || backendKey;
           
-          statusMap[fieldKey] = status;
+          statusMap[fieldKey] = { status, reason };
         });
       }
 
@@ -478,7 +530,23 @@ const AccountUploads = ({ data, refreshData }) => {
             <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>Status Update</AlertTitle>
-              <AlertDescription>{data.documentStatusReason}</AlertDescription>
+              <AlertDescription>
+                <p className="mb-2">{data.documentStatusReason}</p>
+                {rejectedDocLabels.length > 0 && (
+                  <div className="mt-3 bg-white/50 p-3 rounded-lg border border-red-200">
+                    <p className="text-xs font-bold text-red-800 uppercase mb-2">
+                      Documents requiring attention:
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                      {rejectedDocLabels.map((label, idx) => (
+                        <li key={idx} className="font-medium">
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -530,7 +598,8 @@ const AccountUploads = ({ data, refreshData }) => {
                   key={f.key}
                   label={f.label}
                   url={documents[f.key]}
-                  status={approvalStatus[f.key]}
+                  status={approvalStatus[f.key]?.status || approvalStatus[f.key]}
+                  reason={approvalStatus[f.key]?.reason}
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
                   disabled={isReadOnly}
@@ -585,7 +654,23 @@ const AccountUploads = ({ data, refreshData }) => {
             <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>Status Update</AlertTitle>
-              <AlertDescription>{data.documentStatusReason}</AlertDescription>
+              <AlertDescription>
+                <p className="mb-2">{data.documentStatusReason}</p>
+                {rejectedDocLabels.length > 0 && (
+                  <div className="mt-3 bg-white/50 p-3 rounded-lg border border-red-200">
+                    <p className="text-xs font-bold text-red-800 uppercase mb-2">
+                      Documents requiring attention:
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                      {rejectedDocLabels.map((label, idx) => (
+                        <li key={idx} className="font-medium">
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -642,7 +727,8 @@ const AccountUploads = ({ data, refreshData }) => {
                   key={f.key}
                   label={f.label}
                   url={documents[f.key]}
-                  status={approvalStatus[f.key]}
+                  status={approvalStatus[f.key]?.status || approvalStatus[f.key]}
+                  reason={approvalStatus[f.key]?.reason}
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
                   disabled={isReadOnly}
@@ -675,7 +761,8 @@ const AccountUploads = ({ data, refreshData }) => {
                         <DocumentCard
                           label={`${cat} Certificate`}
                           url={documents[certKey]}
-                          status={approvalStatus[certKey]}
+                          status={approvalStatus[certKey]?.status || approvalStatus[certKey]}
+                          reason={approvalStatus[certKey]?.reason}
                           onReplace={(file) => replaceDocument(file, certKey)}
                           isUploading={isSubmitting && !!pendingFiles[certKey]}
                           disabled={isReadOnly}
@@ -683,7 +770,8 @@ const AccountUploads = ({ data, refreshData }) => {
                         <DocumentCard
                           label={`${cat} Practice License`}
                           url={documents[licenseKey]}
-                          status={approvalStatus[licenseKey]}
+                          status={approvalStatus[licenseKey]?.status || approvalStatus[licenseKey]}
+                          reason={approvalStatus[licenseKey]?.reason}
                           onReplace={(file) => replaceDocument(file, licenseKey)}
                           isUploading={isSubmitting && !!pendingFiles[licenseKey]}
                           disabled={isReadOnly}

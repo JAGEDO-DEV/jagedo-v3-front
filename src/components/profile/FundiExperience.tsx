@@ -7,7 +7,6 @@ import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, CheckCircle } from "lucide-react";
 
 interface FileItem {
@@ -171,8 +170,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
   
   const getStatusMessage = (status: string): string => {
     const statusMap: { [key: string]: string } = {
+      'REJECTED': 'Your submission was rejected. Please review the feedback and resubmit.',
       'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
+      'VERIFIED': 'Your submission has been approved.',
       'APRVD': 'Your submission has been approved.',
+      'PENDING': 'Your submission is pending review.',
       'PEND': 'Your submission is pending review.',
       'RESUBMIT': 'Please resubmit your experience for review.',
     };
@@ -392,16 +394,29 @@ const FundiExperience = ({ data, refreshData }: any) => {
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
         <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
 
-        {data?.experienceStatusReason && (
-          <Alert variant={data.experienceStatus === "PENDING" ? "default" : "destructive"} className={data.experienceStatus === "PENDING" ? "bg-amber-200 mb-6" : "mb-6"}>
-            <InfoIcon className="h-4 w-4" />
-            <AlertTitle>Status Update</AlertTitle>
-            <AlertDescription>
-              {data.experienceStatusReason}
-            </AlertDescription>
-          </Alert>
+        {data?.experienceStatus === 'REJECTED' && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-start gap-3">
+             <div className="bg-red-100 p-2 rounded-lg">
+                <InfoIcon className="w-5 h-5 text-red-600" />
+             </div>
+            <div>
+              <p className="font-bold mb-1 uppercase text-xs tracking-wider">Experience Rejected</p>
+              <p className="text-red-700">{data.experienceStatusReason || "Your submission was rejected. Please review your details and re-submit."}</p>
+            </div>
+          </div>
         )}
 
+        {data?.experienceStatus === 'RESUBMIT' && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm flex items-start gap-3">
+             <div className="bg-amber-100 p-2 rounded-lg">
+                <InfoIcon className="w-5 h-5 text-amber-600" />
+             </div>
+            <div>
+              <p className="font-bold mb-1 uppercase text-xs tracking-wider">Resubmission Required</p>
+              <p className="text-amber-700">{data.experienceStatusReason || "Admin has requested a resubmission. Please check your details."}</p>
+            </div>
+          </div>
+        )}
         {/* Show Next Steps only if fundi has submitted experience but hasn't been evaluated yet */}
         {!data?.fundiEvaluation && data?.experienceStatus && data.experienceStatus !== 'INCOMPLETE' && data.experienceStatus !== 'VERIFIED' && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">

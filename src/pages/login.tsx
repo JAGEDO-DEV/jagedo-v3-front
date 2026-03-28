@@ -533,8 +533,8 @@ export default function Login() {
       <ProfileCompletionModal
         isOpen={showProfileCompletionModal}
         user={registeredUser}
-        accountType={"CONTRACTOR" as any}
-        userType="CONTRACTOR"
+        accountType={registeredUser?.accountType || "INDIVIDUAL"}
+        userType={registeredUser?.userType || "CUSTOMER"}
         onComplete={handleProfileComplete}
         onClose={() => setShowProfileCompletionModal(false)}
       />

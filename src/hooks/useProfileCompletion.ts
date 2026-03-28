@@ -1,32 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState, useEffect, useCallback } from "react";
 
-/**
- * useProfileCompletion Hook - SIMPLIFIED VERSION
- *
- * Since users fill Account Info & Address during sign-up, those are ALWAYS complete.
- * This hook only checks:
- * - Account Uploads: Are all required documents uploaded?
- * - Experience: Are grade, experience, and projects filled?
- *
- * Props:
- * - userData: User data object
- * - userType: Type of user (FUNDI, PROFESSIONAL, CONTRACTOR, HARDWARE, CUSTOMER)
- */
+
 export const useProfileCompletion = (
   userData: any,
   userType: string,
 ): { [key: string]: "complete" | "incomplete" } => {
-  // State to force re-computation when localStorage changes
+  
   const [storageVersion, setStorageVersion] = useState(0);
 
-  // Listen for storage events (including custom events from document uploads)
+  
   useEffect(() => {
     const handleStorageChange = () => {
       setStorageVersion((v) => v + 1);
     };
 
-    // Listen for both native storage events and custom events
+    
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
@@ -37,35 +26,35 @@ export const useProfileCompletion = (
   const completionStatus = useMemo((): {
     [key: string]: "complete" | "incomplete";
   } => {
-    // If no user data, mark everything as incomplete
+    
     const defaultStatus: { [key: string]: "complete" | "incomplete" } = {
-      "account-info": "complete", // Always complete (filled at signup)
-      address: "incomplete", // Always complete (filled at signup)
-      "account-uploads": "incomplete", // Depends on document uploads
-      experience: "incomplete", // Depends on experience data
-      products: "incomplete", // Not required yet
+      "account-info": "complete", 
+      address: "incomplete", 
+      "account-uploads": "incomplete", 
+      experience: "incomplete", 
+      products: "incomplete", 
     };
 
     if (!userData) {
       return defaultStatus;
     }
 
-    // ============================================
-    // ACCOUNT UPLOADS COMPLETION
-    // ============================================
-    // Get required documents based on user type
+    
+    
+    
+    
     const getRequiredDocuments = () => {
       const accountType = userData?.accountType?.toLowerCase() || "";
       const userTypeLC = userType.toLowerCase();
 
-      // Individual customer needs: ID Front, ID Back, KRA PIN
+      
       if (accountType === "individual" && userTypeLC === "customer") {
         return ["idFront", "idBack", "krapin"];
       }
 
-      // Map of required documents per user type
+      
       const docMap: any = {
-        customer: ["businessPermit", "certificateOfIncorporation", "krapin"],
+        customer: ["businessPermit", "certificateOfIncorporation", "krapin", "companyProfile"],
         fundi: ["idFront", "idBack", "certificate", "krapin"],
         professional: [
           "idFront",
@@ -92,19 +81,46 @@ export const useProfileCompletion = (
       return docMap[userTypeLC] || [];
     };
 
-    // Check if ALL required documents are uploaded in the actual profile data
+    
     const profile = userData || {};
     const requiredDocs = getRequiredDocuments();
 
-    // Mapping of internal document keys to profile property names
+    
     const checkDocument = (key: string): boolean => {
+      const documentDetails = profile?.documentDetails || {};
+      
+      
+      const backendKeyMap: any = {
+        idFront: "idFront",
+        idBack: "idBack",
+        krapin: "krapin",
+        certificate: "certificate",
+        academicCertificate: "academicCertificate",
+        cv: "cv",
+        practiceLicense: "practiceLicense",
+        businessPermit: "businessPermit",
+        singleBusinessPermit: "businessPermit",
+        businessRegistration: "businessRegistration",
+        certificateOfIncorporation: "businessRegistration",
+        companyProfile: "companyProfile"
+      };
+
+      const bKey = backendKeyMap[key] || key;
+      const detail = documentDetails[bKey];
+      const docStatus = (detail?.status || detail) || "";
+      
+      
+      if (docStatus === "REJECTED" || docStatus === "RESUBMIT") {
+        return false;
+      }
+
       switch (key) {
         case "idFront":
           return !!profile.idFrontUrl;
         case "idBack":
           return !!profile.idBackUrl;
         case "krapin":
-          return !!profile.krapin;
+          return !!(profile.krapin || profile.kraPIN);
         case "certificate":
           return !!profile.certificateUrl;
         case "academicCertificate":
@@ -135,26 +151,24 @@ export const useProfileCompletion = (
     const uploadsComplete =
       profile.documentStatus === "VERIFIED"
         ? true
-        : profile.documentStatus === "PENDING"
-          ? true
-          : profile.documentStatus === "REJECTED" ||
-              profile.documentStatus === "RESUBMIT"
-            ? false
-            : requiredDocs.length > 0 &&
-              requiredDocs.every((doc) => checkDocument(doc));
+        : profile.documentStatus === "REJECTED" ||
+          profile.documentStatus === "RESUBMIT"
+        ? false
+        : requiredDocs.length > 0 &&
+          requiredDocs.every((doc) => checkDocument(doc));
 
-    // ============================================
-    // EXPERIENCE COMPLETION
-    // ============================================
-    // Check experience based on user type
+    
+    
+    
+    
     let experienceComplete = false;
     const userTypeUpper = userType.toUpperCase();
 
-    // Helper: check individual field requirements per user type
+    
     const checkExperienceFields = (): boolean => {
       const userTypeUpper = userType.toUpperCase();
 
-      // Helper to get required project count based on user data
+      
       const getRequiredProjectCount = () => {
         if (userTypeUpper === "FUNDI") {
           const grade = userData?.grade;
@@ -177,7 +191,7 @@ export const useProfileCompletion = (
 
       const requiredProjects = getRequiredProjectCount();
 
-      // Get projects array based on user type
+      
       const getProjectsArray = () => {
         switch (userTypeUpper) {
           case "FUNDI":
@@ -196,7 +210,7 @@ export const useProfileCompletion = (
       const projects = getProjectsArray();
       const hasEnoughProjects = projects.length >= requiredProjects;
 
-      // Now check other required fields
+      
       if (userTypeUpper === "CUSTOMER") {
         return true;
       }
@@ -213,7 +227,7 @@ export const useProfileCompletion = (
       }
       if (userTypeUpper === "PROFESSIONAL") {
         const hasProfession = !!userData?.profession;
-        const hasLevel = !!userData?.levelOrClass; // ✅ use levelOrClass
+        const hasLevel = !!userData?.levelOrClass; 
         const hasExperience = !!userData?.yearsOfExperience;
         return hasProfession && hasLevel && hasExperience && hasEnoughProjects;
       }
@@ -226,22 +240,24 @@ export const useProfileCompletion = (
     const fieldsComplete = checkExperienceFields();
 
     if (userTypeUpper === "CUSTOMER") {
-      // Customers have no experience section at all
+      
       experienceComplete = true;
     } else if (
-      userData?.experienceStatus === "VERIFIED" ||
+      userData?.experienceStatus === "VERIFIED"
+    ) {
+      experienceComplete = true;
+    } else if (
       userData?.experienceStatus === "PENDING"
     ) {
-      // Backend has accepted the submission — show as complete
-      experienceComplete = true;
+      experienceComplete = fieldsComplete;
     } else if (
       userData?.experienceStatus === "RESUBMIT" ||
       userData?.experienceStatus === "REJECTED"
     ) {
-      // Explicitly rejected/needs resubmission → always false, regardless of fields
+      
       experienceComplete = false;
     } else {
-      // No status yet → rely purely on whether fields are filled
+      
       experienceComplete = fieldsComplete;
     }
 
@@ -344,29 +360,19 @@ export const useProfileCompletion = (
       userData?.city &&
       userData?.estate
     );
-
-    const AccountInfoComplte= !! (
-      userData?.firstName &&
-      userData?.lastName &&
-      userData?.phone &&
-      userData?.email || 
-      userData?.organizationName || 
-      userData?.contactFullName
-    )
-
-    // ============================================
-    // RETURN STATUS FOR ALL SECTIONS
-    // ============================================
+    
+    
+    
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
-      "account-info": AccountInfoComplte ? "complete" : "incomplete", 
+      "account-info": "complete", 
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",
-      products: "incomplete", // Not tracked yet
+      products: "incomplete", 
     };
 
     return statusObject;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [userData, userType, storageVersion]);
 
   return completionStatus;
