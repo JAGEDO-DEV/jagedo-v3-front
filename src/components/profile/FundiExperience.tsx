@@ -311,7 +311,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
       await updateFundiExperience(axiosInstance, payload);
 
-      toast.success("Experience submitted successfully! Your submission is now pending review.", { id: toastId });
+      toast.success("Experience saved successfully!", { id: toastId });
       setIsSubmitting(false);
       if (refreshData) refreshData();
     } catch (error: any) {

@@ -8,6 +8,8 @@ import {
   verifyOtpLogin,
   phoneLogin,
   completeProfile,
+  emailOtpLogin,
+  verifyEmailOtpLogin,
 } from "@/api/auth.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import GoogleSignIn from "@/components/GoogleSignIn";
@@ -45,6 +47,13 @@ export default function Login() {
   const [showProfileCompletionModal, setShowProfileCompletionModal] =
     useState(false);
   const [registeredUser, setRegisteredUser] = useState(null);
+
+  const detectInputType = (value: string) => {
+    const phone = value.replace(/\D/g, "");
+    if (isValidEmail(value.trim())) return "email";
+    if (isValidPhone(phone)) return "phone";
+    return null;
+  };
 
   const handleProfileComplete = async (profileData: any) => {
     try {
@@ -107,8 +116,9 @@ export default function Login() {
     }
 
     if (isOtpFlow) {
-      if (!isValidPhone(phone)) {
-        errs.email = "Enter a valid 10-digit phone number";
+      const inputType = detectInputType(formData.email);
+      if (!inputType) {
+        errs.email = "Enter a valid 10-digit phone number or email address";
       }
       if (otpSent && !/^\d{6}$/.test(otp)) {
         errs.otp = "OTP must be 6 digits";
@@ -128,59 +138,64 @@ export default function Login() {
 
     if (!validateForm()) return;
 
-    if (isOtpFlow) {
-      if (!otpSent) {
-        setIsLoading(true);
-        const phoneNumber = formData.email.replace(/\D/g, "");
+    if (isOtpFlow && !otpSent) {
+      setIsLoading(true);
+      const inputType = detectInputType(formData.email);
 
-        try {
+      try {
+        if (inputType === "email") {
+          await emailOtpLogin({ email: formData.email.trim() });
+        } else {
+          // existing phone logic
+          const phoneNumber = formData.email.replace(/\D/g, "");
           const moddedPhoneNumber = phoneNumber.startsWith("254")
             ? phoneNumber
             : phoneNumber.startsWith("0")
               ? phoneNumber.replace("0", "254")
               : `254${phoneNumber}`;
-
           await phoneLogin({ phoneNumber: moddedPhoneNumber });
-
-          setOtpSent(true);
-          setOtpTimer(120);
-          toast.success("OTP sent to your phone");
-        } catch (error) {
-          console.error("Phone login error:", error);
-          toast.error(error?.response?.data?.message || "Failed to send OTP");
-        } finally {
-          setIsLoading(false);
         }
-        return;
-      }
-
-      if (otp.length !== 6) {
-        toast.error("Enter 6-digit OTP");
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const phoneNumber = formData.email.replace(/\D/g, "");
-
-        const moddedPhoneNumber = phoneNumber.startsWith("254")
-          ? phoneNumber
-          : phoneNumber.startsWith("0")
-            ? phoneNumber.replace("0", "254")
-            : `254${phoneNumber}`;
-
-        const response = await verifyOtpLogin({
-          phoneNumber: moddedPhoneNumber,
-          otp,
-        });
-
-        completeLoginWithApiResponse(response);
+        setOtpSent(true);
+        setOtpTimer(120);
+        toast.success("OTP sent successfully");
       } catch (error) {
-        console.error("OTP verification error:", error);
-        toast.error(error?.response?.data?.message || "Invalid OTP");
+        toast.error(error?.response?.data?.message || "Failed to send OTP");
+      } finally {
         setIsLoading(false);
       }
       return;
+    }
+
+    // And in the OTP verify block:
+    if (isOtpFlow && otpSent) {
+      setIsLoading(true);
+      const inputType = detectInputType(formData.email);
+
+      try {
+        let response;
+        if (inputType === "email") {
+          response = await verifyEmailOtpLogin({
+            email: formData.email.trim(),
+            otp,
+          });
+        } else {
+          const phoneNumber = formData.email.replace(/\D/g, "");
+          const moddedPhoneNumber = phoneNumber.startsWith("254")
+            ? phoneNumber
+            : phoneNumber.startsWith("0")
+              ? phoneNumber.replace("0", "254")
+              : `254${phoneNumber}`;
+          response = await verifyOtpLogin({
+            phoneNumber: moddedPhoneNumber,
+            otp,
+          });
+        }
+        completeLoginWithApiResponse(response);
+        return;
+      } catch (error) {
+        toast.error(error?.response?.data?.message || "Invalid OTP");
+        setIsLoading(false);
+      }
     }
 
     setIsLoading(true);
@@ -365,13 +380,15 @@ export default function Login() {
 
         <p className="text-gray-600 mb-6 text-center">
           {isOtpFlow
-            ? "Enter your phone number to receive OTP"
+            ? "Enter your phone number or email to receive OTP"
             : "What is your phone number or email?"}
         </p>
 
         <form className="space-y-5 w-full" onSubmit={handleSubmit}>
           <Input
-            placeholder={isOtpFlow ? "Phone number" : "Phone number or email"}
+            placeholder={
+              isOtpFlow ? "Phone number or email" : "Phone number or email"
+            }
             value={formData.email}
             disabled={isOtpFlow && otpSent}
             onChange={(e) =>
@@ -408,18 +425,22 @@ export default function Login() {
               className="text-blue-600 text-sm"
               onClick={async () => {
                 try {
-                  const phoneNumber = formData.email.replace(/\D/g, "");
-                  const moddedPhoneNumber = phoneNumber.startsWith("254")
-                    ? phoneNumber
-                    : phoneNumber.startsWith("0")
-                      ? phoneNumber.replace("0", "254")
-                      : `254${phoneNumber}`;
-                  await phoneLogin({ phoneNumber: moddedPhoneNumber });
+                  const inputType = detectInputType(formData.email);
+                  if (inputType === "email") {
+                    await emailOtpLogin({ email: formData.email.trim() });
+                  } else {
+                    const phoneNumber = formData.email.replace(/\D/g, "");
+                    const moddedPhoneNumber = phoneNumber.startsWith("254")
+                      ? phoneNumber
+                      : phoneNumber.startsWith("0")
+                        ? phoneNumber.replace("0", "254")
+                        : `254${phoneNumber}`;
+                    await phoneLogin({ phoneNumber: moddedPhoneNumber });
+                  }
                   setOtp("");
                   setOtpTimer(120);
                   toast.success("OTP resent successfully");
                 } catch (error) {
-                  console.error("Resend OTP error:", error);
                   toast.error(
                     error?.response?.data?.message || "Failed to resend OTP",
                   );

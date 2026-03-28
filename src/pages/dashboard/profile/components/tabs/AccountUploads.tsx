@@ -164,7 +164,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
-    const globalStatus = userData?.status == 'VERIFIED' ? "approved" : "pending";
+    const globalStatus = userData?.status;
     const documentDetails = userData?.documentDetails || {};
 
     const getStatus = (key: string): DocumentStatus => {
@@ -624,6 +624,12 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       setDocuments(updatedDocs);
       await persistDocuments(updatedDocs);
       toast.success(`${file.name} uploaded successfully`);
+      
+      if (isAdmin) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to upload file");
     } finally {
@@ -1185,7 +1191,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               } />
 
               {}
-              {isAdmin && (
+              {isAdmin && userData?.documentStatus !== "RESUBMIT" && userData?.documentStatus !== "VERIFIED" && userData?.documentStatus !== "REJECTED" && userData?.documentStatus !== "INCOMPLETE" && (
                 <div className="relative">
                   <button
                     onClick={() => setShowGlobalActions(!showGlobalActions)}

@@ -8,9 +8,11 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getAllProviders } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { generatePDF } from "@/utils/pdfExport";
-import { BuilderStatus } from "@/data/mockBuilders";
+import { BuilderStatus, STATUS_LABELS } from "@/data/mockBuilders";
 import { StatusBadge } from "./StatusBadge";
 import { BuilderFilters } from "./BuilderFilters";
+import { CompletionStatus } from "@/hooks/useProfileCompletion";
+import { BuilderStatusCell } from "./BuilderStatusCell";
 
 const navItems = [
   { name: "FUNDI" },
@@ -213,6 +215,33 @@ export default function BuildersAdmin() {
 
   const updateFilter = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+ 
+
+  const isSignedUpButIncomplete = (
+    status: BuilderStatus,
+    completionStatus: Record<string, CompletionStatus>,
+  ) => {
+    if (status !== "SIGNED_UP") return false;
+
+    return Object.values(completionStatus).some(
+      (section) => section === "incomplete",
+    );
+  };
+  const getSmartStatusLabel = (
+    status: BuilderStatus,
+    completionStatus: Record<string, CompletionStatus>,
+  ) => {
+    if (status === "SIGNED_UP") {
+      const hasIncomplete = Object.values(completionStatus).some(
+        (s) => s === "incomplete",
+      );
+
+      return hasIncomplete ? "Complete Your Profile" : "Pending Verification";
+    }
+
+    return STATUS_LABELS[status];
   };
 
   return (
@@ -459,9 +488,9 @@ export default function BuildersAdmin() {
                           : "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <StatusBadge
-                          status={(row.status as BuilderStatus) || "INCOMPLETE"}
-                        />
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <BuilderStatusCell row={row} />
+                        </td>
                       </td>
                     </tr>
                   ))}
@@ -546,7 +575,7 @@ export default function BuildersAdmin() {
         </div>
       </div>
 
-     <BuilderFilters
+      <BuilderFilters
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         filters={filters}

@@ -54,9 +54,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     : false;
 
   const displayStatus =
-    userData.status === "SIGNED_UP" && allSectionsComplete
-      ? "COMPLETED"
-      : userData.status;
+  userData.status === "VERIFIED"
+    ? "Verified"
+    : userData.status === "SUSPENDED"
+      ? "Suspended"
+      : userData.status === "BLACKLISTED"
+        ? "Blacklisted"
+        : userData.status === "DELETED"
+          ? "Deleted"
+          : userData.status === "SIGNED_UP" && allSectionsComplete
+            ? "Pending Verification"
+            : "Profile Incomplete";
+      
   const [editingField, setEditingField] = useState<string | null>(null);
 
   const isOrganization =
@@ -448,9 +457,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 
                     // "Submitted" means status is anything other than INCOMPLETE
                     const hasSubmittedDocs =
-                      docStatus && docStatus !== "INCOMPLETE";
+                      docStatus && (docStatus !== "INCOMPLETE" && docStatus !== "RESUBMIT");
                     const hasSubmittedExperience =
-                      expStatus && expStatus !== "INCOMPLETE";
+                      expStatus && expStatus !== "INCOMPLETE" && expStatus !== "RESUBMIT";
 
                     const isBuilder = [
                       "FUNDI",
@@ -971,7 +980,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                         <label className="block text-sm font-medium">
                           Name
                         </label>
-                        <div className="flex flex-col gap-4 border-b pb-4">
+                        <div className="flex flex-row justify-center items-center gap-4 border-b pb-4">
                           {editingField === "name" ? (
                             <div className="space-y-4 w-full">
                               <div className="flex flex-col gap-2">

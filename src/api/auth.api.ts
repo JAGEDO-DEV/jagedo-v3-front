@@ -147,3 +147,20 @@ export const resetPasswordToken = async (data: any) => {
     );
     return response.data;
 };
+
+// otp email login in 
+export const emailOtpLogin = async (data: { email: string }) => {
+  const response = await axios.post(
+    `${import.meta.env.VITE_SERVER_URL}/api/auth/initiate-email-otp-login`,
+    data
+  );
+  return response.data;
+};
+
+export const verifyEmailOtpLogin = async (data: { email: string; otp: string }) => {
+  const response = await axios.post(
+    `${import.meta.env.VITE_SERVER_URL}/api/auth/login-with-email-otp`,
+    data
+  );
+  return { ...response.data, user: response.data.user };
+};

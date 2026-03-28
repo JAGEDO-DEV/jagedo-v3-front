@@ -352,7 +352,7 @@ export const useProfileCompletion = (
         console.log("❌ EXPERIENCE INCOMPLETE — issues:", issues);
       }
     };
-    logExperienceIssues();
+    // logExperienceIssues();
     const addressComplete = !!(
       userData?.country &&
       userData?.county &&
