@@ -146,15 +146,11 @@ export const useProfileCompletion = (
     // ============================================
     // EXPERIENCE COMPLETION
     // ============================================
-    // Check experience based on user type
     let experienceComplete = false;
-    const userTypeUpper = userType.toUpperCase();
 
-    // Helper: check individual field requirements per user type
-    const checkExperienceFields = (): boolean => {
+    const getExperienceState = () => {
       const userTypeUpper = userType.toUpperCase();
 
-      // Helper to get required project count based on user data
       const getRequiredProjectCount = () => {
         if (userTypeUpper === "FUNDI") {
           const grade = userData?.grade;
@@ -175,9 +171,6 @@ export const useProfileCompletion = (
         return 0;
       };
 
-      const requiredProjects = getRequiredProjectCount();
-
-      // Get projects array based on user type
       const getProjectsArray = () => {
         switch (userTypeUpper) {
           case "FUNDI":
@@ -193,55 +186,54 @@ export const useProfileCompletion = (
         }
       };
 
+      const requiredProjects = getRequiredProjectCount();
       const projects = getProjectsArray();
       const hasEnoughProjects = projects.length >= requiredProjects;
 
-      // Now check other required fields
-      if (userTypeUpper === "CUSTOMER") {
-        return true;
-      }
-      if (userTypeUpper === "FUNDI") {
-        const hasGrade = !!userData?.grade;
-        const hasExperience = !!userData?.experience;
-        return hasGrade && hasExperience && hasEnoughProjects;
-      }
+      const checkFields = (): boolean => {
+        if (userTypeUpper === "CUSTOMER") return true;
+        if (userTypeUpper === "HARDWARE") return true;
+        if (userTypeUpper === "FUNDI") {
+          return (
+            !!userData?.grade && !!userData?.experience && hasEnoughProjects
+          );
+        }
+        if (userTypeUpper === "CONTRACTOR") {
+          return !!userData?.contractorExperiences && hasEnoughProjects;
+        }
+        if (userTypeUpper === "PROFESSIONAL") {
+          return (
+            !!userData?.profession &&
+            !!userData?.levelOrClass &&
+            !!userData?.yearsOfExperience &&
+            hasEnoughProjects
+          );
+        }
+        return false;
+      };
 
-      if (userTypeUpper === "CONTRACTOR") {
-        
-        const hasExperience = !!userData?.contractorExperiences;
-        return hasExperience && hasEnoughProjects;
-      }
-      if (userTypeUpper === "PROFESSIONAL") {
-        const hasProfession = !!userData?.profession;
-        const hasLevel = !!userData?.levelOrClass; // ✅ use levelOrClass
-        const hasExperience = !!userData?.yearsOfExperience;
-        return hasProfession && hasLevel && hasExperience && hasEnoughProjects;
-      }
-      if (userTypeUpper === "HARDWARE") {
-        return  true;
-      }
-      return false;
+      return {
+        userTypeUpper,
+        hasEnoughProjects,
+        fieldsComplete: checkFields(),
+      };
     };
 
-    const fieldsComplete = checkExperienceFields();
+    const { userTypeUpper, hasEnoughProjects, fieldsComplete } =
+      getExperienceState();
 
     if (userTypeUpper === "CUSTOMER") {
-      // Customers have no experience section at all
       experienceComplete = true;
-    } else if (
-      userData?.experienceStatus === "VERIFIED" ||
-      userData?.experienceStatus === "PENDING"
-    ) {
-      // Backend has accepted the submission — show as complete
+    } else if (userData?.experienceStatus === "VERIFIED") {
       experienceComplete = true;
     } else if (
       userData?.experienceStatus === "RESUBMIT" ||
       userData?.experienceStatus === "REJECTED"
     ) {
-      // Explicitly rejected/needs resubmission → always false, regardless of fields
       experienceComplete = false;
+    } else if (userData?.experienceStatus === "PENDING" && hasEnoughProjects) {
+      experienceComplete = true;
     } else {
-      // No status yet → rely purely on whether fields are filled
       experienceComplete = fieldsComplete;
     }
 
@@ -265,8 +257,6 @@ export const useProfileCompletion = (
         if (!hasGrade) issues.push("Missing grade");
         if (!hasExperience) issues.push("Missing experience");
         if (!hasProjects) issues.push("Missing previous projects");
-
-        
       }
 
       if (userTypeUpper === "PROFESSIONAL") {
@@ -281,8 +271,6 @@ export const useProfileCompletion = (
         if (!hasLevel) issues.push("Missing level/class");
         if (!hasExperience) issues.push("Missing years of experience");
         if (!hasProjects) issues.push("Missing professional projects");
-
-        
       }
 
       if (userTypeUpper === "CONTRACTOR") {
@@ -336,7 +324,7 @@ export const useProfileCompletion = (
         console.log("❌ EXPERIENCE INCOMPLETE — issues:", issues);
       }
     };
-    // logExperienceIssues();
+    logExperienceIssues();
     const addressComplete = !!(
       userData?.country &&
       userData?.county &&
@@ -345,20 +333,20 @@ export const useProfileCompletion = (
       userData?.estate
     );
 
-    const AccountInfoComplte= !! (
-      userData?.firstName &&
-      userData?.lastName &&
-      userData?.phone &&
-      userData?.email || 
-      userData?.organizationName || 
+    const AccountInfoComplte = !!(
+      (userData?.firstName &&
+        userData?.lastName &&
+        userData?.phone &&
+        userData?.email) ||
+      userData?.organizationName ||
       userData?.contactFullName
-    )
+    );
 
     // ============================================
     // RETURN STATUS FOR ALL SECTIONS
     // ============================================
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
-      "account-info": AccountInfoComplte ? "complete" : "incomplete", 
+      "account-info": AccountInfoComplte ? "complete" : "incomplete",
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",

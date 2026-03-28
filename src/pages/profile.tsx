@@ -227,6 +227,7 @@ function ProfilePage() {
     }
 
     let experienceComplete = false;
+
     const userTypeUpper = (up?.userType || "").toUpperCase();
 
     // Helper: required projects based on grade/level
@@ -269,6 +270,13 @@ function ProfilePage() {
     };
 
     const projects = getProjectsArray();
+    console.log({
+      userType: userTypeUpper,
+      levelOrClass: up?.levelOrClass,
+      requiredProjects,
+      actualProjects: projects.length,
+      projectNames: projects.map((p) => p.projectName),
+    });
     const hasEnoughProjects = projects.length >= requiredProjects;
 
     // Check other required fields per user type
@@ -301,10 +309,12 @@ function ProfilePage() {
     }
 
     const status = up?.experienceStatus;
-    if (status === "VERIFIED" || status === "PENDING") {
+    if (status === "VERIFIED" ) {
       experienceComplete = true;
     } else if (status === "REJECTED" || status === "RESUBMIT") {
       experienceComplete = false;
+    } else if (status === "PENDING" && hasEnoughProjects || userTypeUpper === "HARDWARE") {
+      experienceComplete = true;
     } else {
       experienceComplete = fieldsComplete;
     }
@@ -465,10 +475,11 @@ function ProfilePage() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${progressPercentage === 100
+                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
+                      progressPercentage === 100
                         ? "bg-green-500"
                         : "bg-blue-600"
-                      }`}
+                    }`}
                     style={{ width: `${progressPercentage}%` }}
                   ></div>
                 </div>

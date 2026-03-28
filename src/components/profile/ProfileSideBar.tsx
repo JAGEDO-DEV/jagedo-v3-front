@@ -80,8 +80,11 @@ function ProfileSide({
     "hardware",
   ];
   const isServiceProvider = serviceProviderTypes.includes(userType);
+
   const isExperienceComplete = completionStatus?.["Experience"] === "complete";
 
+  const isUploadsDisabled = !isExperienceComplete;
+   
   const filteredBaseNavItems = baseNavItems.filter(
     (item) => !(userType === "admin" && item.id === "Account Uploads"),
   );
@@ -184,10 +187,12 @@ function ProfileSide({
             {finalNavItems.filter(Boolean).map((item) => {
               const isActive = activeComponent === item.id;
               const status = completionStatus?.[item.id] || "incomplete";
+
               const isComplete = status === "complete";
               const showStatus =
                 item.id !== "Activities" && item.id !== "Products";
-              const isDisabled = false;
+              const isDisabled = item.id === "Account Uploads" && isUploadsDisabled;
+              // console.log(`Item: ${item.id}, Status: ${status}, isActive: ${isActive}, isDisabled: ${isDisabled}`);
 
               return (
                 <ListItem
