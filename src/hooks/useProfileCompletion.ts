@@ -349,9 +349,11 @@ export const useProfileCompletion = (
       userData?.firstName &&
       userData?.lastName &&
       userData?.phone &&
-      userData?.email
+      userData?.email || 
+      userData?.organizationName || 
+      userData?.contactFullName
     )
-    
+
     // ============================================
     // RETURN STATUS FOR ALL SECTIONS
     // ============================================
