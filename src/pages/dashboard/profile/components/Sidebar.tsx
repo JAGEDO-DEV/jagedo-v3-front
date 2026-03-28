@@ -164,8 +164,12 @@ console.log(isTabDisabled('account-uploads'))
             const isDisabled = isTabDisabled(item.id);
 
             const status = completionStatus[item.id] || "incomplete";
-            const isComplete = status === "complete";
+            console.log("Item: ", item, "Status: ", status)
+            let isComplete = status === "complete";
 
+            if(item.id === "account-info" && userData?.userType === "HARDWARE") {
+              isComplete = true;
+            }
             const isOptional = item.id === "products";
 
             return (

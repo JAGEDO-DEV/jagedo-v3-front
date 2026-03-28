@@ -163,7 +163,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
-    const globalStatus = userData?.status == 'VERIFIED' ? "approved" : "pending";
+    const globalStatus = userData?.status;
     const documentDetails = userData?.documentDetails || {};
 
     const getStatus = (key: string): DocumentStatus => {
@@ -1142,7 +1142,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               <StatusBadge status={userData?.documentStatus || overallStatus} />
 
               {}
-              {isAdmin && (
+              {isAdmin && userData?.documentStatus !== "RESUBMIT" && userData?.documentStatus !== "VERIFIED" && userData?.documentStatus !== "REJECTED" && userData?.documentStatus !== "INCOMPLETE" && (
                 <div className="relative">
                   <button
                     onClick={() => setShowGlobalActions(!showGlobalActions)}

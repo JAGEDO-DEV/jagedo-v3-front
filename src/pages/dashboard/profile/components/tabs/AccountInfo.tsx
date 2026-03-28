@@ -448,9 +448,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 
                     // "Submitted" means status is anything other than INCOMPLETE
                     const hasSubmittedDocs =
-                      docStatus && docStatus !== "INCOMPLETE";
+                      docStatus && (docStatus !== "INCOMPLETE" && docStatus !== "RESUBMIT");
                     const hasSubmittedExperience =
-                      expStatus && expStatus !== "INCOMPLETE";
+                      expStatus && expStatus !== "INCOMPLETE" && expStatus !== "RESUBMIT";
 
                     const isBuilder = [
                       "FUNDI",
