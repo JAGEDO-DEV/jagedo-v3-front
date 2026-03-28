@@ -187,10 +187,7 @@ function ProfileSide({
               const isComplete = status === "complete";
               const showStatus =
                 item.id !== "Activities" && item.id !== "Products";
-              const isDisabled =
-                isServiceProvider &&
-                !isExperienceComplete &&
-                item.id === "Account Uploads";
+              const isDisabled = false;
 
               return (
                 <ListItem

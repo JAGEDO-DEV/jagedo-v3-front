@@ -409,7 +409,7 @@ function ProfilePage() {
             <div className="w-[70%] sm:max-w-md mx-auto flex items-start gap-2 bg-yellow-100 rounded-md p-2 sm:p-4 shadow-md">
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-1 text-yellow-500 flex-shrink-0" />
               <span className="text-xs sm:text-sm text-yellow-700 leading-tight sm:leading-snug">
-                {providerData?.profileComplete || user?.profileComplete
+                {progressPercentage === 100
                   ? "Your profile is complete and awaiting admin approval."
                   : "Please complete your profile for your account to be approved."}
               </span>
@@ -430,7 +430,9 @@ function ProfilePage() {
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold pl-4 text-gray-800 sm:text-2xl md:text-3xl truncate">
                 Welcome,{" "}
-                {providerData?.organizationName ||
+                {(user?.userType === "HARDWARE" &&
+                  (providerData?.organizationName || user?.organizationName)) ||
+                  providerData?.organizationName ||
                   providerData?.firstName ||
                   user?.firstName ||
                   "User"}
@@ -463,11 +465,10 @@ function ProfilePage() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
-                      progressPercentage === 100
+                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${progressPercentage === 100
                         ? "bg-green-500"
                         : "bg-blue-600"
-                    }`}
+                      }`}
                     style={{ width: `${progressPercentage}%` }}
                   ></div>
                 </div>

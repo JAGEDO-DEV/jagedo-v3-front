@@ -8,7 +8,7 @@ import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, CheckCircle } from "lucide-react";
 
 interface FileItem {
   file: File | null;
@@ -28,15 +28,126 @@ const requiredProjectsByGrade: { [key: string]: number } = {
   "G4: Unskilled": 0,
 };
 
-const fundiSpecializations = [
-  "General Plumbing",
-  "Water Systems",
-  "Drainage & Sewer",
-  "Gas Plumbing",
-  "Bathroom Installation",
-  "Kitchen Installation",
-  "Pipe Welding",
-  "Solar Water Systems",
+const FUNDI_SPECIALIZATIONS = {
+  mason: [
+    "Block Masonry",
+    "Plastering & Rendering",
+    "Stone Restoration",
+    "Chimney Work",
+    "Concrete Masonry",
+    "Foundation Work",
+    "Structural Masonry",
+    "Decorative Masonry",
+    "Tile Setting",
+    "Waterproofing",
+    "Restoration & Repair",
+    "Bricklaying"
+  ],
+  electrician: [
+    "Residential Wiring",
+    "Commercial Installations",
+    "Industrial Electrical",
+    "Solar PV Installation",
+    "Backup Power Systems",
+    "Lighting Systems",
+    "Security & Alarm Systems",
+    "Data & Network Cabling",
+    "Motor & Pump Installations",
+    "Electrical Maintenance & Repair",
+  ],
+  plumber: [
+    "General Plumbing",
+    "Water Systems",
+    "Drainage & Sewer",
+    "Gas Plumbing",
+    "Bathroom Installation",
+    "Kitchen Installation",
+    "Pipe Welding",
+    "Solar Water Systems",
+  ],
+  carpenter: [
+    "Furniture Making",
+    "Roofing & Trusses",
+    "Door & Window Installation",
+    "Kitchen Cabinets",
+    "Wardrobes & Closets",
+    "Flooring Installation",
+    "Ceiling Work",
+    "Formwork & Shuttering",
+    "Finish Carpentry",
+    "Renovation & Restoration",
+  ],
+  painter: [
+    "Interior Painting",
+    "Exterior Painting",
+    "Decorative Finishes",
+    "Texture Coating",
+    "Spray Painting",
+    "Wallpaper Installation",
+    "Epoxy Coating",
+    "Waterproof Coating",
+    "Wood Finishing & Staining",
+    "Industrial Painting",
+  ],
+  welder: [
+    "Structural Welding",
+    "Pipe Welding",
+    "MIG Welding",
+    "TIG Welding",
+    "Arc Welding",
+    "Gate & Grille Fabrication",
+    "Tank Fabrication",
+    "Aluminum Welding",
+    "Stainless Steel Welding",
+    "Repair & Maintenance Welding",
+  ],
+  tiler: [
+    "Floor Tiling",
+    "Wall Tiling",
+    "Bathroom Tiling",
+    "Kitchen Backsplash",
+    "Swimming Pool Tiling",
+    "Outdoor & Patio Tiling",
+    "Mosaic Installation",
+    "Natural Stone Installation",
+    "Tile Repair & Restoration",
+    "Waterproofing & Grouting",
+  ],
+  roofer: [
+    "Metal Roofing",
+    "Tile Roofing",
+    "Flat Roofing",
+    "Shingle Installation",
+    "Roof Repair & Maintenance",
+    "Gutter Installation",
+    "Skylight Installation",
+    "Waterproofing",
+    "Insulation",
+    "Green Roof Installation",
+  ],
+  "glass-aluminium-fitter": [
+    "Aluminum Door Installation",
+    "Aluminum Window Installation",
+    "Glass Cutting & Fitting",
+    "Curtain Wall Installation",
+    "Glazing Works",
+    "Partition Wall Installation",
+    "Shopfront Installation",
+    "Mirror Installation",
+    "Maintenance & Repair (Glass & Aluminum)",
+  ],
+};
+
+const FUNDI_SKILLS = [
+  "mason",
+  "electrician",
+  "plumber",
+  "carpenter",
+  "painter",
+  "welder",
+  "tiler",
+  "roofer",
+  "glass-aluminium-fitter",
 ];
 
 const prefilledAttachments: FundiAttachment[] = [
@@ -52,10 +163,21 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [grade, setGrade] = useState("G1: Master Fundi");
   const [experience, setExperience] = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
-  const [skill, setSkill] = useState(data?.skills || "Plumber");
+  const [skill, setSkill] = useState((data?.skills || "plumber").toLowerCase());
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+
+  
+  const getStatusMessage = (status: string): string => {
+    const statusMap: { [key: string]: string } = {
+      'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
+      'APRVD': 'Your submission has been approved.',
+      'PEND': 'Your submission is pending review.',
+      'RESUBMIT': 'Please resubmit your experience for review.',
+    };
+    return statusMap[status] || status;
+  };
 
 
   /* ---------- LOAD FROM PROP ---------- */
@@ -64,10 +186,15 @@ const FundiExperience = ({ data, refreshData }: any) => {
       const up = data;
       setGrade(up.grade || "G1: Master Fundi");
       setExperience(up.experience || "10+ years");
-      // Ensure specialization is set from data
-      setSpecialization(up.specialization?.trim() || "");
-      setSkill(up.skills || "Plumber");
-
+      
+      
+      const currentSkill = (up.skills || "plumber").toLowerCase();
+      setSkill(currentSkill);
+      
+      
+      const currentSpec = up.specialization?.trim() || "";
+      setSpecialization(currentSpec);
+      
       const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
 
       if (projectSource.length > 0) {
@@ -173,7 +300,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       }
 
       const payload = {
-        skill: skill,
+        skills: skill,
         specialization: specialization,
         grade: grade,
         experience: experience,
@@ -191,6 +318,69 @@ const FundiExperience = ({ data, refreshData }: any) => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderEvaluationResults = () => {
+    const evaluation = data?.fundiEvaluation;
+    if (!evaluation) return null;
+
+    const displayQuestions = evaluation.responses || [];
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-8">
+        <div className="bg-blue-900 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
+            </div>
+          </div>
+          <div className="bg-white/10 px-4 py-1 rounded-full border border-white/20">
+            <span className="text-sm font-semibold text-white">
+              Total Score: <span className="text-green-400 text-lg">{Math.round(evaluation.totalScore)}%</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {displayQuestions.map((q, idx) => (
+              <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Question {idx + 1}
+                </p>
+                <h4 className="text-base font-semibold text-gray-800 mb-3">{q.text}</h4>
+                <div className="bg-white p-3 rounded border border-gray-200 mb-2">
+                  <p className="text-sm text-gray-700 italic">
+                    {Array.isArray(q.answer) ? q.answer.join(", ") : (q.answer || "N/A")}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs font-medium text-gray-400">Score</span>
+                  <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    {q.score}/100
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {evaluation.audioUrl && (
+            <div className="mt-8 border-t pt-6">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <InfoIcon className="w-4 h-4 text-blue-500" />
+                Audio Feedback Reference
+              </h4>
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10 custom-audio-player">
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium">Loading...</div>;
@@ -228,7 +418,25 @@ const FundiExperience = ({ data, refreshData }: any) => {
             <div className="grid md:grid-cols-4 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
-                <input value={skill} readOnly className="w-full p-3 bg-gray-200 rounded-lg text-sm border-none" />
+                <select
+                  value={skill}
+                  onChange={e => {
+                    setSkill(e.target.value);
+                    setSpecialization(""); 
+                  }}
+                  disabled={isReadOnly}
+                  className={inputStyles}
+                >
+                  <option value="">Select Skill</option>
+                  {FUNDI_SKILLS.map(s => (
+                    <option key={s} value={s}>
+                      {s.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </option>
+                  ))}
+                  {skill && !FUNDI_SKILLS.includes(skill) && (
+                    <option key={skill} value={skill}>{skill}</option>
+                  )}
+                </select>
               </div>
 
               <div>
@@ -236,14 +444,14 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || !skill}
                   className={inputStyles}
                 >
-                  <option value="">Select</option>
-                  {fundiSpecializations.map(spec => (
+                  <option value="">Select Specialization</option>
+                  {(FUNDI_SPECIALIZATIONS[skill as keyof typeof FUNDI_SPECIALIZATIONS] || []).map(spec => (
                     <option key={spec} value={spec}>{spec}</option>
                   ))}
-                  {specialization && !fundiSpecializations.includes(specialization) && (
+                  {specialization && !(FUNDI_SPECIALIZATIONS[skill as keyof typeof FUNDI_SPECIALIZATIONS] || []).includes(specialization) && (
                     <option key={specialization} value={specialization}>{specialization}</option>
                   )}
                 </select>
@@ -347,6 +555,8 @@ const FundiExperience = ({ data, refreshData }: any) => {
             </div>
           )}
         </form>
+
+        {renderEvaluationResults()}
       </div>
     </div>
   );
