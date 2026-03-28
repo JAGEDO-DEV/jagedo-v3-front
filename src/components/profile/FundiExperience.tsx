@@ -57,17 +57,6 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
-  // Map status codes to user-friendly messages
-  const getStatusMessage = (status: string): string => {
-    const statusMap: { [key: string]: string } = {
-      'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
-      'APRVD': 'Your submission has been approved.',
-      'PEND': 'Your submission is pending review.',
-      'RESUBMIT': 'Please resubmit your experience for review.',
-    };
-    return statusMap[status] || status;
-  };
-
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -193,7 +182,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
       await updateFundiExperience(axiosInstance, payload);
 
-      toast.success("Experience submitted successfully! Your submission is now pending review.", { id: toastId });
+      toast.success("Experience saved successfully!", { id: toastId });
       setIsSubmitting(false);
       if (refreshData) refreshData();
     } catch (error: any) {
@@ -218,7 +207,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Status Update</AlertTitle>
             <AlertDescription>
-              {getStatusMessage(data.experienceStatusReason)}
+              {data.experienceStatusReason}
             </AlertDescription>
           </Alert>
         )}

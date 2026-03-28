@@ -336,7 +336,7 @@ export const useProfileCompletion = (
         console.log("❌ EXPERIENCE INCOMPLETE — issues:", issues);
       }
     };
-    logExperienceIssues();
+    // logExperienceIssues();
     const addressComplete = !!(
       userData?.country &&
       userData?.county &&
@@ -344,11 +344,18 @@ export const useProfileCompletion = (
       userData?.city &&
       userData?.estate
     );
+
+    const AccountInfoComplte= !! (
+      userData?.firstName &&
+      userData?.lastName &&
+      userData?.phone &&
+      userData?.email
+    )
     // ============================================
     // RETURN STATUS FOR ALL SECTIONS
     // ============================================
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
-      "account-info": "complete", // Always complete (filled during signup)
+      "account-info": AccountInfoComplte ?"complete" : "incomplete", // Always complete (filled during signup)
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",

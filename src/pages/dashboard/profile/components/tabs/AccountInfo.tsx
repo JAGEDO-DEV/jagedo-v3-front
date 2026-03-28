@@ -971,7 +971,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                         <label className="block text-sm font-medium">
                           Name
                         </label>
-                        <div className="flex flex-col gap-4 border-b pb-4">
+                        <div className="flex flex-row justify-center items-center gap-4 border-b pb-4">
                           {editingField === "name" ? (
                             <div className="space-y-4 w-full">
                               <div className="flex flex-col gap-2">
