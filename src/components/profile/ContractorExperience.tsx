@@ -11,8 +11,7 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { updateContractorExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+
 
 interface ContractorCategory {
   id: string;
@@ -91,7 +90,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -99,7 +98,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const up = data;
 
       const exps = up.contractorExperiences || [];
-      const contractorTypes = up.contractorTypes || ""; // comma separated slugs
+      const contractorTypes = up.contractorTypes || ""; 
 
       if (exps.length > 0) {
         const mappedCategories = exps.map((exp: any) => ({
@@ -127,7 +126,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
         if (prePopulated.length > 0) {
           setCategories(prePopulated);
-          // Also pre-populate projects for these categories
+          
           const prePopProjects = prePopulated.map(cat => ({
             id: crypto.randomUUID(),
             categoryId: cat.id,
@@ -145,13 +144,23 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
       const projs = up.contractorProjects || [];
       if (projs.length > 0) {
-        setProjects(projs.map((proj: any, index: number) => ({
-          id: proj.id || crypto.randomUUID(),
-          categoryId: proj.categoryId,
-          projectName: proj.projectName || "",
-          projectFile: proj.projectFile || null,
-          referenceLetterFile: proj.referenceLetterUrl || proj.referenceLetterFile || null,
-        })));
+        setProjects(projs.map((proj: any, index: number) => {
+          let projectURL = proj.projectFile || null;
+          let referenceURL = proj.referenceLetterUrl || proj.referenceLetterFile || null;
+
+          if (Array.isArray(proj.files)) {
+            projectURL = proj.files[0] || projectURL;
+            referenceURL = proj.files[1] || referenceURL;
+          }
+
+          return {
+            id: proj.id || crypto.randomUUID(),
+            categoryId: proj.categoryId,
+            projectName: proj.projectName || "",
+            projectFile: projectURL,
+            referenceLetterFile: referenceURL,
+          };
+        }));
       }
       setIsLoadingProfile(false);
     }
@@ -169,7 +178,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       )
     );
 
-    // Auto create linked project
+    
     if (!projects.find(p => p.categoryId === id)) {
       setProjects(prev => [
         ...prev,
@@ -208,7 +217,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     e.preventDefault();
     if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
 
-    // Validation
+    
     if (categories.some(c => !c.category || !c.categoryClass || !c.yearsOfExperience)) {
       return toast.error("Please fill in all required fields for categories.");
     }
@@ -221,13 +230,13 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     const toastId = toast.loading("Uploading files and saving...");
 
     try {
-      // 1. Upload files for projects
+      
       const uploadedProjects = await Promise.all(
         projects.map(async (proj) => {
           let projectFileUrl = "";
           let referenceLetterUrl = "";
 
-          // Handle Project File
+          
           if (proj.projectFile instanceof File) {
             const uploaded = await uploadFile(proj.projectFile);
             projectFileUrl = uploaded.url;
@@ -235,7 +244,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
             projectFileUrl = proj.projectFile;
           }
 
-          // Handle Reference Letter
+          
           if (proj.referenceLetterFile instanceof File) {
             const uploaded = await uploadFile(proj.referenceLetterFile);
             referenceLetterUrl = uploaded.url;
@@ -246,12 +255,12 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           return {
             projectName: proj.projectName,
             projectFile: projectFileUrl,
-            referenceLetterUrl: referenceLetterUrl // Changed from referenceLetterFile to match backend DTO
+            referenceLetterUrl: referenceLetterUrl 
           };
         })
       );
 
-      // 2. Prepare Payload
+      
       const payload = {
         categories: categories.map(c => ({
           category: c.category,
@@ -264,7 +273,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         projects: uploadedProjects
       };
 
-      // 3. Send to API
+      
       await updateContractorExperience(axiosInstance, payload);
 
       toast.success("Experience updated successfully!", { id: toastId });
@@ -309,19 +318,39 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           <form className="space-y-8" onSubmit={handleSubmit}>
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">Contractor Experience</h1>
 
-            {data?.experienceStatusReason && (
-              <Alert variant="destructive" className="mb-6">
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Status Update</AlertTitle>
-                <AlertDescription>
-                  {data.experienceStatusReason}
-                </AlertDescription>
-              </Alert>
+            {data?.experienceStatus === 'REJECTED' && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
+                 <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+                    <XMarkIcon className="w-6 h-6 text-red-600" />
+                 </div>
+                <div>
+                  <p className="font-bold mb-1 uppercase text-xs tracking-widest text-red-900">Experience Rejected</p>
+                  <p className="text-red-700 leading-relaxed">{data.experienceStatusReason || "Your submission was rejected. Please review your details and re-submit."}</p>
+                </div>
+              </div>
             )}
 
-            {isReadOnly && (
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
-                Your experience details have been submitted and are under review. Contact support to request changes.
+            {data?.experienceStatus === 'RESUBMIT' && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm flex items-start gap-4">
+                 <div className="bg-amber-100 p-2 rounded-lg flex-shrink-0">
+                    <EyeIcon className="w-6 h-6 text-amber-600" />
+                 </div>
+                <div>
+                  <p className="font-bold mb-1 uppercase text-xs tracking-widest text-amber-900">Resubmission Requested</p>
+                  <p className="text-amber-700 leading-relaxed">{data.experienceStatusReason || "Admin has requested corrections or more details for your submission."}</p>
+                </div>
+              </div>
+            )}
+
+            {data?.experienceStatus === 'PENDING' && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm flex items-start gap-4">
+                 <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+                    <EyeIcon className="w-6 h-6 text-blue-600" />
+                 </div>
+                <div>
+                  <p className="font-bold mb-1 uppercase text-xs tracking-widest text-blue-900">Under Review</p>
+                  <p className="text-blue-700 leading-relaxed">Your experience details have been submitted and are under review. Our team will contact you once verified.</p>
+                </div>
               </div>
             )}
 

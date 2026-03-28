@@ -1058,7 +1058,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   );
 
   const handleAddNewProject = (
-    projectId: string,
+    projectId: string, 
     projectName: string,
     files: File[],
   ) => {
@@ -1085,10 +1085,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
     setAttachments((prev) => [...prev, newProject]);
     toast.success(`${projectName} added locally!`);
-    setNewProjects((prev) => ({
-      ...prev,
-      [projectId]: { name: "", files: [] },
-    }));
+    
+    
+    setNewProjects((prev) => {
+      const updated = { ...prev };
+      const currentIndex = parseInt(projectId.replace('new_', ''), 10);
+      
+      
+      for(let i = currentIndex; i < 5; i++) {
+         if (updated[`new_${i+1}`]) {
+             updated[`new_${i}`] = updated[`new_${i+1}`];
+         } else {
+             updated[`new_${i}`] = { name: "", files: [] };
+         }
+      }
+      return updated;
+    });
+
     setUploadingProjects((prev) => ({ ...prev, [projectId]: false }));
   };
 
@@ -1309,12 +1322,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     }
   };
 
+
+
   useEffect(() => {
-    const initialNewProjects: { [key: string]: any } = {};
-    for (let i = 0; i < Math.min(missingProjectCount, 3); i++) {
-      initialNewProjects[`new_${i}`] = { name: "", files: [] };
-    }
-    setNewProjects(initialNewProjects);
+    setNewProjects((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      
+      const targetCount = Math.min(missingProjectCount, 5);
+      for (let i = 0; i < targetCount; i++) {
+        const key = `new_${i}`;
+        if (!updated[key]) {
+          updated[key] = { name: "", files: [] };
+          changed = true;
+        }
+      }
+      return changed ? updated : prev;
+    });
   }, [missingProjectCount]);
 
   const handleTextChange = (id, value) => {
@@ -1881,9 +1905,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     }
   };
 
-  // Add this inside the Experience component, before the return statement
+  
   const isExperienceReadyToApprove = (): boolean => {
-    const requiredCount = getRequiredProjectCount(); // reuse the existing function
+    const requiredCount = getRequiredProjectCount(); 
 
     switch (userType) {
       case "FUNDI": {
@@ -1892,7 +1916,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           ? editingFields.experience
           : info.experience);
         const hasSkill = !!(isEditingFields ? editingFields.skill : info.skill);
-        // Must meet required count AND every project must have at least one file
+        
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
           requiredCount > 0 &&
@@ -1919,7 +1943,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         const hasValidCategories = categories.some(
           (c) => c.category && c.class && c.years,
         );
-        // Contractor always requires at least 1 project with files
+        
         const hasEnoughProjects =
           attachments.length >= 1 &&
           attachments.every((a) => a.files.length > 0);
@@ -1935,7 +1959,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         const hasExperience = !!(isEditingFields
           ? editingFields.experience
           : info.experience);
-        // Hardware requires 2 projects
+        
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
           requiredCount > 0 &&

@@ -9,8 +9,7 @@ import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { PROFESSIONAL_USER } from "@/data/professionalGuidelines";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+
 
 interface FileItem {
     file: File | null;
@@ -38,7 +37,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
+    const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
@@ -52,32 +51,35 @@ const ProffExperience = ({ data, refreshData }: any) => {
             const rawProjects = up.previousJobPhotoUrls || up.professionalProjects || [];
 
             if (rawProjects.length > 0) {
-                // Group by project name to fit the attachments structure (up to 3 files per project)
+                
                 const grouped: { [key: string]: FileItem[] } = {};
 
                 rawProjects.forEach((p: any) => {
                     const name = p.projectName || "Unnamed Project";
                     if (!grouped[name]) grouped[name] = [];
 
-                    let url = "";
-                    let fileName = "Project File";
+                    const addFile = (url: string, fileName: string = "Project File") => {
+                        if (url && grouped[name].length < 3) {
+                            grouped[name].push({ file: null, previewUrl: url, fileName });
+                        }
+                    };
 
                     // Handle various backend response structures
-                    if (p.fileUrl && typeof p.fileUrl === 'object' && p.fileUrl.url) {
-                        url = p.fileUrl.url;
-                        fileName = p.fileUrl.displayName || p.fileUrl.originalName || "Project File";
+                    if (Array.isArray(p.files)) {
+                        p.files.forEach((f: any) => {
+                            if (typeof f === 'string') addFile(f);
+                            else if (f?.url) addFile(f.url, f.displayName || f.originalName);
+                        });
+                    } else if (p.fileUrl && typeof p.fileUrl === 'object' && p.fileUrl.url) {
+                        addFile(p.fileUrl.url, p.fileUrl.displayName || p.fileUrl.originalName);
                     } else if (typeof p.fileUrl === 'string') {
-                        url = p.fileUrl;
+                        addFile(p.fileUrl);
                     } else if (p.url) {
-                        url = p.url;
+                        addFile(p.url);
                     } else if (p.projectFile) {
-                        url = p.projectFile;
+                        addFile(p.projectFile);
                     } else if (typeof p === 'string') {
-                        url = p;
-                    }
-
-                    if (url && grouped[name].length < 3) {
-                        grouped[name].push({ file: null, previewUrl: url, fileName });
+                        addFile(p);
                     }
                 });
 
@@ -87,7 +89,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     files: grouped[name]
                 }));
 
-                // Pad with empty rows if needed
+                
                 const totalRowsNeeded = Math.max(mapped.length, 5);
                 const finalAttachments = [...mapped];
                 for (let i = finalAttachments.length; i < totalRowsNeeded; i++) {
@@ -146,7 +148,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
         const toastId = toast.loading("Uploading files and saving...");
 
         try {
-            // 1. Process Files for Upload
+            
             const processedProjects = await Promise.all(valid.map(async (row) => {
                 const uploadedUrls: string[] = [];
 
@@ -165,7 +167,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 };
             }));
 
-            // 2. Build Payload
+            
             const payload = {
                 profession: category,
                 specialization: specialization,
@@ -174,7 +176,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 professionalProjects: processedProjects
             };
 
-            // 3. Send API
+            
             await updateProfessionalExperience(axiosInstance, payload);
 
             toast.success('Experience updated successfully!', { id: toastId });
@@ -196,15 +198,29 @@ const ProffExperience = ({ data, refreshData }: any) => {
         <div className="bg-gray-50 min-h-screen w-full p-2 sm:p-4 md:p-8">
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
                 <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
+                
+                {data?.experienceStatus === 'REJECTED' && (
+                  <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
+                     <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+                        <XMarkIcon className="w-6 h-6 text-red-600" />
+                     </div>
+                    <div>
+                      <p className="font-bold mb-1 uppercase text-xs tracking-widest text-red-900">Portfolio Rejected</p>
+                      <p className="text-red-700 leading-relaxed">{data.experienceStatusReason || "Your portfolio was rejected. Please address the feedback and resubmit your experience."}</p>
+                    </div>
+                  </div>
+                )}
 
-                {data?.experienceStatus !== 'INCOMPLETE' && (
-                    <Alert variant="destructive" className="mb-6">
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertTitle>Status Update</AlertTitle>
-                        <AlertDescription>
-                            {data.experienceStatus}
-                        </AlertDescription>
-                    </Alert>
+                {data?.experienceStatus === 'RESUBMIT' && (
+                  <div className="mb-8 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm flex items-start gap-4">
+                     <div className="bg-amber-100 p-2 rounded-lg flex-shrink-0">
+                        <EyeIcon className="w-6 h-6 text-amber-600" />
+                     </div>
+                    <div>
+                      <p className="font-bold mb-1 uppercase text-xs tracking-widest text-amber-900">Resubmission Required</p>
+                      <p className="text-amber-700 leading-relaxed">{data.experienceStatusReason || "Admin has requested more details. Please update your portfolio as requested."}</p>
+                    </div>
+                  </div>
                 )}
 
                 {!submitted ? (
@@ -217,7 +233,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                         value={category}
                                         onChange={(e) => {
                                             setCategory(e.target.value);
-                                            setSpecialization(""); // Reset specialization when category changes
+                                            setSpecialization(""); 
                                         }}
                                         disabled={isReadOnly}
                                         className={inputStyles}
