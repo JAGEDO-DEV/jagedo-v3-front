@@ -124,14 +124,14 @@ export default function ProfessionalDashboard() {
 
           setJobRequests([...fetchedJobs]);
         } else {
-          toast.error("Failed to load job requests.");
+          // toast.error("Failed to load job requests.");
           setError("Could not fetch job requests.");
         }
 
         if (ordersResponse.success) {
           setOrderRequests(ordersResponse.hashSet || []);
         } else {
-          toast.error("Failed to load order requests.");
+          // toast.error("Failed to load order requests.");
           setError((prev) =>
             prev
               ? `${prev} And could not fetch order requests.`
@@ -141,7 +141,7 @@ export default function ProfessionalDashboard() {
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError("An error occurred while loading your data.");
-        toast.error("An error occurred while loading your data.");
+        // toast.error("An error occurred while loading your data.");
       } finally {
         setIsLoading(false);
       }
