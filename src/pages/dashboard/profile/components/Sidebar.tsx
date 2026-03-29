@@ -108,12 +108,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Core rule
-  const isTabDisabled = (itemId: string) => {
+  // Core rule {Eugine Here PLEASE Don't Change This!!!}
+  const isTabDisabled = (itemId: string): boolean => {
+    if (itemId === "account-uploads") {
+      return completionStatus["experience"] !== "complete";
+    }
     return false;
   };
 
-console.log(isTabDisabled('account-uploads'))
+  console.log(isTabDisabled("account-uploads"));
   const handleBackToDashboard = () => {
     window.location.href = `/dashboard/admin`;
   };
@@ -164,10 +167,13 @@ console.log(isTabDisabled('account-uploads'))
             const isDisabled = isTabDisabled(item.id);
 
             const status = completionStatus[item.id] || "incomplete";
-            console.log("Item: ", item, "Status: ", status)
+            console.log("Item: ", item, "Status: ", status);
             let isComplete = status === "complete";
 
-            if(item.id === "account-info" && userData?.userType === "HARDWARE") {
+            if (
+              item.id === "account-info" &&
+              userData?.userType === "HARDWARE"
+            ) {
               isComplete = true;
             }
             const isOptional = item.id === "products";
@@ -179,18 +185,14 @@ console.log(isTabDisabled('account-uploads'))
                     if (isDisabled) return;
                     onTabChange(item.id);
                   }}
-                  title={
-                    isDisabled
-                      ? "Complete Experience first"
-                      : item.label
-                  }
+                  title={isDisabled ? "Complete Experience first" : item.label}
                   className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200
                     ${
                       isDisabled
                         ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
                         : isActive
-                        ? "bg-blue-50 border-2 border-blue-200 text-blue-700"
-                        : "hover:bg-gray-50 text-gray-700 border-2 border-transparent hover:border-gray-200"
+                          ? "bg-blue-50 border-2 border-blue-200 text-blue-700"
+                          : "hover:bg-gray-50 text-gray-700 border-2 border-transparent hover:border-gray-200"
                     }
                   `}
                 >
