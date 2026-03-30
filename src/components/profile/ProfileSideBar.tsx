@@ -187,7 +187,7 @@ function ProfileSide({
             {finalNavItems.filter(Boolean).map((item) => {
               const isActive = activeComponent === item.id;
               const status = completionStatus?.[item.id] || "incomplete";
-
+              
               const isComplete = status === "complete";
               const showStatus =
                 item.id !== "Activities" && item.id !== "Products";

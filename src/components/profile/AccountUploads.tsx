@@ -362,138 +362,108 @@ const AccountUploads = ({ data, refreshData }) => {
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
-    if (data) {
-      const docsMap = { ...data };
-      if (data.kraPIN && !data.krapin) docsMap.krapin = data.kraPIN;
-      if (data.certificateOfIncorporation && !data.businessRegistration)
-        docsMap.businessRegistration = data.certificateOfIncorporation;
-      if (data.businessRegistration && !data.certificateOfIncorporation)
-        docsMap.certificateOfIncorporation = data.businessRegistration;
+  if (data) {
+    const docsMap = { ...data };
+    if (data.kraPIN && !data.krapin) docsMap.krapin = data.kraPIN;
+    if (data.certificateOfIncorporation && !data.businessRegistration)
+      docsMap.businessRegistration = data.certificateOfIncorporation;
+    if (data.businessRegistration && !data.certificateOfIncorporation)
+      docsMap.certificateOfIncorporation = data.businessRegistration;
 
-      const catNames = [];
-      const statusMap = {};
+    const catNames = [];
+    const statusMap = {};
 
-      const keyMapping = {
-        idFrontUrl: "idFront",
-        idBackUrl: "idBack",
+    // Direct map: backend documentDetails key → frontend field key
+    const backendToFrontendKey = {
+      idFront: "idFrontUrl",
+      idBack: "idBackUrl",
+      ownerIdFront: "idFrontUrl",
+      ownerIdBack: "idBackUrl",
+      kraPIN: "krapin",
+      krapin: "krapin",
+      certificate: "certificateUrl",
+      academicCertificate: "academicCertificateUrl",
+      cvUrl: "cvUrl",
+      practiceLicense: "practiceLicense",
+      businessPermit: "businessPermit",
+      certificateOfIncorporation: "certificateOfIncorporation",
+      businessRegistration: "businessRegistration",
+      companyProfile: "companyProfile",
+    };
 
-        businessPermit: "businessPermit",
-        certificateOfIncorporation: "certificateOfIncorporation",
+    if (data.documentDetails) {
+      Object.keys(data.documentDetails).forEach((backendKey) => {
+        const detail = data.documentDetails[backendKey];
+        const actualStatus = detail?.status || detail;
+        const reason = detail?.reason || "";
 
-        certificateUrl: "certificate",
+        let status = "pending";
+        if (actualStatus === "VERIFIED") status = "approved";
+        else if (actualStatus === "RESUBMIT") status = "resubmit";
+        else if (actualStatus === "REJECTED") status = "rejected";
+        else if (actualStatus === "REPLACED") status = "pending";
 
-        academicCertificateUrl: "academicCertificate",
-        cvUrl: "cvUrl",
-        practiceLicense: "practiceLicense",
+        const fieldKey = backendToFrontendKey[backendKey] || backendKey;
+        statusMap[fieldKey] = { status, reason };
 
-        businessRegistration: "certificateOfIncorporation",
-
-        businessRegistration: "businessRegistration",
-
-        companyProfile: "companyProfile",
-
-        krapin: "kraPIN",
-      };
-      // ADD THIS DEBUG BLOCK
-      console.log(
-        "documentDetails keys:",
-        Object.keys(data.documentDetails || {}),
-      );
-      console.log("statusMap after processing:", statusMap);
-      console.log(
-        "generalFields keys:",
-        generalFields.map((f) => f.key),
-      );
-      console.log(
-        "businessRegistration status:",
-        statusMap["businessRegistration"],
-      );
-
-      if (data.documentDetails) {
-        Object.keys(data.documentDetails).forEach((backendKey) => {
-          const detail = data.documentDetails[backendKey];
-
-          let actualStatus = detail?.status || detail;
-          const reason = detail?.reason || "";
-
-          let status = "pending";
-          if (actualStatus === "VERIFIED") status = "approved";
-          else if (actualStatus === "RESUBMIT") status = "resubmit";
-          else if (actualStatus === "REJECTED") status = "rejected";
-          else if (actualStatus === "REPLACED") status = "pending";
-
-          // Try reverse-mapping through keyMapping first
-          const mappedKey = Object.keys(keyMapping).find(
-            (k) => keyMapping[k] === backendKey,
-          );
-          const fieldKey = mappedKey || backendKey;
-
-          statusMap[fieldKey] = { status, reason };
-
-          // If backendKey is a dynamic category key (e.g. BUILDING_WORKS_CERTIFICATE),
-          // also store it directly so DocumentCard can find it
-          if (
-            !mappedKey &&
-            (backendKey.endsWith("_CERTIFICATE") ||
-              backendKey.endsWith("_LICENSE"))
-          ) {
-            statusMap[backendKey] = { status, reason };
-          }
-        });
         if (
-          statusMap["certificateOfIncorporation"] &&
-          !statusMap["businessRegistration"]
+          backendKey.endsWith("_CERTIFICATE") ||
+          backendKey.endsWith("_LICENSE")
         ) {
-          statusMap["businessRegistration"] =
-            statusMap["certificateOfIncorporation"];
-        }
-      }
-
-      const globalStatus =
-        data.documentStatus === "VERIFIED" ? "approved" : "pending";
-      const baseFields = defaultFields[userType] || [];
-      baseFields.forEach((field) => {
-        if (!statusMap[field.key]) {
-          statusMap[field.key] = globalStatus;
+          statusMap[backendKey] = { status, reason };
         }
       });
 
-      if (userType === "contractor") {
-        const contractorExperiences = data.contractorExperiences || [];
-
-        if (contractorExperiences.length > 0) {
-          contractorExperiences.forEach((exp) => {
-            catNames.push(exp.category);
-            const categoryKey = exp.category.toUpperCase().replace(/\s+/g, "_");
-            const certKey = `${categoryKey}_CERTIFICATE`;
-            const licenseKey = `${categoryKey}_LICENSE`;
-            if (exp.certificate) docsMap[certKey] = exp.certificate;
-            if (exp.license) docsMap[licenseKey] = exp.license;
-            if (!docsMap[certKey] && data[certKey])
-              docsMap[certKey] = data[certKey];
-            if (!docsMap[licenseKey] && data[licenseKey])
-              docsMap[licenseKey] = data[licenseKey];
-          });
-        } else if (data.contractorTypes) {
-          const SLUG_MAP = {
-            "building-works": "Building Works",
-            "electrical-works": "Electrical Works",
-            "mechanical-works": "Mechanical Works",
-            "road-works": "Road Works",
-            "water-works": "Water Works",
-          };
-          data.contractorTypes.split(",").forEach((slug) => {
-            const name = SLUG_MAP[slug.trim()];
-            if (name) catNames.push(name);
-          });
-        }
+      if (statusMap["certificateOfIncorporation"] && !statusMap["businessRegistration"]) {
+        statusMap["businessRegistration"] = statusMap["certificateOfIncorporation"];
       }
-
-      setDocuments(docsMap);
-      setApprovalStatus(statusMap);
-      setCategories(catNames);
+      if (statusMap["businessRegistration"] && !statusMap["certificateOfIncorporation"]) {
+        statusMap["certificateOfIncorporation"] = statusMap["businessRegistration"];
+      }
     }
-  }, [data, userType]);
+
+    const globalStatus =
+      data.documentStatus === "VERIFIED" ? "approved" : "pending";
+    const baseFields = defaultFields[userType] || [];
+    baseFields.forEach((field) => {
+      if (!statusMap[field.key]) {
+        statusMap[field.key] = globalStatus;
+      }
+    });
+
+    if (userType === "contractor") {
+      const contractorExperiences = data.contractorExperiences || [];
+      if (contractorExperiences.length > 0) {
+        contractorExperiences.forEach((exp) => {
+          catNames.push(exp.category);
+          const categoryKey = exp.category.toUpperCase().replace(/\s+/g, "_");
+          const certKey = `${categoryKey}_CERTIFICATE`;
+          const licenseKey = `${categoryKey}_LICENSE`;
+          if (exp.certificate) docsMap[certKey] = exp.certificate;
+          if (exp.license) docsMap[licenseKey] = exp.license;
+          if (!docsMap[certKey] && data[certKey]) docsMap[certKey] = data[certKey];
+          if (!docsMap[licenseKey] && data[licenseKey]) docsMap[licenseKey] = data[licenseKey];
+        });
+      } else if (data.contractorTypes) {
+        const SLUG_MAP = {
+          "building-works": "Building Works",
+          "electrical-works": "Electrical Works",
+          "mechanical-works": "Mechanical Works",
+          "road-works": "Road Works",
+          "water-works": "Water Works",
+        };
+        data.contractorTypes.split(",").forEach((slug) => {
+          const name = SLUG_MAP[slug.trim()];
+          if (name) catNames.push(name);
+        });
+      }
+    }
+
+    setDocuments(docsMap);
+    setApprovalStatus(statusMap);
+    setCategories(catNames);
+  }
+}, [data, userType]);
 
   const replaceDocument = (file, key) => {
     setReplacingFiles((prev) => ({ ...prev, [key]: true }));

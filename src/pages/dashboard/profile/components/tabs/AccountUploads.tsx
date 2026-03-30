@@ -109,7 +109,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       } else if (type === "contractor") {
         payload = {
-          businessRegistration:
+          certificateOfIncorporation:
             updatedDocs.certificateOfIncorporation?.url ||
             updatedDocs.businessRegistration?.url ||
             "",

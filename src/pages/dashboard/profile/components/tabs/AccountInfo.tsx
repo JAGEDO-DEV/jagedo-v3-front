@@ -54,23 +54,23 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     : false;
 
   const displayStatus =
-  userData.status === "VERIFIED"
-    ? "Verified"
-    : userData.status === "SUSPENDED"
-      ? "Suspended"
-      : userData.status === "BLACKLISTED"
-        ? "Blacklisted"
-        : userData.status === "DELETED"
-          ? "Deleted"
-          : userData.status === "SIGNED_UP" && allSectionsComplete
-            ? "Pending Verification"
-            : "Profile Incomplete";
-      
+    userData.status === "VERIFIED"
+      ? "Verified"
+      : userData.status === "SUSPENDED"
+        ? "Suspended"
+        : userData.status === "BLACKLISTED"
+          ? "Blacklisted"
+          : userData.status === "DELETED"
+            ? "Deleted"
+            : userData.status === "SIGNED_UP" && allSectionsComplete
+              ? "Pending Verification"
+              : "Profile Incomplete";
+
   const [editingField, setEditingField] = useState<string | null>(null);
 
   const isOrganization =
-    userData?.accountType === "business" ||
-    userData?.accountType === "organization" ||
+    userData?.accountType?.toLowerCase() === "business" ||
+    userData?.accountType?.toLowerCase() === "organization" ||
     userData?.userType === "CONTRACTOR" ||
     userData?.userType === "HARDWARE";
   const name =
@@ -169,19 +169,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   };
 
   const handleEditSave = async (field: string) => {
-    if (field === "name" || field === "contactFullName") {
+    // Validation
+    if (field === "name") {
       if (isOrganization) {
-        if (!editValues.organizationName?.trim() && field === "name") {
+        if (!editValues.organizationName?.trim()) {
           toast.error("Organization name cannot be empty");
-          return;
-        }
-        if (
-          userData?.userType === "CUSTOMER" &&
-          userData?.accountType === "ORGANIZATION" &&
-          !editValues.contactFullName?.trim() &&
-          field === "contactFullName"
-        ) {
-          toast.error("Contact person name cannot be empty");
           return;
         }
       } else {
@@ -189,6 +181,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
           toast.error("Both first and last name are required");
           return;
         }
+      }
+    } else if (field === "contactFullName") {
+      if (!editValues.contactFullName?.trim()) {
+        toast.error("Contact person name cannot be empty");
+        return;
       }
     } else if (!editValues[field as keyof typeof editValues]?.trim()) {
       toast.error(
@@ -200,53 +197,33 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     setIsUpdating(true);
     try {
       const updates: Record<string, any> = {};
-      switch (field) {
-        case "name": {
-          if (isOrganization) {
-            updates.organizationName = editValues.organizationName.trim();
-          } else {
-            updates.firstName = editValues.firstName.trim();
-            updates.lastName = editValues.lastName.trim();
-          }
-          break;
-        }
-        case "contactFullName": {
-          updates.contactFullName = editValues.contactFullName.trim();
-          break;
-        }
-        case "email":
-          updates.email = editValues.email;
-          break;
-        case "phone":
-          updates.phone = editValues.phone;
-          break;
-        case "contactFullName":
-          await updateProfileNameAdmin(axiosInstance, userData.id, {
-            contactFullName: editValues.contactFullName.trim(),
-          });
-          break;
-        default:
-          throw new Error("Invalid field");
-      }
 
       if (field === "name") {
-        const namePayload: any = {};
         if (isOrganization) {
-          namePayload.organizationName = editValues.organizationName.trim();
+          updates.organizationName = editValues.organizationName.trim();
+          await updateProfileNameAdmin(axiosInstance, userData.id, {
+            organizationName: editValues.organizationName.trim(),
+          });
         } else {
-          namePayload.firstName = editValues.firstName.trim();
-          namePayload.lastName = editValues.lastName.trim();
+          updates.firstName = editValues.firstName.trim();
+          updates.lastName = editValues.lastName.trim();
+          await updateProfileNameAdmin(axiosInstance, userData.id, {
+            firstName: editValues.firstName.trim(),
+            lastName: editValues.lastName.trim(),
+          });
         }
-        await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
       } else if (field === "contactFullName") {
+        updates.contactFullName = editValues.contactFullName.trim();
         await updateProfileNameAdmin(axiosInstance, userData.id, {
           contactFullName: editValues.contactFullName.trim(),
         });
       } else if (field === "email") {
+        updates.email = editValues.email;
         await updateProfileEmailAdmin(axiosInstance, userData.id, {
           email: editValues.email,
         });
       } else if (field === "phone") {
+        updates.phone = editValues.phone;
         await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
           phone: editValues.phone,
         });
@@ -255,18 +232,17 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       toast.success(
         `${field.charAt(0).toUpperCase() + field.slice(1)} updated on server`,
       );
-
       Object.assign(userData, updates);
       setEditingField(null);
     } catch (error: any) {
       console.error(`Failed to update ${field}:`, error);
       toast.error(error.message || `Failed to update ${field} on server`);
-
       handleEditCancel();
     } finally {
       setIsUpdating(false);
     }
   };
+
   const getMissingRequiredFields = (): string[] => {
     const missing: string[] = [];
     const uType = userData?.userType?.toUpperCase();
@@ -457,9 +433,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 
                     // "Submitted" means status is anything other than INCOMPLETE
                     const hasSubmittedDocs =
-                      docStatus && (docStatus !== "INCOMPLETE" && docStatus !== "RESUBMIT");
+                      docStatus &&
+                      docStatus !== "INCOMPLETE" &&
+                      docStatus !== "RESUBMIT";
                     const hasSubmittedExperience =
-                      expStatus && expStatus !== "INCOMPLETE" && expStatus !== "RESUBMIT";
+                      expStatus &&
+                      expStatus !== "INCOMPLETE" &&
+                      expStatus !== "RESUBMIT";
 
                     const isBuilder = [
                       "FUNDI",
@@ -664,26 +644,28 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-2 ml-2">
                               <button
                                 type="button"
                                 onClick={() => handleEditSave("name")}
                                 disabled={isUpdating}
-                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                               >
                                 {isUpdating ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
-                                  <FiCheck size={15} />
+                                  <FiCheck size={14} />
                                 )}
+                                Save
                               </button>
                               <button
                                 type="button"
                                 onClick={handleEditCancel}
                                 disabled={isUpdating}
-                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                               >
-                                <FiX size={15} />
+                                <FiX size={14} />
+                                Cancel
                               </button>
                             </div>
                           </>
@@ -731,28 +713,30 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 className="w-full px-4 py-2 outline-none bg-transparent"
                                 disabled={isUpdating}
                               />
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center gap-2 ml-2">
                                 <button
                                   type="button"
                                   onClick={() =>
                                     handleEditSave("contactFullName")
                                   }
                                   disabled={isUpdating}
-                                  className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                                 >
                                   {isUpdating ? (
-                                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                   ) : (
-                                    <FiCheck size={15} />
+                                    <FiCheck size={14} />
                                   )}
+                                  Save
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleEditCancel}
                                   disabled={isUpdating}
-                                  className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                                 >
-                                  <FiX size={15} />
+                                  <FiX size={14} />
+                                  Cancel
                                 </button>
                               </div>
                             </>
@@ -796,28 +780,32 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
-                            <div className="flex items-center space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEditSave("phone")}
-                                disabled={isUpdating}
-                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
-                              >
-                                {isUpdating ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <FiCheck size={15} />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleEditCancel}
-                                disabled={isUpdating}
-                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                              >
-                                <FiX size={15} />
-                              </button>
-                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleEditSave("phone")
+                                  }
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  {isUpdating ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <FiCheck size={14} />
+                                  )}
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditCancel}
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  <FiX size={14} />
+                                  Cancel
+                                </button>
+                              </div>
                           </>
                         ) : (
                           <>
@@ -854,28 +842,32 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
-                            <div className="flex items-center space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEditSave("email")}
-                                disabled={isUpdating}
-                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
-                              >
-                                {isUpdating ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <FiCheck size={15} />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleEditCancel}
-                                disabled={isUpdating}
-                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                              >
-                                <FiX size={15} />
-                              </button>
-                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleEditSave("email")
+                                  }
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  {isUpdating ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <FiCheck size={14} />
+                                  )}
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditCancel}
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  <FiX size={14} />
+                                  Cancel
+                                </button>
+                              </div>
                           </>
                         ) : (
                           <>
@@ -918,30 +910,32 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                   className="w-full px-4 py-2 outline-none bg-transparent"
                                   disabled={isUpdating}
                                 />
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleEditSave("contactFullName")
-                                    }
-                                    disabled={isUpdating}
-                                    className="text-green-600 hover:text-green-700 disabled:opacity-50"
-                                  >
-                                    {isUpdating ? (
-                                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                      <FiCheck size={15} />
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleEditCancel}
-                                    disabled={isUpdating}
-                                    className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                                  >
-                                    <FiX size={15} />
-                                  </button>
-                                </div>
+                                <div className="flex items-center gap-2 ml-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleEditSave("contactFullName")
+                                  }
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  {isUpdating ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <FiCheck size={14} />
+                                  )}
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleEditCancel}
+                                  disabled={isUpdating}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
+                                >
+                                  <FiX size={14} />
+                                  Cancel
+                                </button>
+                              </div>
                               </>
                             ) : (
                               <>
@@ -1074,26 +1068,30 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 className="w-full px-4 py-2 outline-none bg-transparent"
                                 disabled={isUpdating}
                               />
-                              <div className="flex items-center space-x-2">
+                             <div className="flex items-center gap-2 ml-2">
                                 <button
                                   type="button"
-                                  onClick={() => handleEditSave("phone")}
+                                  onClick={() =>
+                                    handleEditSave("phone")
+                                  }
                                   disabled={isUpdating}
-                                  className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                                 >
                                   {isUpdating ? (
-                                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                   ) : (
-                                    <FiCheck size={15} />
+                                    <FiCheck size={14} />
                                   )}
+                                  Save
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleEditCancel}
                                   disabled={isUpdating}
-                                  className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                                 >
-                                  <FiX size={15} />
+                                  <FiX size={14} />
+                                  Cancel
                                 </button>
                               </div>
                             </>
@@ -1132,26 +1130,30 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 className="w-full px-4 py-2 outline-none bg-transparent"
                                 disabled={isUpdating}
                               />
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center gap-2 ml-2">
                                 <button
                                   type="button"
-                                  onClick={() => handleEditSave("email")}
+                                  onClick={() =>
+                                    handleEditSave("email")
+                                  }
                                   disabled={isUpdating}
-                                  className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                                 >
                                   {isUpdating ? (
-                                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                   ) : (
-                                    <FiCheck size={15} />
+                                    <FiCheck size={14} />
                                   )}
+                                  Save
                                 </button>
                                 <button
                                   type="button"
                                   onClick={handleEditCancel}
                                   disabled={isUpdating}
-                                  className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                                 >
-                                  <FiX size={15} />
+                                  <FiX size={14} />
+                                  Cancel
                                 </button>
                               </div>
                             </>

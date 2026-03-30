@@ -145,86 +145,66 @@ function ProfilePage() {
     let uploadsComplete = false;
 
     if (providerData?.documentStatus === "VERIFIED") {
-      uploadsComplete = true;
-    } else if (providerData?.documentStatus === "PENDING") {
-      uploadsComplete = true;
-    } else if (
-      providerData?.documentStatus === "REJECTED" ||
-      providerData?.documentStatus === "RESUBMIT"
-    ) {
-      uploadsComplete = false;
-    } else {
-      if (userType === "contractor") {
-        const hasBusinessReg =
-          up?.businessRegistration || up?.certificateOfIncorporation;
-        const hasPermit = up?.businessPermit;
-        const hasKrapin = up?.krapin;
-        const hasCompanyProfile = up?.companyProfile;
+  uploadsComplete = true;
+} else if (
+  providerData?.documentStatus === "REJECTED" ||
+  providerData?.documentStatus === "RESUBMIT"
+) {
+  uploadsComplete = false;
+} else {
+  // PENDING or no status — run the granular field check
+  if (userType === "contractor") {
+    const hasBusinessReg =
+      up?.businessRegistration || up?.certificateOfIncorporation;
+    const hasPermit = up?.businessPermit;
+    const hasKrapin = up?.krapin;
+    const hasCompanyProfile = up?.companyProfile;
 
-        const baseDocsComplete = !!(
-          hasBusinessReg &&
-          hasPermit &&
-          hasKrapin &&
-          hasCompanyProfile
-        );
+    const baseDocsComplete = !!(
+      hasBusinessReg &&
+      hasPermit &&
+      hasKrapin &&
+      hasCompanyProfile
+    );
 
-        let categoryDocsComplete = true;
-        const contractorCategories =
-          up?.contractorCategories || up?.contractorExperiences || [];
+    let categoryDocsComplete = true;
+    const contractorCategories =
+      up?.contractorCategories || up?.contractorExperiences || [];
 
-        if (
-          Array.isArray(contractorCategories) &&
-          contractorCategories.length > 0
-        ) {
-          categoryDocsComplete = contractorCategories.every((cat: any) => {
-            const categoryName = cat.category || "";
-            if (!categoryName) return true;
-
-            const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
-            const certKey = `${categoryKey}_CERTIFICATE`;
-            const licenseKey = `${categoryKey}_LICENSE`;
-
-            const hasCert = cat.certificate || up?.[certKey];
-            const hasLicense = cat.license || up?.[licenseKey];
-
-            return !!(hasCert && hasLicense);
-          });
-        }
-
-        uploadsComplete = baseDocsComplete && categoryDocsComplete;
-      } else if (userType === "professional") {
-        if (providerData?.documentStatus === "REJECTED") {
-          uploadsComplete = false;
-        } else {
-          const hasIdFront = !!up?.idFrontUrl;
-          const hasIdBack = !!up?.idBackUrl;
-          const hasAcademicCert = !!up?.academicCertificateUrl;
-          const hasCv = !!up?.cvUrl;
-          const hasKrapin = !!up?.krapin;
-
-          uploadsComplete =
-            hasIdFront && hasIdBack && hasAcademicCert && hasCv && hasKrapin;
-        }
-      } else if (userType === "fundi") {
-        // Fundi need: ID front/back + certificate + KRA PIN
-        // Check with fallback field names
-        const hasIdFront = !!up?.idFrontUrl;
-        const hasIdBack = !!up?.idBackUrl;
-        const hasCertificate = !!up?.certificateUrl;
-        const hasKrapin = !!up?.krapin;
-
-        uploadsComplete =
-          hasIdFront && hasIdBack && hasCertificate && hasKrapin;
-      } else {
-        const requiredDocs = getRequiredDocuments();
-        uploadsComplete =
-          requiredDocs.length > 0 &&
-          requiredDocs.every((key) => {
-            const value = up?.[key];
-            return value !== null && value !== undefined && value !== "";
-          });
-      }
+    if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
+      categoryDocsComplete = contractorCategories.every((cat: any) => {
+        const categoryName = cat.category || "";
+        if (!categoryName) return true;
+        const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
+        const certKey = `${categoryKey}_CERTIFICATE`;
+        const licenseKey = `${categoryKey}_LICENSE`;
+        const hasCert = cat.certificate || up?.[certKey];
+        const hasLicense = cat.license || up?.[licenseKey];
+        return !!(hasCert && hasLicense);
+      });
     }
+
+    uploadsComplete = baseDocsComplete && categoryDocsComplete;
+  } else if (userType === "professional") {
+    const hasIdFront = !!up?.idFrontUrl;
+    const hasIdBack = !!up?.idBackUrl;
+    const hasAcademicCert = !!up?.academicCertificateUrl;
+    const hasCv = !!up?.cvUrl;
+    const hasKrapin = !!up?.krapin;
+    uploadsComplete = hasIdFront && hasIdBack && hasAcademicCert && hasCv && hasKrapin;
+  } else if (userType === "fundi") {
+    uploadsComplete =
+      !!up?.idFrontUrl && !!up?.idBackUrl && !!up?.certificateUrl && !!up?.krapin;
+  } else {
+    const requiredDocs = getRequiredDocuments();
+    uploadsComplete =
+      requiredDocs.length > 0 &&
+      requiredDocs.every((key) => {
+        const value = up?.[key];
+        return value !== null && value !== undefined && value !== "";
+      });
+  }
+}
 
     let experienceComplete = false;
 
