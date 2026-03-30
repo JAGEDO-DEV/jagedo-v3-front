@@ -41,6 +41,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { useNavigate } from "react-router-dom";
 import GenericFooter from "@/components/generic-footer";
 import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
+import { completeProfile } from "@/api/auth.api"; // add this import
 
 export default function CustomerDashboard() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -86,21 +87,27 @@ export default function CustomerDashboard() {
         }
     }, [user]);
 
-    const handleProfileComplete = (profileData: any) => {
-        const updatedUser = { ...user, ...profileData, profileCompleted: true };
-        setUser(updatedUser);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-
-        const db = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
-        const index = db.findIndex((u: any) => u.email === user.email);
-        if (index !== -1) {
-            db[index] = updatedUser;
-            localStorage.setItem("mock_users_db", JSON.stringify(db));
-        }
-
-        setShowProfileCompletion(false);
-        toast.success("Profile Completed!");
+    const handleProfileComplete = async (profileData: any) => {
+  try {
+    const payload = {
+      email: user?.email,      // email from context – required by backend
+      ...profileData,
     };
+    const response = await completeProfile(payload);
+    if (response.data?.success) {
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setShowProfileCompletion(false);
+      toast.success("Profile Completed!");
+    } else {
+      toast.error(response.data?.message || "Failed to complete profile");
+    }
+  } catch (error: any) {
+    console.error("Profile completion error:", error);
+    toast.error(error.response?.data?.message || "Error completing profile");
+  }
+};
 
     const TABS = [
         { id: 'requisitions', label: 'Requisitions' },
@@ -123,18 +130,18 @@ export default function CustomerDashboard() {
                 if (jobsResponse.success) {
                     setJobRequests(jobsResponse.hashSet || []);
                 } else {
-                    toast.error("Failed to load job requests.");
+                    // toast.error("Failed to load job requests.");
                 }
 
                 if (ordersResponse.success) {
                     setOrderRequests(ordersResponse.hashSet || []);
                 } else {
-                    toast.error("Failed to load order requests.");
+                    // toast.error("Failed to load order requests.");
                 }
 
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
-                toast.error("An error occurred while loading your data.");
+                // toast.error("An error occurred while loading your data.");
             } finally {
                 setIsLoading(false);
             }

@@ -81,7 +81,7 @@ const Sidebar = ({ category, filters, onFilterChange }: SidebarProps) => {
             <div key={filter} className="flex items-center space-x-3">
               <Checkbox
                 id={filter}
-                checked={filters.includes(filter)}
+                checked={filters.some(f => f.trim().toLowerCase() === filter.trim().toLowerCase())}
                 onCheckedChange={(checked) => onFilterChange(filter, !!checked)}
                 className="data-[state=checked]:bg-blue-500 data-[state=checked]:text-white data-[state=checked]:border-blue-500"
               />

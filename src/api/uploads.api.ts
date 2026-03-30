@@ -14,7 +14,8 @@ interface IndividualCustomerUploads {
 }
 
 interface ContractorDocuments {
-    businessRegistration: string;
+    // businessRegistration: string;
+    certificateOfIncorporation?: string;
     businessPermit: string;
     kraPIN: string;
     companyProfile: string;

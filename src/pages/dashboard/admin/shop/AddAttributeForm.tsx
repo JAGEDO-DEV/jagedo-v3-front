@@ -58,12 +58,12 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
 
             const filteredCategories = categories
               .filter((cat: any) => {
-                // Only include active categories
+                
                 if (!cat.active) return false;
 
                 const catType = (cat.type || "").trim().toUpperCase();
 
-                // Match type, or include null types in HARDWARE tab as fallback
+                
                 return (
                   catType === defaultTypeUpper ||
                   (defaultTypeUpper === "HARDWARE" && !catType)
@@ -113,7 +113,8 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
 
       const submitData: AttributeCreateRequest = {
         ...formData,
-        values: attributeValues.join(',')
+        values: attributeValues.join(','),
+        attributeType: attributeType
       };
 
       const response = await createAttribute(axiosInstance, submitData);

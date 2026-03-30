@@ -28,7 +28,6 @@ const Address = ({ userData }) => {
   useEffect(() => {
     setAddress(getInitialAddress(userData));
   }, [userData]);
-
   const countyList =
     address.country?.toLowerCase() === "kenya" ? Object.keys(counties) : [];
 

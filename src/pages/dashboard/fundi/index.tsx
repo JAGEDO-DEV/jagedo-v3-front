@@ -129,18 +129,18 @@ export default function FundiDashboard() {
                 if (jobsResponse.success) {
                     setJobRequests(jobsResponse.hashSet || []);
                 } else {
-                    toast.error("Failed to load job requests.");
+                    // toast.error("Failed to load job requests.");
                 }
 
                 if (ordersResponse.success) {
                     setOrderRequests(ordersResponse.hashSet || []);
                 } else {
-                    toast.error("Failed to load order requests.");
+                    // toast.error("Failed to load order requests.");
                 }
 
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
-                toast.error("An error occurred while loading your data.");
+                // toast.error("An error occurred while loading your data.");
             } finally {
                 setIsLoading(false);
             }

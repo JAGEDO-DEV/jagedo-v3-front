@@ -40,7 +40,9 @@ export interface ApiResponse<T> {
 }
 
 // API Functions
-export const getAllRegions = async (axiosInstance: any): Promise<ApiResponse<Region[]>> => {
+export const getAllRegions = async (
+  axiosInstance: any,
+): Promise<ApiResponse<Region[]>> => {
   try {
     const response = await axiosInstance.get(API_BASE_URL);
     return response.data;
@@ -49,21 +51,28 @@ export const getAllRegions = async (axiosInstance: any): Promise<ApiResponse<Reg
   }
 };
 
-export const getActiveRegions = async (axiosInstance: any): Promise<ApiResponse<Region[]>> => {
+export const getActiveRegions = async (
+  axiosInstance: any,
+): Promise<ApiResponse<Region[]>> => {
   try {
     const response = await axiosInstance.get(`${API_BASE_URL}/customers`);
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch active regions");
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch active regions",
+    );
   }
 };
 
-export const getRegionById = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Region>> => {
+export const getRegionById = async (
+  axiosInstance: any,
+  id: string | number,
+): Promise<ApiResponse<Region>> => {
   try {
     const response = await axiosInstance.get(`${API_BASE_URL}/${id}`, {
       headers: {
-        Authorization: getAuthHeaders()
-      }
+        Authorization: getAuthHeaders(),
+      },
     });
     return response.data;
   } catch (error: any) {
@@ -71,12 +80,15 @@ export const getRegionById = async (axiosInstance: any, id: string | number): Pr
   }
 };
 
-export const createRegion = async (axiosInstance: any, data: RegionCreateRequest): Promise<ApiResponse<Region>> => {
+export const createRegion = async (
+  axiosInstance: any,
+  data: RegionCreateRequest,
+): Promise<ApiResponse<Region>> => {
   try {
     const response = await axiosInstance.post(API_BASE_URL, data, {
       headers: {
-        Authorization: getAuthHeaders()
-      }
+        Authorization: getAuthHeaders(),
+      },
     });
     return response.data;
   } catch (error: any) {
@@ -84,12 +96,16 @@ export const createRegion = async (axiosInstance: any, data: RegionCreateRequest
   }
 };
 
-export const updateRegion = async (axiosInstance: any, id: string | number, data: RegionUpdateRequest): Promise<ApiResponse<Region>> => {
+export const updateRegion = async (
+  axiosInstance: any,
+  id: string | number,
+  data: RegionUpdateRequest,
+): Promise<ApiResponse<Region>> => {
   try {
     const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, data, {
       headers: {
-        Authorization: getAuthHeaders()
-      }
+        Authorization: getAuthHeaders(),
+      },
     });
     return response.data;
   } catch (error: any) {
@@ -97,12 +113,15 @@ export const updateRegion = async (axiosInstance: any, id: string | number, data
   }
 };
 
-export const deleteRegion = async (axiosInstance: any, id: string | number): Promise<ApiResponse<unknown>> => {
+export const deleteRegion = async (
+  axiosInstance: any,
+  id: string | number,
+): Promise<ApiResponse<unknown>> => {
   try {
     const response = await axiosInstance.delete(`${API_BASE_URL}/${id}`, {
       headers: {
-        Authorization: getAuthHeaders()
-      }
+        Authorization: getAuthHeaders(),
+      },
     });
     return response.data;
   } catch (error: any) {
@@ -110,43 +129,60 @@ export const deleteRegion = async (axiosInstance: any, id: string | number): Pro
   }
 };
 
-export const enableRegion = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Region>> => {
+export const enableRegion = async (
+  axiosInstance: any,
+  id: string | number,
+): Promise<ApiResponse<Region>> => {
   try {
-    const response = await axiosInstance.put(`${API_BASE_URL}/${id}/enable`, {}, {
-      headers: {
-        Authorization: getAuthHeaders()
-      }
-    });
+    const response = await axiosInstance.put(
+      `${API_BASE_URL}/${id}/enable`,
+      {},
+      {
+        headers: {
+          Authorization: getAuthHeaders(),
+        },
+      },
+    );
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to enable region");
   }
 };
 
-export const disableRegion = async (axiosInstance: any, id: string | number): Promise<ApiResponse<Region>> => {
+export const disableRegion = async (
+  axiosInstance: any,
+  id: string | number,
+): Promise<ApiResponse<Region>> => {
   try {
-    const response = await axiosInstance.put(`${API_BASE_URL}/${id}`, {
-      id,
-      country: '',
-      name: '',
-      active: false,
-      customerView: false,
-      filterable: false
-    }, {
-      headers: {
-        Authorization: getAuthHeaders()
-      }
-    });
+    const response = await axiosInstance.put(
+      `${API_BASE_URL}/${id}`,
+      {
+        active: false,
+        customerView: false,
+        filterable: false,
+      },
+      {
+        headers: {
+          Authorization: getAuthHeaders(),
+        },
+      },
+    );
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to disable region");
+    throw new Error(
+      error.response?.data?.message || "Failed to disable region",
+    );
   }
 };
 
-export const toggleRegionStatus = async (axiosInstance: any, id: string | number, currentStatus: boolean): Promise<ApiResponse<Region>> => {
+export const toggleRegionStatus = async (
+  axiosInstance: any,
+  id: string | number,
+  currentStatus: boolean,
+): Promise<ApiResponse<Region>> => {
   if (currentStatus) {
     return disableRegion(axiosInstance, id);
   } else {
     return enableRegion(axiosInstance, id);
   }
-}; 
+};

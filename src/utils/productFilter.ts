@@ -37,7 +37,7 @@ export const filterProducts = ({
     const categoryFilteredProducts = activeProducts.filter(product => {
         // Strict check: The product TYPE must match one of the allowed types for this tab.
         const isCorrectType = allowedTypesForTab.some(type => 
-            product.type.toLowerCase() === type.toLowerCase()
+            product.type?.trim().toLowerCase() === type.trim().toLowerCase()
         );
 
         if (!isCorrectType) return false;
@@ -51,13 +51,14 @@ export const filterProducts = ({
     });
 
 
-    const activeSidebarFilters = selectedSidebarFilters.filter(f => f !== "All Products");
+    const activeSidebarFilters = selectedSidebarFilters.filter(f => f.trim().toLowerCase() !== "all products");
 
     const sidebarFilteredProducts = activeSidebarFilters.length > 0
         ? categoryFilteredProducts.filter(product =>
-            activeSidebarFilters.every(filter =>
-                product.category?.toLowerCase() === filter.toLowerCase() ||
-                product.name.toLowerCase().includes(filter.toLowerCase())
+            activeSidebarFilters.some(filter =>
+                product.category?.trim().toLowerCase() === filter.trim().toLowerCase() ||
+                product.subcategory?.trim().toLowerCase() === filter.trim().toLowerCase() ||
+                product.name?.trim().toLowerCase().includes(filter.trim().toLowerCase())
             )
         )
         : categoryFilteredProducts;

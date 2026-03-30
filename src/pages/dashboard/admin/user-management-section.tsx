@@ -163,6 +163,7 @@ export const UserManagementSection = ({
           phoneNumber: newUserPhone,
           roleIds: selectedRoleIds,
         });
+        console.log(newUserPhone)
         toast.dismiss(loadingToastId);
         toast.success("Admin user updated successfully!");
         await onUsersUpdated();

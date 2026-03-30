@@ -17,12 +17,11 @@ function ProfilePage() {
   const [activeComponent, setActiveComponent] = useState("Account Info");
   const { user, logout } = useGlobalContext();
   const [rerender, setRerender] = useState(0);
-  const [providerData, setProviderData] = useState(null); // State for API Data
+  const [providerData, setProviderData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
 
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  // 1. Fetch Data Once Here
   useEffect(() => {
     const fetchProviderProfile = async () => {
       if (!user?.id) {
@@ -44,7 +43,7 @@ function ProfilePage() {
     };
 
     fetchProviderProfile();
-  }, [user?.id, rerender]); // Added rerender to dependencies to allow refetching
+  }, [user?.id, rerender]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -77,18 +76,25 @@ function ProfilePage() {
     const isOrgType =
       accountType === "organization" ||
       accountType === "business" ||
-      userType === "contractor" || // ✅ always org-based
-      userType === "hardware"; // ✅ always org-based
+      userType === "contractor" ||
+      userType === "hardware";
 
     if (isOrgType) {
-      return ["organizationName", "phone", "email"];
+      const showsContactName =
+        userType === "customer" ||
+        userType === "contractor" ||
+        userType === "hardware";
+
+      return showsContactName
+        ? ["organizationName", "contactFullName", "phone", "email"]
+        : ["organizationName", "phone", "email"];
     }
 
     return ["firstName", "lastName", "phone", "email"];
   };
 
   const getAddressFields = () => {
-    return ["country", "county", "city"];
+    return ["country", "county", "subCounty", "city", "estate"];
   };
 
   const isSectionComplete = (data, fields) => {
@@ -96,14 +102,14 @@ function ProfilePage() {
   };
 
   const completionStatus = useMemo(() => {
-    const userType = user?.userType?.toLowerCase() || "";
-    // Prioritize providerData from API, fallback to user
     const up = providerData || user;
-    const accountType = user?.accountType?.toLowerCase();
+
+    const userType = (up?.userType || "").toLowerCase();
+    const accountType = (up?.accountType || "").toLowerCase();
 
     const getRequiredDocuments = () => {
       const accountType = user?.accountType?.toLowerCase() || "";
-      // If it's a customer and individual, they need ID docs
+
       if (userType === "customer" && accountType === "individual") {
         return ["idFrontUrl", "idBackUrl", "krapin"];
       }
@@ -136,162 +142,175 @@ function ProfilePage() {
       return docMap[userType] || [];
     };
 
-    // const requiredDocs = getRequiredDocuments();
     let uploadsComplete = false;
 
-    // If verified by admin, definitely complete
     if (providerData?.documentStatus === "VERIFIED") {
-      uploadsComplete = true;
-    } else {
-      // For contractors: check base docs + all category-specific certificates & licenses
-      // For others: check if all required base documents are present
-      if (userType === "contractor") {
-        // Contractors need: (businessRegistration OR certificateOfIncorporation) + businessPermit + krapin + companyProfile
-        const hasBusinessReg =
-          up?.businessRegistration || up?.certificateOfIncorporation;
-        const hasPermit = up?.businessPermit;
-        const hasKrapin = up?.krapin;
-        const hasCompanyProfile = up?.companyProfile;
+  uploadsComplete = true;
+} else if (
+  providerData?.documentStatus === "REJECTED" ||
+  providerData?.documentStatus === "RESUBMIT"
+) {
+  uploadsComplete = false;
+} else {
+  // PENDING or no status — run the granular field check
+  if (userType === "contractor") {
+    const hasBusinessReg =
+      up?.businessRegistration || up?.certificateOfIncorporation;
+    const hasPermit = up?.businessPermit;
+    const hasKrapin = up?.krapin;
+    const hasCompanyProfile = up?.companyProfile;
 
-        const baseDocsComplete = !!(
-          hasBusinessReg &&
-          hasPermit &&
-          hasKrapin &&
-          hasCompanyProfile
-        );
+    const baseDocsComplete = !!(
+      hasBusinessReg &&
+      hasPermit &&
+      hasKrapin &&
+      hasCompanyProfile
+    );
 
-        // Check if all category-specific docs are present
-        let categoryDocsComplete = true;
-        const contractorCategories =
-          up?.contractorCategories || up?.contractorExperiences || [];
+    let categoryDocsComplete = true;
+    const contractorCategories =
+      up?.contractorCategories || up?.contractorExperiences || [];
 
-        if (
-          Array.isArray(contractorCategories) &&
-          contractorCategories.length > 0
-        ) {
-          // For each category, check if both certificate AND license are uploaded
-          categoryDocsComplete = contractorCategories.every((cat: any) => {
-            const categoryName = cat.category || "";
-            if (!categoryName) return true; // Skip if no category name
-
-            const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
-            const certKey = `${categoryKey}_CERTIFICATE`;
-            const licenseKey = `${categoryKey}_LICENSE`;
-
-            const hasCert = cat.certificate || up?.[certKey];
-            const hasLicense = cat.license || up?.[licenseKey];
-
-            return !!(hasCert && hasLicense);
-          });
-        }
-
-        uploadsComplete = baseDocsComplete && categoryDocsComplete;
-      } else if (userType === "professional") {
-        // Professionals need: ID front/back + academic cert + CV + KRA PIN
-        // Practice license is optional
-        // Check with fallback field names (some might be stored without "Url" suffix)
-        const hasIdFront = up?.idFrontUrl || up?.idFront;
-        const hasIdBack = up?.idBackUrl || up?.idBack;
-        const hasAcademicCert =
-          up?.academicCertificateUrl || up?.academicCertificate;
-        const hasCv = up?.cvUrl || up?.cv;
-        const hasKrapin = up?.krapin;
-
-        uploadsComplete = !!(
-          hasIdFront &&
-          hasIdBack &&
-          hasAcademicCert &&
-          hasCv &&
-          hasKrapin
-        );
-      } else if (userType === "fundi") {
-        // Fundi need: ID front/back + certificate + KRA PIN
-        // Check with fallback field names
-        const hasIdFront = up?.idFrontUrl || up?.idFront;
-        const hasIdBack = up?.idBackUrl || up?.idBack;
-        const hasCertificate = up?.certificateUrl || up?.certificate;
-        const hasKrapin = up?.krapin;
-
-        uploadsComplete = !!(
-          hasIdFront &&
-          hasIdBack &&
-          hasCertificate &&
-          hasKrapin
-        );
-      } else {
-        const requiredDocs = getRequiredDocuments();
-        uploadsComplete =
-          requiredDocs.length > 0 &&
-          requiredDocs.every((key) => {
-            const value = up?.[key];
-            return value !== null && value !== undefined && value !== "";
-          });
-      }
+    if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
+      categoryDocsComplete = contractorCategories.every((cat: any) => {
+        const categoryName = cat.category || "";
+        if (!categoryName) return true;
+        const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
+        const certKey = `${categoryKey}_CERTIFICATE`;
+        const licenseKey = `${categoryKey}_LICENSE`;
+        const hasCert = cat.certificate || up?.[certKey];
+        const hasLicense = cat.license || up?.[licenseKey];
+        return !!(hasCert && hasLicense);
+      });
     }
 
-    // if (up) {
-    //     // Priority 1: Check the 'complete' flag from backend
-    //     if (up.profileComplete === true) {
-    //         uploadsComplete = true;
-    //     } else {
-    //         // Priority 2: Manual check of required documents
-    //         uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
-    //             const value = up[key];
-    //             return value !== null && value !== undefined && value !== '';
-    //         });
+    uploadsComplete = baseDocsComplete && categoryDocsComplete;
+  } else if (userType === "professional") {
+    const hasIdFront = !!up?.idFrontUrl;
+    const hasIdBack = !!up?.idBackUrl;
+    const hasAcademicCert = !!up?.academicCertificateUrl;
+    const hasCv = !!up?.cvUrl;
+    const hasKrapin = !!up?.krapin;
+    uploadsComplete = hasIdFront && hasIdBack && hasAcademicCert && hasCv && hasKrapin;
+  } else if (userType === "fundi") {
+    uploadsComplete =
+      !!up?.idFrontUrl && !!up?.idBackUrl && !!up?.certificateUrl && !!up?.krapin;
+  } else {
+    const requiredDocs = getRequiredDocuments();
+    uploadsComplete =
+      requiredDocs.length > 0 &&
+      requiredDocs.every((key) => {
+        const value = up?.[key];
+        return value !== null && value !== undefined && value !== "";
+      });
+  }
+}
 
-    //         // If there are no required docs for this type (shouldn't happen for providers), mark as complete
-    //         if (requiredDocs.length === 0) uploadsComplete = true;
-    //     }
-    // }
+    let experienceComplete = false;
 
-    let experienceComplete =
-      providerData?.experienceStatus == "VERIFIED" ||
-      providerData?.experienceStatus == "PENDING";
-    // if (up?.profileComplete === true) {
-    //     experienceComplete = true;
-    // } else if (userType === 'fundi') {
-    //     const hasGrade = !!up?.grade;
-    //     const hasExperience = !!up?.experience;
-    //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-    //     const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
+    const userTypeUpper = (up?.userType || "").toUpperCase();
 
-    //     const grade = up?.grade || "";
-    //     const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
+    // Helper: required projects based on grade/level
+    const getRequiredProjectCount = () => {
+      if (userTypeUpper === "FUNDI") {
+        const grade = up?.grade;
+        if (grade === "G1: Master Fundi") return 3;
+        if (grade === "G2: Skilled") return 2;
+        if (grade === "G3: Semi-skilled") return 1;
+        return 0;
+      }
+      if (userTypeUpper === "PROFESSIONAL") {
+        const level = up?.levelOrClass;
+        if (level === "Senior") return 3;
+        if (level === "Professional") return 2;
+        if (level === "Graduate") return 1;
+        return 0;
+      }
+      if (userTypeUpper === "CONTRACTOR") return 1;
+      if (userTypeUpper === "HARDWARE") return 2;
+      return 0;
+    };
 
-    //     // Re-calculate based on what's actually in the response
-    //     experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
-    // } else if (userType === 'professional') {
-    //     const hasProfession = !!up?.profession;
-    //     const hasLevel = !!up?.professionalLevel;
-    //     const hasExperience = !!up?.yearsOfExperience;
-    //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+    const requiredProjects = getRequiredProjectCount();
 
-    //     const level = up?.professionalLevel || "";
-    //     const isStudent = level.toLowerCase().includes("student");
+    // Get projects array based on user type
+    const getProjectsArray = () => {
+      switch (userTypeUpper) {
+        case "FUNDI":
+          return up?.previousJobPhotoUrls || [];
+        case "PROFESSIONAL":
+          return up?.professionalProjects || [];
+        case "CONTRACTOR":
+          return up?.contractorProjects || [];
+        case "HARDWARE":
+          return up?.hardwareProjects || [];
+        default:
+          return [];
+      }
+    };
 
-    //     experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
-    // } else if (userType === 'contractor') {
-    //     const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
-    //     const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
-    //     experienceComplete = hasExperiences && hasProjects;
-    // } else {
-    //     experienceComplete = true; // Customer & Hardware
-    // }
-    // ✅ Account Info
+    const projects = getProjectsArray();
+    console.log({
+      userType: userTypeUpper,
+      levelOrClass: up?.levelOrClass,
+      requiredProjects,
+      actualProjects: projects.length,
+      projectNames: projects.map((p) => p.projectName),
+    });
+    const hasEnoughProjects = projects.length >= requiredProjects;
+
+    // Check other required fields per user type
+    let fieldsComplete = false;
+    if (userTypeUpper === "CUSTOMER") {
+      fieldsComplete = true; // No experience section for customers
+    } else if (userTypeUpper === "FUNDI") {
+      const hasGrade = !!up?.grade;
+      const hasExperience = !!up?.experience;
+      fieldsComplete = hasGrade && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "PROFESSIONAL") {
+      const hasProfession = !!up?.profession;
+      const hasLevel = !!up?.professionalLevel;
+      const hasExperience = !!up?.yearsOfExperience;
+      fieldsComplete =
+        hasProfession && hasLevel && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "CONTRACTOR") {
+      const hasType = !!up?.contractorType;
+      const hasLevel = !!up?.licenseLevel;
+      const hasExperience =
+        !!up?.contractorExperiences && up.contractorExperiences.length > 0;
+      fieldsComplete =
+        hasType && hasLevel && hasExperience && hasEnoughProjects;
+    } else if (userTypeUpper === "HARDWARE") {
+      const hasType = !!up?.hardwareType;
+      const hasBusinessType = !!up?.businessType;
+      const hasExperience = !!up?.experience;
+      fieldsComplete =
+        hasType && hasBusinessType && hasExperience && hasEnoughProjects;
+    }
+
+    const status = up?.experienceStatus;
+    if (status === "VERIFIED" ) {
+      experienceComplete = true;
+    } else if (status === "REJECTED" || status === "RESUBMIT") {
+      experienceComplete = false;
+    } else if (status === "PENDING" && hasEnoughProjects || userTypeUpper === "HARDWARE") {
+      experienceComplete = true;
+    } else {
+      experienceComplete = fieldsComplete;
+    }
+
     const accountFields = getAccountInfoFields(userType, accountType);
     const accountComplete = isSectionComplete(up, accountFields);
 
-    // ✅ Address
     const addressFields = getAddressFields();
-    const addressComplete = isSectionComplete(up, addressFields);
+    const addressComplete = up ? isSectionComplete(up, addressFields) : false;
 
     return {
       "Account Info": accountComplete ? "complete" : "incomplete",
       Address: addressComplete ? "complete" : "incomplete",
       "Account Uploads": uploadsComplete ? "complete" : "incomplete",
       Experience: experienceComplete ? "complete" : "incomplete",
-      // Products: "incomplete",
+
       Activities: "complete",
     };
   }, [
@@ -325,11 +344,9 @@ function ProfilePage() {
     return Math.round((completedCount / finalKeys.length) * 100);
   }, [completionStatus, user]);
 
-  // 2. Prop Drill 'data' to children
   const renderContent = () => {
     const userType = (user?.userType || "").toLowerCase();
 
-    // Common props passed to all relevant components
     const props = {
       data: providerData,
       refreshData: () => setRerender((prev) => prev + 1),
@@ -382,7 +399,7 @@ function ProfilePage() {
             <div className="w-[70%] sm:max-w-md mx-auto flex items-start gap-2 bg-yellow-100 rounded-md p-2 sm:p-4 shadow-md">
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-1 text-yellow-500 flex-shrink-0" />
               <span className="text-xs sm:text-sm text-yellow-700 leading-tight sm:leading-snug">
-                {providerData?.profileComplete || user?.profileComplete
+                {progressPercentage === 100
                   ? "Your profile is complete and awaiting admin approval."
                   : "Please complete your profile for your account to be approved."}
               </span>
@@ -403,7 +420,9 @@ function ProfilePage() {
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold pl-4 text-gray-800 sm:text-2xl md:text-3xl truncate">
                 Welcome,{" "}
-                {providerData?.organizationName ||
+                {(user?.userType === "HARDWARE" &&
+                  (providerData?.organizationName || user?.organizationName)) ||
+                  providerData?.organizationName ||
                   providerData?.firstName ||
                   user?.firstName ||
                   "User"}

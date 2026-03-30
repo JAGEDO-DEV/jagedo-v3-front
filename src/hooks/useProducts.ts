@@ -21,6 +21,7 @@ interface RawApiProduct {
     description: string | null;
     type: string;
     category: string;
+    subcategory: string | null;
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
     custom: boolean;
@@ -42,6 +43,7 @@ export interface Product {
     description?: string;
     type: string;
     category: string;
+    subcategory?: string;
     price: number;
     showFromPrice?: boolean;
     isAggregated?: boolean;
@@ -69,6 +71,7 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             description: rawProduct.description ?? undefined,
             type: rawProduct.type,
             category: rawProduct.category,
+            subcategory: rawProduct.subcategory ?? undefined,
             images: rawProduct.images || [],
             active: rawProduct.active,
             specifications: {

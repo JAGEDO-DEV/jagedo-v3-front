@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { useEffect, useState } from "react";
 import {
   FiDownload,
@@ -10,7 +11,13 @@ import {
 } from "react-icons/fi";
 import { FileText, Image, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { adminDynamicUpdateAccountUploads, adminVerifyDocuments, adminRejectDocuments, adminResubmitDocuments, adminUpdateSingleDocumentStatus } from "@/api/uploads.api";
+import {
+  adminDynamicUpdateAccountUploads,
+  adminVerifyDocuments,
+  adminRejectDocuments,
+  adminResubmitDocuments,
+  adminUpdateSingleDocumentStatus,
+} from "@/api/uploads.api";
 import { handleVerifyUser } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFileWithAxios } from "@/utils/fileUpload";
@@ -18,7 +25,12 @@ import { uploadFileWithAxios } from "@/utils/fileUpload";
 interface DocumentItem {
   key: string;
   name: string;
-  category: "id" | "certification" | "portfolio" | "business";
+  category:
+    | "id"
+    | "certification"
+    | "portfolio"
+    | "business"
+    | "category_specific";
 }
 
 type DocumentStatus =
@@ -97,7 +109,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       } else if (type === "contractor") {
         payload = {
-          businessRegistration:
+          certificateOfIncorporation:
             updatedDocs.certificateOfIncorporation?.url ||
             updatedDocs.businessRegistration?.url ||
             "",
@@ -163,7 +175,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
-    const globalStatus = userData?.status == 'VERIFIED' ? "approved" : "pending";
+    const globalStatus = userData?.status;
     const documentDetails = userData?.documentDetails || {};
 
     const getStatus = (key: string): DocumentStatus => {
@@ -181,7 +193,6 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     };
 
     if (profile) {
-      // Process standard documents
       if (profile.idFrontUrl) {
         const key = userType === "hardware" ? "ownerIdFront" : "idFront";
         initialDocs[key] = {
@@ -303,15 +314,6 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           statusReason: getReason("companyProfile"),
         };
       }
-      // if (profile.ncaCertificate || profile.ncaRegCardUrl) {
-      //   initialDocs.ncaCertificate = {
-      //     name: "NCA Certificate",
-      //     url: (profile.ncaCertificate || profile.ncaRegCardUrl) as string,
-      //     type: "ncaCertificate",
-      //     uploadedAt: "Existing",
-      //     status: status as DocumentStatus,
-      //   };
-      // }
 
       const contractorCategories = profile.contractorExperiences || [];
       if (Array.isArray(contractorCategories)) {
@@ -350,17 +352,46 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         profile.professionalProjects ||
         profile.contractorProjects ||
         profile.previousJobPhotoUrls;
+
       if (Array.isArray(projects)) {
         projects.forEach((proj: any, index: number) => {
-          const key = `portfolio${index + 1}`;
-          initialDocs[key] = {
-            name: proj.projectName || `Project ${index + 1}`,
-            url: proj.fileUrl || proj.url,
-            type: key,
-            uploadedAt: "Existing",
-            status: getStatus(key),
-            statusReason: getReason(key),
-          };
+          // For contractors, store projectFile and referenceLetterUrl as separate entries
+          if (userType === "contractor") {
+            const projectFileKey = `contractorProject${index + 1}_file`;
+            const referenceKey = `contractorProject${index + 1}_reference`;
+
+            if (proj.projectFile) {
+              initialDocs[projectFileKey] = {
+                name: `${proj.projectName || `Project ${index + 1}`} - BQ File`,
+                url: proj.projectFile,
+                type: projectFileKey,
+                uploadedAt: "Existing",
+                status: getStatus(`portfolio${index + 1}`),
+                statusReason: getReason(`portfolio${index + 1}`),
+              };
+            }
+            if (proj.referenceLetterUrl) {
+              initialDocs[referenceKey] = {
+                name: `${proj.projectName || `Project ${index + 1}`} - Completion Letter`,
+                url: proj.referenceLetterUrl,
+                type: referenceKey,
+                uploadedAt: "Existing",
+                status: getStatus(`portfolio${index + 1}`),
+                statusReason: getReason(`portfolio${index + 1}`),
+              };
+            }
+          } else {
+            // Fundi / Professional use the old portfolio key
+            const key = `portfolio${index + 1}`;
+            initialDocs[key] = {
+              name: proj.projectName || `Project ${index + 1}`,
+              url: proj.fileUrl || proj.url || proj.projectFile || "",
+              type: key,
+              uploadedAt: "Existing",
+              status: getStatus(key),
+              statusReason: getReason(key),
+            };
+          }
         });
       }
     }
@@ -388,8 +419,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           category: "certification",
         },
       ];
-      
-      // Add portfolio projects from fundiEvaluation if available
+
       const fundiProjects = userData?.fundiEvaluation;
       if (Array.isArray(fundiProjects) && fundiProjects.length > 0) {
         fundiProjects.forEach((project: any, index: number) => {
@@ -400,7 +430,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           });
         });
       }
-      
+
       return fundiDocs;
     }
 
@@ -414,8 +444,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         },
         { key: "cv", name: "Curriculum Vitae (CV)", category: "certification" },
       ];
-      
-      // Add portfolio projects from professionalProjects if available
+
       const profProjects = userData?.professionalProjects;
       if (Array.isArray(profProjects) && profProjects.length > 0) {
         profProjects.forEach((project: any, index: number) => {
@@ -426,7 +455,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           });
         });
       }
-      
+
       return profDocs;
     }
 
@@ -437,11 +466,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         category: "business",
       },
       { key: "businessPermit", name: "Business Permit", category: "business" },
-      { key: "kraPIN", name: "KRA PIN Certificate", category: "certification" },
+      { key: "kraPIN", name: "KRA PIN Certificate", category: "business" },
       {
         key: "companyProfile",
         name: "Company Profile",
-        category: "certification",
+        category: "business",
       },
     ];
 
@@ -449,14 +478,25 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       return organizationBaseDocs;
     }
 
-    // if (userType === "contractor") {
-    //   const baseDocs: DocumentItem[] = [
-    //     ...organizationBaseDocs,
-    //     { key: "ncaCertificate", name: "NCA Certificate", category: "certification" },
-    //   ];
-
     if (userType === "contractor") {
-      const baseDocs: DocumentItem[] = [...organizationBaseDocs];
+      const baseDocs: DocumentItem[] = [
+        {
+          key: "certificateOfIncorporation",
+          name: "Certificate of Incorporation",
+          category: "business",
+        },
+        {
+          key: "businessPermit",
+          name: "Business Permit",
+          category: "business",
+        },
+        { key: "kraPIN", name: "KRA PIN Certificate", category: "business" },
+        {
+          key: "companyProfile",
+          name: "Company Profile",
+          category: "business",
+        },
+      ];
 
       const contractorCategories =
         userData?.contractorCategories || userData?.contractorExperiences;
@@ -464,31 +504,45 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         Array.isArray(contractorCategories) &&
         contractorCategories.length > 0
       ) {
-        contractorCategories.forEach((cat: any, index: number) => {
+        contractorCategories.forEach((cat: any) => {
           const categoryName = cat.category || "";
           if (!categoryName) return;
 
           const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
-          const certKey = `${categoryKey}_CERTIFICATE`;
-          const licenseKey = `${categoryKey}_LICENSE`;
-
           baseDocs.push({
-            key: certKey,
+            key: `${categoryKey}_CERTIFICATE`,
             name: `${categoryName} Certificate`,
-            category: "certification",
+            category: "category_specific",
           });
           baseDocs.push({
-            key: licenseKey,
+            key: `${categoryKey}_LICENSE`,
             name: `${categoryName} Practice License`,
-            category: "certification",
+            category: "category_specific",
           });
         });
       }
 
-      if (
+      // ← ADD: contractor project files and completion letters
+      const contractorProjects = userData?.contractorProjects || [];
+      if (Array.isArray(contractorProjects) && contractorProjects.length > 0) {
+        contractorProjects.forEach((proj: any, index: number) => {
+          const projectName = proj.projectName || `Project ${index + 1}`;
+          baseDocs.push({
+            key: `contractorProject${index + 1}_file`,
+            name: `${projectName} - BQ File`,
+            category: "portfolio",
+          });
+          baseDocs.push({
+            key: `contractorProject${index + 1}_reference`,
+            name: `${projectName} - Completion Letter`,
+            category: "portfolio",
+          });
+        });
+      } else if (
         !Array.isArray(contractorCategories) ||
         contractorCategories.length === 0
       ) {
+        // fallback placeholders only when no categories AND no projects
         baseDocs.push(
           {
             key: "portfolio1",
@@ -535,12 +589,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
     return [];
   };
+  const allDocuments = getDocumentConfig();
+
   const getIncompleteRequiredDocs = (): string[] => {
     return allDocuments
       .filter((d) => d.category !== "portfolio" && !documents[d.key])
       .map((d) => d.name);
   };
-  const allDocuments = getDocumentConfig();
 
   const idDocuments = allDocuments.filter((d) => d.category === "id");
   const certifications = allDocuments.filter(
@@ -548,6 +603,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   );
   const portfolios = allDocuments.filter((d) => d.category === "portfolio");
   const businessDocs = allDocuments.filter((d) => d.category === "business");
+  const categorySpecificDocs = allDocuments.filter(
+    (d) => d.category === "category_specific",
+  );
 
   const uploadedCount = allDocuments.filter((d) => documents[d.key]).length;
   const totalRequired = allDocuments.filter(
@@ -556,11 +614,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const requiredUploaded = allDocuments.filter(
     (d) => d.category !== "portfolio" && documents[d.key],
   ).length;
+
   const approvedCount = allDocuments.filter(
     (d) =>
-      d.category !== "portfolio" && (documents[d.key]?.status === "approved" || documents[d.key]?.status === "VERIFIED"),
+      d.category !== "portfolio" &&
+      (documents[d.key]?.status === "approved" ||
+        documents[d.key]?.status === "VERIFIED"),
   ).length;
-  const overallStatus = approvedCount >= totalRequired ? "approved" : "pending";
+
+  const rejectedCount = allDocuments.filter(
+    (d) =>
+      d.category !== "portfolio" &&
+      (documents[d.key]?.status === "rejected" ||
+        documents[d.key]?.status === "REJECTED" ||
+        documents[d.key]?.status === "RESUBMIT"),
+  ).length;
+
+  const overallStatus =
+    approvedCount >= totalRequired
+      ? "approved"
+      : rejectedCount > 0
+        ? "reupload_requested"
+        : "pending";
 
   const handleUpload = async (file: File, key: string) => {
     setUploadingFiles((p) => ({ ...p, [key]: true }));
@@ -585,6 +660,12 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       setDocuments(updatedDocs);
       await persistDocuments(updatedDocs);
       toast.success(`${file.name} uploaded successfully`);
+
+      if (isAdmin) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to upload file");
     } finally {
@@ -733,8 +814,6 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       return;
     }
 
-    
-    // Admin actions for single document
     if (docKey) {
       setIsPendingAction(true);
       const statusMap = {
@@ -742,16 +821,18 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         reject: "REJECTED",
         resubmit: "RESUBMIT",
       };
-      
+
       try {
         await adminUpdateSingleDocumentStatus(
           axiosInstance,
           userData.id,
           docKey,
           statusMap[action as keyof typeof statusMap],
-          actionReason
+          actionReason,
         );
-        toast.success(`Document ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'requested for reupload'}`);
+        toast.success(
+          `Document ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "requested for reupload"}`,
+        );
         window.location.reload();
       } catch (error: any) {
         toast.error(error.message || "Action failed");
@@ -1006,14 +1087,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                 <FiRefreshCw className="w-3 h-3" />
                 Resubmit
               </button>
-              <button
+              {/* <button
                 onClick={() => openActionModal(doc.key, "reject")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
                 title="Reject"
               >
                 <XCircle className="w-3 h-3" />
                 Reject
-              </button>
+              </button> */}
             </div>
           )}
         </div>
@@ -1139,86 +1220,98 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <StatusBadge status={userData?.documentStatus || overallStatus} />
+              <StatusBadge
+                status={
+                  userData?.documentStatus === "VERIFIED" &&
+                  approvedCount < totalRequired
+                    ? overallStatus
+                    : userData?.documentStatus || overallStatus
+                }
+              />
 
               {}
-              {isAdmin && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowGlobalActions(!showGlobalActions)}
-                    className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-                  >
-                    Actions
-                    <FiChevronDown
-                      className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {showGlobalActions && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                      <button
-                        onClick={async () => {
-                          setShowGlobalActions(false);
-                          const missing = getIncompleteRequiredDocs();
-                          if (missing.length > 0) {
-                            toast.error(
-                              `Cannot approve: ${missing.length} required document(s) missing: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}`,
-                              { duration: 5000 },
-                            );
-                            return;
-                          }
-                          setIsPendingAction(true);
-                          try {
-                            await adminVerifyDocuments(
-                              axiosInstance,
-                              userData.id,
-                            );
-                            toast.success("Documents approved successfully");
-                            window.location.reload();
-                          } catch (error: any) {
-                            toast.error(
-                              error.message || "Failed to approve documents",
-                            );
-                          } finally {
-                            setIsPendingAction(false);
-                          }
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100"
-                      >
-                        <FiCheck className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowGlobalActions(false);
-                          setActionModal({
-                            isOpen: true,
-                            action: "resubmit",
-                            isGlobal: true,
-                          });
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
-                      >
-                        <FiRefreshCw className="w-4 h-4" />
-                        Resubmit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowGlobalActions(false);
-                          setActionModal({
-                            isOpen: true,
-                            action: "reject",
-                            isGlobal: true,
-                          });
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {isAdmin &&
+                userData?.documentStatus !== "RESUBMIT" &&
+                userData?.documentStatus !== "VERIFIED" &&
+                userData?.documentStatus !== "REJECTED" &&
+                userData?.documentStatus !== "INCOMPLETE" && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowGlobalActions(!showGlobalActions)}
+                      className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                    >
+                      Actions
+                      <FiChevronDown
+                        className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {showGlobalActions && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                        <button
+                          onClick={async () => {
+                            setShowGlobalActions(false);
+                            const missing = getIncompleteRequiredDocs();
+                            if (missing.length > 0) {
+                              toast.error(
+                                `Cannot approve: ${missing.length} required document(s) missing: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}`,
+                                { duration: 5000 },
+                              );
+                              return;
+                            }
+                            setIsPendingAction(true);
+                            try {
+                              await adminVerifyDocuments(
+                                axiosInstance,
+                                userData.id,
+                              );
+                              toast.success("Documents approved successfully");
+                              window.location.reload();
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to approve documents",
+                              );
+                            } finally {
+                              setIsPendingAction(false);
+                            }
+                          }}
+                          disabled={userData.documentStatus === "VERIFIED"}
+                          className="disabled:opacity-10 w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100"
+                        >
+                          <FiCheck className="w-4 h-4" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowGlobalActions(false);
+                            setActionModal({
+                              isOpen: true,
+                              action: "resubmit",
+                              isGlobal: true,
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
+                        >
+                          <FiRefreshCw className="w-4 h-4" />
+                          Resubmit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowGlobalActions(false);
+                            setActionModal({
+                              isOpen: true,
+                              action: "reject",
+                              isGlobal: true,
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
 
@@ -1247,7 +1340,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                     }`}
                   />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3
                     className={`font-semibold text-sm ${
                       userData.documentStatus === "REJECTED"
@@ -1260,7 +1353,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                       : "Resubmission Required"}
                   </h3>
                   <p
-                    className={`text-sm mt-1 ${
+                    className={`text-sm mt-1 mb-3 ${
                       userData.documentStatus === "REJECTED"
                         ? "text-red-700"
                         : "text-blue-700"
@@ -1268,6 +1361,55 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                   >
                     {userData.documentStatusReason}
                   </p>
+                  {allDocuments.filter(
+                    (d) =>
+                      d.category !== "portfolio" &&
+                      (documents[d.key]?.status === "rejected" ||
+                        documents[d.key]?.status === "REJECTED" ||
+                        documents[d.key]?.status === "resubmit" ||
+                        documents[d.key]?.status === "RESUBMIT"),
+                  ).length > 0 && (
+                    <div
+                      className={`p-3 rounded-lg border ${
+                        userData.documentStatus === "REJECTED"
+                          ? "bg-red-100/50 border-red-200"
+                          : "bg-blue-100/50 border-blue-200"
+                      }`}
+                    >
+                      <p
+                        className={`text-[10px] font-bold uppercase mb-2 ${
+                          userData.documentStatus === "REJECTED"
+                            ? "text-red-800"
+                            : "text-blue-800"
+                        }`}
+                      >
+                        Action Required for:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {allDocuments
+                          .filter(
+                            (d) =>
+                              d.category !== "portfolio" &&
+                              (documents[d.key]?.status === "rejected" ||
+                                documents[d.key]?.status === "REJECTED" ||
+                                documents[d.key]?.status === "resubmit" ||
+                                documents[d.key]?.status === "RESUBMIT"),
+                          )
+                          .map((doc, idx) => (
+                            <li
+                              key={idx}
+                              className={`text-sm font-medium ${
+                                userData.documentStatus === "REJECTED"
+                                  ? "text-red-700"
+                                  : "text-blue-700"
+                              }`}
+                            >
+                              {doc.name}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1325,7 +1467,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
           {}
           {businessDocs.length > 0 && (
-            <DocumentSection title="Business Documents" docs={businessDocs} />
+            <DocumentSection
+              title={
+                userType === "contractor"
+                  ? "Company Documents"
+                  : "Business Documents"
+              }
+              docs={businessDocs}
+            />
           )}
 
           {idDocuments.length > 0 && (
@@ -1335,6 +1484,53 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           {certifications.length > 0 && (
             <DocumentSection title="Certifications" docs={certifications} />
           )}
+
+          {userType === "contractor" && categorySpecificDocs.length > 0 && (
+  <div className="mb-8">
+    <h3 className="text-sm font-semibold text-gray-600 mb-4">
+      Category Specific Documents
+    </h3>
+    <div className="space-y-6">
+      {(
+        userData?.contractorCategories ||
+        userData?.contractorExperiences ||
+        []
+      ).map((cat: any, idx: number) => {
+        const categoryName = cat.category || "";
+        if (!categoryName) return null;
+
+        const categoryKey = categoryName
+          .toUpperCase()
+          .replace(/\s+/g, "_");
+        const certKey = `${categoryKey}_CERTIFICATE`;
+        const licenseKey = `${categoryKey}_LICENSE`;
+
+        const catDocs = categorySpecificDocs.filter(
+          (d) => d.key === certKey || d.key === licenseKey,
+        );
+
+        if (catDocs.length === 0) return null;
+
+        return (
+          <div
+            key={idx}
+            className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm"
+          >
+            <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {categoryName} Credentials
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {catDocs.map((doc) => (
+                <DocumentCard key={doc.key} doc={doc} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
 
           {portfolios.length > 0 && (
             <DocumentSection title="Portfolios (Optional)" docs={portfolios} />

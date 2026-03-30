@@ -1,4 +1,4 @@
-export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED";
+export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED" | "REJECTED" | "RESUBMIT"  | "DELETED" | "BLACKLISTED" | "SUSPENDED";
 
 export interface FundiEvaluation {
   hasMajorWorks: string;
@@ -87,15 +87,25 @@ export const STATUS_LABELS: Record<BuilderStatus, string> = {
   PENDING: "Pending",
   INCOMPLETE: "Incomplete",
   RETURNED: "Returned",
+  REJECTED: "Rejected",
+  RESUBMIT: "Resubmit",
+  DELETED: "Deleted",
+  BLACKLISTED: "Blacklisted",
+  SUSPENDED: "Suspended",
 };
 
 export const STATUS_STYLES: Record<BuilderStatus, string> = {
-  VERIFIED: "bg-status-verified/10 text-status-verified border-status-verified/20",
-  COMPLETED: "bg-status-completed/10 text-status-completed border-status-completed/20",
-  SIGNED_UP: "bg-status-signed-up/10 text-status-signed-up border-status-signed-up/20",
-  PENDING: "bg-status-pending/10 text-status-pending border-status-pending/20",
-  INCOMPLETE: "bg-status-incomplete/10 text-status-incomplete border-status-incomplete/20",
-  RETURNED: "bg-status-returned/10 text-status-returned border-status-returned/20",
+  VERIFIED:    "bg-green-100 text-green-800 border-green-200",
+  COMPLETED:   "bg-blue-100 text-blue-800 border-blue-200",
+  SIGNED_UP:   "bg-purple-100 text-purple-800 border-purple-200",
+  PENDING:     "bg-yellow-100 text-yellow-800 border-yellow-200",
+  INCOMPLETE:  "bg-gray-100 text-gray-600 border-gray-200",
+  RETURNED:    "bg-orange-100 text-orange-800 border-orange-200",
+  REJECTED:    "bg-red-100 text-red-800 border-red-200",
+  RESUBMIT:    "bg-pink-100 text-pink-800 border-pink-200",
+  DELETED:     "bg-red-900 text-white border-red-700",
+  BLACKLISTED: "bg-gray-900 text-white border-gray-700",
+  SUSPENDED:   "bg-orange-200 text-orange-900 border-orange-300",
 };
 
 export const resolveStatus = (builder: Builder): BuilderStatus => {

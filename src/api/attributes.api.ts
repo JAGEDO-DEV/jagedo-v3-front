@@ -11,8 +11,9 @@ export interface Attribute {
   attributeGroup: string;
   categoryId?: number | string;
   filterable: boolean;
-  active: boolean;
   customerView: boolean;
+  active: boolean;
+  attributeType?: string;
 }
 
 export interface AttributeCreateRequest {
@@ -22,8 +23,9 @@ export interface AttributeCreateRequest {
   productType?: string;
   categoryId?: number | string;
   filterable: boolean;
-  active: boolean;
   customerView: boolean;
+  active: boolean;
+  attributeType?: string;
 }
 
 export interface AttributeUpdateRequest {
@@ -36,6 +38,7 @@ export interface AttributeUpdateRequest {
   filterable: boolean;
   active: boolean;
   customerView: boolean;
+  attributeType?: string;
 }
 
 export interface ApiResponse<T> {

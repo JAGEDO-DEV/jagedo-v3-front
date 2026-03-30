@@ -482,7 +482,15 @@ export function CustomerSignupForm({
                     value={formData.phone}
                     onChange={(e) => {
                       const value = e.target.value;
-                      const cleanValue = value.replace(/\D/g, '').slice(0, 9);
+                      let cleanValue = value.replace(/\D/g, '');
+                      
+                      if (cleanValue.startsWith('254')) {
+                        cleanValue = cleanValue.substring(3);
+                      } else if (cleanValue.startsWith('0')) {
+                        cleanValue = cleanValue.substring(1);
+                      }
+                      
+                      cleanValue = cleanValue.slice(0, 9);
                       if (cleanValue.length > 0 && !/^[17]/.test(cleanValue)) {
                         return;
                       }

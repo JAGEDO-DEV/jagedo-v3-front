@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, X, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { createCategory, updateCategory, Category, CategoryCreateRequest, CategoryUpdateRequest } from "@/api/categories.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -27,15 +27,16 @@ export default function AddCategoryForm({
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
-        subCategory: "",
+        subCategory: [] as string[],
         urlKey: "",
         metaTitle: "",
         metaKeywords: "",
         type: "HARDWARE",
         active: true
     });
+    const [newSubCategory, setNewSubCategory] = useState("");
 
-    // Main category options
+    
     const mainCategories = [
         { value: "HARDWARE", label: "Hardware" },
         { value: "FUNDI", label: "Custom Products" },
@@ -47,7 +48,7 @@ export default function AddCategoryForm({
         if (category && isEditMode) {
             setFormData({
                 name: category.name,
-                subCategory: category.subCategory || "",
+                subCategory: Array.isArray(category.subCategory) ? category.subCategory : [],
                 urlKey: category.urlKey || "",
                 metaTitle: category.metaTitle || "",
                 metaKeywords: category.metaKeywords || "",
@@ -104,20 +105,37 @@ export default function AddCategoryForm({
         }
     };
 
-    const handleInputChange = (field: string, value: string | boolean) => {
+    const handleInputChange = (field: string, value: any) => {
         setFormData(prev => ({
             ...prev,
             [field]: value
         }));
     };
 
+    const addSubCategory = () => {
+        if (newSubCategory.trim() && !formData.subCategory.includes(newSubCategory.trim())) {
+            setFormData(prev => ({
+                ...prev,
+                subCategory: [...prev.subCategory, newSubCategory.trim()]
+            }));
+            setNewSubCategory("");
+        }
+    };
+
+    const removeSubCategory = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            subCategory: prev.subCategory.filter((_, i) => i !== index)
+        }));
+    };
+
     const handlePreview = () => {
-        // Implement preview functionality
+        
         toast('Preview functionality coming soon');
     };
 
     const handleSaveChanges = () => {
-        // Implement save as draft functionality
+        
         toast('Save as draft functionality coming soon');
     };
 
@@ -165,14 +183,50 @@ export default function AddCategoryForm({
                         </div>
 
                         {/* Sub Category */}
-                        <div className="space-y-2">
-                            <Label htmlFor="subCategory" className="font-semibold">Sub Category</Label>
-                            <Input
-                                id="subCategory"
-                                value={formData.subCategory}
-                                onChange={(e) => handleInputChange("subCategory", e.target.value)}
-                                placeholder="Enter sub category"
-                            />
+                        <div className="space-y-2 col-span-1 md:col-span-3">
+                            <Label htmlFor="subCategory" className="font-semibold">Sub Categories</Label>
+                            <div className="flex space-x-2">
+                                <Input
+                                    id="subCategory"
+                                    value={newSubCategory}
+                                    onChange={(e) => setNewSubCategory(e.target.value)}
+                                    placeholder="Enter sub category name"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            addSubCategory();
+                                        }
+                                    }}
+                                />
+                                <Button 
+                                    type="button" 
+                                    onClick={addSubCategory}
+                                    style={{ backgroundColor: "#00007A", color: "white" }}
+                                >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add
+                                </Button>
+                            </div>
+                            
+                            {formData.subCategory.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-3 p-3 border rounded-lg bg-gray-50">
+                                    {formData.subCategory.map((sub, index) => (
+                                        <div 
+                                            key={index}
+                                            className="flex items-center bg-white border border-[#00007A] text-[#00007A] px-3 py-1 rounded-full text-sm font-medium shadow-sm"
+                                        >
+                                            {sub}
+                                            <button 
+                                                type="button"
+                                                onClick={() => removeSubCategory(index)}
+                                                className="ml-2 hover:text-red-500 transition-colors"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -100,13 +100,15 @@ const ShopApp = () => {
     };
 
     const handleFilterChange = (filter: string, isChecked: boolean) => {
-        if (filter === "All Products" && isChecked) {
+        if (filter.trim().toLowerCase() === "all products" && isChecked) {
             setSelectedFilters(INITIAL_FILTERS);
             return;
         }
         setSelectedFilters(currentFilters => {
-            const otherFilters = currentFilters.filter(f => f !== "All Products");
-            const newFilters = isChecked ? [...otherFilters, filter] : otherFilters.filter(f => f !== filter);
+            const otherFilters = currentFilters.filter(f => f.trim().toLowerCase() !== "all products");
+            const newFilters = isChecked
+                ? [...otherFilters, filter]
+                : otherFilters.filter(f => f.trim().toLowerCase() !== filter.trim().toLowerCase());
             return newFilters.length === 0 ? INITIAL_FILTERS : newFilters;
         });
     };

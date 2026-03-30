@@ -117,7 +117,7 @@ export default function ShopAttributes() {
     useEffect(() => {
         fetchAttributes();
 
-        // Fetch categories for the edit form
+        
         const fetchCategories = async () => {
             try {
                 const { getAllCategories } = await import("@/api/categories.api");
@@ -371,16 +371,14 @@ export default function ShopAttributes() {
                                             {attribute.type}
                                         </TableCell>
                                         <TableCell>
+                                            {attribute.attributeType || "text"}
+                                        </TableCell>
+                                        <TableCell>
                                             {/* @ts-ignore */}
                                             {attribute.category?.name || attribute.attributeGroup || "N/A"}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline">
-                                                {attribute.type}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {attribute.values}
+                                            {attribute.values || "N/A"}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

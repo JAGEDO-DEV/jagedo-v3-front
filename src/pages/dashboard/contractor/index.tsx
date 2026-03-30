@@ -28,6 +28,8 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import ChatWidgetWrapper from "@/components/ChatWidget";
 import GenericFooter from "@/components/generic-footer";
+import { completeProfile } from "@/api/auth.api";
+
 interface JobRequest {
     id: string | number;
     status: string;
@@ -81,21 +83,27 @@ export default function ContractorDashboard() {
         }
     }, [user]);
 
-    const handleProfileComplete = (profileData: any) => {
-        const updatedUser = { ...user, ...profileData, profileCompleted: true };
-        setUser(updatedUser);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-
-        const db = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
-        const index = db.findIndex((u: any) => u.email === user.email);
-        if (index !== -1) {
-            db[index] = updatedUser;
-            localStorage.setItem("mock_users_db", JSON.stringify(db));
-        }
-
-        setShowProfileCompletion(false);
-        toast.success("Profile Completed!");
+  const handleProfileComplete = async (profileData: any) => {
+  try {
+    const payload = {
+      email: user?.email,
+      ...profileData,
     };
+    const response = await completeProfile(payload);
+    if (response.data?.success) {
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setShowProfileCompletion(false);
+      toast.success("Profile Completed!");
+    } else {
+      toast.error(response.data?.message || "Failed to complete profile");
+    }
+  } catch (error: any) {
+    console.error("Profile completion error:", error);
+    toast.error(error.response?.data?.message || "Error completing profile");
+  }
+};
 
     const TABS = [
         { id: 'new', label: 'New', Icon: Eye },
