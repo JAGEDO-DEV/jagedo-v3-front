@@ -498,7 +498,24 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         break;
       case "CONTRACTOR":
         projectData = userData?.contractorProjects || [];
-        break;
+        return projectData.map((project, index) => {
+          const pName =
+            project.projectName || `CONTRACTOR Project ${index + 1}`;
+          const files = [];
+          if (project.projectFile)
+            files.push({
+              name: `${pName}_project.jpg`,
+              url: project.projectFile,
+              role: "projectFile",
+            });
+          if (project.referenceLetterUrl)
+            files.push({
+              name: `${pName}_reference.jpg`,
+              url: project.referenceLetterUrl,
+              role: "referenceLetterUrl",
+            });
+          return { id: index + 1, projectName: pName, files };
+        });
       case "HARDWARE":
         projectData = userData?.hardwareProjects || [];
         break;
@@ -1002,20 +1019,25 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
     const loadingKey = `add-${rowIndex}`;
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
-
     const toastId = toast.loading("Processing files...");
 
-    let updatedAttachments;
     setAttachments((prev) => {
-      const newAttachments = [...prev];
-      newAttachments[rowIndex].files.push(
-        ...selectedFiles.map((file) => ({
+      const newAttachments = prev.map((a, i) => ({
+        ...a,
+        files: [...a.files],
+      }));
+      const existingCount = newAttachments[rowIndex].files.length; // ← captured here
+
+      selectedFiles.forEach((file, i) => {
+        const slotIndex = existingCount + i;
+        newAttachments[rowIndex].files.push({
           name: file.name,
           url: URL.createObjectURL(file),
           rawFile: file,
-        })),
-      );
-      updatedAttachments = newAttachments;
+          role: slotIndex === 0 ? "projectFile" : "referenceLetterUrl",
+        });
+      });
+
       return newAttachments;
     });
 
@@ -1043,7 +1065,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         if (currentLevel === "Student") return 0;
         return 0;
       case "CONTRACTOR":
-        return 1;
+        return categories.filter(c => c.category).length;;
       case "HARDWARE":
         return 2;
       default:
@@ -1058,7 +1080,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   );
 
   const handleAddNewProject = (
-    projectId: string, 
+    projectId: string,
     projectName: string,
     files: File[],
   ) => {
@@ -1085,19 +1107,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
     setAttachments((prev) => [...prev, newProject]);
     toast.success(`${projectName} added locally!`);
-    
-    
+
     setNewProjects((prev) => {
       const updated = { ...prev };
-      const currentIndex = parseInt(projectId.replace('new_', ''), 10);
-      
-      
-      for(let i = currentIndex; i < 5; i++) {
-         if (updated[`new_${i+1}`]) {
-             updated[`new_${i}`] = updated[`new_${i+1}`];
-         } else {
-             updated[`new_${i}`] = { name: "", files: [] };
-         }
+      const currentIndex = parseInt(projectId.replace("new_", ""), 10);
+
+      for (let i = currentIndex; i < 5; i++) {
+        if (updated[`new_${i + 1}`]) {
+          updated[`new_${i}`] = updated[`new_${i + 1}`];
+        } else {
+          updated[`new_${i}`] = { name: "", files: [] };
+        }
       }
       return updated;
     });
@@ -1322,13 +1342,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     }
   };
 
-
-
   useEffect(() => {
     setNewProjects((prev) => {
       const updated = { ...prev };
       let changed = false;
-      
+
       const targetCount = Math.min(missingProjectCount, 5);
       for (let i = 0; i < targetCount; i++) {
         const key = `new_${i}`;
@@ -1850,7 +1868,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       } else if (userType === "CONTRACTOR") {
         const contractorProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
-          files: project.files.map((f) => f.url),
+          projectFile:
+            project.files.find((f) => f.role === "projectFile")?.url ||
+            project.files[0]?.url ||
+            "",
+          referenceLetterUrl:
+            project.files.find((f) => f.role === "referenceLetterUrl")?.url ||
+            project.files[1]?.url ||
+            "",
         }));
 
         const validCategories = categories.filter(
@@ -1864,8 +1889,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         }));
 
         const payload = {
-          contractorExperiences,
-          contractorProjects,
+          categories: contractorExperiences, // ← backend destructures "categories"
+          projects: contractorProjects,
         };
 
         response = await adminUpdateContractorExperience(
@@ -1905,9 +1930,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     }
   };
 
-  
   const isExperienceReadyToApprove = (): boolean => {
-    const requiredCount = getRequiredProjectCount(); 
+    const requiredCount = getRequiredProjectCount();
 
     switch (userType) {
       case "FUNDI": {
@@ -1916,7 +1940,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           ? editingFields.experience
           : info.experience);
         const hasSkill = !!(isEditingFields ? editingFields.skill : info.skill);
-        
+
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
           requiredCount > 0 &&
@@ -1943,7 +1967,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         const hasValidCategories = categories.some(
           (c) => c.category && c.class && c.years,
         );
-        
+
         const hasEnoughProjects =
           attachments.length >= 1 &&
           attachments.every((a) => a.files.length > 0);
@@ -1959,7 +1983,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         const hasExperience = !!(isEditingFields
           ? editingFields.experience
           : info.experience);
-        
+
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
           requiredCount > 0 &&
@@ -2007,76 +2031,83 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                       {/* Approve — only when not already VERIFIED */}
                       {userData?.experienceStatus !== "VERIFIED" && (
-                      <button
-                        type="button"
-                        disabled={!readyToApprove || isPendingAction}
-                        title={
-                          !readyToApprove
-                            ? "All required fields and projects must be filled before approving"
-                            : "Approve experience"
-                        }
-                        onClick={async () => {
-                          setShowGlobalActions(false);
-                          setIsPendingAction(true);
-                          try {
-                            await adminVerifyExperience(
-                              axiosInstance,
-                              userData.id,
-                            );
-                            toast.success("Experience approved successfully");
-                            window.location.reload();
-                          } catch (error: any) {
-                            toast.error(
-                              error.message || "Failed to approve experience",
-                            );
-                          } finally {
-                            setIsPendingAction(false);
+                        <button
+                          type="button"
+                          disabled={!readyToApprove || isPendingAction}
+                          title={
+                            !readyToApprove
+                              ? "All required fields and projects must be filled before approving"
+                              : "Approve experience"
                           }
-                        }}
-                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+                          onClick={async () => {
+                            setShowGlobalActions(false);
+                            setIsPendingAction(true);
+                            try {
+                              await adminVerifyExperience(
+                                axiosInstance,
+                                userData.id,
+                              );
+                              toast.success("Experience approved successfully");
+                              window.location.reload();
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to approve experience",
+                              );
+                            } finally {
+                              setIsPendingAction(false);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
     ${
       !readyToApprove
         ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
         : "text-green-700 hover:bg-gray-50"
     }`}
-                      >
-                        <FiCheck className="w-4 h-4" />
-                        Approve
-                        {!readyToApprove && (
-                          <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                            Incomplete
-                          </span>
-                        )}
-                      </button>
+                        >
+                          <FiCheck className="w-4 h-4" />
+                          Approve
+                          {!readyToApprove && (
+                            <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                              Incomplete
+                            </span>
+                          )}
+                        </button>
                       )}
                       {/* Resubmit — only when not already VERIFIED */}
                       {userData?.experienceStatus !== "VERIFIED" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowGlobalActions(false);
-                          setActionModal({ isOpen: true, action: "resubmit" });
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
-                      >
-                        <FiRefreshCw className="w-4 h-4" />
-                        Resubmit
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowGlobalActions(false);
+                            setActionModal({
+                              isOpen: true,
+                              action: "resubmit",
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
+                        >
+                          <FiRefreshCw className="w-4 h-4" />
+                          Resubmit
+                        </button>
                       )}
                       {/* Reject — only when not already VERIFIED or REJECTED */}
-                      {userData?.experienceStatus !== "VERIFIED" && userData?.experienceStatus !== "REJECTED" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowGlobalActions(false);
-                          setActionModal({ isOpen: true, action: "reject" });
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
-                      )}
+                      {userData?.experienceStatus !== "VERIFIED" &&
+                        userData?.experienceStatus !== "REJECTED" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowGlobalActions(false);
+                              setActionModal({
+                                isOpen: true,
+                                action: "reject",
+                              });
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Reject
+                          </button>
+                        )}
                     </div>
                   )}
                 </div>
@@ -2473,6 +2504,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
             )}
 
             {/* {userType} Project Attachments */}
+            {/* {userType} Project Attachments */}
             <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2488,141 +2520,297 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                 )}
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-4 text-left">No.</th>
-                      <th className="px-6 py-4 text-left">Project Name</th>
-                      <th className="px-6 py-4 text-left">Proof of Work</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {attachments.length > 0 ? (
-                      attachments.map((row, index) => (
-                        <tr
-                          key={row.id}
-                          className="hover:bg-blue-50/30 transition-colors"
-                        >
-                          <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
-                            #{index + 1}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="font-semibold text-gray-900 block truncate max-w-[200px]">
-                              {row.projectName || `Unnamed Project`}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-wrap gap-2">
-                              {row.files.length > 0 ? (
-                                row.files.map((file, fileIndex) => (
-                                  <div
-                                    key={fileIndex}
-                                    className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+              <div className="p-6">
+                {userType === "CONTRACTOR" ? (
+                  // ── Contractor: card layout matching user-side ──
+                  attachments.length > 0 ? (
+                    <div className="space-y-4">
+                      {attachments.map((row, index) => {
+                        const projectFile =
+                          row.files.find((f) => f.role === "projectFile") ||
+                          row.files[0];
+                        const referenceFile =
+                          row.files.find(
+                            (f) => f.role === "referenceLetterUrl",
+                          ) || row.files[1];
+
+                        const renderAdminFileSlot = (file, role, label) => {
+                          if (file) {
+                            return (
+                              <div className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-md">
+                                <div className="flex-1 min-w-0">
+                                  <span
+                                    className="block truncate text-gray-700 text-xs"
+                                    title={file.name}
                                   >
-                                    <img
-                                      src={file.url}
-                                      alt={file.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          "https://placehold.co/100x100?text=File";
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                                      <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1 bg-white/20 rounded-md hover:bg-white/40 transition-colors text-white"
-                                        title="View File"
-                                      >
-                                        <EyeIcon className="w-3.5 h-3.5" />
-                                      </a>
-                                      {isAdmin && (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleRemoveFile(index, fileIndex)
-                                          }
-                                          className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 transition-colors text-white"
-                                          title="Remove File"
-                                        >
-                                          <XMarkIcon className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <span className="text-gray-400 italic text-xs">
-                                  No files uploaded
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {isAdmin && (
-                                <div className="relative inline-block">
-                                  <input
-                                    type="file"
-                                    multiple
-                                    id={`file-upload-${index}`}
-                                    onChange={(e) => handleFileUpload(e, index)}
-                                    className="hidden"
-                                    disabled={fileActionLoading[`add-${index}`]}
-                                  />
-                                  <label
-                                    htmlFor={`file-upload-${index}`}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${
-                                      fileActionLoading[`add-${index}`]
-                                        ? "opacity-50 cursor-not-allowed"
-                                        : ""
-                                    }`}
-                                  >
-                                    {fileActionLoading[`add-${index}`] ? (
-                                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                      <PlusIcon className="w-3 h-3" />
-                                    )}
-                                    Add
-                                  </label>
+                                    {file.name}
+                                  </span>
                                 </div>
-                              )}
-                              {isAdmin && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveFile(index, 0)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Delete Project Row"
-                                >
-                                  <XMarkIcon className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600"
+                                  >
+                                    <EyeIcon className="w-4 h-4" />
+                                  </a>
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAttachments((prev) => {
+                                          const updated = prev.map((a, i) => ({
+                                            ...a,
+                                            files: [...a.files],
+                                          }));
+                                          updated[index].files = updated[
+                                            index
+                                          ].files.filter(
+                                            (f) =>
+                                              f.role !== role && f !== file,
+                                          );
+                                          return updated;
+                                        });
+                                      }}
+                                    >
+                                      <XMarkIcon className="w-4 h-4 text-red-500 hover:text-red-700" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (!isAdmin)
+                            return (
+                              <span className="text-xs text-gray-500 p-2">
+                                No file provided.
+                              </span>
+                            );
+                          return (
+                            <label className="cursor-pointer">
+                              <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition">
+                                <PlusIcon className="w-3 h-3" /> Upload {label}
+                              </div>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*,.pdf"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (!f) return;
+                                  setAttachments((prev) => {
+                                    const updated = prev.map((a, i) => ({
+                                      ...a,
+                                      files: [...a.files],
+                                    }));
+                                    // Remove any existing file with this role first
+                                    updated[index].files = updated[
+                                      index
+                                    ].files.filter((x) => x.role !== role);
+                                    updated[index].files.push({
+                                      name: f.name,
+                                      url: URL.createObjectURL(f),
+                                      rawFile: f,
+                                      role,
+                                    });
+                                    return updated;
+                                  });
+                                }}
+                              />
+                            </label>
+                          );
+                        };
+
+                        return (
+                          <div
+                            key={row.id}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
+                          >
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                Project Name
+                              </label>
+                              <input
+                                value={row.projectName}
+                                disabled
+                                className="w-full p-2 border rounded-md bg-white text-sm font-medium text-gray-700 shadow-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                Project / BQ File
+                              </label>
+                              {renderAdminFileSlot(
+                                projectFile,
+                                "projectFile",
+                                "Project File",
                               )}
                             </div>
-                          </td>
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                Completion Letter
+                              </label>
+                              {renderAdminFileSlot(
+                                referenceFile,
+                                "referenceLetterUrl",
+                                "Completion Letter",
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-gray-500">
+                      <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
+                      <p className="text-sm font-semibold">
+                        No Projects Recorded
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Proof of work projects will appear here.
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  // ── Non-contractor: existing thumbnail table ──
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
+                        <tr>
+                          <th className="px-6 py-4 text-left">No.</th>
+                          <th className="px-6 py-4 text-left">Project Name</th>
+                          <th className="px-6 py-4 text-left">Proof of Work</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-6 py-12 text-center text-gray-500"
-                        >
-                          <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
-                          <p className="text-sm font-semibold">
-                            No Projects Recorded
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Proof of work projects will appear here.
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {attachments.length > 0 ? (
+                          attachments.map((row, index) => (
+                            <tr
+                              key={row.id}
+                              className="hover:bg-blue-50/30 transition-colors"
+                            >
+                              <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
+                                #{index + 1}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="font-semibold text-gray-900 block truncate max-w-[200px]">
+                                  {row.projectName || "Unnamed Project"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-wrap gap-2">
+                                  {row.files.length > 0 ? (
+                                    row.files.map((file, fileIndex) => (
+                                      <div
+                                        key={fileIndex}
+                                        className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+                                      >
+                                        <img
+                                          src={file.url}
+                                          alt={file.name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src =
+                                              "https://placehold.co/100x100?text=File";
+                                          }}
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                          <a
+                                            href={file.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1 bg-white/20 rounded-md hover:bg-white/40 text-white"
+                                          >
+                                            <EyeIcon className="w-3.5 h-3.5" />
+                                          </a>
+                                          {isAdmin && (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleRemoveFile(
+                                                  index,
+                                                  fileIndex,
+                                                )
+                                              }
+                                              className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 text-white"
+                                            >
+                                              <XMarkIcon className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-400 italic text-xs">
+                                      No files uploaded
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {isAdmin && (
+                                    <div className="relative inline-block">
+                                      <input
+                                        type="file"
+                                        multiple
+                                        id={`file-upload-${index}`}
+                                        onChange={(e) =>
+                                          handleFileUpload(e, index)
+                                        }
+                                        className="hidden"
+                                        disabled={
+                                          fileActionLoading[`add-${index}`]
+                                        }
+                                      />
+                                      <label
+                                        htmlFor={`file-upload-${index}`}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}
+                                      >
+                                        {fileActionLoading[`add-${index}`] ? (
+                                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                          <PlusIcon className="w-3 h-3" />
+                                        )}
+                                        Add
+                                      </label>
+                                    </div>
+                                  )}
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFile(index, 0)}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <XMarkIcon className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-6 py-12 text-center text-gray-500"
+                            >
+                              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
+                              <p className="text-sm font-semibold">
+                                No Projects Recorded
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Proof of work projects will appear here.
+                              </p>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {isAdmin && (

@@ -1,6 +1,16 @@
 /* eslint-disable */
 //@ts-nocheck
-import { Download, FileText, Upload, Eye, Image, Loader2, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Upload,
+  Eye,
+  Image,
+  Loader2,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,7 +21,7 @@ import {
   uploadProfessionalDocuments,
   uploadHardwareDocuments,
   uploadIndividualCustomerDocuments,
-  uploadOrganizationCustomerDocuments,  
+  uploadOrganizationCustomerDocuments,
 } from "@/api/uploads.api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
@@ -53,7 +63,16 @@ const StatusBadge = ({ status }) => {
   return null;
 };
 
-const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status, reason }) => {
+const DocumentCard = ({
+  label,
+  url,
+  onReplace,
+  isUploading,
+  isReplacing,
+  disabled,
+  status,
+  reason,
+}) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -95,21 +114,37 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status, re
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            status === "approved" ? "bg-green-50" : status === "rejected" || status === "resubmit" ? "bg-red-50" : "bg-amber-50"
-          }`}>
-            {isUploading ? (
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              status === "approved"
+                ? "bg-green-50"
+                : status === "rejected" || status === "resubmit"
+                  ? "bg-red-50"
+                  : "bg-amber-50"
+            }`}
+          >
+            {isUploading || isReplacing ? (
               <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
             ) : (
-              <FileText className={`w-5 h-5 ${
-                status === "approved" ? "text-green-600" : status === "rejected" || status === "resubmit" ? "text-red-600" : "text-amber-600"
-              }`} />
+              <FileText
+                className={`w-5 h-5 ${
+                  status === "approved"
+                    ? "text-green-600"
+                    : status === "rejected" || status === "resubmit"
+                      ? "text-red-600"
+                      : "text-amber-600"
+                }`}
+              />
             )}
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm">{label}</h4>
             <p className="text-xs text-gray-500 truncate">
-              {isUploading ? "Uploading..." : fileName}
+              {isUploading
+                ? "Uploading..."
+                : isReplacing
+                  ? "Preparing file..."
+                  : fileName}
             </p>
           </div>
         </div>
@@ -119,9 +154,13 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status, re
       </div>
 
       {(status === "rejected" || status === "resubmit") && reason && (
-        <div className={`mb-4 p-2.5 rounded-lg text-xs flex items-start gap-2 ${
-          status === "rejected" ? "bg-red-50 text-red-700 border border-red-100" : "bg-blue-50 text-blue-700 border border-blue-100"
-        }`}>
+        <div
+          className={`mb-4 p-2.5 rounded-lg text-xs flex items-start gap-2 ${
+            status === "rejected"
+              ? "bg-red-50 text-red-700 border border-red-100"
+              : "bg-blue-50 text-blue-700 border border-blue-100"
+          }`}
+        >
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <div>
             <span className="font-bold uppercase text-[10px] block mb-1">
@@ -181,18 +220,22 @@ const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status, re
 
 const AccountUploads = ({ data, refreshData }) => {
   const { user } = useGlobalContext();
-  
+
   const userType = (data?.userType || user?.userType || "").toLowerCase();
-  const accountType = (data?.accountType || user?.accountType || "").toLowerCase();
+  const accountType = (
+    data?.accountType ||
+    user?.accountType ||
+    ""
+  ).toLowerCase();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const [documents, setDocuments] = useState({});
   const [pendingFiles, setPendingFiles] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState([]);
   const [approvalStatus, setApprovalStatus] = useState({});
+  const [replacingFiles, setReplacingFiles] = useState({});
+  const [categories, setCategories] = useState([]);
 
-  
   const defaultFields = {
     customer:
       accountType.toLowerCase() === "individual"
@@ -222,7 +265,6 @@ const AccountUploads = ({ data, refreshData }) => {
       { label: "Academics Certificate", key: "academicCertificateUrl" },
       { label: "CV", key: "cvUrl" },
       { label: "KRA PIN", key: "krapin" },
-      
     ],
     hardware: [
       { label: "Business Registration", key: "businessRegistration" },
@@ -240,28 +282,29 @@ const AccountUploads = ({ data, refreshData }) => {
     { label: "Company Profile", key: "companyProfile" },
   ];
 
-  
   const baseFields = defaultFields[userType] || [];
-  
+
   let fields = [...baseFields];
-  
+
   const hasPendingFiles = Object.keys(pendingFiles).length > 0;
-  
+
   const isSatisfied = (fieldKey) => {
     const sObj = approvalStatus[fieldKey];
-    const status = (typeof sObj === 'object' ? sObj?.status : sObj) || 'pending';
+    const status =
+      (typeof sObj === "object" ? sObj?.status : sObj) || "pending";
     const isReplaced = !!pendingFiles[fieldKey];
-    
-    
+
     if (status === "approved" || status === "pending") return true;
-    
-    
-    if ((status === "rejected" || status === "resubmit") && isReplaced) return true;
-    
+
+    if ((status === "rejected" || status === "resubmit") && isReplaced)
+      return true;
+
     return false;
   };
 
-  const hasAllRequiredDocs = fields.every((f) => !!documents[f.key] && isSatisfied(f.key));
+  const hasAllRequiredDocs = fields.every(
+    (f) => !!documents[f.key] && isSatisfied(f.key),
+  );
 
   const allContractorDocs = [
     ...generalFields,
@@ -282,81 +325,131 @@ const AccountUploads = ({ data, refreshData }) => {
       const sObj = approvalStatus[f.key];
       const status =
         (typeof sObj === "object" ? sObj?.status : sObj) || "pending";
-      
+
       return (
         (status === "rejected" || status === "resubmit") && !pendingFiles[f.key]
       );
     })
     .map((f) => f.label);
-  const hasAllContractorDocs = allContractorDocs.every((f) => !!documents[f.key] && isSatisfied(f.key));
+  const hasAllContractorDocs =
+    hasPendingFiles &&
+    allContractorDocs
+      .filter((f) => !!documents[f.key] || !!pendingFiles[f.key])
+      .every((f) => isSatisfied(f.key));
 
   const isReadOnly = !["PENDING", "RESUBMIT", "INCOMPLETE"].includes(
     data?.documentStatus,
   );
 
-  
   const totalUploaded = fields.filter((f) => !!documents[f.key]).length;
-  const totalApproved = fields.filter((f) => approvalStatus[f.key] === "approved").length;
-  const totalPending = fields.filter((f) => !!documents[f.key] && approvalStatus[f.key] !== "approved").length;
+  const totalApproved = fields.filter(
+    (f) => approvalStatus[f.key] === "approved",
+  ).length;
+  const totalPending = fields.filter(
+    (f) => !!documents[f.key] && approvalStatus[f.key] !== "approved",
+  ).length;
+
+  const contractorTotalApproved = allContractorDocs.filter(
+    (f) =>
+      approvalStatus[f.key]?.status === "approved" ||
+      approvalStatus[f.key] === "approved",
+  ).length;
+
+  const contractorTotalUploaded = allContractorDocs.filter(
+    (f) => !!documents[f.key],
+  ).length;
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
       const docsMap = { ...data };
       if (data.kraPIN && !data.krapin) docsMap.krapin = data.kraPIN;
-      if (data.certificateOfIncorporation && !data.businessRegistration) docsMap.businessRegistration = data.certificateOfIncorporation;
-      if (data.businessRegistration && !data.certificateOfIncorporation) docsMap.certificateOfIncorporation = data.businessRegistration;
-      
+      if (data.certificateOfIncorporation && !data.businessRegistration)
+        docsMap.businessRegistration = data.certificateOfIncorporation;
+      if (data.businessRegistration && !data.certificateOfIncorporation)
+        docsMap.certificateOfIncorporation = data.businessRegistration;
+
       const catNames = [];
       const statusMap = {};
 
-      
       const keyMapping = {
-        
         idFrontUrl: "idFront",
         idBackUrl: "idBack",
-        
+
         businessPermit: "businessPermit",
         certificateOfIncorporation: "certificateOfIncorporation",
-        
+
         certificateUrl: "certificate",
-        
+
         academicCertificateUrl: "academicCertificate",
         cvUrl: "cvUrl",
         practiceLicense: "practiceLicense",
-        
-        
+
+        businessRegistration: "certificateOfIncorporation",
+
         businessRegistration: "businessRegistration",
-        
+
         companyProfile: "companyProfile",
-        
+
         krapin: "kraPIN",
       };
+      // ADD THIS DEBUG BLOCK
+      console.log(
+        "documentDetails keys:",
+        Object.keys(data.documentDetails || {}),
+      );
+      console.log("statusMap after processing:", statusMap);
+      console.log(
+        "generalFields keys:",
+        generalFields.map((f) => f.key),
+      );
+      console.log(
+        "businessRegistration status:",
+        statusMap["businessRegistration"],
+      );
 
-      
       if (data.documentDetails) {
         Object.keys(data.documentDetails).forEach((backendKey) => {
           const detail = data.documentDetails[backendKey];
-          
+
           let actualStatus = detail?.status || detail;
           const reason = detail?.reason || "";
-          
-          let status = 'pending';
-          if (actualStatus === 'VERIFIED') status = 'approved';
-          else if (actualStatus === 'RESUBMIT') status = 'resubmit';
-          else if (actualStatus === 'REJECTED') status = 'rejected';
-          else if (actualStatus === 'REPLACED') status = 'pending';
-          
-          const fieldKey = Object.keys(keyMapping).find(
-            (k) => keyMapping[k] === backendKey
-          ) || backendKey;
-          
+
+          let status = "pending";
+          if (actualStatus === "VERIFIED") status = "approved";
+          else if (actualStatus === "RESUBMIT") status = "resubmit";
+          else if (actualStatus === "REJECTED") status = "rejected";
+          else if (actualStatus === "REPLACED") status = "pending";
+
+          // Try reverse-mapping through keyMapping first
+          const mappedKey = Object.keys(keyMapping).find(
+            (k) => keyMapping[k] === backendKey,
+          );
+          const fieldKey = mappedKey || backendKey;
+
           statusMap[fieldKey] = { status, reason };
+
+          // If backendKey is a dynamic category key (e.g. BUILDING_WORKS_CERTIFICATE),
+          // also store it directly so DocumentCard can find it
+          if (
+            !mappedKey &&
+            (backendKey.endsWith("_CERTIFICATE") ||
+              backendKey.endsWith("_LICENSE"))
+          ) {
+            statusMap[backendKey] = { status, reason };
+          }
         });
+        if (
+          statusMap["certificateOfIncorporation"] &&
+          !statusMap["businessRegistration"]
+        ) {
+          statusMap["businessRegistration"] =
+            statusMap["certificateOfIncorporation"];
+        }
       }
 
-      
-      const globalStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
+      const globalStatus =
+        data.documentStatus === "VERIFIED" ? "approved" : "pending";
       const baseFields = defaultFields[userType] || [];
       baseFields.forEach((field) => {
         if (!statusMap[field.key]) {
@@ -375,6 +468,10 @@ const AccountUploads = ({ data, refreshData }) => {
             const licenseKey = `${categoryKey}_LICENSE`;
             if (exp.certificate) docsMap[certKey] = exp.certificate;
             if (exp.license) docsMap[licenseKey] = exp.license;
+            if (!docsMap[certKey] && data[certKey])
+              docsMap[certKey] = data[certKey];
+            if (!docsMap[licenseKey] && data[licenseKey])
+              docsMap[licenseKey] = data[licenseKey];
           });
         } else if (data.contractorTypes) {
           const SLUG_MAP = {
@@ -391,8 +488,6 @@ const AccountUploads = ({ data, refreshData }) => {
         }
       }
 
-      
-
       setDocuments(docsMap);
       setApprovalStatus(statusMap);
       setCategories(catNames);
@@ -400,18 +495,30 @@ const AccountUploads = ({ data, refreshData }) => {
   }, [data, userType]);
 
   const replaceDocument = (file, key) => {
+    setReplacingFiles((prev) => ({ ...prev, [key]: true }));
     const previewUrl = URL.createObjectURL(file);
     setDocuments((prev) => ({ ...prev, [key]: previewUrl }));
     setPendingFiles((prev) => ({ ...prev, [key]: file }));
+    setTimeout(() => {
+      setReplacingFiles((prev) => ({ ...prev, [key]: false }));
+    }, 600);
   };
 
   const handleSaveDocuments = async () => {
     setIsSubmitting(true);
-    const rejectedFields = fields.filter(f => approvalStatus[f.key] === 'rejected' || approvalStatus[f.key] === 'resubmit');
-    const missingReplacements = rejectedFields.filter(f => !pendingFiles[f.key]);
+    const rejectedFields = fields.filter(
+      (f) =>
+        approvalStatus[f.key] === "rejected" ||
+        approvalStatus[f.key] === "resubmit",
+    );
+    const missingReplacements = rejectedFields.filter(
+      (f) => !pendingFiles[f.key],
+    );
 
     if (missingReplacements.length > 0) {
-      toast.error(`Please replace all rejected documents: ${missingReplacements.map(f => f.label).join(", ")}`);
+      toast.error(
+        `Please replace all rejected documents: ${missingReplacements.map((f) => f.label).join(", ")}`,
+      );
       setIsSubmitting(false);
       return;
     }
@@ -422,7 +529,6 @@ const AccountUploads = ({ data, refreshData }) => {
       const updatedUrls = { ...documents };
       const filesToUpload = Object.keys(pendingFiles);
 
-      
       for (const key of filesToUpload) {
         const file = pendingFiles[key];
         try {
@@ -434,7 +540,6 @@ const AccountUploads = ({ data, refreshData }) => {
         }
       }
 
-      
       let response;
       if (userType === "customer") {
         if (accountType === "individual") {
@@ -443,14 +548,21 @@ const AccountUploads = ({ data, refreshData }) => {
             idBackUrl: updatedUrls.idBackUrl || null,
             krapin: updatedUrls.krapin || null,
           };
-          response = await uploadIndividualCustomerDocuments(axiosInstance, payload);
+          response = await uploadIndividualCustomerDocuments(
+            axiosInstance,
+            payload,
+          );
         } else {
           const payload = {
             businessPermit: updatedUrls.businessPermit || null,
-            certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
+            certificateOfIncorporation:
+              updatedUrls.certificateOfIncorporation || null,
             krapin: updatedUrls.krapin || null,
           };
-          response = await uploadOrganizationCustomerDocuments(axiosInstance, payload);
+          response = await uploadOrganizationCustomerDocuments(
+            axiosInstance,
+            payload,
+          );
         }
       } else if (userType === "fundi") {
         const payload = {
@@ -472,7 +584,7 @@ const AccountUploads = ({ data, refreshData }) => {
         response = await uploadProfessionalDocuments(axiosInstance, payload);
       } else if (userType === "contractor") {
         const payload = {
-          certificateOfIncorporation: updatedUrls.certificateOfIncorporation  || null,
+          certificateOfIncorporation: updatedUrls.businessRegistration || null,
           businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
           companyProfile: updatedUrls.companyProfile || null,
@@ -494,7 +606,7 @@ const AccountUploads = ({ data, refreshData }) => {
           ownerIdBack: updatedUrls.idBackUrl || null,
         };
         response = await uploadHardwareDocuments(axiosInstance, payload);
-        console.log('Hardware payload:', payload);
+        console.log("Hardware payload:", payload);
       }
 
       toast.success("All documents saved successfully!", { id: uploadToast });
@@ -511,7 +623,6 @@ const AccountUploads = ({ data, refreshData }) => {
     }
   };
 
-  
   if (userType !== "contractor") {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -527,28 +638,37 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             {data?.documentStatusReason && (
-            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
-              <InfoIcon className="h-4 w-4" />
-              <AlertTitle>Status Update</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">{data.documentStatusReason}</p>
-                {rejectedDocLabels.length > 0 && (
-                  <div className="mt-3 bg-white/50 p-3 rounded-lg border border-red-200">
-                    <p className="text-xs font-bold text-red-800 uppercase mb-2">
-                      Documents requiring attention:
-                    </p>
-                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-                      {rejectedDocLabels.map((label, idx) => (
-                        <li key={idx} className="font-medium">
-                          {label}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+              <Alert
+                variant={
+                  data.documentStatus === "PENDING" ? "default" : "destructive"
+                }
+                className={
+                  data.documentStatus === "PENDING"
+                    ? "mb-6 bg-amber-100"
+                    : "mb-6"
+                }
+              >
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Status Update</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">{data.documentStatusReason}</p>
+                  {rejectedDocLabels.length > 0 && (
+                    <div className="mt-3 bg-white/50 p-3 rounded-lg border border-red-200">
+                      <p className="text-xs font-bold text-red-800 uppercase mb-2">
+                        Documents requiring attention:
+                      </p>
+                      <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                        {rejectedDocLabels.map((label, idx) => (
+                          <li key={idx} className="font-medium">
+                            {label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* ✅ Approval Status Summary */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
@@ -598,10 +718,13 @@ const AccountUploads = ({ data, refreshData }) => {
                   key={f.key}
                   label={f.label}
                   url={documents[f.key]}
-                  status={approvalStatus[f.key]?.status || approvalStatus[f.key]}
+                  status={
+                    approvalStatus[f.key]?.status || approvalStatus[f.key]
+                  }
                   reason={approvalStatus[f.key]?.reason}
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
+                  isReplacing={!!replacingFiles[f.key]}
                   disabled={isReadOnly}
                 />
               ))}
@@ -616,7 +739,9 @@ const AccountUploads = ({ data, refreshData }) => {
               {!isReadOnly && (
                 <button
                   onClick={handleSaveDocuments}
-                  disabled={isSubmitting || !hasPendingFiles || !hasAllRequiredDocs}
+                  disabled={
+                    isSubmitting || !hasPendingFiles || !hasAllRequiredDocs
+                  }
                   className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting ? (
@@ -636,7 +761,6 @@ const AccountUploads = ({ data, refreshData }) => {
     );
   }
 
-  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 lg:p-8">
@@ -651,7 +775,14 @@ const AccountUploads = ({ data, refreshData }) => {
           </div>
 
           {data?.documentStatusReason && (
-            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
+            <Alert
+              variant={
+                data.documentStatus === "PENDING" ? "default" : "destructive"
+              }
+              className={
+                data.documentStatus === "PENDING" ? "mb-6 bg-amber-100" : "mb-6"
+              }
+            >
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>Status Update</AlertTitle>
               <AlertDescription>
@@ -681,10 +812,22 @@ const AccountUploads = ({ data, refreshData }) => {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Document Status
                 </h3>
+                {/* In the contractor return block, replace the summary paragraph */}
                 <p className="text-sm text-gray-500 mt-1">
-                  {Object.keys(documents).filter((k) => !!documents[k]).length} of{" "}
-                  {allContractorDocs.length} documents uploaded
-                  {totalApproved > 0 && ` • ${totalApproved} approved`}
+                  {allContractorDocs.filter((f) => !!documents[f.key]).length}{" "}
+                  of {allContractorDocs.length} documents uploaded
+                  {allContractorDocs.filter(
+                    (f) =>
+                      approvalStatus[f.key]?.status === "approved" ||
+                      approvalStatus[f.key] === "approved",
+                  ).length > 0 &&
+                    ` • ${
+                      allContractorDocs.filter(
+                        (f) =>
+                          approvalStatus[f.key]?.status === "approved" ||
+                          approvalStatus[f.key] === "approved",
+                      ).length
+                    } approved`}
                 </p>
               </div>
               <StatusBadge status={data?.documentStatus} />
@@ -695,21 +838,29 @@ const AccountUploads = ({ data, refreshData }) => {
               <div className="mt-4">
                 <div className="flex justify-between text-xs text-gray-600 mb-2">
                   <span>Approval Progress</span>
+                  {/* Replace the progress bar span */}
                   <span>
-                    {totalApproved} / {allContractorDocs.length} approved
+                    {
+                      allContractorDocs.filter(
+                        (f) =>
+                          approvalStatus[f.key]?.status === "approved" ||
+                          approvalStatus[f.key] === "approved",
+                      ).length
+                    }{" "}
+                    / {allContractorDocs.length} approved
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all ${
-                      totalApproved === allContractorDocs.length
+                      contractorTotalApproved === allContractorDocs.length
                         ? "bg-green-500"
-                        : totalPending > 0
+                        : contractorTotalUploaded > 0
                           ? "bg-amber-500"
                           : "bg-gray-300"
                     }`}
                     style={{
-                      width: `${allContractorDocs.length > 0 ? (totalApproved / allContractorDocs.length) * 100 : 0}%`,
+                      width: `${allContractorDocs.length > 0 ? (contractorTotalApproved / allContractorDocs.length) * 100 : 0}%`,
                     }}
                   />
                 </div>
@@ -727,10 +878,13 @@ const AccountUploads = ({ data, refreshData }) => {
                   key={f.key}
                   label={f.label}
                   url={documents[f.key]}
-                  status={approvalStatus[f.key]?.status || approvalStatus[f.key]}
+                  status={
+                    approvalStatus[f.key]?.status || approvalStatus[f.key]
+                  }
                   reason={approvalStatus[f.key]?.reason}
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
+                  isReplacing={!!replacingFiles[f.key]}
                   disabled={isReadOnly}
                 />
               ))}
@@ -761,19 +915,31 @@ const AccountUploads = ({ data, refreshData }) => {
                         <DocumentCard
                           label={`${cat} Certificate`}
                           url={documents[certKey]}
-                          status={approvalStatus[certKey]?.status || approvalStatus[certKey]}
+                          status={
+                            approvalStatus[certKey]?.status ||
+                            approvalStatus[certKey]
+                          }
                           reason={approvalStatus[certKey]?.reason}
                           onReplace={(file) => replaceDocument(file, certKey)}
                           isUploading={isSubmitting && !!pendingFiles[certKey]}
+                          isReplacing={!!replacingFiles[certKey]}
                           disabled={isReadOnly}
                         />
                         <DocumentCard
                           label={`${cat} Practice License`}
                           url={documents[licenseKey]}
-                          status={approvalStatus[licenseKey]?.status || approvalStatus[licenseKey]}
+                          status={
+                            approvalStatus[licenseKey]?.status ||
+                            approvalStatus[licenseKey]
+                          }
                           reason={approvalStatus[licenseKey]?.reason}
-                          onReplace={(file) => replaceDocument(file, licenseKey)}
-                          isUploading={isSubmitting && !!pendingFiles[licenseKey]}
+                          onReplace={(file) =>
+                            replaceDocument(file, licenseKey)
+                          }
+                          isUploading={
+                            isSubmitting && !!pendingFiles[licenseKey]
+                          }
+                          isReplacing={!!replacingFiles[licenseKey]}
                           disabled={isReadOnly}
                         />
                       </div>
@@ -793,7 +959,9 @@ const AccountUploads = ({ data, refreshData }) => {
             {!isReadOnly && (
               <button
                 onClick={handleSaveDocuments}
-                disabled={isSubmitting || !hasPendingFiles || !hasAllContractorDocs}
+                disabled={
+                  isSubmitting || !hasPendingFiles || !hasAllContractorDocs
+                }
                 className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? (
