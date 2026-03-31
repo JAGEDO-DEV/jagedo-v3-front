@@ -12,7 +12,9 @@ import { getProviderProfile } from "@/api/provider.api";
 import { useGlobalContext } from '@/context/GlobalProvider';
 
 function ProfileApp() {
-  const [activeTab, setActiveTab] = useState('account-info');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('profileActiveTab') || 'account-info';
+  });
   const [userType, setUserType] = useState<string>('CUSTOMER');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,10 @@ function ProfileApp() {
       setIsAdmin(role === 'ADMIN' || role === 'SUPER_ADMIN');
     }
   }, [globalUser]);
+
+  useEffect(() => {
+    localStorage.setItem('profileActiveTab', activeTab);
+  }, [activeTab]);
 
   if (loading) {
     return (

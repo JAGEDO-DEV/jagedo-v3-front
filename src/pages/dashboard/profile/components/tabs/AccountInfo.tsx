@@ -252,7 +252,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       if (!userData?.phone?.trim()) missing.push("Phone Number");
       if (!userData?.email?.trim()) missing.push("Email");
     } else if (isOrganization) {
-      if (!userData?.organizationName?.trim())
+      if (!userData?.organizationName?.trim() && !name.trim())
         missing.push("Organization Name");
       if (!userData?.email?.trim()) missing.push("Email");
       if (!userData?.phone?.trim()) missing.push("Phone Number");

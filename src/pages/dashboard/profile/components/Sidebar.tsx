@@ -183,6 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   onClick={() => {
                     if (isDisabled) return;
+                    localStorage.setItem('profileActiveTab', item.id);
                     onTabChange(item.id);
                   }}
                   title={isDisabled ? "Complete Experience first" : item.label}

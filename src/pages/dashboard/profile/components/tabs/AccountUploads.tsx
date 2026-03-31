@@ -71,6 +71,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isPendingAction, setIsPendingAction] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [showGlobalActions, setShowGlobalActions] = useState(false);
 
@@ -146,6 +148,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             certificateOfIncorporation:
               updatedDocs.certificateOfIncorporation?.url || "",
             krapin: updatedDocs.kraPIN?.url || "",
+            companyProfile: updatedDocs.companyProfile?.url || "",
           };
         }
       } else if (type === "hardware") {
@@ -658,14 +661,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       };
 
       setDocuments(updatedDocs);
-      await persistDocuments(updatedDocs);
-      toast.success(`${file.name} uploaded successfully`);
-
-      if (isAdmin) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      }
+      setHasChanges(true);
+      toast.success(`${file.name} uploaded. Click 'Save' to apply changes.`);
     } catch (error: any) {
       toast.error(error.message || "Failed to upload file");
     } finally {
@@ -676,12 +673,24 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const handleDelete = async (key: string) => {
     const updated = { ...documents };
     delete updated[key];
+    setDocuments(updated);
+    setHasChanges(true);
+    toast.success("Document removed. Click 'Save' to apply changes.");
+  };
+
+  const handleSaveAll = async () => {
+    setIsSaving(true);
     try {
-      await persistDocuments(updated);
-      setDocuments(updated);
-      toast.success("Document deleted");
+      await persistDocuments(documents);
+      toast.success("All documents saved successfully");
+      setHasChanges(false);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
-      toast.error("Failed to delete document");
+      toast.error(error.message || "Failed to save documents");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1220,6 +1229,21 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {hasChanges && (
+                <button
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                >
+                  {isSaving ? (
+                    <FiRefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FiCheck className="w-4 h-4" />
+                  )}
+                  Save All Changes
+                </button>
+              )}
+
               <StatusBadge
                 status={
                   userData?.documentStatus === "VERIFIED" &&
