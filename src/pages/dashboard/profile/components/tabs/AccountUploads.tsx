@@ -695,14 +695,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           toast.success("Documents approved successfully");
         } else if (action === "reject") {
           await adminRejectDocuments(axiosInstance, userData.id, actionReason);
-          toast.success("Documents rejected");
+          toast.success("Documents disapproved");
         } else if (action === "resubmit") {
           await adminResubmitDocuments(
             axiosInstance,
             userData.id,
             actionReason,
           );
-          toast.success("Resubmission requested");
+          toast.success("All documents returned for correction");
         }
         window.location.reload();
       } catch (error: any) {
@@ -731,7 +731,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           actionReason,
         );
         toast.success(
-          `Document ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "requested for reupload"}`,
+          `Document ${action === "approve" ? "approved" : action === "reject" ? "disapproved" : "returned for correction"}`,
         );
         window.location.reload();
       } catch (error: any) {
@@ -787,28 +787,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         text: "text-red-700",
         border: "border-red-200",
         icon: XCircle,
-        label: "Rejected",
+        label: "Disapproved",
       },
       REJECTED: {
         bg: "bg-red-50",
         text: "text-red-700",
         border: "border-red-200",
         icon: XCircle,
-        label: "Rejected",
+        label: "Disapproved",
       },
       reupload_requested: {
         bg: "bg-blue-50",
         text: "text-blue-700",
         border: "border-blue-200",
         icon: FiRefreshCw,
-        label: "Re-upload Required",
+        label: "Returned for Correction",
       },
       RESUBMIT: {
         bg: "bg-blue-50",
         text: "text-blue-700",
         border: "border-blue-200",
         icon: FiRefreshCw,
-        label: "Re-upload Required",
+        label: "Returned for Correction",
       },
     };
 
@@ -981,19 +981,19 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               <button
                 onClick={() => openActionModal(doc.key, "resubmit")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition"
-                title="Resubmit"
+                title="Return for correction"
               >
                 <FiRefreshCw className="w-3 h-3" />
-                Resubmit
+                Return
               </button>
-              {/* <button
+              <button
                 onClick={() => openActionModal(doc.key, "reject")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
-                title="Reject"
+                title="Disapprove"
               >
                 <XCircle className="w-3 h-3" />
-                Reject
-              </button> */}
+                Disapprove
+              </button>
             </div>
           )}
         </div>
@@ -1038,16 +1038,16 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         needsReason: false,
       },
       reject: {
-        title: "Reject Document",
-        description: `Please provide a reason for rejecting "${docName}":`,
-        buttonText: "Reject",
+        title: "Disapprove Document",
+        description: actionModal.isGlobal ? "Please provide a reason for disapproving all documents:" : `Please provide a reason for disapproving "${docName}":`,
+        buttonText: "Disapprove",
         buttonColor: "bg-red-600 hover:bg-red-700",
         needsReason: true,
       },
       reupload: {
-        title: "Request Re-upload",
-        description: `Please specify what needs to be corrected for "${docName}":`,
-        buttonText: "Request Re-upload",
+        title: actionModal.isGlobal ? "Return All Documents" : "Return for Correction",
+        description: actionModal.isGlobal ? "Please specify why documents are being returned for correction:" : `Please specify what needs to be corrected for "${docName}":`,
+        buttonText: actionModal.isGlobal ? "Return All" : "Return",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
         needsReason: true,
       },
@@ -1206,7 +1206,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                           className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
                         >
                           <FiRefreshCw className="w-4 h-4" />
-                          Resubmit
+                          Return all
                         </button>
                         <button
                           onClick={() => {
@@ -1220,7 +1220,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                           className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
                         >
                           <XCircle className="w-4 h-4" />
-                          Reject
+                          Disapprove
                         </button>
                       </div>
                     )}
@@ -1259,8 +1259,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                       }`}
                   >
                     {userData.documentStatus === "REJECTED"
-                      ? "Documents Rejected"
-                      : "Resubmission Required"}
+                      ? "Documents Disapproved"
+                      : "Return for Correction"}
                   </h3>
                   <p
                     className={`text-sm mt-1 mb-3 ${userData.documentStatus === "REJECTED"
