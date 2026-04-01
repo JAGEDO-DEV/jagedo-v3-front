@@ -20,7 +20,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
-          return <AccountInfo userData={userData} completionStatus={completionStatus} />;
+          return <AccountInfo userData={userData} completionStatus={completionStatus} isAdmin={isAdmin} />;
       case 'address':
         return <Address userData={userData} />;
       case 'account-uploads':
@@ -28,18 +28,18 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
       case 'experience':
         // Only show for builders, not customers
         if (userType === 'CUSTOMER') {
-          return <AccountInfo userData={userData} />;
+          return <AccountInfo userData={userData} isAdmin={isAdmin} />;
         }
         return <Experience userData={userData} isAdmin={isAdmin} refetch={refetch} />;
       case 'products':
         // Only show for builders, not customers
         if (userType === 'CUSTOMER') {
-          return <AccountInfo userData={userData} />;
+          return <AccountInfo userData={userData} isAdmin={isAdmin} />;
         }
         //@ts-nocheck
         return <Products userData={userData} userType={userType} />;
       default:
-        return <AccountInfo userData={userData} completionStatus={completionStatus}/>;
+        return <AccountInfo userData={userData} completionStatus={completionStatus} isAdmin={isAdmin}/>;
     }
   };
 

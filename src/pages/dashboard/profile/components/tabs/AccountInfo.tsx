@@ -21,12 +21,14 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface AccountInfoProps {
   userData: any;
-  completionStatus?: Record<string, string>; // ← add
+  completionStatus?: Record<string, string>;
+  isAdmin?: boolean;
 }
 
 const AccountInfo: React.FC<AccountInfoProps> = ({
   userData,
   completionStatus,
+  isAdmin,
 }) => {
   const navigate = useNavigate();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -62,7 +64,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
           ? "Blacklisted"
           : userData.status === "DELETED"
             ? "Deleted"
-            : userData.status === "SIGNED_UP" && allSectionsComplete
+            : userData.status === "PENDING" || (["SIGNED_UP", "INCOMPLETE_PROFILE"].includes(userData.status) && allSectionsComplete)
               ? "Pending Verification"
               : "Profile Incomplete";
 
@@ -247,16 +249,12 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     const missing: string[] = [];
     const uType = userData?.userType?.toUpperCase();
 
-    if (uType === "HARDWARE") {
-      // Hardware has no organizationName — just needs phone and email
-      if (!userData?.phone?.trim()) missing.push("Phone Number");
-      if (!userData?.email?.trim()) missing.push("Email");
-    } else if (isOrganization) {
+    if (isOrganization) {
       if (!userData?.organizationName?.trim() && !name.trim())
         missing.push("Organization Name");
       if (!userData?.email?.trim()) missing.push("Email");
       if (!userData?.phone?.trim()) missing.push("Phone Number");
-      if (uType === "CONTRACTOR" && !userData?.contactFullName?.trim())
+      if ((uType === "CONTRACTOR" || uType === "HARDWARE") && !userData?.contactFullName?.trim())
         missing.push("Contact Full Name");
     } else {
       if (!userData?.firstName?.trim()) missing.push("First Name");
@@ -450,11 +448,14 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                       uType === "HARDWARE" || uType === "CUSTOMER";
 
                     const showActions =
-                      isAlreadyActioned ||
-                      (isBuilder &&
-                        hasSubmittedExperience &&
-                        hasSubmittedDocs) ||
-                      (isNonBuilder && hasSubmittedDocs);
+                      isAdmin &&
+                      (isAlreadyActioned ||
+                        (isBuilder &&
+                          hasSubmittedExperience &&
+                          hasSubmittedDocs) ||
+                        (isNonBuilder && hasSubmittedDocs) ||
+                        (uType === "CONTRACTOR") || // Special cases for the user request
+                        (uType === "HARDWARE"));
 
                     if (!showActions) return null;
 

@@ -529,6 +529,7 @@ const AccountUploads = ({ data, refreshData }) => {
             certificateOfIncorporation:
               updatedUrls.certificateOfIncorporation || null,
             krapin: updatedUrls.krapin || null,
+            companyProfile: updatedUrls.companyProfile || null,
           };
           response = await uploadOrganizationCustomerDocuments(
             axiosInstance,
