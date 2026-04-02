@@ -4,7 +4,8 @@ import { getAuthHeaders } from "@/utils/auth";
 interface OrganizationCustomerUploads {
     businessPermit: string;
     certificateOfIncorporation: string;
-    kraPIN: string;
+    krapin: string;
+    companyProfile: string;
 }
 
 interface IndividualCustomerUploads {

@@ -439,8 +439,8 @@ const FundiExperience = ({ data, refreshData }: any) => {
                     setSkill(e.target.value);
                     setSpecialization(""); 
                   }}
-                  disabled={isReadOnly}
-                  className={inputStyles}
+                  disabled={true}
+                  className={`${inputStyles} bg-gray-100 cursor-not-allowed`}
                 >
                   <option value="">Select Skill</option>
                   {FUNDI_SKILLS.map(s => (

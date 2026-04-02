@@ -108,6 +108,17 @@ export default function ShopCategories() {
     metaKeywords: "",
   });
 
+  const getSubCategoryDetails = (sub: string) => {
+    try {
+      if (typeof sub === 'string' && sub.startsWith('{')) {
+        return JSON.parse(sub);
+      }
+    } catch (e) {
+      console.error("Error parsing sub-category:", e);
+    }
+    return { name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
+  };
+
   const statuses = [
     { id: "all", label: "All" },
     { id: "active", label: "Active" },
@@ -331,18 +342,26 @@ export default function ShopCategories() {
     }
 
     try {
+      // 1. Prepare the new subcategory object
+      const newSubObject = {
+        name: subCategoryData.name.trim(),
+        urlKey: subCategoryData.urlKey.trim(),
+        metaTitle: subCategoryData.metaTitle.trim(),
+        metaKeywords: subCategoryData.metaKeywords.trim(),
+      };
+
+      // 2. Stringify it to store in the string[] column
+      const newSubString = JSON.stringify(newSubObject);
+
       await updateCategory(axiosInstance, parentCategoryForSub.id, {
         id: parentCategoryForSub.id,
         name: parentCategoryForSub.name,
         active: parentCategoryForSub.active,
         type: parentCategoryForSub.type || selectedCategoryType,
-        subCategory: [...existing, subCategoryData.name.trim()], 
-        urlKey: subCategoryData.urlKey.trim() || parentCategoryForSub.urlKey,
-        metaTitle:
-          subCategoryData.metaTitle.trim() || parentCategoryForSub.metaTitle,
-        metaKeywords:
-          subCategoryData.metaKeywords.trim() ||
-          parentCategoryForSub.metaKeywords,
+        subCategory: [...existing, newSubString], 
+        urlKey: parentCategoryForSub.urlKey,
+        metaTitle: parentCategoryForSub.metaTitle,
+        metaKeywords: parentCategoryForSub.metaKeywords,
       });
       toast.success("Sub-category added successfully");
       setSubCategoryData({
@@ -408,14 +427,18 @@ export default function ShopCategories() {
     }
     return (
       <div className="flex flex-wrap gap-1">
-        {list.map((sub, i) => (
-          <span
-            key={i}
-            className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
-          >
-            {sub}
-          </span>
-        ))}
+        {list.map((sub, i) => {
+          const details = getSubCategoryDetails(sub);
+          return (
+            <span
+              key={i}
+              className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
+              title={`URL: ${details.urlKey || 'N/A'}\nMeta: ${details.metaTitle || 'N/A'}`}
+            >
+              {details.name}
+            </span>
+          );
+        })}
       </div>
     );
   };
@@ -907,7 +930,7 @@ export default function ShopCategories() {
 
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-gray-700">
-                Search Engine Optimize
+                Search Engine Optimize (for this sub-category)
               </h4>
               <div>
                 <label
@@ -918,7 +941,7 @@ export default function ShopCategories() {
                 </label>
                 <Input
                   id="urlKey"
-                  placeholder="Enter URL key"
+                  placeholder="Enter unique URL key"
                   value={subCategoryData.urlKey}
                   onChange={(e) =>
                     setSubCategoryData((prev) => ({
@@ -937,7 +960,7 @@ export default function ShopCategories() {
                 </label>
                 <Input
                   id="metaTitle"
-                  placeholder="Enter meta title"
+                  placeholder="Enter unique meta title"
                   value={subCategoryData.metaTitle}
                   onChange={(e) =>
                     setSubCategoryData((prev) => ({
@@ -956,7 +979,7 @@ export default function ShopCategories() {
                 </label>
                 <Input
                   id="metaKeywords"
-                  placeholder="Enter meta keywords (comma separated)"
+                  placeholder="Enter meta keywords"
                   value={subCategoryData.metaKeywords}
                   onChange={(e) =>
                     setSubCategoryData((prev) => ({

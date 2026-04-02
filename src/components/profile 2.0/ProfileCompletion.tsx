@@ -280,7 +280,10 @@ export function ProfileCompletion({
             const response = await initiateSecondaryVerification(payload);
 
             if (response.data.success) {
-                toast.success(`OTP sent to ${secondaryContact.contact}. Please Also Check your email spam folder,`);
+                const message = secondaryContact.contactType === "EMAIL"
+                    ? `OTP sent to ${secondaryContact.contact}. Please Also Check your email spam folder`
+                    : `OTP sent to ${secondaryContact.contact}. Check SMS`;
+                toast.success(message);
                 setSecondaryContact((prev) => ({
                     ...prev,
                     isOtpSent: true,

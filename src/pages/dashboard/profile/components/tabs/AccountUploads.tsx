@@ -26,11 +26,10 @@ interface DocumentItem {
   key: string;
   name: string;
   category:
-    | "id"
-    | "certification"
-    | "portfolio"
-    | "business"
-    | "category_specific";
+  | "id"
+  | "certification"
+  | "business"
+  | "category_specific";
 }
 
 type DocumentStatus =
@@ -351,52 +350,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         });
       }
 
-      const projects =
-        profile.professionalProjects ||
-        profile.contractorProjects ||
-        profile.previousJobPhotoUrls;
 
-      if (Array.isArray(projects)) {
-        projects.forEach((proj: any, index: number) => {
-          // For contractors, store projectFile and referenceLetterUrl as separate entries
-          if (userType === "contractor") {
-            const projectFileKey = `contractorProject${index + 1}_file`;
-            const referenceKey = `contractorProject${index + 1}_reference`;
-
-            if (proj.projectFile) {
-              initialDocs[projectFileKey] = {
-                name: `${proj.projectName || `Project ${index + 1}`} - BQ File`,
-                url: proj.projectFile,
-                type: projectFileKey,
-                uploadedAt: "Existing",
-                status: getStatus(`portfolio${index + 1}`),
-                statusReason: getReason(`portfolio${index + 1}`),
-              };
-            }
-            if (proj.referenceLetterUrl) {
-              initialDocs[referenceKey] = {
-                name: `${proj.projectName || `Project ${index + 1}`} - Completion Letter`,
-                url: proj.referenceLetterUrl,
-                type: referenceKey,
-                uploadedAt: "Existing",
-                status: getStatus(`portfolio${index + 1}`),
-                statusReason: getReason(`portfolio${index + 1}`),
-              };
-            }
-          } else {
-            // Fundi / Professional use the old portfolio key
-            const key = `portfolio${index + 1}`;
-            initialDocs[key] = {
-              name: proj.projectName || `Project ${index + 1}`,
-              url: proj.fileUrl || proj.url || proj.projectFile || "",
-              type: key,
-              uploadedAt: "Existing",
-              status: getStatus(key),
-              statusReason: getReason(key),
-            };
-          }
-        });
-      }
     }
     setDocuments(initialDocs);
     setIsLoaded(true);
@@ -423,16 +377,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         },
       ];
 
-      const fundiProjects = userData?.fundiEvaluation;
-      if (Array.isArray(fundiProjects) && fundiProjects.length > 0) {
-        fundiProjects.forEach((project: any, index: number) => {
-          fundiDocs.push({
-            key: `portfolio${index + 1}`,
-            name: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
-            category: "portfolio",
-          });
-        });
-      }
+
 
       return fundiDocs;
     }
@@ -448,16 +393,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         { key: "cv", name: "Curriculum Vitae (CV)", category: "certification" },
       ];
 
-      const profProjects = userData?.professionalProjects;
-      if (Array.isArray(profProjects) && profProjects.length > 0) {
-        profProjects.forEach((project: any, index: number) => {
-          profDocs.push({
-            key: `portfolio${index + 1}`,
-            name: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
-            category: "portfolio",
-          });
-        });
-      }
+
 
       return profDocs;
     }
@@ -524,47 +460,6 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           });
         });
       }
-
-      // ← ADD: contractor project files and completion letters
-      const contractorProjects = userData?.contractorProjects || [];
-      if (Array.isArray(contractorProjects) && contractorProjects.length > 0) {
-        contractorProjects.forEach((proj: any, index: number) => {
-          const projectName = proj.projectName || `Project ${index + 1}`;
-          baseDocs.push({
-            key: `contractorProject${index + 1}_file`,
-            name: `${projectName} - BQ File`,
-            category: "portfolio",
-          });
-          baseDocs.push({
-            key: `contractorProject${index + 1}_reference`,
-            name: `${projectName} - Completion Letter`,
-            category: "portfolio",
-          });
-        });
-      } else if (
-        !Array.isArray(contractorCategories) ||
-        contractorCategories.length === 0
-      ) {
-        // fallback placeholders only when no categories AND no projects
-        baseDocs.push(
-          {
-            key: "portfolio1",
-            name: "Portfolio - Project 1",
-            category: "portfolio",
-          },
-          {
-            key: "portfolio2",
-            name: "Portfolio - Project 2",
-            category: "portfolio",
-          },
-          {
-            key: "portfolio3",
-            name: "Portfolio - Project 3",
-            category: "portfolio",
-          },
-        );
-      }
-
       return baseDocs;
     }
 
@@ -596,7 +491,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
   const getIncompleteRequiredDocs = (): string[] => {
     return allDocuments
-      .filter((d) => d.category !== "portfolio" && !documents[d.key])
+      .filter((d) => !documents[d.key])
       .map((d) => d.name);
   };
 
@@ -604,30 +499,26 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   const certifications = allDocuments.filter(
     (d) => d.category === "certification",
   );
-  const portfolios = allDocuments.filter((d) => d.category === "portfolio");
+
   const businessDocs = allDocuments.filter((d) => d.category === "business");
   const categorySpecificDocs = allDocuments.filter(
     (d) => d.category === "category_specific",
   );
 
   const uploadedCount = allDocuments.filter((d) => documents[d.key]).length;
-  const totalRequired = allDocuments.filter(
-    (d) => d.category !== "portfolio",
-  ).length;
+  const totalRequired = allDocuments.length;
   const requiredUploaded = allDocuments.filter(
-    (d) => d.category !== "portfolio" && documents[d.key],
+    (d) => documents[d.key],
   ).length;
 
   const approvedCount = allDocuments.filter(
     (d) =>
-      d.category !== "portfolio" &&
       (documents[d.key]?.status === "approved" ||
         documents[d.key]?.status === "VERIFIED"),
   ).length;
 
   const rejectedCount = allDocuments.filter(
     (d) =>
-      d.category !== "portfolio" &&
       (documents[d.key]?.status === "rejected" ||
         documents[d.key]?.status === "REJECTED" ||
         documents[d.key]?.status === "RESUBMIT"),
@@ -804,14 +695,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           toast.success("Documents approved successfully");
         } else if (action === "reject") {
           await adminRejectDocuments(axiosInstance, userData.id, actionReason);
-          toast.success("Documents rejected");
+          toast.success("Documents disapproved");
         } else if (action === "resubmit") {
           await adminResubmitDocuments(
             axiosInstance,
             userData.id,
             actionReason,
           );
-          toast.success("Resubmission requested");
+          toast.success("All documents returned for correction");
         }
         window.location.reload();
       } catch (error: any) {
@@ -840,7 +731,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           actionReason,
         );
         toast.success(
-          `Document ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "requested for reupload"}`,
+          `Document ${action === "approve" ? "approved" : action === "reject" ? "disapproved" : "returned for correction"}`,
         );
         window.location.reload();
       } catch (error: any) {
@@ -896,28 +787,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         text: "text-red-700",
         border: "border-red-200",
         icon: XCircle,
-        label: "Rejected",
+        label: "Disapproved",
       },
       REJECTED: {
         bg: "bg-red-50",
         text: "text-red-700",
         border: "border-red-200",
         icon: XCircle,
-        label: "Rejected",
+        label: "Disapproved",
       },
       reupload_requested: {
         bg: "bg-blue-50",
         text: "text-blue-700",
         border: "border-blue-200",
         icon: FiRefreshCw,
-        label: "Re-upload Required",
+        label: "Returned for Correction",
       },
       RESUBMIT: {
         bg: "bg-blue-50",
         text: "text-blue-700",
         border: "border-blue-200",
         icon: FiRefreshCw,
-        label: "Re-upload Required",
+        label: "Returned for Correction",
       },
     };
 
@@ -1013,18 +904,17 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           </div>
         </div>
 
-        {}
+        { }
         {uploaded.statusReason && (
           <div
-            className={`mb-3 p-2 rounded-lg text-xs ${
-              status === "rejected"
+            className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected"
                 ? "bg-red-50 text-red-700"
                 : status === "reupload_requested"
                   ? "bg-blue-50 text-blue-700"
                   : status === "approved"
                     ? "bg-green-50 text-green-700"
                     : "bg-amber-50 text-amber-700"
-            }`}
+              }`}
           >
             <span className="font-medium">
               {status === "pending"
@@ -1044,7 +934,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           </div>
         )}
 
-        {}
+        { }
         <div className="flex gap-2 flex-wrap">
           <a
             href={uploaded.url}
@@ -1091,19 +981,19 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               <button
                 onClick={() => openActionModal(doc.key, "resubmit")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition"
-                title="Resubmit"
+                title="Return for correction"
               >
                 <FiRefreshCw className="w-3 h-3" />
-                Resubmit
+                Return
               </button>
-              {/* <button
+              <button
                 onClick={() => openActionModal(doc.key, "reject")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
-                title="Reject"
+                title="Disapprove"
               >
                 <XCircle className="w-3 h-3" />
-                Reject
-              </button> */}
+                Disapprove
+              </button>
             </div>
           )}
         </div>
@@ -1148,16 +1038,16 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         needsReason: false,
       },
       reject: {
-        title: "Reject Document",
-        description: `Please provide a reason for rejecting "${docName}":`,
-        buttonText: "Reject",
+        title: "Disapprove Document",
+        description: actionModal.isGlobal ? "Please provide a reason for disapproving all documents:" : `Please provide a reason for disapproving "${docName}":`,
+        buttonText: "Disapprove",
         buttonColor: "bg-red-600 hover:bg-red-700",
         needsReason: true,
       },
       reupload: {
-        title: "Request Re-upload",
-        description: `Please specify what needs to be corrected for "${docName}":`,
-        buttonText: "Request Re-upload",
+        title: actionModal.isGlobal ? "Return All Documents" : "Return for Correction",
+        description: actionModal.isGlobal ? "Please specify why documents are being returned for correction:" : `Please specify what needs to be corrected for "${docName}":`,
+        buttonText: actionModal.isGlobal ? "Return All" : "Return",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
         needsReason: true,
       },
@@ -1218,14 +1108,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
       <div className="p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
-          {}
+          { }
           <div className="flex items-start justify-between mb-2">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 Uploaded Documents
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                ID documents, certificates, and portfolio items
+                ID documents, certificates, and business credentials
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -1247,13 +1137,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               <StatusBadge
                 status={
                   userData?.documentStatus === "VERIFIED" &&
-                  approvedCount < totalRequired
+                    approvedCount < totalRequired
                     ? overallStatus
                     : userData?.documentStatus || overallStatus
                 }
               />
 
-              {}
+              { }
               {isAdmin &&
                 userData?.documentStatus !== "RESUBMIT" &&
                 userData?.documentStatus !== "VERIFIED" &&
@@ -1316,7 +1206,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                           className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
                         >
                           <FiRefreshCw className="w-4 h-4" />
-                          Resubmit
+                          Return all
                         </button>
                         <button
                           onClick={() => {
@@ -1330,7 +1220,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                           className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
                         >
                           <XCircle className="w-4 h-4" />
-                          Reject
+                          Disapprove
                         </button>
                       </div>
                     )}
@@ -1343,102 +1233,92 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             userData?.documentStatus === "RESUBMIT") &&
             userData?.documentStatusReason && (
               <div
-                className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${
-                  userData.documentStatus === "REJECTED"
+                className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${userData.documentStatus === "REJECTED"
                     ? "bg-red-50 border-red-200"
                     : "bg-blue-50 border-blue-200"
-                }`}
+                  }`}
               >
                 <div
-                  className={`p-2 rounded-lg ${
-                    userData.documentStatus === "REJECTED"
+                  className={`p-2 rounded-lg ${userData.documentStatus === "REJECTED"
                       ? "bg-red-100"
                       : "bg-blue-100"
-                  }`}
+                    }`}
                 >
                   <FiAlertCircle
-                    className={`w-5 h-5 ${
-                      userData.documentStatus === "REJECTED"
+                    className={`w-5 h-5 ${userData.documentStatus === "REJECTED"
                         ? "text-red-600"
                         : "text-blue-600"
-                    }`}
+                      }`}
                   />
                 </div>
                 <div className="flex-1">
                   <h3
-                    className={`font-semibold text-sm ${
-                      userData.documentStatus === "REJECTED"
+                    className={`font-semibold text-sm ${userData.documentStatus === "REJECTED"
                         ? "text-red-900"
                         : "text-blue-900"
-                    }`}
+                      }`}
                   >
                     {userData.documentStatus === "REJECTED"
-                      ? "Documents Rejected"
-                      : "Resubmission Required"}
+                      ? "Documents Disapproved"
+                      : "Return for Correction"}
                   </h3>
                   <p
-                    className={`text-sm mt-1 mb-3 ${
-                      userData.documentStatus === "REJECTED"
+                    className={`text-sm mt-1 mb-3 ${userData.documentStatus === "REJECTED"
                         ? "text-red-700"
                         : "text-blue-700"
-                    }`}
+                      }`}
                   >
                     {userData.documentStatusReason}
                   </p>
                   {allDocuments.filter(
                     (d) =>
-                      d.category !== "portfolio" &&
                       (documents[d.key]?.status === "rejected" ||
                         documents[d.key]?.status === "REJECTED" ||
                         documents[d.key]?.status === "resubmit" ||
                         documents[d.key]?.status === "RESUBMIT"),
                   ).length > 0 && (
-                    <div
-                      className={`p-3 rounded-lg border ${
-                        userData.documentStatus === "REJECTED"
-                          ? "bg-red-100/50 border-red-200"
-                          : "bg-blue-100/50 border-blue-200"
-                      }`}
-                    >
-                      <p
-                        className={`text-[10px] font-bold uppercase mb-2 ${
-                          userData.documentStatus === "REJECTED"
-                            ? "text-red-800"
-                            : "text-blue-800"
-                        }`}
+                      <div
+                        className={`p-3 rounded-lg border ${userData.documentStatus === "REJECTED"
+                            ? "bg-red-100/50 border-red-200"
+                            : "bg-blue-100/50 border-blue-200"
+                          }`}
                       >
-                        Action Required for:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {allDocuments
-                          .filter(
-                            (d) =>
-                              d.category !== "portfolio" &&
-                              (documents[d.key]?.status === "rejected" ||
-                                documents[d.key]?.status === "REJECTED" ||
-                                documents[d.key]?.status === "resubmit" ||
-                                documents[d.key]?.status === "RESUBMIT"),
-                          )
-                          .map((doc, idx) => (
-                            <li
-                              key={idx}
-                              className={`text-sm font-medium ${
-                                userData.documentStatus === "REJECTED"
-                                  ? "text-red-700"
-                                  : "text-blue-700"
-                              }`}
-                            >
-                              {doc.name}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
+                        <p
+                          className={`text-[10px] font-bold uppercase mb-2 ${userData.documentStatus === "REJECTED"
+                              ? "text-red-800"
+                              : "text-blue-800"
+                            }`}
+                        >
+                          Action Required for:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {allDocuments
+                            .filter(
+                              (d) =>
+                                (documents[d.key]?.status === "rejected" ||
+                                  documents[d.key]?.status === "REJECTED" ||
+                                  documents[d.key]?.status === "resubmit" ||
+                                  documents[d.key]?.status === "RESUBMIT"),
+                            )
+                            .map((doc, idx) => (
+                              <li
+                                key={idx}
+                                className={`text-sm font-medium ${userData.documentStatus === "REJECTED"
+                                    ? "text-red-700"
+                                    : "text-blue-700"
+                                  }`}
+                              >
+                                {doc.name}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               </div>
             )}
 
-          {}
+          { }
           <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="font-medium text-gray-900">
@@ -1461,14 +1341,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               )}
             </div>
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden relative">
-              {}
+              { }
               <div
                 className="absolute h-full bg-amber-500 transition-all duration-500 opacity-60"
                 style={{
                   width: `${totalRequired > 0 ? (requiredUploaded / totalRequired) * 100 : 0}%`,
                 }}
               />
-              {}
+              { }
               <div
                 className="absolute h-full bg-green-500 transition-all duration-500"
                 style={{
@@ -1489,7 +1369,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             )}
           </div>
 
-          {}
+          { }
           {businessDocs.length > 0 && (
             <DocumentSection
               title={
@@ -1510,57 +1390,54 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           )}
 
           {userType === "contractor" && categorySpecificDocs.length > 0 && (
-  <div className="mb-8">
-    <h3 className="text-sm font-semibold text-gray-600 mb-4">
-      Category Specific Documents
-    </h3>
-    <div className="space-y-6">
-      {(
-        userData?.contractorCategories ||
-        userData?.contractorExperiences ||
-        []
-      ).map((cat: any, idx: number) => {
-        const categoryName = cat.category || "";
-        if (!categoryName) return null;
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-600 mb-4">
+                Category Specific Documents
+              </h3>
+              <div className="space-y-6">
+                {(
+                  userData?.contractorCategories ||
+                  userData?.contractorExperiences ||
+                  []
+                ).map((cat: any, idx: number) => {
+                  const categoryName = cat.category || "";
+                  if (!categoryName) return null;
 
-        const categoryKey = categoryName
-          .toUpperCase()
-          .replace(/\s+/g, "_");
-        const certKey = `${categoryKey}_CERTIFICATE`;
-        const licenseKey = `${categoryKey}_LICENSE`;
+                  const categoryKey = categoryName
+                    .toUpperCase()
+                    .replace(/\s+/g, "_");
+                  const certKey = `${categoryKey}_CERTIFICATE`;
+                  const licenseKey = `${categoryKey}_LICENSE`;
 
-        const catDocs = categorySpecificDocs.filter(
-          (d) => d.key === certKey || d.key === licenseKey,
-        );
+                  const catDocs = categorySpecificDocs.filter(
+                    (d) => d.key === certKey || d.key === licenseKey,
+                  );
 
-        if (catDocs.length === 0) return null;
+                  if (catDocs.length === 0) return null;
 
-        return (
-          <div
-            key={idx}
-            className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm"
-          >
-            <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              {categoryName} Credentials
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {catDocs.map((doc) => (
-                <DocumentCard key={doc.key} doc={doc} />
-              ))}
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm"
+                    >
+                      <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        {categoryName} Credentials
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {catDocs.map((doc) => (
+                          <DocumentCard key={doc.key} doc={doc} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-)}
-
-          {portfolios.length > 0 && (
-            <DocumentSection title="Portfolios (Optional)" docs={portfolios} />
           )}
 
-          {}
+
+          { }
           {allDocuments.length === 0 && (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -1573,7 +1450,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             </div>
           )}
 
-          {}
+          { }
           {!isAdmin && allDocuments.length > 0 && (
             <div className="mt-8 border-t pt-6">
               {userData?.status == "VERIFIED" ? (

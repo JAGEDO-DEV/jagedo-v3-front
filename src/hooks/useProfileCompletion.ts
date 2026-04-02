@@ -157,9 +157,9 @@ export const useProfileCompletion = (
         : requiredDocs.length > 0 &&
           requiredDocs.every((doc) => checkDocument(doc));
 
-    // ============================================
-    // EXPERIENCE COMPLETION
-    // ============================================
+    
+    
+    
     let experienceComplete = false;
 
     const getExperienceState = () => {
@@ -347,10 +347,10 @@ export const useProfileCompletion = (
       userData?.estate
     );
 
-    // ============================================
-    // ACCOUNT INFO COMPLETION — type-aware
-    // Mirrors getMissingRequiredFields in AccountInfo.tsx
-    // ============================================
+    
+    
+    
+    
     const checkAccountInfoComplete = (): boolean => {
       if (!userData) return false;
 
@@ -363,13 +363,8 @@ export const useProfileCompletion = (
         uType === "CONTRACTOR" ||
         uType === "HARDWARE";
 
-      if (uType === "HARDWARE") {
-        // HARDWARE only requires phone + email
-        return !!(userData?.phone?.trim() && userData?.email?.trim());
-      }
-
-      if (uType === "CONTRACTOR") {
-        // CONTRACTOR requires org name, contact name, email, phone
+      if (uType === "CONTRACTOR" || uType === "HARDWARE") {
+        
         return !!(
           userData?.organizationName?.trim() &&
           userData?.contactFullName?.trim() &&
@@ -379,7 +374,7 @@ export const useProfileCompletion = (
       }
 
       if (isOrg) {
-        // Other org types (e.g. CUSTOMER ORGANIZATION) — org name, email, phone
+        
         return !!(
           userData?.organizationName?.trim() &&
           userData?.email?.trim() &&
@@ -387,7 +382,7 @@ export const useProfileCompletion = (
         );
       }
 
-      // Individual (FUNDI, PROFESSIONAL, CUSTOMER individual)
+      
       return !!(
         userData?.firstName?.trim() &&
         userData?.lastName?.trim() &&
@@ -397,9 +392,9 @@ export const useProfileCompletion = (
 
     const accountInfoComplete = checkAccountInfoComplete();
 
-    // ============================================
-    // RETURN STATUS FOR ALL SECTIONS
-    // ============================================
+    
+    
+    
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
       "account-info": accountInfoComplete ? "complete" : "incomplete",
       address: addressComplete ? "complete" : "incomplete",

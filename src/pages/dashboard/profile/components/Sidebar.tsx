@@ -169,13 +169,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             const status = completionStatus[item.id] || "incomplete";
             console.log("Item: ", item, "Status: ", status);
             let isComplete = status === "complete";
-
-            if (
-              item.id === "account-info" &&
-              userData?.userType === "HARDWARE"
-            ) {
-              isComplete = true;
-            }
             const isOptional = item.id === "products";
 
             return (
