@@ -430,6 +430,18 @@ export default function AddProductForm({
             });
           }
 
+          console.log("📥 Categories fetched for product form:", {
+            totalCount: filteredCategories.length,
+            categories: filteredCategories.map(c => ({
+              name: c.name,
+              type: c.type,
+              subCategoryCount: Array.isArray(c.subCategory) ? c.subCategory.length : 0,
+              subCategories: Array.isArray(c.subCategory) 
+                ? c.subCategory.map(s => typeof s === "string" ? s : s?.name)
+                : [],
+            })),
+          });
+
           setCategories(filteredCategories);
         } else {
           toast.error("Failed to fetch categories");
@@ -471,11 +483,30 @@ export default function AddProductForm({
           (cat: any) => cat.name === value,
         );
         if (selectedCategory) {
-          const subs = Array.isArray(selectedCategory.subCategory) ? selectedCategory.subCategory : [];
+          // Extract subcategory names from both string and object formats
+          let subs: string[] = [];
+          if (Array.isArray(selectedCategory.subCategory)) {
+            subs = selectedCategory.subCategory.map((sub: any) => {
+              if (typeof sub === "string") {
+                return sub;
+              }
+              // Object format: {id, name, urlKey, metaTitle, metaKeywords}
+              return sub?.name || "";
+            }).filter((s: string) => s); // Remove empty values
+          } else if (typeof selectedCategory.subCategory === "string") {
+            subs = selectedCategory.subCategory.split(",").map((s: string) => s.trim());
+          }
+          
           setSubcategoryOptions(subs);
           updated.subcategory = subs.length > 0 ? subs[0] : "";
           
+          console.log("📦 Subcategories loaded for category:", {
+            category: value,
+            subCategoryCount: subs.length,
+            options: subs,
+          });
           
+          // Filter attributes
           const relevantAttributes = allAttributes.filter(attr => 
             attr.attributeGroup === value || 
             (attr.active && attr.productType === updated.type && !attr.attributeGroup)
@@ -593,6 +624,7 @@ export default function AddProductForm({
         description: formData.description,
         type: formData.type,
         category: formData.category,
+        subcategory: formData.subcategory,
         bId: formData.bId,
         sku: formData.sku,
         material: formData.material,
@@ -602,11 +634,22 @@ export default function AddProductForm({
         images: imageUrls,
       };
 
+      console.log("📤 Product submission data:", {
+        name: submitData.name,
+        type: submitData.type,
+        category: submitData.category,
+        subcategory: submitData.subcategory,
+        sku: submitData.sku,
+        imagesCount: imageUrls.length,
+      });
+
       if (isEditMode && product) {
         await updateProduct(axiosInstance, product.id, submitData);
+        console.log("✅ Product updated successfully");
         toast.success("Product updated successfully");
       } else {
         await createProductAdmin(axiosInstance, submitData);
+        console.log("✅ Product created successfully");
         toast.success("Product created successfully");
       }
 
@@ -640,6 +683,7 @@ export default function AddProductForm({
         description: formData.description,
         type: formData.type,
         category: formData.category,
+        subcategory: formData.subcategory,
         bId: formData.bId,
         sku: formData.sku,
         material: formData.material,
@@ -650,7 +694,15 @@ export default function AddProductForm({
         status: "DRAFT", 
       };
 
+      console.log("📋 Saving product as draft:", {
+        name: submitData.name,
+        category: submitData.category,
+        subcategory: submitData.subcategory,
+        status: submitData.status,
+      });
+
       await createProductAdmin(axiosInstance, submitData);
+      console.log("✅ Product saved as draft successfully");
       toast.success("Product saved as draft.");
       onSuccess();
     } catch (error: any) {
@@ -664,6 +716,16 @@ export default function AddProductForm({
   useEffect(() => {
     fetchCategories();
     fetchAttributes();
+    
+    if (isEditMode && product) {
+      console.log("📥 Loading product for edit:", {
+        productId: product.id,
+        productName: product.name,
+        type: product.type,
+        category: product.category,
+        subcategory: product.subcategory,
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -703,10 +765,25 @@ export default function AddProductForm({
         }));
       }
 
-      
+      // Extract subcategory names from both string and object formats
       const selected = categories.find(c => c.name === (product.category || formData.category));
       if (selected && Array.isArray(selected.subCategory)) {
-        setSubcategoryOptions(selected.subCategory);
+        const subs = selected.subCategory.map((sub: any) => {
+          if (typeof sub === "string") {
+            return sub;
+          }
+          // Object format: {id, name, urlKey, metaTitle, metaKeywords}
+          return sub?.name || "";
+        }).filter((s: string) => s); // Remove empty values
+        
+        setSubcategoryOptions(subs);
+        
+        console.log("📦 Subcategories loaded for edit mode:", {
+          category: product.category || formData.category,
+          subCategoryCount: subs.length,
+          options: subs,
+          currentSubcategory: product.subcategory,
+        });
       }
     }
   }, [categories, isEditMode, product]);

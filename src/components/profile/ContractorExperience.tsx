@@ -114,7 +114,14 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       } else if (contractorTypes) {
         const slugs = contractorTypes.split(',').map((s: string) => s.trim());
         const prePopulated = slugs
-          .map(slug => SLUG_MAP[slug])
+          .map(name => {
+            // Check if it's already a full name (e.g., "Electrical Works")
+            if (CATEGORIES.includes(name)) {
+              return name;
+            }
+            // Otherwise try to map from slug format
+            return SLUG_MAP[name.toLowerCase().replace(/\s+/g, '-')] || null;
+          })
           .filter(Boolean)
           .map(name => ({
             id: crypto.randomUUID(),
@@ -358,12 +365,12 @@ const ContractorExperience = ({ data, refreshData }: any) => {
             <div>
               <h2 className="font-semibold mb-4 text-gray-700">Trade Categories</h2>
               <div className="space-y-3">
-                {categories.map(cat => (
+                {categories.map((cat, index) => (
                   <div key={cat.id} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center bg-white p-3 md:p-0 rounded-lg border md:border-0">
                     <select
                       value={cat.category}
                       onChange={e => handleCategoryChange(cat.id, e.target.value)}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || index === 0}
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Select Category</option>

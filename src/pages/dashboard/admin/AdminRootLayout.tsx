@@ -133,7 +133,7 @@ export default function AdminRootLayout() {
           setExpanded={setSidebarExpanded}
         />
 
-        <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'lg:ml-0' : 'lg:ml-0'}`}>
+        <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out lg:ml-20`}>
           <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md shadow-sm border-b">
             <div className="flex h-16 items-center justify-between px-4 sm:px-6">
                 <div className="flex items-center gap-2 lg:hidden">

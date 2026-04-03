@@ -8,6 +8,11 @@ import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { InfoIcon, CheckCircle } from "lucide-react";
+import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
+import { getMasterDataValues } from "@/api/masterData";
+import { normalizeSkillName } from "@/utils/skillNameUtils";
+import axios from "axios";
+import { getAuthHeaders } from "@/utils/auth";
 
 interface FileItem {
   file: File | null;
@@ -21,192 +26,133 @@ interface FundiAttachment {
 }
 
 const requiredProjectsByGrade: { [key: string]: number } = {
-  "G1: Master Fundi": 3,
-  "G2: Skilled": 2,
-  "G3: Semi-skilled": 1,
-  "G4: Unskilled": 0,
+  "G1: Master Fundi":    3,
+  "G2: Skilled":         2,
+  "G3: Semi-skilled":    1,
+  "G4: Unskilled":       0,
 };
-
-const FUNDI_SPECIALIZATIONS = {
-  mason: [
-    "Block Masonry",
-    "Plastering & Rendering",
-    "Stone Restoration",
-    "Chimney Work",
-    "Concrete Masonry",
-    "Foundation Work",
-    "Structural Masonry",
-    "Decorative Masonry",
-    "Tile Setting",
-    "Waterproofing",
-    "Restoration & Repair",
-    "Bricklaying"
-  ],
-  electrician: [
-    "Residential Wiring",
-    "Commercial Installations",
-    "Industrial Electrical",
-    "Solar PV Installation",
-    "Backup Power Systems",
-    "Lighting Systems",
-    "Security & Alarm Systems",
-    "Data & Network Cabling",
-    "Motor & Pump Installations",
-    "Electrical Maintenance & Repair",
-  ],
-  plumber: [
-    "General Plumbing",
-    "Water Systems",
-    "Drainage & Sewer",
-    "Gas Plumbing",
-    "Bathroom Installation",
-    "Kitchen Installation",
-    "Pipe Welding",
-    "Solar Water Systems",
-  ],
-  carpenter: [
-    "Furniture Making",
-    "Roofing & Trusses",
-    "Door & Window Installation",
-    "Kitchen Cabinets",
-    "Wardrobes & Closets",
-    "Flooring Installation",
-    "Ceiling Work",
-    "Formwork & Shuttering",
-    "Finish Carpentry",
-    "Renovation & Restoration",
-  ],
-  painter: [
-    "Interior Painting",
-    "Exterior Painting",
-    "Decorative Finishes",
-    "Texture Coating",
-    "Spray Painting",
-    "Wallpaper Installation",
-    "Epoxy Coating",
-    "Waterproof Coating",
-    "Wood Finishing & Staining",
-    "Industrial Painting",
-  ],
-  welder: [
-    "Structural Welding",
-    "Pipe Welding",
-    "MIG Welding",
-    "TIG Welding",
-    "Arc Welding",
-    "Gate & Grille Fabrication",
-    "Tank Fabrication",
-    "Aluminum Welding",
-    "Stainless Steel Welding",
-    "Repair & Maintenance Welding",
-  ],
-  tiler: [
-    "Floor Tiling",
-    "Wall Tiling",
-    "Bathroom Tiling",
-    "Kitchen Backsplash",
-    "Swimming Pool Tiling",
-    "Outdoor & Patio Tiling",
-    "Mosaic Installation",
-    "Natural Stone Installation",
-    "Tile Repair & Restoration",
-    "Waterproofing & Grouting",
-  ],
-  roofer: [
-    "Metal Roofing",
-    "Tile Roofing",
-    "Flat Roofing",
-    "Shingle Installation",
-    "Roof Repair & Maintenance",
-    "Gutter Installation",
-    "Skylight Installation",
-    "Waterproofing",
-    "Insulation",
-    "Green Roof Installation",
-  ],
-  "glass-aluminium-fitter": [
-    "Aluminum Door Installation",
-    "Aluminum Window Installation",
-    "Glass Cutting & Fitting",
-    "Curtain Wall Installation",
-    "Glazing Works",
-    "Partition Wall Installation",
-    "Shopfront Installation",
-    "Mirror Installation",
-    "Maintenance & Repair (Glass & Aluminum)",
-  ],
-};
-
-const FUNDI_SKILLS = [
-  "mason",
-  "electrician",
-  "plumber",
-  "carpenter",
-  "painter",
-  "welder",
-  "tiler",
-  "roofer",
-  "glass-aluminium-fitter",
-];
 
 const prefilledAttachments: FundiAttachment[] = [
-  { id: 1, projectName: "Project One", files: [] },
-  { id: 2, projectName: "Project Two", files: [] },
+  { id: 1, projectName: "Project One",   files: [] },
+  { id: 2, projectName: "Project Two",   files: [] },
   { id: 3, projectName: "Project Three", files: [] },
 ];
 
 const FundiExperience = ({ data, refreshData }: any) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting]     = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [attachments, setAttachments] = useState<FundiAttachment[]>(prefilledAttachments);
-  const [grade, setGrade] = useState("G1: Master Fundi");
-  const [experience, setExperience] = useState("10+ years");
+  const [attachments, setAttachments]       = useState<FundiAttachment[]>(prefilledAttachments);
+  const [grade, setGrade]                   = useState("G1: Master Fundi");
+  const [experience, setExperience]         = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
-  const [skill, setSkill] = useState((data?.skills || "plumber").toLowerCase());
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  const [skill, setSkill]                   = useState((data?.skills || "plumber").toLowerCase());
+  
+  // Dynamic skills and specializations
+  const [fundiSkills, setFundiSkills]       = useState<any[]>([]);
+  const [specMappings, setSpecMappings]     = useState<Record<string, string>>({});
+  const [specializations, setSpecializations] = useState<any[]>([]);
+  const [skillsLoading, setSkillsLoading]   = useState(false);
+  const [specsLoading, setSpecsLoading]     = useState(false);
 
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
-  
+  // ── Load Fundi skills and specialization mappings on mount ────────────────
+  useEffect(() => {
+    const loadSkillsAndMappings = async () => {
+      try {
+        setSkillsLoading(true);
+        const authAxios = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+        
+        // Get all Fundi skills
+        const skillsRes = await getBuilderSkillsByType(authAxios, 'FUNDI');
+        const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
+        setFundiSkills(activeSkills);
+        
+        // Get specialization mappings for Fundi
+        const mappingsRes = await getSpecializationMappings(authAxios, 'FUNDI');
+        setSpecMappings(mappingsRes);
+      } catch (error) {
+        console.error('Failed to load Fundi skills:', error);
+        toast.error('Failed to load skills');
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+    
+    loadSkillsAndMappings();
+  }, []);
+
+  // ── Load specializations when skill changes ───────────────────────────────
+  useEffect(() => {
+    const loadSpecializations = async () => {
+      if (!skill) {
+        setSpecializations([]);
+        return;
+      }
+      
+      const normalizedSkill = normalizeSkillName(skill);
+      if (!specMappings[normalizedSkill]) {
+        setSpecializations([]);
+        return;
+      }
+      
+      try {
+        setSpecsLoading(true);
+        const authAxios = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+        
+        const specTypeCode = specMappings[normalizedSkill];
+        const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+        
+        // Handle both array and wrapped responses
+        const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+        setSpecializations(specs);
+      } catch (error) {
+        console.error('Failed to load specializations:', error);
+        setSpecializations([]);
+      } finally {
+        setSpecsLoading(false);
+      }
+    };
+    
+    loadSpecializations();
+  }, [skill, specMappings]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   const getStatusMessage = (status: string): string => {
     const statusMap: { [key: string]: string } = {
-      'REJECTED': 'Your submission was rejected. Please review the feedback and resubmit.',
-      'RJCT': 'Your submission was rejected. Please review the feedback and resubmit.',
-      'VERIFIED': 'Your submission has been approved.',
-      'APRVD': 'Your submission has been approved.',
-      'PENDING': 'Your submission is pending review.',
-      'PEND': 'Your submission is pending review.',
-      'RESUBMIT': 'Please resubmit your experience for review.',
+      REJECTED:  'Your submission was rejected. Please review the feedback and resubmit.',
+      RJCT:      'Your submission was rejected. Please review the feedback and resubmit.',
+      VERIFIED:  'Your submission has been approved.',
+      APRVD:     'Your submission has been approved.',
+      PENDING:   'Your submission is pending review.',
+      PEND:      'Your submission is pending review.',
+      RESUBMIT:  'Please resubmit your experience for review.',
     };
     return statusMap[status] || status;
   };
 
-
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      const up = data;
-      setGrade(up.grade || "G1: Master Fundi");
-      setExperience(up.experience || "10+ years");
-      
-      
-      const currentSkill = (up.skills || "plumber").toLowerCase();
+      setGrade(data.grade || "G1: Master Fundi");
+      setExperience(data.experience || "10+ years");
+
+      const currentSkill = (data.skills || "plumber").toLowerCase();
       setSkill(currentSkill);
-      
-      
-      const currentSpec = up.specialization?.trim() || "";
-      setSpecialization(currentSpec);
-      
-      const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
+      setSpecialization(data.specialization?.trim() || "");
 
+      const projectSource = data.previousJobPhotoUrls || data.professionalProjects || [];
       if (projectSource.length > 0) {
-
         const groupedMap = new Map<string, any[]>();
-
         projectSource.forEach((p: any) => {
           const name = p.projectName || "Unspecified Project";
           if (!groupedMap.has(name)) groupedMap.set(name, []);
-
           let url = "";
           if (typeof p.fileUrl === 'object' && p.fileUrl !== null) {
             url = p.fileUrl.url || "";
@@ -218,21 +164,15 @@ const FundiExperience = ({ data, refreshData }: any) => {
             p.files.forEach((f: string) => groupedMap.get(name)?.push({ file: null, previewUrl: f }));
             return;
           }
-
-          if (url) {
-            groupedMap.get(name)?.push({ file: null, previewUrl: url });
-          }
+          if (url) groupedMap.get(name)?.push({ file: null, previewUrl: url });
         });
 
         const newAttachments = Array.from(groupedMap.entries()).map(([name, files], idx) => ({
           id: idx + 1,
           projectName: name,
-          files: files
+          files,
         }));
-
-        if (newAttachments.length > 0) {
-          setAttachments(newAttachments);
-        }
+        if (newAttachments.length > 0) setAttachments(newAttachments);
       }
       setIsLoadingProfile(false);
     }
@@ -243,11 +183,10 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const handleFileChange = (rowId: number, file: File | null) => {
     if (!file) return;
     const preview = URL.createObjectURL(file);
-
     setAttachments(prev =>
       prev.map(item =>
         item.id === rowId && item.files.length < 3
-          ? { ...item, files: [...item.files, { file: file, previewUrl: preview }] }
+          ? { ...item, files: [...item.files, { file, previewUrl: preview }] }
           : item
       )
     );
@@ -284,35 +223,24 @@ const FundiExperience = ({ data, refreshData }: any) => {
     }
 
     const toastId = toast.loading("Uploading photos and saving...");
-
     try {
       const flattenedProjectFiles: { projectName: string; fileUrl: string }[] = [];
-
       for (const att of valid) {
         for (const fItem of att.files) {
-          let url = fItem.previewUrl;
-          if (fItem.file) {
-            url = await uploadFile(fItem.file);
-          }
-          flattenedProjectFiles.push({
-            projectName: att.projectName,
-            fileUrl: url
-          });
+          const url = fItem.file ? await uploadFile(fItem.file) : fItem.previewUrl;
+          flattenedProjectFiles.push({ projectName: att.projectName, fileUrl: url });
         }
       }
 
-      const payload = {
-        skills: skill,
-        specialization: specialization,
-        grade: grade,
-        experience: experience,
-        previousJobPhotoUrls: flattenedProjectFiles
-      };
-
-      await updateFundiExperience(axiosInstance, payload);
+      await updateFundiExperience(axiosInstance, {
+        skills:               skill,
+        specialization:       specialization,
+        grade:                grade,
+        experience:           experience,
+        previousJobPhotoUrls: flattenedProjectFiles,
+      });
 
       toast.success("Experience saved successfully!", { id: toastId });
-      setIsSubmitting(false);
       if (refreshData) refreshData();
     } catch (error: any) {
       console.error(error);
@@ -325,17 +253,13 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const renderEvaluationResults = () => {
     const evaluation = data?.fundiEvaluation;
     if (!evaluation) return null;
-
     const displayQuestions = evaluation.responses || [];
-
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-8">
         <div className="bg-blue-900 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-              <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
-            </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-400" />
+            <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
           </div>
           <div className="bg-white/10 px-4 py-1 rounded-full border border-white/20">
             <span className="text-sm font-semibold text-white">
@@ -343,14 +267,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
             </span>
           </div>
         </div>
-
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {displayQuestions.map((q, idx) => (
+            {displayQuestions.map((q: any, idx: number) => (
               <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">
-                  Question {idx + 1}
-                </p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Question {idx + 1}</p>
                 <h4 className="text-base font-semibold text-gray-800 mb-3">{q.text}</h4>
                 <div className="bg-white p-3 rounded border border-gray-200 mb-2">
                   <p className="text-sm text-gray-700 italic">
@@ -359,14 +280,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs font-medium text-gray-400">Score</span>
-                  <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                    {q.score}/100
-                  </span>
+                  <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{q.score}/100</span>
                 </div>
               </div>
             ))}
           </div>
-
           {evaluation.audioUrl && (
             <div className="mt-8 border-t pt-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -374,7 +292,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 Audio Feedback Reference
               </h4>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10 custom-audio-player">
+                <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10">
                   Your browser does not support the audio element.
                 </audio>
               </div>
@@ -385,7 +303,9 @@ const FundiExperience = ({ data, refreshData }: any) => {
     );
   };
 
-  if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium">Loading...</div>;
+  if (isLoadingProfile && !data) return (
+    <div className="p-8 text-center text-gray-500 font-medium">Loading...</div>
+  );
 
   const inputStyles = "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm";
 
@@ -396,9 +316,9 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
         {data?.experienceStatus === 'REJECTED' && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-start gap-3">
-             <div className="bg-red-100 p-2 rounded-lg">
-                <InfoIcon className="w-5 h-5 text-red-600" />
-             </div>
+            <div className="bg-red-100 p-2 rounded-lg">
+              <InfoIcon className="w-5 h-5 text-red-600" />
+            </div>
             <div>
               <p className="font-bold mb-1 uppercase text-xs tracking-wider">Experience Rejected</p>
               <p className="text-red-700">{data.experienceStatusReason || "Your submission was rejected. Please review your details and re-submit."}</p>
@@ -408,70 +328,78 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
         {data?.experienceStatus === 'RESUBMIT' && (
           <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm flex items-start gap-3">
-             <div className="bg-amber-100 p-2 rounded-lg">
-                <InfoIcon className="w-5 h-5 text-amber-600" />
-             </div>
+            <div className="bg-amber-100 p-2 rounded-lg">
+              <InfoIcon className="w-5 h-5 text-amber-600" />
+            </div>
             <div>
               <p className="font-bold mb-1 uppercase text-xs tracking-wider">Resubmission Required</p>
               <p className="text-amber-700">{data.experienceStatusReason || "Admin has requested a resubmission. Please check your details."}</p>
             </div>
           </div>
         )}
-        {/* Show Next Steps only if fundi has submitted experience but hasn't been evaluated yet */}
-        {!data?.fundiEvaluation && data?.experienceStatus && data.experienceStatus !== 'INCOMPLETE' && data.experienceStatus !== 'VERIFIED' && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
-          <p className="font-semibold mb-1">Next Steps</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>You will attend a <strong>15-minute interview</strong> after submission.</li>
-            <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
-          </ul>
-        </div>
+
+        {!data?.fundiEvaluation && data?.experienceStatus &&
+          data.experienceStatus !== 'INCOMPLETE' && data.experienceStatus !== 'VERIFIED' && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
+            <p className="font-semibold mb-1">Next Steps</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>You will attend a <strong>15-minute interview</strong> after submission.</li>
+              <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
+            </ul>
+          </div>
         )}
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="bg-gray-50 p-6 rounded-xl border">
             <div className="grid md:grid-cols-4 gap-6">
+
+              {/* Skill — from dynamic backend API */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
                 <select
                   value={skill}
-                  onChange={e => {
-                    setSkill(e.target.value);
-                    setSpecialization(""); 
-                  }}
-                  disabled={isReadOnly}
+                  onChange={e => { setSkill(e.target.value); setSpecialization(""); }}
+                  disabled={isReadOnly || skillsLoading}
                   className={inputStyles}
                 >
-                  <option value="">Select Skill</option>
-                  {FUNDI_SKILLS.map(s => (
-                    <option key={s} value={s}>
-                      {s.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  <option value="">{skillsLoading ? "Loading…" : "Select Skill"}</option>
+                  {fundiSkills.map(s => (
+                    <option key={s.id} value={s.skillName.toLowerCase()}>
+                      {s.skillName}
                     </option>
                   ))}
-                  {skill && !FUNDI_SKILLS.includes(skill) && (
-                    <option key={skill} value={skill}>{skill}</option>
+                  {/* Keep current value visible even if not in list yet */}
+                  {skill && !fundiSkills.find(s => s.skillName.toLowerCase() === skill) && (
+                    <option value={skill}>
+                      {skill.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </option>
                   )}
                 </select>
               </div>
 
+              {/* Specialization — from dynamic backend API */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
                 <select
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
-                  disabled={isReadOnly || !skill}
+                  disabled={isReadOnly || !skill || specsLoading}
                   className={inputStyles}
                 >
-                  <option value="">Select Specialization</option>
-                  {(FUNDI_SPECIALIZATIONS[skill as keyof typeof FUNDI_SPECIALIZATIONS] || []).map(spec => (
-                    <option key={spec} value={spec}>{spec}</option>
+                  <option value="">
+                    {!skill ? "Select a skill first" : specsLoading ? "Loading…" : "Select Specialization"}
+                  </option>
+                  {specializations.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
-                  {specialization && !(FUNDI_SPECIALIZATIONS[skill as keyof typeof FUNDI_SPECIALIZATIONS] || []).includes(specialization) && (
-                    <option key={specialization} value={specialization}>{specialization}</option>
+                  {/* Keep saved value visible if not in current list */}
+                  {specialization && !specializations.find(s => s.name === specialization) && (
+                    <option value={specialization}>{specialization}</option>
                   )}
                 </select>
               </div>
 
+              {/* Grade */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                 <select
@@ -486,6 +414,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 </select>
               </div>
 
+              {/* Experience */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
                 <select
@@ -499,6 +428,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   ))}
                 </select>
               </div>
+
             </div>
           </div>
 
@@ -564,7 +494,9 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 disabled={isSubmitting}
                 className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
               >
-                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                {isSubmitting && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
                 {isSubmitting ? "Saving..." : "Save Experience"}
               </button>
             </div>

@@ -245,7 +245,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
           }`}
       />
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r shadow-lg z-50 transition-all duration-300 ease-in-out lg:relative lg:shadow-sm overflow-visible ${expanded
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r shadow-lg z-40 transition-all duration-300 ease-in-out overflow-visible ${expanded
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0 lg:w-20"
           }`}
