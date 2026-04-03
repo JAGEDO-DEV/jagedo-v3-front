@@ -64,6 +64,36 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import AddAttributeForm from "./AddAttributeForm";
 
+const CATEGORY_SCOPE = "__category__";
+
+const normalizeText = (value?: string | null) =>
+    (value || "").trim().toLowerCase();
+
+const getSubcategoryNames = (category: any) => {
+    if (!category) return [];
+
+    if (Array.isArray(category.subCategory)) {
+        return category.subCategory
+            .map((sub: any) => {
+                if (typeof sub === "string") {
+                    return sub.trim();
+                }
+
+                return (sub?.name || "").trim();
+            })
+            .filter(Boolean);
+    }
+
+    if (typeof category.subCategory === "string") {
+        return category.subCategory
+            .split(",")
+            .map((sub: string) => sub.trim())
+            .filter(Boolean);
+    }
+
+    return [];
+};
+
 export default function ShopAttributes() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [attributes, setAttributes] = useState<Attribute[]>([]);
@@ -88,6 +118,21 @@ export default function ShopAttributes() {
         customerView: false
     });
     const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+    const [editSelectedSubcategory, setEditSelectedSubcategory] =
+        useState(CATEGORY_SCOPE);
+
+    const selectedEditCategory = availableCategories.find(
+        (category) => category.id.toString() === editFormData.categoryId,
+    );
+    const editSubcategoryOptions = getSubcategoryNames(selectedEditCategory);
+    const hasLegacyEditSubcategory =
+        editSelectedSubcategory !== CATEGORY_SCOPE &&
+        !!editSelectedSubcategory &&
+        !editSubcategoryOptions.some(
+            (subCategory) =>
+                normalizeText(subCategory) ===
+                normalizeText(editSelectedSubcategory),
+        );
 
     const categories = [
         { label: "Hardware", type: "HARDWARE" },
@@ -173,7 +218,21 @@ export default function ShopAttributes() {
     };
 
     const handleEditAttribute = (attribute: Attribute) => {
+        const selectedCategory = availableCategories.find(
+            (category) =>
+                category.id.toString() ===
+                attribute.categoryId?.toString(),
+        );
+        const categoryName = selectedCategory?.name || "";
+        const usesCategoryScope =
+            !attribute.attributeGroup ||
+            normalizeText(attribute.attributeGroup) ===
+                normalizeText(categoryName);
+
         setEditingAttribute(attribute);
+        setEditSelectedSubcategory(
+            usesCategoryScope ? CATEGORY_SCOPE : attribute.attributeGroup,
+        );
         setEditFormData({
             type: attribute.type,
             productType: attribute.productType,
@@ -194,7 +253,8 @@ export default function ShopAttributes() {
         const isDuplicate = attributes.some((attr) =>
             attr.id !== editingAttribute.id &&
             attr.type.toLowerCase().trim() === editFormData.type.toLowerCase().trim() &&
-            attr.productType === editFormData.productType
+            normalizeText(attr.productType) === normalizeText(editFormData.productType) &&
+            normalizeText(attr.attributeGroup) === normalizeText(editFormData.attributeGroup)
         );
 
         if (isDuplicate) {
@@ -627,6 +687,7 @@ export default function ShopAttributes() {
                                 value={editFormData.categoryId}
                                 onValueChange={(value) => {
                                     const selectedCat = availableCategories.find(c => c.id.toString() === value);
+                                    setEditSelectedSubcategory(CATEGORY_SCOPE);
                                     setEditFormData({
                                         ...editFormData,
                                         //@ts-ignore
@@ -650,6 +711,48 @@ export default function ShopAttributes() {
                                                 {cat.name}
                                             </SelectItem>
                                         ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-sub-category">Sub-category (Optional)</Label>
+                            <Select
+                                value={editSelectedSubcategory}
+                                onValueChange={(value) => {
+                                    setEditSelectedSubcategory(value);
+                                    setEditFormData({
+                                        ...editFormData,
+                                        attributeGroup:
+                                            value === CATEGORY_SCOPE
+                                                ? selectedEditCategory?.name || ""
+                                                : value
+                                    });
+                                }}
+                                disabled={!selectedEditCategory || editSubcategoryOptions.length === 0}
+                            >
+                                <SelectTrigger id="edit-sub-category">
+                                    <SelectValue
+                                        placeholder={
+                                            selectedEditCategory
+                                                ? "Choose scope"
+                                                : "Select a category first"
+                                        }
+                                    />
+                                </SelectTrigger>
+                                <SelectContent className='bg-white'>
+                                    <SelectItem value={CATEGORY_SCOPE}>
+                                        Entire category
+                                    </SelectItem>
+                                    {hasLegacyEditSubcategory && (
+                                        <SelectItem value={editSelectedSubcategory}>
+                                            {editSelectedSubcategory}
+                                        </SelectItem>
+                                    )}
+                                    {editSubcategoryOptions.map((subCategory) => (
+                                        <SelectItem key={subCategory} value={subCategory}>
+                                            {subCategory}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

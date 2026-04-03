@@ -17,6 +17,36 @@ interface AddAttributeFormProps {
   defaultProductType: string;
 }
 
+const CATEGORY_SCOPE = "__category__";
+
+const normalizeText = (value?: string | null) =>
+  (value || "").trim().toLowerCase();
+
+const getSubcategoryNames = (category: any) => {
+  if (!category) return [];
+
+  if (Array.isArray(category.subCategory)) {
+    return category.subCategory
+      .map((sub: any) => {
+        if (typeof sub === "string") {
+          return sub.trim();
+        }
+
+        return (sub?.name || "").trim();
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof category.subCategory === "string") {
+    return category.subCategory
+      .split(",")
+      .map((sub: string) => sub.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 export default function AddAttributeForm({ onBack, onSuccess, defaultProductType }: AddAttributeFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
@@ -35,6 +65,12 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
   const [attributeType, setAttributeType] = useState('text');
   const [attributeValues, setAttributeValues] = useState<string[]>([]);
   const [newValue, setNewValue] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState(CATEGORY_SCOPE);
+
+  const selectedCategory = availableCategories.find(
+    (category) => category.id.toString() === formData.categoryId?.toString(),
+  );
+  const subcategoryOptions = getSubcategoryNames(selectedCategory);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,14 +133,20 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
     }
 
     const isDuplicate = existingAttributes.some((attr) => {
-      const existingName = (attr.type || "").trim().toLowerCase();
-      const newName = formData.type.trim().toLowerCase();
+      const existingName = normalizeText(attr.type);
+      const newName = normalizeText(formData.type);
+      const existingGroup = normalizeText(attr.attributeGroup);
+      const newGroup = normalizeText(formData.attributeGroup);
 
-      return existingName === newName && attr.productType === formData.productType;
+      return (
+        existingName === newName &&
+        normalizeText(attr.productType) === normalizeText(formData.productType) &&
+        existingGroup === newGroup
+      );
     });
 
     if (isDuplicate) {
-      toast.error(`An attribute with the name "${formData.type}" already exists for ${formData.productType}.`);
+      toast.error(`An attribute with the name "${formData.type}" already exists for ${formData.attributeGroup || formData.productType}.`);
       return;
     }
 
@@ -265,6 +307,7 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
                   value={formData.categoryId?.toString()}
                   onValueChange={(value) => {
                     const selectedCat = availableCategories.find(c => c.id.toString() === value);
+                    setSelectedSubcategory(CATEGORY_SCOPE);
                     setFormData({
                       ...formData,
                       categoryId: value,
@@ -287,6 +330,42 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
                         No active categories found for {defaultProductType}
                       </div>
                     )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attributeSubCategory">Sub-category (Optional)</Label>
+                <Select
+                  value={selectedSubcategory}
+                  onValueChange={(value) => {
+                    setSelectedSubcategory(value);
+                    setFormData({
+                      ...formData,
+                      attributeGroup:
+                        value === CATEGORY_SCOPE
+                          ? selectedCategory?.name || ""
+                          : value
+                    });
+                  }}
+                  disabled={!selectedCategory || subcategoryOptions.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        selectedCategory
+                          ? "Choose scope"
+                          : "Select a category first"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className='bg-white'>
+                    <SelectItem value={CATEGORY_SCOPE}>Entire category</SelectItem>
+                    {subcategoryOptions.map((subCategory) => (
+                      <SelectItem key={subCategory} value={subCategory}>
+                        {subCategory}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

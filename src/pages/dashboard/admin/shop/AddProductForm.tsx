@@ -352,6 +352,92 @@ const ProductPreviewModal = ({
     document.body, 
   );
 };
+
+const normalizeText = (value?: string | null) =>
+  (value || "").trim().toLowerCase();
+
+const extractSubcategoryNames = (category: any) => {
+  if (!category) return [];
+
+  if (Array.isArray(category.subCategory)) {
+    return category.subCategory
+      .map((sub: any) => {
+        if (typeof sub === "string") {
+          return sub.trim();
+        }
+
+        return (sub?.name || "").trim();
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof category.subCategory === "string") {
+    return category.subCategory
+      .split(",")
+      .map((sub: string) => sub.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const mergeUniqueAttributes = (...attributeGroups: Attribute[][]) => {
+  const seenTypes = new Set<string>();
+
+  return attributeGroups.flat().filter((attribute) => {
+    const attributeKey =
+      normalizeText(attribute?.type) || String(attribute?.id || "");
+
+    if (seenTypes.has(attributeKey)) {
+      return false;
+    }
+
+    seenTypes.add(attributeKey);
+    return true;
+  });
+};
+
+const getRelevantAttributes = ({
+  attributes,
+  productType,
+  category,
+  subcategory,
+}: {
+  attributes: Attribute[];
+  productType: string;
+  category: string;
+  subcategory: string;
+}) => {
+  const normalizedType = normalizeText(productType);
+  const normalizedCategory = normalizeText(category);
+  const normalizedSubcategory = normalizeText(subcategory);
+
+  const activeTypeAttributes = attributes.filter(
+    (attribute) =>
+      attribute?.active &&
+      normalizeText(attribute.productType) === normalizedType,
+  );
+
+  const globalAttributes = activeTypeAttributes.filter(
+    (attribute) => !normalizeText(attribute.attributeGroup),
+  );
+
+  const subcategoryAttributes = activeTypeAttributes.filter(
+    (attribute) =>
+      normalizeText(attribute.attributeGroup) === normalizedSubcategory,
+  );
+
+  if (normalizedSubcategory && subcategoryAttributes.length > 0) {
+    return mergeUniqueAttributes(subcategoryAttributes, globalAttributes);
+  }
+
+  const categoryAttributes = activeTypeAttributes.filter(
+    (attribute) => normalizeText(attribute.attributeGroup) === normalizedCategory,
+  );
+
+  return mergeUniqueAttributes(categoryAttributes, globalAttributes);
+};
+
 export default function AddProductForm({
   onBack,
   onSuccess,
@@ -483,22 +569,12 @@ export default function AddProductForm({
           (cat: any) => cat.name === value,
         );
         if (selectedCategory) {
-          // Extract subcategory names from both string and object formats
-          let subs: string[] = [];
-          if (Array.isArray(selectedCategory.subCategory)) {
-            subs = selectedCategory.subCategory.map((sub: any) => {
-              if (typeof sub === "string") {
-                return sub;
-              }
-              // Object format: {id, name, urlKey, metaTitle, metaKeywords}
-              return sub?.name || "";
-            }).filter((s: string) => s); // Remove empty values
-          } else if (typeof selectedCategory.subCategory === "string") {
-            subs = selectedCategory.subCategory.split(",").map((s: string) => s.trim());
-          }
+          const subs = extractSubcategoryNames(selectedCategory);
           
           setSubcategoryOptions(subs);
-          updated.subcategory = subs.length > 0 ? subs[0] : "";
+          updated.subcategory = subs.includes(updated.subcategory)
+            ? updated.subcategory
+            : subs[0] || "";
           
           console.log("📦 Subcategories loaded for category:", {
             category: value,
@@ -506,12 +582,6 @@ export default function AddProductForm({
             options: subs,
           });
           
-          // Filter attributes
-          const relevantAttributes = allAttributes.filter(attr => 
-            attr.attributeGroup === value || 
-            (attr.active && attr.productType === updated.type && !attr.attributeGroup)
-          );
-          setFilteredAttributes(relevantAttributes);
         } else {
           setSubcategoryOptions([]);
           updated.subcategory = "";
@@ -744,14 +814,20 @@ export default function AddProductForm({
   }, [formData.type, isEditMode]);
 
   useEffect(() => {
-    if (formData.category && allAttributes.length > 0) {
-      const relevantAttributes = allAttributes.filter(attr => 
-        attr.attributeGroup === formData.category || 
-        (attr.active && attr.productType === formData.type && !attr.attributeGroup)
-      );
-      setFilteredAttributes(relevantAttributes);
+    if (!formData.category || allAttributes.length === 0) {
+      setFilteredAttributes([]);
+      return;
     }
-  }, [formData.category, allAttributes, formData.type]);
+
+    setFilteredAttributes(
+      getRelevantAttributes({
+        attributes: allAttributes,
+        productType: formData.type,
+        category: formData.category,
+        subcategory: formData.subcategory,
+      }),
+    );
+  }, [formData.category, formData.subcategory, allAttributes, formData.type]);
 
   useEffect(() => {
     if (isEditMode && product?.category && categories.length > 0) {
@@ -765,16 +841,9 @@ export default function AddProductForm({
         }));
       }
 
-      // Extract subcategory names from both string and object formats
       const selected = categories.find(c => c.name === (product.category || formData.category));
-      if (selected && Array.isArray(selected.subCategory)) {
-        const subs = selected.subCategory.map((sub: any) => {
-          if (typeof sub === "string") {
-            return sub;
-          }
-          // Object format: {id, name, urlKey, metaTitle, metaKeywords}
-          return sub?.name || "";
-        }).filter((s: string) => s); // Remove empty values
+      if (selected) {
+        const subs = extractSubcategoryNames(selected);
         
         setSubcategoryOptions(subs);
         
