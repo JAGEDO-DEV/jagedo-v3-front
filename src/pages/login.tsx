@@ -57,9 +57,10 @@ export default function Login() {
 
   const handleProfileComplete = async (profileData: any) => {
     try {
+      const { redirectTo, ...apiData } = profileData;
       const payload = {
         email: registeredUser?.email || contextUser?.email,
-        ...profileData,
+        ...apiData,
       };
       const response = await completeProfile(payload);
       if (response.data?.success) {
@@ -68,7 +69,7 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(updatedUser));
         setShowProfileCompletionModal(false);
         toast.success("Profile Completed!");
-        redirectUser(updatedUser); // redirect to appropriate dashboard
+        redirectUser(updatedUser, redirectTo); // Pass optional redirectTo
       } else {
         toast.error(response.data?.message || "Failed to complete profile");
       }
@@ -314,48 +315,50 @@ export default function Login() {
     redirectUser(user);
   };
 
-  const redirectUser = (user) => {
+  const redirectUser = (user, redirectTo = null) => {
     const role = user.userType.toLowerCase();
 
     const fromPath = location.state?.from;
 
-    let path = "/dashboard/customer";
+    let path = redirectTo || "/dashboard/customer";
 
-    switch (role) {
-      case "admin":
-      case "super_admin":
-        path = "/dashboard/admin";
-        break;
+    if (!redirectTo) {
+      switch (role) {
+        case "admin":
+        case "super_admin":
+          path = "/dashboard/admin";
+          break;
 
-      case "customer":
-        if (fromPath && fromPath.startsWith("/customer/")) {
-          navigate(fromPath, { replace: true });
-          return;
-        }
-        path =
-          user.profileType === "organization"
-            ? "/dashboard/customer/organization"
-            : "/dashboard/customer";
-        break;
+        case "customer":
+          if (fromPath && fromPath.startsWith("/customer/")) {
+            navigate(fromPath, { replace: true });
+            return;
+          }
+          path =
+            user.profileType === "organization"
+              ? "/dashboard/customer/organization"
+              : "/dashboard/customer";
+          break;
 
-      case "fundi":
-        path = "/dashboard/fundi";
-        break;
+        case "fundi":
+          path = "/dashboard/fundi";
+          break;
 
-      case "professional":
-        path = "/dashboard/professional";
-        break;
+        case "professional":
+          path = "/dashboard/professional";
+          break;
 
-      case "contractor":
-        path = "/dashboard/contractor";
-        break;
+        case "contractor":
+          path = "/dashboard/contractor";
+          break;
 
-      case "hardware":
-        path = "/dashboard/hardware";
-        break;
+        case "hardware":
+          path = "/dashboard/hardware";
+          break;
 
-      default:
-        path = "/dashboard";
+        default:
+          path = "/dashboard";
+      }
     }
 
     navigate(path);

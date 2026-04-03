@@ -27,7 +27,7 @@ import {
 } from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
+import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
 import {
   adminVerifyExperience,
   adminRejectExperience,
@@ -1774,10 +1774,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
       totalScore: totalScore,
       audioUrl: audioUrl || null,
+      audioUploadUrl: audioUrl || null,
     };
 
     try {
-      await updateEvaluation(axiosInstance, profileId, body);
+      if (userData?.fundiEvaluation) {
+        await updateEvaluation(axiosInstance, profileId, body);
+      } else {
+        await submitEvaluation(axiosInstance, profileId, body);
+      }
       setSubmitMessage("Evaluation updated successfully!");
       toast.success("Evaluation updated successfully!");
       setIsEditingEvaluation(false);
@@ -1833,7 +1838,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           experience: isEditingFields
             ? editingFields.experience
             : info.experience,
+          status: status,
+          experienceStatus: status,
           previousJobPhotoUrls: flattenedProjectFiles,
+          audioUploadUrl: audioUrl || null,
         };
 
         response = await adminUpdateFundiExperience(

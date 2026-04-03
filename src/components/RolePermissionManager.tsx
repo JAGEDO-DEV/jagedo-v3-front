@@ -29,10 +29,6 @@ interface RolePermissionManagerProps {
   onPermissionsUpdated?: () => void;
 }
 
-/**
- * Component to manage CRUD operation permissions for a role
- * Allows selecting which operations (VIEW, CREATE, UPDATE, DELETE, etc.) each role can perform on each menu
- */
 export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
   roleId,
   roleName,
@@ -53,42 +49,68 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
   const loadPermissionData = async () => {
     setIsLoading(true);
     try {
-      // Get permission matrix first to know valid operations per menu
-      const matrix = await getPermissionMatrix();
       
+      const matrix = await getPermissionMatrix();
       setPermissionMatrix(matrix || {});
 
-      // Get role's menu assignments with operations
-      const role = await getRoleOperationPermissions(roleId);
       
-      const menuItems = role?.menuItems || [];
+      const roleData = await getRoleOperationPermissions(roleId);
       
       
-      setMatrixMenuItems(menuItems);
-      setSelectedMenu(menuItems[0]?.id || "");
+      const roleAssignedMenuData = roleData?.menuItems || [];
+      const roleAssignedMenuIds = roleData?.roleMenuItemOperations 
+        ? Object.keys(roleData.roleMenuItemOperations)
+        : (roleData?.menuItemIds || roleAssignedMenuData.map((m: any) => m.id) || []);
       
-      // Convert to selected operations map
+      
+      let finalConfigMenus = roleAssignedMenuData;
+      
+      
+      if (finalConfigMenus.length === 0 || !finalConfigMenus[0].title) {
+        finalConfigMenus = menuItems.filter(m => roleAssignedMenuIds.includes(m.id));
+      }
+      
+      setMatrixMenuItems(finalConfigMenus);
+      if (finalConfigMenus.length > 0 && !selectedMenu) {
+        setSelectedMenu(finalConfigMenus[0].id || "");
+      } else if (finalConfigMenus.length === 0) {
+        setSelectedMenu("");
+      }
+      
+      
       const rolePermsMap: Record<string, string[]> = {};
-      menuItems.forEach((item: any) => {
-        // Get operations from roleMenuItemOperations array or from permissions field
-        let ops: string[] = [];
-        
-        if (item.roleMenuItemOperations && Array.isArray(item.roleMenuItemOperations)) {
-          ops = item.roleMenuItemOperations.map((op: any) => op.operation || op);
-        } else if (item.permissions && typeof item.permissions === 'string') {
-          // Handle permissions stored as JSON string
-          try {
-            ops = JSON.parse(item.permissions);
-          } catch {
-            ops = [item.permissions];
+      
+      
+      if (roleData?.roleMenuItemOperations && typeof roleData.roleMenuItemOperations === 'object') {
+        Object.entries(roleData.roleMenuItemOperations).forEach(([menuId, ops]: [string, any]) => {
+          rolePermsMap[menuId] = Array.isArray(ops) ? ops : (typeof ops === 'string' ? [ops] : []);
+        });
+      }
+      
+      
+      if (roleAssignedMenuData.length > 0) {
+        roleAssignedMenuData.forEach((item: any) => {
+          if (!rolePermsMap[item.id]) {
+            let ops: string[] = [];
+            
+            if (item.roleMenuItemOperations && Array.isArray(item.roleMenuItemOperations)) {
+              ops = item.roleMenuItemOperations.map((op: any) => op.operation || op);
+            } else if (item.permissions && typeof item.permissions === 'string') {
+              try {
+                ops = JSON.parse(item.permissions);
+              } catch {
+                ops = [item.permissions];
+              }
+            } else if (item.permissions && Array.isArray(item.permissions)) {
+              ops = item.permissions;
+            } else if (item.operations && Array.isArray(item.operations)) {
+              ops = item.operations;
+            }
+            
+            rolePermsMap[item.id] = ops;
           }
-        } else if (item.permissions && Array.isArray(item.permissions)) {
-          ops = item.permissions;
-        }
-        
-        // If still no operations, don't default to VIEW - leave empty
-        rolePermsMap[item.id] = ops.length > 0 ? ops : [];
-      });
+        });
+      }
       
       setSelectedOperations(rolePermsMap);
     } catch (error: any) {
@@ -131,7 +153,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
         `Permissions updated for ${menuItems.find((m) => m.id === selectedMenu)?.title || "menu"}`,
       );
 
-      // Reload data
+      
       await loadPermissionData();
       onPermissionsUpdated?.();
     } catch (error: any) {
@@ -325,7 +347,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({
   );
 };
 
-// Helper functions
+
 function getOperationColor(operation: string): string {
   const colors: Record<string, string> = {
     VIEW: "bg-blue-50 text-blue-700 border-blue-200",
