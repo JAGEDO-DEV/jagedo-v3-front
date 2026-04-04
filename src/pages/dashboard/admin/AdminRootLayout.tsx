@@ -119,103 +119,206 @@ export default function AdminRootLayout() {
 
   return (
     <TooltipProvider>
-      <div className="relative min-h-screen lg:flex bg-gray-50">
-        <button
-          onClick={() => setSidebarExpanded(true)}
-          className="fixed top-4 left-4 z-[60] lg:hidden p-2 bg-white rounded-md shadow-md border"
-          aria-label="Open sidebar"
-        >
-          <Menu size={24} />
-        </button>
+      <div className="relative min-h-screen lg:flex bg-gray-50/50">
+        {/* Mobile Sidebar Toggle - Hidden on Large Screens */}
+        {!isSidebarExpanded && (
+          <button
+            onClick={() => setSidebarExpanded(true)}
+            className="fixed top-4 left-4 z-[60] lg:hidden p-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-100 text-gray-700 hover:bg-gray-50 transition-all active:scale-95"
+            aria-label="Open sidebar"
+          >
+            <Menu size={22} />
+          </button>
+        )}
 
         <AdminSidebar
           expanded={isSidebarExpanded}
           setExpanded={setSidebarExpanded}
         />
 
-        <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out lg:ml-20`}>
-          <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md shadow-sm border-b">
-            <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+        {/* Main Content Area */}
+        <div 
+          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+            isSidebarExpanded ? "lg:ml-64" : "lg:ml-20"
+          }`}
+        >
+          {/* Header */}
+          <header className="sticky top-0 z-30 w-full bg-white/70 backdrop-blur-xl border-b border-gray-100/80 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <div className="flex h-16 items-center justify-between px-4 sm:px-8">
+                {/* Logo for mobile only */}
                 <div className="flex items-center gap-2 lg:hidden">
-                    <Link to="/dashboard/admin" className="flex items-center gap-2">
-                        <img src="/jagedologo.png" alt="JAGEDO Logo" width={150} height={40} className="relative rounded-lg" />
+                    <Link to="/dashboard/admin" className="flex items-center gap-2 group">
+                        <img 
+                          src="/jagedologo.png" 
+                          alt="JAGEDO Logo" 
+                          width={120} 
+                          height={32} 
+                          className="relative transition-transform group-hover:scale-105" 
+                        />
                     </Link>
+                </div>
+
+                {/* Dashboard Title / Breadcrumb (Desktop) */}
+                <div className="hidden lg:flex items-center gap-4">
+                  <h1 className="text-lg font-semibold text-gray-800 tracking-tight">Admin Dashboard</h1>
                 </div>
 
                 <div className="flex-1"></div>
 
-                <nav className="flex items-center space-x-2 sm:space-x-4">
+                {/* Header Actions */}
+                <nav className="flex items-center gap-2 sm:gap-4">
                   <Popover open={notificationsPopoverOpen} onOpenChange={setNotificationsPopoverOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="relative">
-                        <Bell className="h-5 w-5" />
-                        {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="relative rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <Bell className="h-[22px] w-[22px] text-gray-600" />
+                        {unreadCount > 0 && (
+                          <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                          </span>
+                        )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="end">
-                      <div className="p-4 border-b">
-                        <h3 className="font-medium flex justify-between items-center">
-                          Notifications {unreadCount > 0 && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">{unreadCount} new</span>}
+                    <PopoverContent className="w-80 sm:w-96 p-0 mt-2 shadow-2xl rounded-2xl border-gray-100" align="end">
+                      <div className="p-4 border-b flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                        <h3 className="font-semibold text-gray-800">
+                          Notifications
                         </h3>
+                        {unreadCount > 0 && (
+                          <span className="bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                            {unreadCount} New
+                          </span>
+                        )}
                       </div>
-                      <div className="max-h-80 overflow-auto">
+                      <div className="max-h-[400px] overflow-auto">
                         {notifications.length === 0 ? (
-                          <div className="p-8 text-center text-sm text-gray-500">No notifications yet.</div>
+                          <div className="p-10 text-center">
+                            <div className="bg-gray-50 rounded-full h-12 w-12 flex items-center justify-center mx-auto mb-3">
+                              <Bell className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <p className="text-sm text-gray-500 font-medium">No new notifications</p>
+                          </div>
                         ) : (
-                          notifications.slice(0, 5).map((notification) => (
-                            <div key={notification.id} onClick={() => handleNotificationClick(notification)} className={`p-4 border-b last:border-0 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.read ? "bg-blue-50" : ""}`}>
-                              <div className="flex justify-between items-start">
-                                <h4 className="font-medium text-sm">{notification.title}</h4>
-                                {!notification.read && <span className="h-2 w-2 bg-blue-500 rounded-full"></span>}
+                          notifications.slice(0, 6).map((notification) => (
+                            <div 
+                              key={notification.id} 
+                              onClick={() => handleNotificationClick(notification)} 
+                              className={`p-4 border-b last:border-0 hover:bg-gray-50/80 transition-colors cursor-pointer group ${!notification.read ? "bg-indigo-50/40" : ""}`}
+                            >
+                              <div className="flex justify-between items-start gap-3">
+                                <div className="space-y-1">
+                                  <h4 className={`font-semibold text-sm ${!notification.read ? "text-indigo-900" : "text-gray-800"}`}>
+                                    {notification.title}
+                                  </h4>
+                                  <p className="text-[13px] text-gray-600 leading-relaxed line-clamp-2">{notification.message}</p>
+                                  <p className="text-[11px] text-gray-400 font-medium flex items-center gap-1 mt-2">
+                                    <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
+                                    {notification.time}
+                                  </p>
+                                </div>
+                                {!notification.read && (
+                                  <div className="h-2 w-2 bg-indigo-500 rounded-full mt-1.5 ring-4 ring-indigo-50"></div>
+                                )}
                               </div>
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
-                              <p className="text-xs text-gray-400 mt-2">{notification.time}</p>
                             </div>
                           ))
                         )}
                       </div>
-                      <div className="p-2 border-t"><Button variant="ghost" size="sm" className="w-full" onClick={handleViewAllNotifications}>View all notifications</Button></div>
+                      <div className="p-3 border-t bg-white rounded-b-2xl">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold" 
+                          onClick={handleViewAllNotifications}
+                        >
+                          View all activity
+                        </Button>
+                      </div>
                     </PopoverContent>
                   </Popover>
+
+                  <div className="h-8 w-[1px] bg-gray-200 mx-1 hidden sm:block"></div>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="relative h-8 w-8 overflow-hidden rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a63e]"
+                        className="group flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100 transition-all focus:outline-none"
                       >
-                        <img
-                          src={resolveProfileImageSrc(profileImage) || "/images/customer-1.jpeg"}
-                          alt="User avatar"
-                          width={32}
-                          height={32}
-                          className="h-full w-full rounded-full object-cover border"
-                        />
+                        <div className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-sm group-hover:border-indigo-100 transition-all">
+                          <img
+                            src={resolveProfileImageSrc(profileImage) || "/images/customer-1.jpeg"}
+                            alt="User avatar"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="hidden sm:flex flex-col items-start pr-1">
+                          <span className="text-sm font-bold text-gray-800 leading-none">
+                            {user?.firstName || "Admin"}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-wider">
+                            Super Admin
+                          </span>
+                        </div>
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}><UserCircle className="mr-2 h-4 w-4" /><span>My Profile</span></DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => setIsChangePasswordOpen(true)}><Lock className="mr-2 h-4 w-4" /><span>Change Password</span></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}><LogOut className="mr-2 h-4 w-4" /><span>Log out</span></DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-56 mt-2 p-1.5 shadow-2xl rounded-2xl border-gray-100">
+                      <DropdownMenuLabel className="px-3 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                        Account Actions
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator className="mx-1.5 bg-gray-100" />
+                      <DropdownMenuItem 
+                        className="rounded-lg cursor-pointer px-3 py-2 text-sm font-medium focus:bg-indigo-50 focus:text-indigo-700" 
+                        onClick={() => navigate("/profile")}
+                      >
+                        <UserCircle className="mr-2.5 h-4.5 w-4.5 opacity-70" />
+                        <span>My Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="rounded-lg cursor-pointer px-3 py-2 text-sm font-medium focus:bg-indigo-50 focus:text-indigo-700" 
+                        onClick={() => setIsChangePasswordOpen(true)}
+                      >
+                        <Lock className="mr-2.5 h-4.5 w-4.5 opacity-70" />
+                        <span>Security Settings</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="mx-1.5 bg-gray-100" />
+                      <DropdownMenuItem 
+                        className="rounded-lg cursor-pointer px-3 py-2 text-sm font-medium text-red-600 focus:bg-red-50 focus:text-red-700 transition-colors" 
+                        onClick={logout}
+                      >
+                        <LogOut className="mr-2.5 h-4.5 w-4.5 opacity-70" />
+                        <span>Sign out</span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+
                 </nav>
             </div>
           </header>
 
-          <main className="flex-1 overflow-auto bg-white">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            
+          {/* Main Content Body */}
+          <main className="flex-1 overflow-x-hidden bg-transparent">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <Outlet />
-          
+              </div>
             </div>
           </main>
         </div>
 
-        <NotificationsModal isOpen={notificationsModalOpen} onClose={() => setNotificationsModalOpen(false)} notifications={notifications} onNotificationClick={handleNotificationClick} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} />
+        {/* Modals & Dialogs */}
+        <NotificationsModal 
+          isOpen={notificationsModalOpen} 
+          onClose={() => setNotificationsModalOpen(false)} 
+          notifications={notifications} 
+          onNotificationClick={handleNotificationClick} 
+          onMarkAsRead={handleMarkAsRead} 
+          onMarkAllAsRead={handleMarkAllAsRead} 
+        />
 
         <ChangePasswordDialog
           isOpen={isChangePasswordOpen}
@@ -226,5 +329,6 @@ export default function AdminRootLayout() {
         />
       </div>
     </TooltipProvider>
+
   );
 }
