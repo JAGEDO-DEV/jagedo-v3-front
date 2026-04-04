@@ -1123,7 +1123,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                 <button
                   onClick={handleSaveAll}
                   disabled={isSaving}
-                  className="flex items-center gap-2 py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                  className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm"
                 >
                   {isSaving ? (
                     <FiRefreshCw className="w-4 h-4 animate-spin" />
@@ -1144,15 +1144,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               />
 
               { }
-              {isAdmin &&
-                userData?.documentStatus !== "RESUBMIT" &&
-                userData?.documentStatus !== "VERIFIED" &&
-                userData?.documentStatus !== "REJECTED" &&
-                userData?.documentStatus !== "INCOMPLETE" && (
+              {isAdmin && (
                   <div className="relative">
                     <button
                       onClick={() => setShowGlobalActions(!showGlobalActions)}
-                      className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                      className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm"
                     >
                       Actions
                       <FiChevronDown
@@ -1160,7 +1156,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                       />
                     </button>
                     {showGlobalActions && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-xl z-[90] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <button
                           onClick={async () => {
                             setShowGlobalActions(false);
@@ -1189,10 +1185,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                             }
                           }}
                           disabled={userData.documentStatus === "VERIFIED"}
-                          className="disabled:opacity-10 w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                         >
                           <FiCheck className="w-4 h-4" />
-                          Approve
+                          Approve All
                         </button>
                         <button
                           onClick={() => {
@@ -1203,10 +1199,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                               isGlobal: true,
                             });
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100 font-medium"
                         >
                           <FiRefreshCw className="w-4 h-4" />
-                          Return all
+                          Return All
                         </button>
                         <button
                           onClick={() => {
@@ -1217,10 +1213,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                               isGlobal: true,
                             });
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium"
                         >
                           <XCircle className="w-4 h-4" />
-                          Disapprove
+                          Disapprove All
                         </button>
                       </div>
                     )}
