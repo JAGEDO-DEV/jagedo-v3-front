@@ -83,7 +83,7 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
       return;
     }
 
-    setFiles([file]);
+    setFiles((prev) => [...prev, file]);
     setShowPreview(true);
     toast.success("File uploaded successfully! Please review the data.");
   };
@@ -99,15 +99,13 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
     handleFiles(selectedFiles);
   };
 
-  const handleReset = () => {
-    setFiles([]);
+  const handleBackToBrowse = () => {
     setShowPreview(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      {showPreview && files.length > 0 ? (
-        <div className="w-full max-w-6xl bg-white p-6 rounded-lg shadow-md">
+      <div className={`${showPreview && files.length > 0 ? "" : "hidden"} w-full max-w-6xl bg-white p-6 rounded-lg shadow-md`}>
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={onBack}
@@ -117,16 +115,16 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
             </button>
             <h2 className="text-2xl font-bold text-gray-800">Preview Imported Data</h2>
             <button
-              onClick={handleReset}
+              onClick={handleBackToBrowse}
               className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
             >
               Upload Another File
             </button>
           </div>
-          <ParsedPreviewTable file={files[0]} onSubmitSuccess={onBack} />
+          <ParsedPreviewTable file={files[files.length - 1]} onSubmitSuccess={onBack} />
         </div>
-      ) : (
-        <div className="w-full max-w-xl">
+
+        <div className={`${!showPreview || files.length === 0 ? "" : "hidden"} w-full max-w-xl`}>
           {/* Back Button */}
           <button
             onClick={onBack}
@@ -173,7 +171,6 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
             </p>
           </div>
         </div>
-      )}
     </div>
   );
 }

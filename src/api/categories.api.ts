@@ -8,7 +8,7 @@ export interface Category {
     id: number | string;
     name: string;
     active: boolean;
-    subCategory?: string[];
+    subCategory?: (string | { id: string; name: string; urlKey?: string; metaTitle?: string; metaKeywords?: string })[];
     urlKey?: string;
     metaTitle?: string;
     metaKeywords?: string;
@@ -17,7 +17,7 @@ export interface Category {
 
 export interface CategoryCreateRequest {
     name: string;
-    subCategory?: string[];
+    subCategory?: (string | { id: string; name: string; urlKey?: string; metaTitle?: string; metaKeywords?: string })[];
     urlKey?: string;
     metaTitle?: string;
     metaKeywords?: string;
@@ -28,7 +28,7 @@ export interface CategoryUpdateRequest {
     id: number | string;
     name: string;
     active: boolean;
-    subCategory?: string[];
+    subCategory?: (string | { id: string; name: string; urlKey?: string; metaTitle?: string; metaKeywords?: string })[];
     urlKey?: string;
     metaTitle?: string;
     metaKeywords?: string;

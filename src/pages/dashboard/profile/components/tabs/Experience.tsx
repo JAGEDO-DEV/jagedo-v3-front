@@ -27,7 +27,7 @@ import {
 } from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
+import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
 import {
   adminVerifyExperience,
   adminRejectExperience,
@@ -44,289 +44,11 @@ import {
 } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
-
-const FUNDI_SPECIALIZATIONS = {
-  Mason: [
-    "Block Work & Brick Laying",
-    "Plastering & Rendering",
-    "Stone Masonry",
-    "Concrete Work",
-    "Foundation Work",
-    "Structural Masonry",
-    "Decorative Masonry",
-    "Tile Setting",
-    "Waterproofing",
-    "Restoration & Repair",
-  ],
-  Electrician: [
-    "Residential Wiring",
-    "Commercial Installations",
-    "Industrial Electrical",
-    "Solar PV Installation",
-    "Backup Power Systems",
-    "Lighting Systems",
-    "Security & Alarm Systems",
-    "Data & Network Cabling",
-    "Motor & Pump Installations",
-    "Electrical Maintenance & Repair",
-  ],
-  Plumber: [
-    "General Plumbing",
-    "Water Systems",
-    "Drainage & Sewer",
-    "Gas Plumbing",
-    "Bathroom Installation",
-    "Kitchen Installation",
-    "Pipe Welding",
-    "Solar Water Systems",
-  ],
-  Carpenter: [
-    "Furniture Making",
-    "Roofing & Trusses",
-    "Door & Window Installation",
-    "Kitchen Cabinets",
-    "Wardrobes & Closets",
-    "Flooring Installation",
-    "Ceiling Work",
-    "Formwork & Shuttering",
-    "Finish Carpentry",
-    "Renovation & Restoration",
-  ],
-  Painter: [
-    "Interior Painting",
-    "Exterior Painting",
-    "Decorative Finishes",
-    "Texture Coating",
-    "Spray Painting",
-    "Wallpaper Installation",
-    "Epoxy Coating",
-    "Waterproof Coating",
-    "Wood Finishing & Staining",
-    "Industrial Painting",
-  ],
-  Welder: [
-    "Structural Welding",
-    "Pipe Welding",
-    "MIG Welding",
-    "TIG Welding",
-    "Arc Welding",
-    "Gate & Grille Fabrication",
-    "Tank Fabrication",
-    "Aluminum Welding",
-    "Stainless Steel Welding",
-    "Repair & Maintenance Welding",
-  ],
-  Tiler: [
-    "Floor Tiling",
-    "Wall Tiling",
-    "Bathroom Tiling",
-    "Kitchen Backsplash",
-    "Swimming Pool Tiling",
-    "Outdoor & Patio Tiling",
-    "Mosaic Installation",
-    "Natural Stone Installation",
-    "Tile Repair & Restoration",
-    "Waterproofing & Grouting",
-  ],
-  Roofer: [
-    "Metal Roofing",
-    "Tile Roofing",
-    "Flat Roofing",
-    "Shingle Installation",
-    "Roof Repair & Maintenance",
-    "Gutter Installation",
-    "Skylight Installation",
-    "Waterproofing",
-    "Insulation",
-    "Green Roof Installation",
-  ],
-};
-
-const PROFESSIONAL_SPECIALIZATIONS = {
-  "Project Manager": [
-    "Construction Project Management",
-    "Infrastructure Projects",
-    "Residential Development",
-    "Commercial Development",
-    "Industrial Projects",
-    "Government Projects",
-    "Real Estate Development",
-    "Renovation & Remodeling",
-    "Green Building Projects",
-    "Multi-site Management",
-  ],
-  Architect: [
-    "Residential Architecture",
-    "Commercial Architecture",
-    "Industrial Architecture",
-    "Landscape Architecture",
-    "Interior Architecture",
-    "Urban Planning",
-    "Sustainable Design",
-    "Historic Preservation",
-    "Healthcare Facilities",
-    "Educational Facilities",
-  ],
-  "Water Engineer": [
-    "Water Supply Systems",
-    "Wastewater Treatment",
-    "Stormwater Management",
-    "Irrigation Engineering",
-    "Hydraulic Structures",
-    "Pipeline Engineering",
-    "Water Resources Management",
-    "Flood Control",
-    "Desalination Systems",
-    "Environmental Water Solutions",
-  ],
-  "Roads Engineer": [
-    "Highway Design",
-    "Urban Road Design",
-    "Pavement Engineering",
-    "Traffic Engineering",
-    "Bridge Engineering",
-    "Road Rehabilitation",
-    "Drainage Design",
-    "Survey & Mapping",
-    "Construction Supervision",
-    "Road Safety Engineering",
-  ],
-  "Structural Engineer": [
-    "Building Structures",
-    "Bridge Structures",
-    "Industrial Structures",
-    "Concrete Structures",
-    "Steel Structures",
-    "Foundation Engineering",
-    "Seismic Design",
-    "Structural Assessment",
-    "Retrofit & Rehabilitation",
-    "Temporary Structures",
-  ],
-  "Mechanical Engineer": [
-    "HVAC Systems",
-    "Plumbing Systems",
-    "Fire Protection Systems",
-    "Elevator & Escalator Systems",
-    "Industrial Machinery",
-    "Energy Systems",
-    "Building Automation",
-    "Refrigeration Systems",
-    "Ventilation Design",
-    "Mechanical Maintenance",
-  ],
-  "Electrical Engineer": [
-    "Power Distribution",
-    "Lighting Design",
-    "Building Electrical Systems",
-    "Industrial Electrical",
-    "Renewable Energy Systems",
-    "Control Systems",
-    "Telecommunications",
-    "Security Systems",
-    "Fire Alarm Systems",
-    "Energy Management",
-  ],
-  Surveyor: [
-    "Land Surveying",
-    "Topographic Surveys",
-    "Construction Surveying",
-    "Cadastral Surveys",
-    "Engineering Surveys",
-    "GPS & GIS Mapping",
-    "Hydrographic Surveys",
-    "Quantity Surveying",
-    "Boundary Surveys",
-    "As-built Surveys",
-  ],
-  "Quantity Surveyor": [
-    "Cost Estimation",
-    "Bill of Quantities",
-    "Contract Administration",
-    "Value Engineering",
-    "Project Cost Control",
-    "Procurement Management",
-    "Final Account Settlement",
-    "Risk Assessment",
-    "Feasibility Studies",
-    "Life Cycle Costing",
-  ],
-};
-
-const CONTRACTOR_SPECIALIZATIONS = {
-  "Building Works": [
-    "Residential Construction",
-    "Commercial Construction",
-    "Industrial Construction",
-    "Institutional Buildings",
-    "High-rise Buildings",
-    "Housing Estates",
-    "Renovation & Remodeling",
-    "Prefabricated Construction",
-    "Green Building Construction",
-    "Mixed-use Developments",
-  ],
-  "Water Works": [
-    "Water Supply Networks",
-    "Sewerage Systems",
-    "Water Treatment Plants",
-    "Irrigation Systems",
-    "Borehole Drilling",
-    "Dam Construction",
-    "Pipeline Installation",
-    "Pump Stations",
-    "Water Storage Tanks",
-    "Flood Control Systems",
-  ],
-  "Electrical Works": [
-    "Power Line Installation",
-    "Substation Construction",
-    "Building Electrical Works",
-    "Street Lighting",
-    "Solar Power Installation",
-    "Generator Installation",
-    "Industrial Electrical",
-    "Fire Alarm Systems",
-    "Security Systems Installation",
-    "Smart Building Systems",
-  ],
-  "Mechanical Works": [
-    "HVAC Installation",
-    "Plumbing & Sanitary Works",
-    "Fire Fighting Systems",
-    "Elevator & Escalator Installation",
-    "Industrial Equipment Installation",
-    "Refrigeration Systems",
-    "Compressed Air Systems",
-    "Steam & Boiler Systems",
-    "Piping Works",
-    "Mechanical Maintenance",
-  ],
-  "Roads & Infrastructure": [
-    "Road Construction",
-    "Bridge Construction",
-    "Culvert Construction",
-    "Drainage Systems",
-    "Pavement Works",
-    "Highway Construction",
-    "Airport Runways",
-    "Railway Construction",
-    "Port & Marine Works",
-    "Urban Infrastructure",
-  ],
-  "Landscaping & External Works": [
-    "Landscape Construction",
-    "Paving & Hardscaping",
-    "Fencing & Gates",
-    "Swimming Pool Construction",
-    "Sports Facilities",
-    "Playground Construction",
-    "Retaining Walls",
-    "Outdoor Lighting",
-    "Irrigation Installation",
-    "Environmental Landscaping",
-  ],
-};
+import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
+import { getMasterDataValues } from "@/api/masterData";
+import { normalizeSkillName } from "@/utils/skillNameUtils";
+import axios from "axios";
+import { getAuthHeaders } from "@/utils/auth";
 
 const deepMerge = (target: any, source: any): any => {
   const result = { ...target };
@@ -381,6 +103,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
 
+  // Dynamic skills and specializations
+  const [fundiSkills, setFundiSkills] = useState<any[]>([]);
+  const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
+  const [specializations, setSpecializations] = useState<any[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [specsLoading, setSpecsLoading] = useState(false);
+
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
@@ -432,6 +161,98 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     userData?.userProfile?.fundiEvaluation,
   ]);
 
+  // ── Load skills and specialization mappings on mount for all dynamic types ────────────────
+  useEffect(() => {
+    if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
+      const loadSkillsAndMappings = async () => {
+        try {
+          setSkillsLoading(true);
+          const authAxios = axios.create({
+            headers: { Authorization: getAuthHeaders() },
+          });
+          
+          const skillsRes = await getBuilderSkillsByType(authAxios, userType);
+          const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
+          setFundiSkills(activeSkills);
+          
+          const mappingsRes = await getSpecializationMappings(authAxios, userType);
+          setSpecMappings(mappingsRes);
+        } catch (error) {
+          console.error(`Failed to load ${userType} skills:`, error);
+        } finally {
+          setSkillsLoading(false);
+        }
+      };
+      
+      loadSkillsAndMappings();
+    }
+  }, [userType]);
+
+  // ── Load specializations when skill/profession/category/type changes ───────────────────────────────
+  useEffect(() => {
+    // Determine which field triggers specialization loading based on user type
+    let triggerField: string | undefined;
+    
+    switch (userType) {
+      case 'FUNDI':
+        triggerField = editingFields?.skill;
+        break;
+      case 'PROFESSIONAL':
+        triggerField = editingFields?.profession;
+        break;
+      case 'CONTRACTOR':
+        triggerField = editingFields?.category;
+        break;
+      case 'HARDWARE':
+        triggerField = editingFields?.hardwareType;
+        break;
+      default:
+        triggerField = undefined;
+    }
+    
+    if (!triggerField) {
+      setSpecializations([]);
+      return;
+    }
+
+    // For types not in dynamic list, use static specializations
+    if (!['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
+      setSpecializations([]);
+      return;
+    }
+
+    const loadSpecializations = async () => {
+      try {
+        setSpecsLoading(true);
+        const normalizedField = normalizeSkillName(triggerField);
+        const specTypeCode = specMappings[normalizedField];
+        
+        if (!specTypeCode) {
+          setSpecializations([]);
+          return;
+        }
+
+        const authAxios = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+        
+        const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+        const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+        setSpecializations(specs);
+      } catch (error) {
+        console.error('Failed to load specializations:', error);
+        setSpecializations([]);
+      } finally {
+        setSpecsLoading(false);
+      }
+    };
+
+    loadSpecializations();
+  }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, specMappings, userType]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  
   const prefillQuestionsFromData = () => {
     const evaluation =
       userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
@@ -587,27 +408,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         return "Projects";
     }
   };
-  type ContractorCategory = {
-    category: string;
-    specialization: string;
-    class: string;
-    years: string;
-    projectFile?: File;
-    referenceFile?: File;
-  };
-
-  const CATEGORY_OPTIONS = [
-    "Building Works",
-    "Water Works",
-    "Electrical Works",
-    "Mechanical Works",
-  ];
-
-  const [attachments, setAttachments] = useState(getInitialAttachments());
-  const [uploadingProjects, setUploadingProjects] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
 
   const getInitialCategories = (): ContractorCategory[] => {
     if (
@@ -633,12 +433,86 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         years: exp.yearsOfExperience || exp.years || "",
       }));
     }
+
+    // NEW: Check for contractorTypes as fallback
+    if (userData?.contractorTypes) {
+      return [{
+        category: userData.contractorTypes || "",
+        specialization: userData.specialization || "",
+        class: userData.levelOrClass || "",
+        years: userData.yearsOfExperience || "",
+      }];
+    }
+
     return [{ category: "", specialization: "", class: "", years: "" }];
   };
 
   const [categories, setCategories] = useState<ContractorCategory[]>(
-    getInitialCategories(),
-  );
+  getInitialCategories(),
+);
+
+// ── Load specializations for contractor categories section ──────────────────
+useEffect(() => {
+  if (userType !== 'CONTRACTOR' || !categories.length) {
+    return;
+  }
+
+  const loadContractorSpecializations = async () => {
+    try {
+      const firstSelectedCategory = categories.find(c => c.category);
+      if (!firstSelectedCategory) {
+        setSpecializations([]);
+        return;
+      }
+
+      setSpecsLoading(true);
+      const normalizedField = normalizeSkillName(firstSelectedCategory.category);
+      const specTypeCode = specMappings[normalizedField];
+      
+      if (!specTypeCode) {
+        setSpecializations([]);
+        return;
+      }
+
+      const authAxios = axios.create({
+        headers: { Authorization: getAuthHeaders() },
+      });
+      
+      const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+      const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+      setSpecializations(specs);
+    } catch (error) {
+      console.error('Failed to load contractor specializations:', error);
+      setSpecializations([]);
+    } finally {
+      setSpecsLoading(false);
+    }
+  };
+
+  loadContractorSpecializations();
+}, [categories, specMappings, userType]);
+  type ContractorCategory = {
+    category: string;
+    specialization: string;
+    class: string;
+    years: string;
+    projectFile?: File;
+    referenceFile?: File;
+  };
+
+  const CATEGORY_OPTIONS = [
+    "Building Works",
+    "Water Works",
+    "Electrical Works",
+    "Mechanical Works",
+  ];
+
+  const [attachments, setAttachments] = useState(getInitialAttachments());
+  const [uploadingProjects, setUploadingProjects] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
+
   const addCategory = () => {
     setCategories([
       ...categories,
@@ -662,57 +536,32 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
     switch (userType) {
       case "FUNDI":
-        const fundiSkill = userData.skill || userData.skills || "";
-        const fundiSpecOptions =
-          FUNDI_SPECIALIZATIONS[
-            fundiSkill as keyof typeof FUNDI_SPECIALIZATIONS
-          ] || [];
-        const defaultFundiSpec =
-          fundiSpecOptions.length > 0 ? fundiSpecOptions[0] : "";
         return {
-          skill: fundiSkill,
+          skill: userData.skill || userData.skills || "",
           specialization:
             userData.specialization ||
-            userData.fundispecialization ||
-            defaultFundiSpec,
+            userData.fundispecialization || "",
           grade: userData.grade || "",
           experience: userData.experience || "",
         };
 
       case "PROFESSIONAL":
-        const profession = userData.profession || "";
-        const profSpecOptions =
-          PROFESSIONAL_SPECIALIZATIONS[
-            profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS
-          ] || [];
-        const defaultProfSpec =
-          profSpecOptions.length > 0 ? profSpecOptions[0] : "";
         return {
-          profession: profession,
+          profession: userData.profession || "",
           specialization:
             userData.specialization ||
-            userData.professionalSpecialization ||
-            defaultProfSpec,
+            userData.professionalSpecialization || "",
           professionalLevel:
             userData.professionalLevel || userData.levelOrClass || "",
           yearsOfExperience: userData.yearsOfExperience || "",
         };
 
       case "CONTRACTOR":
-        const category =
-          userData.contractorType || userData.contractorTypes || "";
-        const contSpecOptions =
-          CONTRACTOR_SPECIALIZATIONS[
-            category as keyof typeof CONTRACTOR_SPECIALIZATIONS
-          ] || [];
-        const defaultContSpec =
-          contSpecOptions.length > 0 ? contSpecOptions[0] : "";
         return {
-          category: category,
+          category: userData.contractorType || userData.contractorTypes || "",
           specialization:
             userData.specialization ||
-            userData.contractorSpecialization ||
-            defaultContSpec,
+            userData.contractorSpecialization || "",
           class: userData.licenseLevel || "",
           yearsOfExperience:
             userData.contractorExperiences?.[0]?.yearsOfExperience || "",
@@ -759,29 +608,25 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           {
             name: "skill",
             label: "Skill",
-            options: [
-              "Mason",
-              "Electrician",
-              "Plumber",
-              "Carpenter",
-              "Painter",
-              "Welder",
-              "Tiler",
-              "Roofer",
-            ],
+            options: fundiSkills.length > 0 
+              ? fundiSkills.map(s => s.skillName)
+              : [
+                "Mason",
+                "Electrician",
+                "Plumber",
+                "Carpenter",
+                "Painter",
+                "Welder",
+                "Tiler",
+                "Roofer",
+              ],
           },
           {
             name: "specialization",
             label: "Specialization",
-            options: FUNDI_SPECIALIZATIONS[
-              currentData.skill as keyof typeof FUNDI_SPECIALIZATIONS
-            ] || [
-              "Block Work & Brick Laying",
-              "Plastering & Rendering",
-              "Stone Masonry",
-              "Concrete Work",
-              "Foundation Work",
-            ],
+            options: specializations.length > 0
+              ? specializations.map((spec: any) => typeof spec === 'string' ? spec : (spec?.label || spec?.name || spec?.code || ""))
+              : [],
             dependsOn: "skill",
           },
           {
@@ -806,30 +651,29 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           {
             name: "profession",
             label: "Profession",
-            options: [
-              "Project Manager",
-              "Architect",
-              "Water Engineer",
-              "Roads Engineer",
-              "Structural Engineer",
-              "Mechanical Engineer",
-              "Electrical Engineer",
-              "Surveyor",
-              "Quantity Surveyor",
-            ],
+            options: fundiSkills.length > 0
+              ? fundiSkills.map(s => s.skillName)
+              : [
+                "Project Manager",
+                "Architect",
+                "Water Engineer",
+                "Roads Engineer",
+                "Structural Engineer",
+                "Mechanical Engineer",
+                "Electrical Engineer",
+                "Surveyor",
+                "Quantity Surveyor",
+              ],
           },
           {
             name: "specialization",
             label: "Specialization",
-            options: PROFESSIONAL_SPECIALIZATIONS[
-              currentData.profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS
-            ] || [
-              "Residential Architecture",
-              "Commercial Architecture",
-              "Industrial Architecture",
-              "Landscape Architecture",
-              "Interior Architecture",
-            ],
+            options: specializations.length > 0
+              ? specializations.map((spec: any) => {
+                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                  return specValue;
+                })
+              : [],
             dependsOn: "profession",
           },
           {
@@ -856,30 +700,26 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           {
             name: "category",
             label: "Category",
-            options: [
-              "Building Works",
-              "Water Works",
-              "Electrical Works",
-              "Mechanical Works",
-              "Roads & Infrastructure",
-              "Landscaping & External Works",
-            ],
+            options: fundiSkills.length > 0
+              ? fundiSkills.map(s => s.skillName)
+              : [
+                "Building Works",
+                "Water Works",
+                "Electrical Works",
+                "Mechanical Works",
+                "Roads & Infrastructure",
+                "Landscaping & External Works",
+              ],
           },
           {
             name: "specialization",
             label: "Specialization",
-            options: CONTRACTOR_SPECIALIZATIONS[
-              currentData.category as keyof typeof CONTRACTOR_SPECIALIZATIONS
-            ] ||
-              CONTRACTOR_SPECIALIZATIONS[
-                currentData.contractorType as keyof typeof CONTRACTOR_SPECIALIZATIONS
-              ] || [
-                "Residential Construction",
-                "Commercial Construction",
-                "Industrial Construction",
-                "Institutional Buildings",
-                "High-rise Buildings",
-              ],
+            options: specializations.length > 0
+              ? specializations.map((spec: any) => {
+                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                  return specValue;
+                })
+              : [],
             dependsOn: "category",
           },
           {
@@ -915,32 +755,40 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           {
             name: "hardwareType",
             label: "Hardware Type",
-            options: [
-              "Building Materials",
-              "Tools & Equipment",
-              "Electrical Supplies",
-              "Plumbing Supplies",
-              "Paint & Finishes",
-              "Roofing Materials",
-              "Timber & Wood Products",
-              "Steel & Metal Products",
-            ],
+            options: fundiSkills.length > 0
+              ? fundiSkills.map(s => s.skillName)
+              : [
+                "Building Materials",
+                "Tools & Equipment",
+                "Electrical Supplies",
+                "Plumbing Supplies",
+                "Paint & Finishes",
+                "Roofing Materials",
+                "Timber & Wood Products",
+                "Steel & Metal Products",
+              ],
           },
           {
             name: "specialization",
             label: "Specialization",
-            options: [
-              "Cement & Concrete Products",
-              "Bricks & Blocks",
-              "Sand & Aggregates",
-              "Tiles & Flooring",
-              "Doors & Windows",
-              "Electrical Fittings",
-              "Plumbing Fittings",
-              "Paint & Coatings",
-              "Hand Tools",
-              "Power Tools",
-            ],
+            options: specializations.length > 0
+              ? specializations.map((spec: any) => {
+                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                  return specValue;
+                })
+              : [
+                "Cement & Concrete Products",
+                "Bricks & Blocks",
+                "Sand & Aggregates",
+                "Tiles & Flooring",
+                "Doors & Windows",
+                "Electrical Fittings",
+                "Plumbing Fittings",
+                "Paint & Coatings",
+                "Hand Tools",
+                "Power Tools",
+              ],
+            dependsOn: "hardwareType",
           },
           {
             name: "businessType",
@@ -1451,16 +1299,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         needsReason: false,
       },
       reject: {
-        title: "Reject Experience",
-        description: `Please provide a reason for rejecting this experience submission:`,
-        buttonText: "Reject",
+        title: "Disapprove Experience",
+        description: `Please provide a reason for disapproving this experience submission:`,
+        buttonText: "Disapprove all",
         buttonColor: "bg-red-600 hover:bg-red-700",
         needsReason: true,
       },
       resubmit: {
-        title: "Request Resubmission",
+        title: "Return Experience",
         description: `Please specify what needs to be corrected in the experience profile:`,
-        buttonText: "Request Resubmission",
+        buttonText: "Return all",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
         needsReason: true,
       },
@@ -1774,10 +1622,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
       totalScore: totalScore,
       audioUrl: audioUrl || null,
+      audioUploadUrl: audioUrl || null,
     };
 
     try {
-      await updateEvaluation(axiosInstance, profileId, body);
+      if (userData?.fundiEvaluation) {
+        await updateEvaluation(axiosInstance, profileId, body);
+      } else {
+        await submitEvaluation(axiosInstance, profileId, body);
+      }
       setSubmitMessage("Evaluation updated successfully!");
       toast.success("Evaluation updated successfully!");
       setIsEditingEvaluation(false);
@@ -1833,7 +1686,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           experience: isEditingFields
             ? editingFields.experience
             : info.experience,
+          status: status,
+          experienceStatus: status,
           previousJobPhotoUrls: flattenedProjectFiles,
+          audioUploadUrl: audioUrl || null,
         };
 
         response = await adminUpdateFundiExperience(
@@ -2015,12 +1871,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                   <button
                     type="button"
                     onClick={() => setShowGlobalActions(!showGlobalActions)}
-                    disabled={userData?.experienceStatus === "VERIFIED"}
-                    className={`flex items-center gap-2 py-2 px-4 text-white rounded-lg text-sm font-medium transition ${
-                      userData?.experienceStatus === "VERIFIED"
-                        ? "bg-gray-400 cursor-not-allowed opacity-60"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                    disabled={isPendingAction}
+                    className="flex items-center gap-2 py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Actions
                     <FiChevronDown
@@ -2028,86 +1880,87 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                     />
                   </button>
                   {showGlobalActions && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                      {/* Approve — only when not already VERIFIED */}
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                      {/* CASE 1: Not Verified - Show Approve and Return all */}
                       {userData?.experienceStatus !== "VERIFIED" && (
-                        <button
-                          type="button"
-                          disabled={!readyToApprove || isPendingAction}
-                          title={
-                            !readyToApprove
-                              ? "All required fields and projects must be filled before approving"
-                              : "Approve experience"
-                          }
-                          onClick={async () => {
-                            setShowGlobalActions(false);
-                            setIsPendingAction(true);
-                            try {
-                              await adminVerifyExperience(
-                                axiosInstance,
-                                userData.id,
-                              );
-                              toast.success("Experience approved successfully");
-                              window.location.reload();
-                            } catch (error: any) {
-                              toast.error(
-                                error.message || "Failed to approve experience",
-                              );
-                            } finally {
-                              setIsPendingAction(false);
+                        <>
+                          <button
+                            type="button"
+                            disabled={!readyToApprove || isPendingAction}
+                            title={
+                              !readyToApprove
+                                ? "All required fields and projects must be filled before approving"
+                                : "Approve experience"
                             }
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
-    ${
-      !readyToApprove
-        ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
-        : "text-green-700 hover:bg-gray-50"
-    }`}
-                        >
-                          <FiCheck className="w-4 h-4" />
-                          Approve
-                          {!readyToApprove && (
-                            <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                              Incomplete
-                            </span>
-                          )}
-                        </button>
-                      )}
-                      {/* Resubmit — only when not already VERIFIED */}
-                      {userData?.experienceStatus !== "VERIFIED" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowGlobalActions(false);
-                            setActionModal({
-                              isOpen: true,
-                              action: "resubmit",
-                            });
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
-                        >
-                          <FiRefreshCw className="w-4 h-4" />
-                          Resubmit
-                        </button>
-                      )}
-                      {/* Reject — only when not already VERIFIED or REJECTED */}
-                      {userData?.experienceStatus !== "VERIFIED" &&
-                        userData?.experienceStatus !== "REJECTED" && (
+                            onClick={async () => {
+                              setShowGlobalActions(false);
+                              setIsPendingAction(true);
+                              try {
+                                await adminVerifyExperience(
+                                  axiosInstance,
+                                  userData.id,
+                                );
+                                toast.success("Experience approved successfully");
+                                window.location.reload();
+                              } catch (error: any) {
+                                toast.error(
+                                  error.message ||
+                                    "Failed to approve experience",
+                                );
+                              } finally {
+                                setIsPendingAction(false);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+                              ${
+                                !readyToApprove
+                                  ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                                  : "text-green-700 hover:bg-green-50"
+                              }`}
+                          >
+                            <FiCheck className="w-4 h-4" />
+                            Approve
+                            {!readyToApprove && (
+                              <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                                Incomplete
+                              </span>
+                            )}
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => {
                               setShowGlobalActions(false);
                               setActionModal({
                                 isOpen: true,
-                                action: "reject",
+                                action: "resubmit",
                               });
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 transition"
                           >
-                            <XCircle className="w-4 h-4" />
-                            Reject
+                            <FiRefreshCw className="w-4 h-4" />
+                            Return all
                           </button>
-                        )}
+                        </>
+                      )}
+
+                      {/* CASE 2: Verified - Show Disapprove all */}
+                      {userData?.experienceStatus === "VERIFIED" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowGlobalActions(false);
+                            setActionModal({
+                              isOpen: true,
+                              action: "reject",
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Disapprove all
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2214,10 +2067,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                             {field.label}
                           </label>
                           {!isEditingFields &&
-                            isAdmin &&
-                            !(
-                              userType === "FUNDI" && field.name === "skill"
-                            ) && (
+                            isAdmin && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2231,40 +2081,78 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                             )}
                         </div>
 
-                        {isEditingFields &&
-                        !(userType === "FUNDI" && field.name === "skill") ? (
-                          <select
-                            value={
-                              editingFields[field.name] ?? fieldValue ?? ""
-                            }
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              setEditingFields((prev) => {
-                                const updated = {
-                                  ...prev,
-                                  [field.name]: newValue,
-                                };
-                                if (
-                                  field.name === "skill" ||
-                                  field.name === "profession" ||
-                                  field.name === "category"
-                                ) {
-                                  updated.specialization = "";
+                        {isEditingFields ? (
+                          <>
+                            {userType === "FUNDI" && field.name === "skill" ? (
+                              // FUNDI skill name - read only
+                              <p className="text-blue-900 font-bold text-sm">
+                                {fieldValue || "N/A"}
+                              </p>
+                            ) : userType === "FUNDI" && field.name === "specialization" ? (
+                              // Dynamic FUNDI specialization select
+                              <select
+                                value={editingFields[field.name] ?? fieldValue ?? ""}
+                                onChange={(e) => {
+                                  setEditingFields((prev) => ({
+                                    ...prev,
+                                    [field.name]: e.target.value,
+                                  }));
+                                }}
+                                disabled={!editingFields.skill || specsLoading}
+                                className="w-full p-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                              >
+                                <option value="" disabled>
+                                  {!editingFields.skill ? "Select a skill first" : specsLoading ? "Loading..." : "Select Specialization"}
+                                </option>
+                                {specializations.map((s: any) => {
+                                  const specName = typeof s === 'string' ? s : (s?.name || s?.label || s?.code || "");
+                                  const specId = s?.id || specName;
+                                  return (
+                                    <option key={specId} value={specName}>
+                                      {specName}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            ) : (
+                              // Regular select for other fields
+                              <select
+                                value={
+                                  editingFields[field.name] ?? fieldValue ?? ""
                                 }
-                                return updated;
-                              });
-                            }}
-                            className="w-full p-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                          >
-                            <option value="" disabled>
-                              Select {field.label.toLowerCase()}
-                            </option>
-                            {field.options.map((opt, i) => (
-                              <option key={i} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
+                                onChange={(e) => {
+                                  const newValue = e.target.value;
+                                  setEditingFields((prev) => {
+                                    const updated = {
+                                      ...prev,
+                                      [field.name]: newValue,
+                                    };
+                                    if (
+                                      field.name === "skill" ||
+                                      field.name === "profession" ||
+                                      field.name === "category"
+                                    ) {
+                                      updated.specialization = "";
+                                    }
+                                    return updated;
+                                  });
+                                }}
+                                className="w-full p-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                              >
+                                <option value="" disabled>
+                                  Select {field.label.toLowerCase()}
+                                </option>
+                                {field.options.map((opt, i) => {
+                                  const optValue = typeof opt === 'string' ? opt : (opt?.label || opt?.name || opt?.code || "");
+                                  return (
+                                    <option key={i} value={optValue}>
+                                      {optValue}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            )}
+                          </>
                         ) : (
                           <p className="text-blue-900 font-bold text-sm truncate">
                             {fieldValue || "N/A"}
@@ -2362,16 +2250,21 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                                 }
                               }
                             }}
+                            disabled={index === 0}
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select category</option>
-                            {Object.keys(CONTRACTOR_SPECIALIZATIONS).map(
-                              (cat, i) => (
-                                <option key={i} value={cat}>
-                                  {cat}
-                                </option>
-                              ),
-                            )}
+                            {fundiSkills.length > 0
+                              ? fundiSkills.map((skill, i) => (
+                                  <option key={i} value={skill.skillName}>
+                                    {skill.skillName}
+                                  </option>
+                                ))
+                              : Object.keys([]).map((cat, i) => (
+                                  <option key={i} value={cat}>
+                                    {cat}
+                                  </option>
+                                ))}
                           </select>
                         </div>
 
@@ -2394,9 +2287,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
                             {Array.from(
                               new Set(
                                 [
-                                  ...(CONTRACTOR_SPECIALIZATIONS[
-                                    cat.category as keyof typeof CONTRACTOR_SPECIALIZATIONS
-                                  ] || []),
+                                  ...(specializations || []).map((s: any) => 
+                                    typeof s === 'string' ? s : (s?.name || s?.label || s?.code || "")
+                                  ),
                                   cat.specialization,
                                 ].filter(Boolean),
                               ),

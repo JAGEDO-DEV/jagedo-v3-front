@@ -383,6 +383,7 @@ const AccountUploads = ({ data, refreshData }) => {
       krapin: "krapin",
       certificate: "certificateUrl",
       academicCertificate: "academicCertificateUrl",
+      cv: "cvUrl",
       cvUrl: "cvUrl",
       practiceLicense: "practiceLicense",
       businessPermit: "businessPermit",
@@ -423,7 +424,13 @@ const AccountUploads = ({ data, refreshData }) => {
     }
 
     const globalStatus =
-      data.documentStatus === "VERIFIED" ? "approved" : "pending";
+      data.documentStatus === "VERIFIED"
+        ? "approved"
+        : data.documentStatus === "REJECTED"
+          ? "rejected"
+          : data.documentStatus === "RESUBMIT"
+            ? "resubmit"
+            : "pending";
     const baseFields = defaultFields[userType] || [];
     baseFields.forEach((field) => {
       if (!statusMap[field.key]) {

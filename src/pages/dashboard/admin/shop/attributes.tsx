@@ -64,6 +64,36 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import AddAttributeForm from "./AddAttributeForm";
 
+const CATEGORY_SCOPE = "__category__";
+
+const normalizeText = (value?: string | null) =>
+    (value || "").trim().toLowerCase();
+
+const getSubcategoryNames = (category: any) => {
+    if (!category) return [];
+
+    if (Array.isArray(category.subCategory)) {
+        return category.subCategory
+            .map((sub: any) => {
+                if (typeof sub === "string") {
+                    return sub.trim();
+                }
+
+                return (sub?.name || "").trim();
+            })
+            .filter(Boolean);
+    }
+
+    if (typeof category.subCategory === "string") {
+        return category.subCategory
+            .split(",")
+            .map((sub: string) => sub.trim())
+            .filter(Boolean);
+    }
+
+    return [];
+};
+
 export default function ShopAttributes() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [attributes, setAttributes] = useState<Attribute[]>([]);
@@ -88,6 +118,21 @@ export default function ShopAttributes() {
         customerView: false
     });
     const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+    const [editSelectedSubcategory, setEditSelectedSubcategory] =
+        useState(CATEGORY_SCOPE);
+
+    const selectedEditCategory = availableCategories.find(
+        (category) => category.id.toString() === editFormData.categoryId,
+    );
+    const editSubcategoryOptions = getSubcategoryNames(selectedEditCategory);
+    const hasLegacyEditSubcategory =
+        editSelectedSubcategory !== CATEGORY_SCOPE &&
+        !!editSelectedSubcategory &&
+        !editSubcategoryOptions.some(
+            (subCategory) =>
+                normalizeText(subCategory) ===
+                normalizeText(editSelectedSubcategory),
+        );
 
     const categories = [
         { label: "Hardware", type: "HARDWARE" },
@@ -147,8 +192,47 @@ export default function ShopAttributes() {
         }
     );
 
+    const renderAttributeValues = (values: string) => {
+        const items = (values || "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (items.length === 0) {
+            return <span className="text-sm text-muted-foreground">N/A</span>;
+        }
+
+        return (
+            <div className="flex flex-wrap gap-1.5">
+                {items.map((value, index) => (
+                    <Badge
+                        key={`${value}-${index}`}
+                        variant="outline"
+                        className="max-w-full whitespace-normal break-words rounded-md border-slate-200 bg-slate-50 text-slate-700"
+                    >
+                        {value}
+                    </Badge>
+                ))}
+            </div>
+        );
+    };
+
     const handleEditAttribute = (attribute: Attribute) => {
+        const selectedCategory = availableCategories.find(
+            (category) =>
+                category.id.toString() ===
+                attribute.categoryId?.toString(),
+        );
+        const categoryName = selectedCategory?.name || "";
+        const usesCategoryScope =
+            !attribute.attributeGroup ||
+            normalizeText(attribute.attributeGroup) ===
+                normalizeText(categoryName);
+
         setEditingAttribute(attribute);
+        setEditSelectedSubcategory(
+            usesCategoryScope ? CATEGORY_SCOPE : attribute.attributeGroup,
+        );
         setEditFormData({
             type: attribute.type,
             productType: attribute.productType,
@@ -169,7 +253,8 @@ export default function ShopAttributes() {
         const isDuplicate = attributes.some((attr) =>
             attr.id !== editingAttribute.id &&
             attr.type.toLowerCase().trim() === editFormData.type.toLowerCase().trim() &&
-            attr.productType === editFormData.productType
+            normalizeText(attr.productType) === normalizeText(editFormData.productType) &&
+            normalizeText(attr.attributeGroup) === normalizeText(editFormData.attributeGroup)
         );
 
         if (isDuplicate) {
@@ -328,24 +413,25 @@ export default function ShopAttributes() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                    <Table className="min-w-[1180px] table-fixed">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>No</TableHead>
-                                <TableHead>Attribute Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Attribute Values</TableHead>
-                                <TableHead>Is Required</TableHead>
-                                <TableHead>Is Filterable</TableHead>
-                                <TableHead>Show To Customers</TableHead>
-                                <TableHead>Actions</TableHead>
+                                <TableHead className="w-14">No</TableHead>
+                                <TableHead className="w-[200px]">Attribute Name</TableHead>
+                                <TableHead className="w-[140px]">Input Type</TableHead>
+                                <TableHead className="w-[220px]">Category</TableHead>
+                                <TableHead className="w-[320px]">Attribute Values</TableHead>
+                                <TableHead className="w-[120px]">Status</TableHead>
+                                <TableHead className="w-[130px]">Filterable</TableHead>
+                                <TableHead className="w-[150px]">Customer View</TableHead>
+                                <TableHead className="w-[90px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="text-center py-8"
                                     >
                                         Loading attributes...
@@ -354,7 +440,7 @@ export default function ShopAttributes() {
                             ) : filteredAttributes?.length == 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         No attributes found
@@ -366,21 +452,25 @@ export default function ShopAttributes() {
                                         key={attribute.id}
                                         className={!attribute.active ? "bg-gray-100 opacity-60 grayscale" : ""}
                                     >
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell className="font-medium">
+                                        <TableCell className="align-top text-muted-foreground">
+                                            {index + 1}
+                                        </TableCell>
+                                        <TableCell className="align-top font-medium whitespace-normal break-words">
                                             {attribute.type}
                                         </TableCell>
-                                        <TableCell>
-                                            {attribute.attributeType || "text"}
+                                        <TableCell className="align-top">
+                                            <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate-700">
+                                                {attribute.attributeType || "text"}
+                                            </span>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top whitespace-normal break-words text-sm text-slate-700">
                                             {/* @ts-ignore */}
                                             {attribute.category?.name || attribute.attributeGroup || "N/A"}
                                         </TableCell>
-                                        <TableCell>
-                                            {attribute.values || "N/A"}
+                                        <TableCell className="align-top whitespace-normal">
+                                            {renderAttributeValues(attribute.values)}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.active
@@ -389,11 +479,11 @@ export default function ShopAttributes() {
                                                 }
                                             >
                                                 {attribute.active
-                                                    ? "Yes"
+                                                    ? "Active"
                                                     : "Inactive"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.filterable
@@ -406,7 +496,7 @@ export default function ShopAttributes() {
                                                     : "No"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.customerView
@@ -419,7 +509,7 @@ export default function ShopAttributes() {
                                                     : "No"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
@@ -597,6 +687,7 @@ export default function ShopAttributes() {
                                 value={editFormData.categoryId}
                                 onValueChange={(value) => {
                                     const selectedCat = availableCategories.find(c => c.id.toString() === value);
+                                    setEditSelectedSubcategory(CATEGORY_SCOPE);
                                     setEditFormData({
                                         ...editFormData,
                                         //@ts-ignore
@@ -620,6 +711,48 @@ export default function ShopAttributes() {
                                                 {cat.name}
                                             </SelectItem>
                                         ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-sub-category">Sub-category (Optional)</Label>
+                            <Select
+                                value={editSelectedSubcategory}
+                                onValueChange={(value) => {
+                                    setEditSelectedSubcategory(value);
+                                    setEditFormData({
+                                        ...editFormData,
+                                        attributeGroup:
+                                            value === CATEGORY_SCOPE
+                                                ? selectedEditCategory?.name || ""
+                                                : value
+                                    });
+                                }}
+                                disabled={!selectedEditCategory || editSubcategoryOptions.length === 0}
+                            >
+                                <SelectTrigger id="edit-sub-category">
+                                    <SelectValue
+                                        placeholder={
+                                            selectedEditCategory
+                                                ? "Choose scope"
+                                                : "Select a category first"
+                                        }
+                                    />
+                                </SelectTrigger>
+                                <SelectContent className='bg-white'>
+                                    <SelectItem value={CATEGORY_SCOPE}>
+                                        Entire category
+                                    </SelectItem>
+                                    {hasLegacyEditSubcategory && (
+                                        <SelectItem value={editSelectedSubcategory}>
+                                            {editSelectedSubcategory}
+                                        </SelectItem>
+                                    )}
+                                    {editSubcategoryOptions.map((subCategory) => (
+                                        <SelectItem key={subCategory} value={subCategory}>
+                                            {subCategory}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

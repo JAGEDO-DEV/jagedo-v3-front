@@ -20,6 +20,9 @@ import { verifyOtp, verifyEmail } from "@/api/auth.api";
 import { counties } from "@/pages/data/counties";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { getPasswordStrength } from "./PasswordStrength";
+import axios from "axios";
+import { getBuilderSkillsByType } from "@/api/builderSkillsApi.api";
+import { getAuthHeaders } from "@/utils/auth";
 
 interface ProviderSignupFormProps {
   currentStep: number;
@@ -59,27 +62,58 @@ export function ProviderSignupForm({
   const lastVerifiedOtp = useRef<string>("");
   const [professionSearch, setProfessionSearch] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [fundiSkills, setFundiSkills] = useState<any[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [professionalSkills, setProfessionalSkills] = useState<any[]>([]);
+  const [contractorSkills, setContractorSkills] = useState<any[]>([]);
+  const [hardwareSkills, setHardwareSkills] = useState<any[]>([]);
+  const [otherSkillsLoading, setOtherSkillsLoading] = useState(false);
+  const [otherSkillsError, setOtherSkillsError] = useState<string | null>(null);
 
-  const professions = [
-    "Architect",
-    "Construction Manager",
-    "Electrical Engineer",
-    "Environment Officer",
-    "Geotechnical Engineer",
-    "Geologist",
-    "Hydrologist",
-    "Interior Designer",
-    "Land Surveyor",
-    "Landscape Architect",
-    "Mechanical Engineer",
-    "Project Manager",
-    "Quantity Surveyor",
-    "Roads Engineer",
-    "Safety Officer",
-    "Structural Engineer",
-    "Topo Surveyor",
-    "Water Engineer",
-  ];
+  // Fetch active skills for all provider types on component mount
+  useEffect(() => {
+    const fetchAllSkills = async () => {
+      try {
+        setSkillsLoading(true);
+        setOtherSkillsLoading(true);
+        const axiosInstance = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+        
+        // Fetch all provider type skills in parallel
+        const [fundiRes, professionalRes, contractorRes, hardwareRes] = await Promise.all([
+          getBuilderSkillsByType(axiosInstance, "FUNDI"),
+          getBuilderSkillsByType(axiosInstance, "PROFESSIONAL"),
+          getBuilderSkillsByType(axiosInstance, "CONTRACTOR"),
+          getBuilderSkillsByType(axiosInstance, "HARDWARE"),
+        ]);
+        
+        // Filter only active skills for each type
+        setFundiSkills(fundiRes.filter((skill: any) => skill.isActive !== false));
+        setProfessionalSkills(professionalRes.filter((skill: any) => skill.isActive !== false));
+        setContractorSkills(contractorRes.filter((skill: any) => skill.isActive !== false));
+        setHardwareSkills(hardwareRes.filter((skill: any) => skill.isActive !== false));
+        
+        setSkillsError(null);
+        setOtherSkillsError(null);
+      } catch (error: any) {
+        console.error("Failed to load skills:", error);
+        setSkillsError("Failed to load FUNDI skills. Please try again.");
+        setOtherSkillsError("Failed to load skills. Please try again.");
+        setFundiSkills([]);
+        setProfessionalSkills([]);
+        setContractorSkills([]);
+        setHardwareSkills([]);
+      } finally {
+        setSkillsLoading(false);
+        setOtherSkillsLoading(false);
+      }
+    };
+
+    fetchAllSkills();
+  }, []);
+
   const levenshtein = (a: string, b: string): number => {
     const dp = Array.from({ length: a.length + 1 }, (_, i) =>
       Array.from({ length: b.length + 1 }, (_, j) =>
@@ -552,27 +586,24 @@ export function ProviderSignupForm({
                     value={formData.skills || ""}
                     onValueChange={(value) => updateFormData({ skills: value })}
                   >
-                    <SelectTrigger id="skill">
-                      <SelectValue placeholder="Choose your skill" />
+                    <SelectTrigger id="skill" disabled={skillsLoading}>
+                      <SelectValue placeholder={skillsLoading ? "Loading skills..." : "Choose your skill"} />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
-                      <SelectItem value="carpenter">Carpenter</SelectItem>
-                      <SelectItem value="electrician">Electrician</SelectItem>
-                      <SelectItem value="fitter">Fitter</SelectItem>
-                      <SelectItem value="foreman">Foreman</SelectItem>
-                      <SelectItem value="glass-aluminium-fitter">
-                        Glass/Aluminium Fitter
-                      </SelectItem>
-                      <SelectItem value="interior-skimmer">
-                        Interior Skimmer
-                      </SelectItem>
-                      <SelectItem value="mason">Mason</SelectItem>
-                      <SelectItem value="painter">Painter</SelectItem>
-                      <SelectItem value="plumber">Plumber</SelectItem>
-                      <SelectItem value="roofer">Roofer</SelectItem>
-                      <SelectItem value="steel-fixer">Steel Fixer</SelectItem>
-                      <SelectItem value="tile-fixer">Tile Fixer</SelectItem>
-                      <SelectItem value="welder">Welder</SelectItem>
+                      {skillsError && (
+                        <div className="p-2 text-red-600 text-sm">{skillsError}</div>
+                      )}
+                      {fundiSkills.length > 0 ? (
+                        fundiSkills.map((skill: any) => (
+                          <SelectItem key={skill.id} value={skill.skillName}>
+                            {skill.skillName}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-gray-600 text-sm">
+                          {skillsLoading ? "Loading..." : "No active skills available"}
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -601,32 +632,39 @@ export function ProviderSignupForm({
                       updateFormData({ profession: value })
                     }
                   >
-                    <SelectTrigger id="profession">
-                      <SelectValue placeholder="Choose your profession" />
+                    <SelectTrigger id="profession" disabled={otherSkillsLoading}>
+                      <SelectValue placeholder={otherSkillsLoading ? "Loading professions..." : "Choose your profession"} />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
-                      <div className="p-2">
-                        <input
-                          type="text"
-                          placeholder="Search profession..."
-                          value={professionSearch}
-                          onChange={(e) => setProfessionSearch(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="max-h-60 overflow-y-auto">
-                        {professions
-                          .filter((profession) =>
-                            profession
-                              .toLowerCase()
-                              .includes(professionSearch.toLowerCase()),
-                          )
-                          .map((profession) => (
-                            <SelectItem key={profession} value={profession}>
-                              {profession}
-                            </SelectItem>
-                          ))}
-                      </div>
+                      {otherSkillsError && (
+                        <div className="p-2 text-red-600 text-sm">{otherSkillsError}</div>
+                      )}
+                      {professionalSkills.length > 0 ? (
+                        <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                          <input
+                            type="text"
+                            placeholder="Search profession..."
+                            value={professionSearch}
+                            onChange={(e) => setProfessionSearch(e.target.value)}
+                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          {professionalSkills
+                            .filter((skill: any) =>
+                              skill.skillName
+                                .toLowerCase()
+                                .includes(professionSearch.toLowerCase())
+                            )
+                            .map((skill: any) => (
+                              <SelectItem key={skill.id} value={skill.skillName}>
+                                {skill.skillName}
+                              </SelectItem>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="p-2 text-gray-600 text-sm">
+                          {otherSkillsLoading ? "Loading..." : "No active professions available"}
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -634,13 +672,6 @@ export function ProviderSignupForm({
             </div>
           );
         } else if (providerType === "CONTRACTOR") {
-          const contractorTypeOptions = [
-            { value: "building-works", label: "Building Works" },
-            { value: "mechanical-works", label: "Mechanical Works" },
-            { value: "electrical-works", label: "Electrical Works" },
-            { value: "water-works", label: "Water Works" },
-            { value: "road-works", label: "Road and other Civil Works" },
-          ];
           const selectedContractorTypes = formData.contractorTypes
             ? formData.contractorTypes.split(",").filter(Boolean)
             : [];
@@ -674,30 +705,38 @@ export function ProviderSignupForm({
                     Select contractor types (you can select multiple)
                   </Label>
                   <div className="w-full max-w-md space-y-2">
-                    {contractorTypeOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                          selectedContractorTypes.includes(option.value)
-                            ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => handleContractorTypeToggle(option.value)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`font-medium ${selectedContractorTypes.includes(option.value) ? "text-[rgb(0,0,122)]" : "text-gray-700"}`}
-                          >
-                            {option.label}
-                          </span>
-                          {selectedContractorTypes.includes(option.value) && (
-                            <span className="text-[rgb(0,0,122)] font-bold">
-                              ✓
+                    {otherSkillsLoading ? (
+                      <div className="text-gray-600 text-sm p-4">Loading contractor types...</div>
+                    ) : otherSkillsError ? (
+                      <div className="text-red-600 text-sm p-4">{otherSkillsError}</div>
+                    ) : contractorSkills.length > 0 ? (
+                      contractorSkills.map((skill: any) => (
+                        <div
+                          key={skill.id}
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            selectedContractorTypes.includes(skill.skillName)
+                              ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                          onClick={() => handleContractorTypeToggle(skill.skillName)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`font-medium ${selectedContractorTypes.includes(skill.skillName) ? "text-[rgb(0,0,122)]" : "text-gray-700"}`}
+                            >
+                              {skill.skillName}
                             </span>
-                          )}
+                            {selectedContractorTypes.includes(skill.skillName) && (
+                              <span className="text-[rgb(0,0,122)] font-bold">
+                                ✓
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-gray-600 text-sm p-4">No active contractor types available</div>
+                    )}
                   </div>
                   {selectedContractorTypes.length > 0 && (
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg w-full max-w-md">
@@ -705,29 +744,24 @@ export function ProviderSignupForm({
                         Selected types:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {selectedContractorTypes.map((type) => {
-                          const option = contractorTypeOptions.find(
-                            (opt) => opt.value === type,
-                          );
-                          return (
-                            <span
-                              key={type}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[rgb(0,0,122)] text-white"
+                        {selectedContractorTypes.map((type) => (
+                          <span
+                            key={type}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[rgb(0,0,122)] text-white"
+                          >
+                            {type}
+                            <button
+                              type="button"
+                              className="ml-1 text-white hover:text-gray-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleContractorTypeToggle(type);
+                              }}
                             >
-                              {option?.label}
-                              <button
-                                type="button"
-                                className="ml-1 text-white hover:text-gray-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleContractorTypeToggle(type);
-                                }}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
+                              ×
+                            </button>
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -736,13 +770,6 @@ export function ProviderSignupForm({
             </div>
           );
         } else if (providerType === "HARDWARE") {
-          const hardwareTypeOptions = [
-            { value: "electronics", label: "Electronics Hardware" },
-            { value: "mechanical", label: "Mechanical Hardware" },
-            { value: "industrial", label: "Industrial Hardware" },
-            { value: "general", label: "General Hardware" },
-            { value: "aggregate", label: "Aggregate Supplier" },
-          ];
           const selectedHardwareTypes = formData.hardwareTypes
             ? formData.hardwareTypes.split(",").filter(Boolean)
             : [];
@@ -776,30 +803,38 @@ export function ProviderSignupForm({
                     Select hardware types (you can select multiple)
                   </Label>
                   <div className="w-full max-w-md space-y-2 max-h-64 overflow-y-auto">
-                    {hardwareTypeOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                          selectedHardwareTypes.includes(option.value)
-                            ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => handleHardwareTypeToggle(option.value)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`font-medium ${selectedHardwareTypes.includes(option.value) ? "text-[rgb(0,0,122)]" : "text-gray-700"}`}
-                          >
-                            {option.label}
-                          </span>
-                          {selectedHardwareTypes.includes(option.value) && (
-                            <span className="text-[rgb(0,0,122)] font-bold">
-                              ✓
+                    {otherSkillsLoading ? (
+                      <div className="text-gray-600 text-sm p-4">Loading hardware types...</div>
+                    ) : otherSkillsError ? (
+                      <div className="text-red-600 text-sm p-4">{otherSkillsError}</div>
+                    ) : hardwareSkills.length > 0 ? (
+                      hardwareSkills.map((skill: any) => (
+                        <div
+                          key={skill.id}
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            selectedHardwareTypes.includes(skill.skillName)
+                              ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                          onClick={() => handleHardwareTypeToggle(skill.skillName)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`font-medium ${selectedHardwareTypes.includes(skill.skillName) ? "text-[rgb(0,0,122)]" : "text-gray-700"}`}
+                            >
+                              {skill.skillName}
                             </span>
-                          )}
+                            {selectedHardwareTypes.includes(skill.skillName) && (
+                              <span className="text-[rgb(0,0,122)] font-bold">
+                                ✓
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-gray-600 text-sm p-4">No active hardware types available</div>
+                    )}
                   </div>
                   {selectedHardwareTypes.length > 0 && (
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg w-full max-w-md">
@@ -807,29 +842,24 @@ export function ProviderSignupForm({
                         Selected types:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {selectedHardwareTypes.map((type) => {
-                          const option = hardwareTypeOptions.find(
-                            (opt) => opt.value === type,
-                          );
-                          return (
-                            <span
-                              key={type}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[rgb(0,0,122)] text-white"
+                        {selectedHardwareTypes.map((type) => (
+                          <span
+                            key={type}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[rgb(0,0,122)] text-white"
+                          >
+                            {type}
+                            <button
+                              type="button"
+                              className="ml-1 text-white hover:text-gray-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleHardwareTypeToggle(type);
+                              }}
                             >
-                              {option?.label}
-                              <button
-                                type="button"
-                                className="ml-1 text-white hover:text-gray-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleHardwareTypeToggle(type);
-                                }}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
+                              ×
+                            </button>
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}

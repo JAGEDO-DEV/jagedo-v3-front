@@ -4,10 +4,12 @@ export interface BuilderSkill {
   id: number;
   skillName: string;
   builderType: BuilderType;
+  specializations?: string[];
   createdAt: string;
   createdBy: string;
   approvedBy: string;
   approvedDate: string | null;
+  isActive?: boolean;
 }
 
 export const BUILDER_TYPES: BuilderType[] = [

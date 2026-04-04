@@ -352,6 +352,92 @@ const ProductPreviewModal = ({
     document.body, 
   );
 };
+
+const normalizeText = (value?: string | null) =>
+  (value || "").trim().toLowerCase();
+
+const extractSubcategoryNames = (category: any) => {
+  if (!category) return [];
+
+  if (Array.isArray(category.subCategory)) {
+    return category.subCategory
+      .map((sub: any) => {
+        if (typeof sub === "string") {
+          return sub.trim();
+        }
+
+        return (sub?.name || "").trim();
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof category.subCategory === "string") {
+    return category.subCategory
+      .split(",")
+      .map((sub: string) => sub.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const mergeUniqueAttributes = (...attributeGroups: Attribute[][]) => {
+  const seenTypes = new Set<string>();
+
+  return attributeGroups.flat().filter((attribute) => {
+    const attributeKey =
+      normalizeText(attribute?.type) || String(attribute?.id || "");
+
+    if (seenTypes.has(attributeKey)) {
+      return false;
+    }
+
+    seenTypes.add(attributeKey);
+    return true;
+  });
+};
+
+const getRelevantAttributes = ({
+  attributes,
+  productType,
+  category,
+  subcategory,
+}: {
+  attributes: Attribute[];
+  productType: string;
+  category: string;
+  subcategory: string;
+}) => {
+  const normalizedType = normalizeText(productType);
+  const normalizedCategory = normalizeText(category);
+  const normalizedSubcategory = normalizeText(subcategory);
+
+  const activeTypeAttributes = attributes.filter(
+    (attribute) =>
+      attribute?.active &&
+      normalizeText(attribute.productType) === normalizedType,
+  );
+
+  const globalAttributes = activeTypeAttributes.filter(
+    (attribute) => !normalizeText(attribute.attributeGroup),
+  );
+
+  const subcategoryAttributes = activeTypeAttributes.filter(
+    (attribute) =>
+      normalizeText(attribute.attributeGroup) === normalizedSubcategory,
+  );
+
+  if (normalizedSubcategory && subcategoryAttributes.length > 0) {
+    return mergeUniqueAttributes(subcategoryAttributes, globalAttributes);
+  }
+
+  const categoryAttributes = activeTypeAttributes.filter(
+    (attribute) => normalizeText(attribute.attributeGroup) === normalizedCategory,
+  );
+
+  return mergeUniqueAttributes(categoryAttributes, globalAttributes);
+};
+
 export default function AddProductForm({
   onBack,
   onSuccess,
@@ -430,6 +516,18 @@ export default function AddProductForm({
             });
           }
 
+          console.log("📥 Categories fetched for product form:", {
+            totalCount: filteredCategories.length,
+            categories: filteredCategories.map(c => ({
+              name: c.name,
+              type: c.type,
+              subCategoryCount: Array.isArray(c.subCategory) ? c.subCategory.length : 0,
+              subCategories: Array.isArray(c.subCategory) 
+                ? c.subCategory.map(s => typeof s === "string" ? s : s?.name)
+                : [],
+            })),
+          });
+
           setCategories(filteredCategories);
         } else {
           toast.error("Failed to fetch categories");
@@ -471,16 +569,19 @@ export default function AddProductForm({
           (cat: any) => cat.name === value,
         );
         if (selectedCategory) {
-          const subs = Array.isArray(selectedCategory.subCategory) ? selectedCategory.subCategory : [];
+          const subs = extractSubcategoryNames(selectedCategory);
+          
           setSubcategoryOptions(subs);
-          updated.subcategory = subs.length > 0 ? subs[0] : "";
+          updated.subcategory = subs.includes(updated.subcategory)
+            ? updated.subcategory
+            : subs[0] || "";
           
+          console.log("📦 Subcategories loaded for category:", {
+            category: value,
+            subCategoryCount: subs.length,
+            options: subs,
+          });
           
-          const relevantAttributes = allAttributes.filter(attr => 
-            attr.attributeGroup === value || 
-            (attr.active && attr.productType === updated.type && !attr.attributeGroup)
-          );
-          setFilteredAttributes(relevantAttributes);
         } else {
           setSubcategoryOptions([]);
           updated.subcategory = "";
@@ -593,6 +694,7 @@ export default function AddProductForm({
         description: formData.description,
         type: formData.type,
         category: formData.category,
+        subcategory: formData.subcategory,
         bId: formData.bId,
         sku: formData.sku,
         material: formData.material,
@@ -602,11 +704,22 @@ export default function AddProductForm({
         images: imageUrls,
       };
 
+      console.log("📤 Product submission data:", {
+        name: submitData.name,
+        type: submitData.type,
+        category: submitData.category,
+        subcategory: submitData.subcategory,
+        sku: submitData.sku,
+        imagesCount: imageUrls.length,
+      });
+
       if (isEditMode && product) {
         await updateProduct(axiosInstance, product.id, submitData);
+        console.log("✅ Product updated successfully");
         toast.success("Product updated successfully");
       } else {
         await createProductAdmin(axiosInstance, submitData);
+        console.log("✅ Product created successfully");
         toast.success("Product created successfully");
       }
 
@@ -640,6 +753,7 @@ export default function AddProductForm({
         description: formData.description,
         type: formData.type,
         category: formData.category,
+        subcategory: formData.subcategory,
         bId: formData.bId,
         sku: formData.sku,
         material: formData.material,
@@ -650,7 +764,15 @@ export default function AddProductForm({
         status: "DRAFT", 
       };
 
+      console.log("📋 Saving product as draft:", {
+        name: submitData.name,
+        category: submitData.category,
+        subcategory: submitData.subcategory,
+        status: submitData.status,
+      });
+
       await createProductAdmin(axiosInstance, submitData);
+      console.log("✅ Product saved as draft successfully");
       toast.success("Product saved as draft.");
       onSuccess();
     } catch (error: any) {
@@ -664,6 +786,16 @@ export default function AddProductForm({
   useEffect(() => {
     fetchCategories();
     fetchAttributes();
+    
+    if (isEditMode && product) {
+      console.log("📥 Loading product for edit:", {
+        productId: product.id,
+        productName: product.name,
+        type: product.type,
+        category: product.category,
+        subcategory: product.subcategory,
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -682,14 +814,20 @@ export default function AddProductForm({
   }, [formData.type, isEditMode]);
 
   useEffect(() => {
-    if (formData.category && allAttributes.length > 0) {
-      const relevantAttributes = allAttributes.filter(attr => 
-        attr.attributeGroup === formData.category || 
-        (attr.active && attr.productType === formData.type && !attr.attributeGroup)
-      );
-      setFilteredAttributes(relevantAttributes);
+    if (!formData.category || allAttributes.length === 0) {
+      setFilteredAttributes([]);
+      return;
     }
-  }, [formData.category, allAttributes, formData.type]);
+
+    setFilteredAttributes(
+      getRelevantAttributes({
+        attributes: allAttributes,
+        productType: formData.type,
+        category: formData.category,
+        subcategory: formData.subcategory,
+      }),
+    );
+  }, [formData.category, formData.subcategory, allAttributes, formData.type]);
 
   useEffect(() => {
     if (isEditMode && product?.category && categories.length > 0) {
@@ -703,10 +841,18 @@ export default function AddProductForm({
         }));
       }
 
-      
       const selected = categories.find(c => c.name === (product.category || formData.category));
-      if (selected && Array.isArray(selected.subCategory)) {
-        setSubcategoryOptions(selected.subCategory);
+      if (selected) {
+        const subs = extractSubcategoryNames(selected);
+        
+        setSubcategoryOptions(subs);
+        
+        console.log("📦 Subcategories loaded for edit mode:", {
+          category: product.category || formData.category,
+          subCategoryCount: subs.length,
+          options: subs,
+          currentSubcategory: product.subcategory,
+        });
       }
     }
   }, [categories, isEditMode, product]);

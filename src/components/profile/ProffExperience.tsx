@@ -9,6 +9,11 @@ import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { PROFESSIONAL_USER } from "@/data/professionalGuidelines";
+import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
+import { getMasterDataValues } from "@/api/masterData";
+import { normalizeSkillName } from "@/utils/skillNameUtils";
+import axios from "axios";
+import { getAuthHeaders } from "@/utils/auth";
 
 
 interface FileItem {
@@ -36,6 +41,13 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [submitted, setSubmitted] = useState(false);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Dynamic professional skills and specializations
+    const [professionalSkills, setProfessionalSkills] = useState<any[]>([]);
+    const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
+    const [specializations, setSpecializations] = useState<any[]>([]);
+    const [skillsLoading, setSkillsLoading] = useState(false);
+    const [specsLoading, setSpecsLoading] = useState(false);
 
     const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
@@ -106,6 +118,71 @@ const ProffExperience = ({ data, refreshData }: any) => {
             setIsLoadingProfile(false);
         }
     }, [data]);
+
+    // ── Load Professional skills and specialization mappings on mount ────────────────
+    useEffect(() => {
+        const loadSkillsAndMappings = async () => {
+            try {
+                setSkillsLoading(true);
+                const authAxios = axios.create({
+                    headers: { Authorization: getAuthHeaders() },
+                });
+                
+                // Get all Professional skills
+                const skillsRes = await getBuilderSkillsByType(authAxios, 'PROFESSIONAL');
+                const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
+                setProfessionalSkills(activeSkills);
+                
+                // Get specialization mappings for Professional
+                const mappingsRes = await getSpecializationMappings(authAxios, 'PROFESSIONAL');
+                setSpecMappings(mappingsRes);
+            } catch (error) {
+                console.error('Failed to load Professional skills:', error);
+                toast.error('Failed to load skills');
+            } finally {
+                setSkillsLoading(false);
+            }
+        };
+        
+        loadSkillsAndMappings();
+    }, []);
+
+    // ── Load specializations when category changes ───────────────────────────────
+    useEffect(() => {
+        const loadSpecializations = async () => {
+            if (!category) {
+                setSpecializations([]);
+                return;
+            }
+            
+            const normalizedCategory = normalizeSkillName(category);
+            if (!specMappings[normalizedCategory]) {
+                setSpecializations([]);
+                return;
+            }
+            
+            try {
+                setSpecsLoading(true);
+                const authAxios = axios.create({
+                    headers: { Authorization: getAuthHeaders() },
+                });
+                
+                const specTypeCode = specMappings[normalizedCategory];
+                const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+                
+                // Handle both array and wrapped responses
+                const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+                setSpecializations(specs);
+            } catch (error) {
+                console.error('Failed to load specializations:', error);
+                setSpecializations([]);
+            } finally {
+                setSpecsLoading(false);
+            }
+        };
+        
+        loadSpecializations();
+    }, [category, specMappings]);
 
     const rowsToShow = useMemo(() => {
         return (GUIDELINES.projectsByLevel as any)[level] ?? 0;
@@ -235,13 +312,21 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                             setCategory(e.target.value);
                                             setSpecialization(""); 
                                         }}
-                                        disabled={isReadOnly}
+                                        disabled={isReadOnly || skillsLoading}
                                         className={inputStyles}
                                     >
                                         <option value="">Select Category</option>
-                                        {GUIDELINES.categories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
+                                        {/* Use dynamic skills if available, otherwise fall back to guidelines */}
+                                        {(professionalSkills.length > 0 
+                                            ? professionalSkills.map(skill => (
+                                                <option key={skill.id || skill.skillName} value={skill.skillName}>
+                                                    {skill.skillName}
+                                                </option>
+                                            ))
+                                            : GUIDELINES.categories.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                                 <div>
@@ -249,13 +334,25 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                     <select
                                         value={specialization}
                                         onChange={(e) => setSpecialization(e.target.value)}
-                                        disabled={isReadOnly || !category}
+                                        disabled={isReadOnly || !category || specsLoading}
                                         className={inputStyles}
                                     >
                                         <option value="">Select Specialty</option>
-                                        {((GUIDELINES.specializations as any)[category] || []).map((spec: string) => (
-                                            <option key={spec} value={spec}>{spec}</option>
-                                        ))}
+                                        {/* Use dynamic specializations if available, otherwise fall back to guidelines */}
+                                        {(specializations.length > 0
+                                            ? specializations.map((spec: any) => {
+                                                const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.name || spec);
+                                                const specLabel = typeof spec === 'string' ? spec : (spec?.label || spec?.name || spec);
+                                                return (
+                                                    <option key={specValue} value={specValue}>
+                                                        {specLabel}
+                                                    </option>
+                                                );
+                                            })
+                                            : ((GUIDELINES.specializations as any)[category] || []).map((spec: string) => (
+                                                <option key={spec} value={spec}>{spec}</option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
                             </div>

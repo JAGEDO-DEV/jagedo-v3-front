@@ -42,7 +42,7 @@ import {
   CheckCircle,
   XCircle,
   MoreHorizontal,
-  X,
+  X,ChevronRight, ChevronDown 
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -54,6 +54,26 @@ import {
   Category,
 } from "@/api/categories.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+
+// ✅ SubCategory Item Interface
+interface SubCategoryItem {
+  id: string;
+  name: string;
+  urlKey: string;
+  metaTitle: string;
+  metaKeywords: string;
+}
+
+// ✅ Edit Category Data Interface
+interface EditCategoryData {
+  id: number | string;
+  name: string;
+  subCategory: SubCategoryItem[];
+  urlKey: string;
+  metaTitle: string;
+  metaKeywords: string;
+  type: string;
+}
 
 export default function ShopCategories() {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -80,15 +100,7 @@ export default function ShopCategories() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedCategoryType, setSelectedCategoryType] = useState("HARDWARE");
 
-  const [editCategoryData, setEditCategoryData] = useState<{
-    id: number | string;
-    name: string;
-    subCategory: string[];
-    urlKey: string;
-    metaTitle: string;
-    metaKeywords: string;
-    type: string;
-  }>({
+  const [editCategoryData, setEditCategoryData] = useState<EditCategoryData>({
     id: 0,
     name: "",
     subCategory: [],
@@ -143,6 +155,20 @@ export default function ShopCategories() {
       if (response.success) {
         
         const categoryData = (response.data || response.hashSet || []) as Category[];
+        
+        console.log("📥 Categories fetched from API:", {
+          totalCount: categoryData.length,
+          categories: categoryData.map(c => ({
+            id: c.id,
+            name: c.name,
+            subCategoryCount: Array.isArray(c.subCategory) ? c.subCategory.length : 0,
+            subCategories: c.subCategory,
+            urlKey: c.urlKey,
+            metaTitle: c.metaTitle,
+            metaKeywords: c.metaKeywords,
+          })),
+        });
+        
         setCategories(categoryData);
       } else {
         toast.error("Failed to fetch categories");
@@ -156,12 +182,47 @@ export default function ShopCategories() {
   }, []);
 
   const handleEditCategory = (category: Category) => {
-    let existingSub = [];
+    let existingSub: SubCategoryItem[] = [];
     if (Array.isArray(category.subCategory)) {
-      existingSub = category.subCategory;
+      // Convert all subcategories to object format for consistency
+      existingSub = category.subCategory.map((sub: any) => {
+        if (typeof sub === "string") {
+          // Legacy string format - convert to object
+          return {
+            id: `sub-${Date.now()}-${Math.random()}`,
+            name: sub,
+            urlKey: "",
+            metaTitle: "",
+            metaKeywords: "",
+          } as SubCategoryItem;
+        }
+        // Already object format - ensure all fields exist
+        const subObj = sub as Partial<SubCategoryItem> || {};
+        return {
+          id: subObj.id || `sub-${Date.now()}-${Math.random()}`,
+          name: subObj.name || "",
+          urlKey: subObj.urlKey || "",
+          metaTitle: subObj.metaTitle || "",
+          metaKeywords: subObj.metaKeywords || "",
+        } as SubCategoryItem;
+      });
     } else if (typeof category.subCategory === "string" && (category.subCategory as string).trim() !== "") {
-      existingSub = (category.subCategory as string).split(",").map(s => s.trim());
+      // Legacy string format from API
+      existingSub = (category.subCategory as string).split(",").map((s, i) => ({
+        id: `sub-${i}-${Date.now()}`,
+        name: s.trim(),
+        urlKey: "",
+        metaTitle: "",
+        metaKeywords: "",
+      }));
     }
+
+    console.log("📋 Loading category for edit:", {
+      categoryId: category.id,
+      categoryName: category.name,
+      subCategoryCount: existingSub.length,
+      subCategories: existingSub,
+    });
 
     setEditCategoryData({
       id: category.id,
@@ -180,23 +241,52 @@ export default function ShopCategories() {
   const handleAddSubCategoryTag = () => {
     const val = newSubCategoryInput.trim();
     if (!val) return;
+    
+    // Extract names from existing subcategories (all should be objects in editCategoryData)
+    const existingNames = editCategoryData.subCategory.map((s) => s.name);
+    
+    console.log("🔍 Adding subcategory during edit:", {
+      newName: val,
+      existingNames,
+      currentSubCategoriesCount: editCategoryData.subCategory.length,
+    });
+    
     if (
-      editCategoryData.subCategory
+      existingNames
         .map((s) => s.toLowerCase())
         .includes(val.toLowerCase())
     ) {
       toast.error(`"${val}" already exists`);
       return;
     }
+    
+    // Add as object with metadata fields
+    const newSubCategoryObj: SubCategoryItem = {
+      id: `sub-${Date.now()}`,
+      name: val,
+      urlKey: "",
+      metaTitle: "",
+      metaKeywords: "",
+    };
+
+    console.log("✅ New subcategory object:", newSubCategoryObj);
+    
     setEditCategoryData((prev) => ({
       ...prev,
-      subCategory: [...prev.subCategory, val],
+      subCategory: [...prev.subCategory, newSubCategoryObj],
     }));
     setNewSubCategoryInput("");
   };
 
   
   const handleRemoveSubCategoryTag = (index: number) => {
+    const removedItem = editCategoryData.subCategory[index];
+    console.log("🗑️  Removing subcategory at index:", {
+      index,
+      removedItem,
+      remainingCount: editCategoryData.subCategory.length - 1,
+    });
+    
     setEditCategoryData((prev) => ({
       ...prev,
       subCategory: prev.subCategory.filter((_, i) => i !== index),
@@ -209,22 +299,36 @@ export default function ShopCategories() {
       return;
     }
 
+    const updatePayload = {
+      id: editCategoryData.id,
+      name: editCategoryData.name.trim(),
+      active: true,
+      subCategory: editCategoryData.subCategory, 
+      urlKey: editCategoryData.urlKey.trim(),
+      metaTitle: editCategoryData.metaTitle.trim(),
+      metaKeywords: editCategoryData.metaKeywords.trim(),
+      type: editCategoryData.type,
+    };
+
+    console.log("📤 Sending update payload:", {
+      categoryId: updatePayload.id,
+      categoryName: updatePayload.name,
+      subCategoryCount: updatePayload.subCategory?.length || 0,
+      subCategories: updatePayload.subCategory,
+      urlKey: updatePayload.urlKey,
+      metaTitle: updatePayload.metaTitle,
+      metaKeywords: updatePayload.metaKeywords,
+    });
+
     try {
-      await updateCategory(axiosInstance, editCategoryData.id, {
-        id: editCategoryData.id,
-        name: editCategoryData.name.trim(),
-        active: true,
-        subCategory: editCategoryData.subCategory, 
-        urlKey: editCategoryData.urlKey.trim(),
-        metaTitle: editCategoryData.metaTitle.trim(),
-        metaKeywords: editCategoryData.metaKeywords.trim(),
-        type: editCategoryData.type,
-      });
+      // ✅ Backend accepts objects for subCategory, frontend uses SubCategoryItem[] internally
+      await updateCategory(axiosInstance, editCategoryData.id, updatePayload as any);
+      console.log("✅ Category updated successfully");
       toast.success("Category updated successfully");
       setShowEditCategoryModal(false);
       fetchCategories();
     } catch (error) {
-      console.error("Error updating category:", error);
+      console.error("❌ Error updating category:", error);
       toast.error("Failed to update category");
     }
   };
@@ -321,19 +425,37 @@ export default function ShopCategories() {
       return;
     }
 
+    // Extract existing subcategory data (handle both string and object formats)
+    let existing: any[] = [];
+    let existingNames: string[] = [];
     
-    let existing: string[] = [];
     //@ts-ignore
     const rawSub = parentCategoryForSub.subCategory || parentCategoryForSub.subCategories;
     
     if (Array.isArray(rawSub)) {
-      existing = rawSub;
+      existing = rawSub.map((sub) => {
+        if (typeof sub === "string") {
+          // Legacy string format - convert to object
+          return { id: Math.random().toString(), name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
+        }
+        // Already object format
+        return sub;
+      });
+      existingNames = existing.map((sub) => sub.name || "");
     } else if (typeof rawSub === "string" && rawSub.trim() !== "") {
-      existing = rawSub.split(",").map(s => s.trim());
+      existingNames = rawSub.split(",").map((s) => s.trim());
+      existing = existingNames.map((name) => ({
+        id: Math.random().toString(),
+        name,
+        urlKey: "",
+        metaTitle: "",
+        metaKeywords: "",
+      }));
     }
 
+    // Check for duplicate names
     if (
-      existing
+      existingNames
         .map((s) => s.toLowerCase())
         .includes(subCategoryData.name.trim().toLowerCase())
     ) {
@@ -342,23 +464,21 @@ export default function ShopCategories() {
     }
 
     try {
-      // 1. Prepare the new subcategory object
-      const newSubObject = {
+      // Create new subcategory object with full metadata
+      const newSubCategoryObj = {
+        id: `sub-${Date.now()}`,
         name: subCategoryData.name.trim(),
         urlKey: subCategoryData.urlKey.trim(),
         metaTitle: subCategoryData.metaTitle.trim(),
         metaKeywords: subCategoryData.metaKeywords.trim(),
       };
 
-      // 2. Stringify it to store in the string[] column
-      const newSubString = JSON.stringify(newSubObject);
-
       await updateCategory(axiosInstance, parentCategoryForSub.id, {
         id: parentCategoryForSub.id,
         name: parentCategoryForSub.name,
         active: parentCategoryForSub.active,
         type: parentCategoryForSub.type || selectedCategoryType,
-        subCategory: [...existing, newSubString], 
+        subCategory: [...existing, newSubCategoryObj],
         urlKey: parentCategoryForSub.urlKey,
         metaTitle: parentCategoryForSub.metaTitle,
         metaKeywords: parentCategoryForSub.metaKeywords,
@@ -384,9 +504,10 @@ export default function ShopCategories() {
     const matchesSearch =
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (Array.isArray(category.subCategory)
-        ? category.subCategory.some((s) =>
-            s.toLowerCase().includes(searchTerm.toLowerCase()),
-          )
+        ? category.subCategory.some((s: string | SubCategoryItem) => {
+            const subName = typeof s === "string" ? s : (s?.name || "");
+            return subName.toLowerCase().includes(searchTerm.toLowerCase());
+          })
         : false) ||
       (category.urlKey || "")
         .toLowerCase()
@@ -414,10 +535,110 @@ export default function ShopCategories() {
   }, []);
 
   
-  const SubCategoryBadges = ({ subCategory }: { subCategory?: string[] | string }) => {
-    let list: string[] = [];
+  const SubCategoryTreeView = ({ subCategory }: { subCategory?: any[] | string }) => {
+    const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
+    
+    let subCategoryList: any[] = [];
+    
     if (Array.isArray(subCategory)) {
-      list = subCategory;
+      subCategoryList = subCategory.map((sub) => {
+        if (typeof sub === "string") {
+          return { id: Math.random().toString(), name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
+        }
+        return sub;
+      }).filter(sub => sub?.name);
+    } else if (typeof subCategory === "string" && subCategory.trim() !== "") {
+      subCategoryList = subCategory.split(",").map((name, i) => ({
+        id: `legacy-${i}`,
+        name: name.trim(),
+        urlKey: "",
+        metaTitle: "",
+        metaKeywords: ""
+      }));
+    }
+
+    if (subCategoryList.length === 0) {
+      return <span className="text-sm text-muted-foreground">-</span>;
+    }
+
+    const toggleExpand = (id: string) => {
+      const newSet = new Set(expandedIds);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      setExpandedIds(newSet);
+    };
+
+    return (
+      <div className="space-y-2">
+        {subCategoryList.map((sub) => (
+          <div key={sub.id} className="border rounded-lg bg-white overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 transition-colors">
+              <button
+                type="button"
+                onClick={() => toggleExpand(sub.id)}
+                className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+              >
+                {expandedIds.has(sub.id) ? (
+                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                )}
+              </button>
+              <span className="font-medium text-sm flex-1">{sub.name}</span>
+              <span className="text-xs text-gray-500">{sub.urlKey || "No URL"}</span>
+            </div>
+
+            {/* Expanded Content */}
+            {expandedIds.has(sub.id) && (
+              <div className="border-t bg-gray-50 p-3 space-y-2 text-sm">
+                {sub.urlKey && (
+                  <div>
+                    <span className="text-gray-600 font-medium">URL Key:</span>
+                    <p className="text-gray-800 text-xs font-mono">{sub.urlKey}</p>
+                  </div>
+                )}
+                {sub.metaTitle && (
+                  <div>
+                    <span className="text-gray-600 font-medium">Meta Title:</span>
+                    <p className="text-gray-800 text-xs">{sub.metaTitle}</p>
+                  </div>
+                )}
+                {sub.metaKeywords && (
+                  <div>
+                    <span className="text-gray-600 font-medium">Meta Keywords:</span>
+                    <p className="text-gray-800 text-xs">{sub.metaKeywords}</p>
+                  </div>
+                )}
+                {!sub.urlKey && !sub.metaTitle && !sub.metaKeywords && (
+                  <p className="text-gray-500 text-xs">No additional metadata</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const SubCategoryBadges = ({ subCategory }: { subCategory?: any[] | string }) => {
+    let list: string[] = [];
+    
+    if (Array.isArray(subCategory)) {
+      // Handle new object format: {id, name, urlKey, metaTitle, metaKeywords}
+      list = subCategory.map((sub) => {
+        if (typeof sub === "string") {
+          // Legacy string format
+          return sub;
+        } else if (typeof sub === "object" && sub?.name) {
+          // New object format
+          return sub.name;
+        }
+        return "";
+      }).filter(Boolean);
     } else if (typeof subCategory === "string" && subCategory.trim() !== "") {
       list = subCategory.split(",").map(s => s.trim());
     }
@@ -492,14 +713,17 @@ export default function ShopCategories() {
                         Sub Categories
                       </label>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {category.subCategory.map((sub, i) => (
-                          <span
-                            key={i}
-                            className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
-                          >
-                            {sub}
-                          </span>
-                        ))}
+                        {category.subCategory.map((sub: string | SubCategoryItem, i) => {
+                          const subName = typeof sub === "string" ? sub : (sub?.name || "");
+                          return (
+                            <span
+                              key={i}
+                              className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
+                            >
+                              {subName}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -683,8 +907,7 @@ export default function ShopCategories() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">No.</TableHead>
-                    <TableHead>Category Name</TableHead>
-                    <TableHead>Sub Categories</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>URL Key</TableHead>
                     <TableHead>Meta Title</TableHead>
                     <TableHead>Meta Keywords</TableHead>
@@ -692,93 +915,187 @@ export default function ShopCategories() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCategories?.map((category, index) => (
-                    <TableRow key={category.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <Folder className="h-5 w-5 text-blue-500" />
-                          <div>
-                            <div className="font-medium">{category.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              ID: {category.id}
+                  {filteredCategories?.map((category, categoryIndex) => {
+                    // Convert subCategory to array format
+                    let subCategoryList: any[] = [];
+                    if (Array.isArray(category.subCategory)) {
+                      subCategoryList = category.subCategory.map((sub: string | SubCategoryItem) => {
+                        if (typeof sub === "string") {
+                          return { id: Math.random().toString(), name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
+                        }
+                        return sub;
+                      }).filter(sub => sub?.name);
+                    } else if (typeof (category.subCategory as any) === "string" && (category.subCategory as any).trim() !== "") {
+                      subCategoryList = ((category.subCategory as any) as string).split(",").map((name, i) => ({
+                        id: `legacy-${i}`,
+                        name: name.trim(),
+                        urlKey: "",
+                        metaTitle: "",
+                        metaKeywords: ""
+                      }));
+                    }
+
+                    return (
+                      <React.Fragment key={category.id}>
+                        {/* Parent Category Row */}
+                        <TableRow className="bg-blue-50 hover:bg-blue-100 border-b-2 border-blue-200">
+                          <TableCell className="font-bold text-lg">
+                            {String.fromCharCode(65 + categoryIndex)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <Folder className="h-5 w-5 text-blue-500" />
+                              <div>
+                                <div className="font-bold">{category.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  ID: {category.id}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* ✅ Render subcategory array as badges */}
-                      <TableCell>
-                        <SubCategoryBadges subCategory={category.subCategory} />
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {category.urlKey || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {category.metaTitle || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {category.metaKeywords || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddSubCategory(category)}
-                            style={{
-                              backgroundColor: "#00007A",
-                              color: "white",
-                            }}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add Sub
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {category.urlKey || "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {category.metaTitle || "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {category.metaKeywords || "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddSubCategory(category)}
+                                style={{
+                                  backgroundColor: "#00007A",
+                                  color: "white",
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Sub
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditCategory(category)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleToggleCategoryStatus(category)
-                                }
-                              >
-                                {category.active ? (
-                                  <XCircle className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                )}
-                                {category.active ? "Disable" : "Enable"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteCategory(category)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditCategory(category)}
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleToggleCategoryStatus(category)
+                                    }
+                                  >
+                                    {category.active ? (
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                    ) : (
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                    )}
+                                    {category.active ? "Disable" : "Enable"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteCategory(category)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Subcategory Rows */}
+                        {subCategoryList.map((subCategory, subIndex) => (
+                          <TableRow key={`${category.id}-${subCategory.id}`} className="bg-gray-50 hover:bg-gray-100">
+                            <TableCell className="text-center font-semibold text-gray-600">
+                              {subIndex + 1}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-3 ml-8">
+                                <div className="h-4 w-4 rounded border border-gray-300 flex items-center justify-center text-xs">
+                                  •
+                                </div>
+                                <span className="text-sm">{subCategory.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600">
+                                {subCategory.urlKey || "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600">
+                                {subCategory.metaTitle || "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600">
+                                {subCategory.metaKeywords || "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditCategory(category)}
+                                  className="text-xs"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const newSubCategories = category.subCategory
+                                      ? (Array.isArray(category.subCategory) ? category.subCategory : [category.subCategory])
+                                      : [];
+                                    const index = newSubCategories.findIndex((s: string | SubCategoryItem) => {
+                                      if (typeof s === "string") return s === subCategory.name;
+                                      return s?.id === subCategory.id;
+                                    });
+                                    if (index > -1) {
+                                      const updated = newSubCategories.filter((_, i) => i !== index);
+                                      updateCategory(axiosInstance, category.id, {
+                                        ...category,
+                                        subCategory: updated,
+                                      }).then(() => {
+                                        toast.success("Sub-category deleted");
+                                        fetchCategories();
+                                      }).catch(err => {
+                                        toast.error("Failed to delete sub-category");
+                                      });
+                                    }
+                                  }}
+                                  className="text-xs text-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -896,14 +1213,17 @@ export default function ShopCategories() {
                     Existing Sub-Categories
                   </label>
                   <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-lg border">
-                    {parentCategoryForSub.subCategory.map((sub, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
-                      >
-                        {sub}
-                      </span>
-                    ))}
+                    {parentCategoryForSub.subCategory.map((sub: string | SubCategoryItem, i) => {
+                      const subName = typeof sub === "string" ? sub : (sub?.name || "");
+                      return (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
+                        >
+                          {subName}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1117,7 +1437,7 @@ export default function ShopCategories() {
                       key={i}
                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
                     >
-                      {sub}
+                      {sub.name}
                       <button
                         type="button"
                         onClick={() => handleRemoveSubCategoryTag(i)}

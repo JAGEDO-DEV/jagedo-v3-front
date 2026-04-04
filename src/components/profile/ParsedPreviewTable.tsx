@@ -51,24 +51,26 @@ const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
           thumbnail: headers.indexOf("Thumbnail"),
         };
 
-        const mappedProducts = rows.map((row, i) => ({
-          id: i + 1,
-          name: row[headerIndexMap.name],
-          price: row[headerIndexMap.price],
-          sku: row[headerIndexMap.sku],
-          bid: row[headerIndexMap.bid],
-          status: "Drafts",
-          images: row[headerIndexMap.thumbnail]
-            ? [
-                {
-                  dataUrl: row[headerIndexMap.thumbnail],
-                  label: row[headerIndexMap.name] || `Image ${i + 1}`,
-                },
-              ]
-            : [],
-        }));
-
-        setProducts(mappedProducts);
+        setProducts((prev) => {
+          const nextId = prev.length > 0 ? Math.max(...prev.map((p) => p.id)) + 1 : 1;
+          const newlyMapped = rows.map((row, i) => ({
+            id: nextId + i,
+            name: row[headerIndexMap.name],
+            price: row[headerIndexMap.price],
+            sku: row[headerIndexMap.sku],
+            bid: row[headerIndexMap.bid],
+            status: "Drafts",
+            images: row[headerIndexMap.thumbnail]
+              ? [
+                  {
+                    dataUrl: row[headerIndexMap.thumbnail],
+                    label: row[headerIndexMap.name] || `Image ${i + 1}`,
+                  },
+                ]
+              : [],
+          }));
+          return [...prev, ...newlyMapped];
+        });
 
 
       } catch (err) {
