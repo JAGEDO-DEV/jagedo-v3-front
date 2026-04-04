@@ -245,55 +245,57 @@ export function AdminSidebar({ expanded, setExpanded }) {
           }`}
       />
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r shadow-lg z-40 transition-all duration-300 ease-in-out overflow-visible ${expanded
-            ? "translate-x-0"
+        className={`fixed top-0 left-0 bottom-0 bg-white border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300 ease-in-out overflow-visible h-full flex flex-col ${
+          expanded
+            ? "translate-x-0 w-64"
             : "-translate-x-full lg:translate-x-0 lg:w-20"
-          }`}
+        }`}
       >
         <nav className="h-full flex flex-col">
+          {/* Sidebar Header */}
           <div
-            className={`p-4 pb-2 flex items-center ${expanded ? "justify-between" : "justify-center"
-              }`}
+            className={`p-5 mb-2 flex items-center transition-all ${
+              expanded ? "justify-between" : "justify-center"
+            }`}
           >
             <div
-              className={`overflow-hidden transition-all ${expanded ? "w-40" : "w-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                expanded ? "w-32 opacity-100" : "w-0 opacity-0"
+              }`}
             >
-              <Link to="/dashboard/admin">
+              <Link to="/dashboard/admin" className="block transform hover:scale-105 transition-transform">
                 <img
                   src="/jagedologo.png"
                   alt="JAGEDO Logo"
-                  className="relative"
+                  className="h-8 w-auto object-contain"
                 />
               </Link>
             </div>
             <button
               onClick={() => setExpanded((curr) => !curr)}
-              className="p-2 rounded-xl bg-white shadow-sm border hover:bg-gray-50 transition-all text-gray-600"
+              className="p-2 rounded-xl bg-gray-50/80 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-gray-100 flex items-center justify-center group"
             >
-              {expanded ? (
-                <ChevronFirst className="w-5 h-5" />
-              ) : (
-                <ChevronFirst className="w-5 h-5 rotate-180" />
-              )}
+              <ChevronFirst 
+                className={`w-5 h-5 transition-transform duration-500 ${!expanded ? "rotate-180" : ""}`} 
+              />
             </button>
           </div>
 
           <SidebarContext.Provider value={{ expanded, setExpanded }}>
-            <ul className="flex-1 px-3 overflow-y-auto overflow-x-visible">
+            <ul className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
               {accessibleItems.map((section, sectionIndex) => (
-                <div key={sectionIndex}>
+                <div key={sectionIndex} className="py-2">
                   {expanded && (
-                    <li className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <li className="px-4 mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em]">
                       {section.title}
                     </li>
                   )}
-                  {!expanded && sectionIndex > 0 && <hr className="my-3" />}
+                  {!expanded && sectionIndex > 0 && <div className="mx-4 my-4 h-[1px] bg-gray-100" />}
                   {section.items.map((item, itemIndex) => (
                     <SidebarItem
                       key={item.id || item.title + itemIndex}
                       icon={
-                        <item.icon size={20} style={{ color: item.color }} />
+                        <item.icon size={20} className="transition-colors group-hover:scale-110 duration-300" style={{ color: item.color }} />
                       }
                       text={item.title}
                       href={item.href}
@@ -310,37 +312,35 @@ export function AdminSidebar({ expanded, setExpanded }) {
             </ul>
           </SidebarContext.Provider>
 
-          <div className="border-t flex p-3 group relative">
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || "User")}&background=c7d2fe&color=3730a3&bold=true`}
-              alt="User Avatar"
-              className="w-10 h-10 rounded-md"
-            />
-            <div
-              className={`flex justify-between items-center overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"
-                }`}
-            >
-              <div className="leading-4">
-                <h4 className="font-semibold text-sm whitespace-nowrap">
-                  {user?.firstName} {user?.lastName}
-                </h4>
-                <span className="text-xs text-gray-600">{user?.email}</span>
+          {/* User Profile Section */}
+          <div className="p-4 mt-auto border-t border-gray-50">
+            <div className={`flex items-center gap-3 p-2 rounded-2xl transition-all ${expanded ? "bg-gray-50/80" : "justify-center"}`}>
+              <div className="relative flex-shrink-0">
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || "Admin")}&background=4f46e5&color=fff&bold=true`}
+                  alt="User Avatar"
+                  className="w-10 h-10 rounded-xl object-cover shadow-sm ring-2 ring-white"
+                />
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
               </div>
-            </div>
-            {!expanded && (
-              <div
-                className={`fixed rounded-md px-3 py-2 bg-indigo-100 text-indigo-800 text-sm invisible opacity-20 transition-all z-50 group-hover:visible group-hover:opacity-100 whitespace-nowrap pointer-events-none`}
-                style={{
-                  left: "calc(5rem + 1.5rem)",
-                  top: "calc(100vh - 5rem)",
-                }}
-              >
-                <div className="font-semibold text-sm">
+              
+              {expanded && (
+                <div className="flex-1 min-w-0 pr-2">
+                  <h4 className="font-bold text-sm text-gray-800 truncate leading-none mb-1">
+                    {user?.firstName} {user?.lastName}
+                  </h4>
+                  <p className="text-[11px] font-medium text-gray-500 truncate uppercase tracking-wider">
+                    {user?.role || "ADMINISTRATOR"}
+                  </p>
+                </div>
+              )}
+
+              {!expanded && (
+                <div className="absolute left-full ml-6 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all shadow-xl z-50 whitespace-nowrap">
                   {user?.firstName} {user?.lastName}
                 </div>
-                <div className="text-xs">{user?.email}</div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </nav>
       </aside>
@@ -351,25 +351,15 @@ export function AdminSidebar({ expanded, setExpanded }) {
 export function SidebarItem({ icon, text, href, active, submenu }) {
   const { expanded, setExpanded } = useContext(SidebarContext);
   const [open, setOpen] = useState(active);
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
-  const itemRef = useContext(SidebarContext) ? useRef(null) : null;
+  const itemRef = useRef(null);
   const location = useLocation();
 
   useEffect(() => {
     if (active) setOpen(true);
   }, [active]);
 
-  const handleMouseEnter = () => {
-    if (itemRef?.current && !expanded) {
-      const rect = itemRef.current.getBoundingClientRect();
-      setTooltipPos({
-        top: rect.top,
-        left: rect.right + 12,
-      });
-    }
-  };
-
-  const handleSubmenuClick = () => {
+  const handleSubmenuClick = (e) => {
+    e.preventDefault();
     if (!expanded) {
       setExpanded(true);
       setOpen(true);
@@ -378,97 +368,80 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
     }
   };
 
-  if (submenu) {
-    return (
-      <li
-        ref={itemRef}
-        onMouseEnter={handleMouseEnter}
-        className={`rounded-md text-sm my-1 group relative ${active ? "bg-indigo-50 text-indigo-800" : "text-gray-600"
-          }`}
+  const itemContent = (
+    <div
+      onClick={submenu ? handleSubmenuClick : undefined}
+      className={`relative flex items-center py-2.5 px-4 my-1 font-semibold rounded-xl cursor-pointer transition-all duration-200 group text-sm ${
+        active
+          ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100/50"
+          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+      }`}
+    >
+      <div className={`flex items-center justify-center transition-all duration-300 ${active ? "scale-110" : ""}`}>
+        {icon}
+      </div>
+      
+      <span
+        className={`overflow-hidden transition-all duration-300 whitespace-nowrap font-medium ${
+          expanded ? "w-44 ml-3.5 opacity-100" : "w-0 opacity-0"
+        }`}
       >
-        <div
-          onClick={handleSubmenuClick}
-          className="relative flex items-center py-2 px-3 font-medium rounded-md cursor-pointer transition-colors hover:bg-indigo-50"
-        >
-          {icon}
-          <span
-            className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? "w-52 ml-3" : "w-0"
-              }`}
-          >
-            {text}
-          </span>
-          {expanded && (
-            <ChevronDown
-              size={15}
-              className={`transition-transform ${open ? "rotate-180" : ""}`}
-            />
-          )}
+        {text}
+      </span>
+
+      {expanded && submenu && (
+        <ChevronDown
+          size={14}
+          className={`ml-auto transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        />
+      )}
+
+      {/* Tooltip for collapsed state */}
+      {!expanded && (
+        <div className="fixed left-20 px-3 py-2 bg-gray-900 text-white text-xs font-semibold rounded-lg opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all translate-x-3 group-hover:translate-x-0 shadow-xl z-[100] pointer-events-none whitespace-nowrap">
+          {text}
         </div>
-        {!expanded && (
-          <div
-            className={`fixed rounded-md px-3 py-2 bg-indigo-100 text-indigo-800 text-sm invisible opacity-20 transition-all z-50 group-hover:visible group-hover:opacity-100 whitespace-nowrap pointer-events-none`}
-            style={{
-              left: `${tooltipPos.left}px`,
-              top: `${tooltipPos.top}px`,
-            }}
-          >
-            {text}
-          </div>
-        )}
-        {open && expanded && (
-          <ul className="pl-9 text-xs transition-all duration-300">
-            {submenu.map((subItem, index) => {
-              const SubIcon = subItem.icon;
-              return (
-                <li key={index} className="py-1">
-                  <Link
-                    to={subItem.href}
-                    className={`flex items-center gap-2 rounded-md p-1 transition-colors whitespace-nowrap ${location.pathname === subItem.href
-                        ? "text-indigo-600 font-semibold"
-                        : "text-gray-700 hover:text-indigo-600"
-                      }`}
-                  >
-                    <SubIcon size={18} />
-                    <span>{subItem.title}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </li>
-    );
-  }
+      )}
+
+      {/* Active Sidebar Indicator */}
+      {active && !expanded && (
+        <div className="absolute left-0 w-1 h-6 bg-indigo-500 rounded-r-full" />
+      )}
+    </div>
+  );
 
   return (
-    <Link to={href}>
-      <li
-        ref={itemRef}
-        onMouseEnter={handleMouseEnter}
-        className={`relative flex items-center py-2 px-3 my-1 font-medium rounded-md cursor-pointer transition-colors group text-sm ${active
-            ? "bg-gradient-to-tr from-indigo-200 to-indigo-100 text-indigo-800"
-            : "hover:bg-indigo-50 text-gray-600"
-          }`}
-      >
-        {icon}
-        <span
-          className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? "w-52 ml-3" : "w-0"
-            }`}
-        >
-          {text}
-        </span>
-        {!expanded && (
-          <div
-            className={`fixed rounded-md px-3 py-2 bg-indigo-100 text-indigo-800 text-sm invisible opacity-20 transition-all z-50 group-hover:visible group-hover:opacity-100 whitespace-nowrap pointer-events-none`}
-            style={{
-              left: `${tooltipPos.left}px`,
-              top: `${tooltipPos.top}px`,
-            }}
-          >
-            {text}
-          </div>
-        )}
-      </li>
-    </Link>
+    <li className="relative px-1 group" ref={itemRef}>
+      {href && !submenu ? (
+        <Link to={href}>{itemContent}</Link>
+      ) : (
+        itemContent
+      )}
+
+      {open && expanded && submenu && (
+        <ul className="mt-1 ml-4 pl-8 border-l border-gray-100 space-y-1 animate-in slide-in-from-top-1 duration-300">
+          {submenu.map((subItem, index) => {
+            const SubIcon = subItem.icon;
+            const isSubActive = location.pathname === subItem.href;
+            return (
+              <li key={index}>
+                <Link
+                  to={subItem.href}
+                  className={`flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-medium transition-all ${
+                    isSubActive
+                      ? "text-indigo-600 bg-indigo-50"
+                      : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                  }`}
+                >
+                  {SubIcon && <SubIcon size={16} className={isSubActive ? "text-indigo-600" : "text-gray-400"} />}
+                  <span>{subItem.title}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </li>
   );
 }
+
