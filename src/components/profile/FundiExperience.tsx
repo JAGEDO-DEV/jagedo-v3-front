@@ -105,12 +105,34 @@ const FundiExperience = ({ data, refreshData }: any) => {
           headers: { Authorization: getAuthHeaders() },
         });
         
+        // Find the skill in fundiSkills to get its assigned specializations array
+        const selectedSkill = fundiSkills.find((s: any) => 
+          normalizeSkillName(s.skillName) === normalizedSkill
+        );
+        
         const specTypeCode = specMappings[normalizedSkill];
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         
         // Handle both array and wrapped responses
-        const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-        setSpecializations(specs);
+        const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+        
+        // If skill found, filter to only assigned specializations; otherwise show all
+        if (selectedSkill) {
+          const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
+            ? selectedSkill.specializations 
+            : [];
+          
+          // Filter to only show the specializations assigned to this skill
+          const filteredSpecs = allSpecs.filter((spec: any) => {
+            const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+            return assignedSpecCodes.includes(specCode);
+          });
+          
+          setSpecializations(filteredSpecs);
+        } else {
+          // Fallback: show all specs if skill not found
+          setSpecializations(allSpecs);
+        }
       } catch (error) {
         console.error('Failed to load specializations:', error);
         setSpecializations([]);
@@ -120,7 +142,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     };
     
     loadSpecializations();
-  }, [skill, specMappings]);
+  }, [skill, specMappings, fundiSkills]);
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -359,7 +381,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={skill}
                   onChange={e => { setSkill(e.target.value); setSpecialization(""); }}
-                  disabled={isReadOnly || skillsLoading}
+                  disabled={true}
                   className={inputStyles}
                 >
                   <option value="">{skillsLoading ? "Loading…" : "Select Skill"}</option>

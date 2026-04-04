@@ -119,7 +119,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
         }
     }, [data]);
 
-    // ── Load Professional skills and specialization mappings on mount ────────────────
+    // ── Load professional skills and specialization mappings on mount ────────────────
     useEffect(() => {
         const loadSkillsAndMappings = async () => {
             try {
@@ -128,7 +128,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     headers: { Authorization: getAuthHeaders() },
                 });
                 
-                // Get all Professional skills
+                // Get all professional skills
                 const skillsRes = await getBuilderSkillsByType(authAxios, 'PROFESSIONAL');
                 const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
                 setProfessionalSkills(activeSkills);
@@ -137,8 +137,8 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 const mappingsRes = await getSpecializationMappings(authAxios, 'PROFESSIONAL');
                 setSpecMappings(mappingsRes);
             } catch (error) {
-                console.error('Failed to load Professional skills:', error);
-                toast.error('Failed to load skills');
+                console.error('Failed to load professional skills:', error);
+                toast.error('Failed to load specializations');
             } finally {
                 setSkillsLoading(false);
             }
@@ -167,12 +167,34 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     headers: { Authorization: getAuthHeaders() },
                 });
                 
+                // Find the profession in professionalSkills to get its assigned specializations array
+                const selectedProfession = professionalSkills.find((s: any) => 
+                    normalizeSkillName(s.skillName) === normalizedCategory
+                );
+                
                 const specTypeCode = specMappings[normalizedCategory];
                 const specsRes = await getMasterDataValues(authAxios, specTypeCode);
                 
                 // Handle both array and wrapped responses
-                const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-                setSpecializations(specs);
+                const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+                
+                // If profession found, filter to only assigned specializations; otherwise show all
+                if (selectedProfession) {
+                    const assignedSpecCodes = Array.isArray(selectedProfession.specializations) 
+                        ? selectedProfession.specializations 
+                        : [];
+                    
+                    // Filter to only show the specializations assigned to this profession
+                    const filteredSpecs = allSpecs.filter((spec: any) => {
+                        const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+                        return assignedSpecCodes.includes(specCode);
+                    });
+                    
+                    setSpecializations(filteredSpecs);
+                } else {
+                    // Fallback: show all specs if profession not found
+                    setSpecializations(allSpecs);
+                }
             } catch (error) {
                 console.error('Failed to load specializations:', error);
                 setSpecializations([]);
@@ -182,7 +204,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
         };
         
         loadSpecializations();
-    }, [category, specMappings]);
+    }, [category, specMappings, professionalSkills]);
 
     const rowsToShow = useMemo(() => {
         return (GUIDELINES.projectsByLevel as any)[level] ?? 0;
@@ -306,28 +328,9 @@ const ProffExperience = ({ data, refreshData }: any) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <select
-                                        value={category}
-                                        onChange={(e) => {
-                                            setCategory(e.target.value);
-                                            setSpecialization(""); 
-                                        }}
-                                        disabled={isReadOnly || skillsLoading}
-                                        className={inputStyles}
-                                    >
-                                        <option value="">Select Category</option>
-                                        {/* Use dynamic skills if available, otherwise fall back to guidelines */}
-                                        {(professionalSkills.length > 0 
-                                            ? professionalSkills.map(skill => (
-                                                <option key={skill.id || skill.skillName} value={skill.skillName}>
-                                                    {skill.skillName}
-                                                </option>
-                                            ))
-                                            : GUIDELINES.categories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))
-                                        )}
-                                    </select>
+                                    <div className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 text-sm flex items-center">
+                                        {category || "Not Selected"}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>

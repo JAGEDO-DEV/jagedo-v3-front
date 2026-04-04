@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import toast from 'react-hot-toast';
+import axios from "axios";
 import {
   PlusIcon,
   TrashIcon,
@@ -11,7 +12,10 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { updateContractorExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
-
+import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
+import { getMasterDataValues } from "@/api/masterData";
+import { normalizeSkillName } from "@/utils/skillNameUtils";
+import { getAuthHeaders } from "@/utils/auth";
 
 interface ContractorCategory {
   id: string;
@@ -89,8 +93,40 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [submitted, setSubmitted] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  
+  // Dynamic skills and specializations
+  const [contractorSkills, setContractorSkills] = useState<any[]>([]);
+  const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
+  const [specializations, setSpecializations] = useState<any[]>([]);
+  const [categorySpecsMap, setCategorySpecsMap] = useState<{ [key: string]: any[] }>({});
+  const [skillsLoading, setSkillsLoading] = useState(false);
 
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+
+  // ── Load contractor skills and specialization mappings on mount ──────────────────
+  useEffect(() => {
+    const loadSkillsAndMappings = async () => {
+      try {
+        setSkillsLoading(true);
+        const authAxios = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+        
+        const skillsRes = await getBuilderSkillsByType(authAxios, 'CONTRACTOR');
+        const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
+        setContractorSkills(activeSkills);
+        
+        const mappingsRes = await getSpecializationMappings(authAxios, 'CONTRACTOR');
+        setSpecMappings(mappingsRes);
+      } catch (error) {
+        console.error('Failed to load contractor skills:', error);
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+    
+    loadSkillsAndMappings();
+  }, []);
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
@@ -173,6 +209,106 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     }
   }, [data]);
 
+  // ── Load specializations when categories or skills change (like ProffExperience) ─────────
+  useEffect(() => {
+    const loadAllCategorySpecializations = async () => {
+      const categorySpecs: { [key: string]: any[] } = {};
+      
+      for (const cat of categories) {
+        if (!cat.category || !specMappings || !contractorSkills.length) {
+          continue;
+        }
+
+        const normalizedCategory = normalizeSkillName(cat.category);
+        const specTypeCode = specMappings[normalizedCategory];
+        
+        if (!specTypeCode) {
+          continue;
+        }
+
+        try {
+          const selectedSkill = contractorSkills.find((s: any) => 
+            normalizeSkillName(s.skillName) === normalizedCategory
+          );
+          
+          if (!selectedSkill) {
+            continue;
+          }
+
+          const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
+            ? selectedSkill.specializations 
+            : [];
+
+          if (assignedSpecCodes.length === 0) {
+            continue;
+          }
+
+          // Fetch all available specializations
+          const authAxios = axios.create({
+            headers: { Authorization: getAuthHeaders() },
+          });
+          
+          const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+          const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+          
+          // Filter to only assigned ones
+          const filteredSpecs = allSpecs.filter((spec: any) => {
+            const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+            return assignedSpecCodes.includes(specCode);
+          });
+
+          categorySpecs[cat.category] = filteredSpecs;
+        } catch (error) {
+          console.error(`Failed to load specs for ${cat.category}:`, error);
+          categorySpecs[cat.category] = [];
+        }
+      }
+
+      // Store the mapping for use in the dropdown
+      setCategorySpecsMap(categorySpecs);
+    };
+
+    loadAllCategorySpecializations();
+  }, [categories, specMappings, contractorSkills]);
+
+  // ── Helper function to get specializations for a specific contractor category ────────────
+  const getCategorySpecializations = (category: string): any[] => {
+    if (!category || !specMappings || !contractorSkills.length) {
+      return [];
+    }
+
+    const normalizedCategory = normalizeSkillName(category);
+    const specTypeCode = specMappings[normalizedCategory];
+    
+    if (!specTypeCode) {
+      return [];
+    }
+
+    const selectedSkill = contractorSkills.find((s: any) => 
+      normalizeSkillName(s.skillName) === normalizedCategory
+    );
+    
+    if (!selectedSkill) {
+      return [];
+    }
+
+    // Get the specialization codes assigned to this category/skill
+    const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
+      ? selectedSkill.specializations 
+      : [];
+
+    if (assignedSpecCodes.length === 0) {
+      return [];
+    }
+
+    // Return the assigned codes (they will be fetched from master data if needed)
+    return assignedSpecCodes.map(code => ({
+      code,
+      name: code,
+      label: code,
+    }));
+  };
+
   const handleCategoryChange = (id: string, value: string) => {
     if (categories.some(c => c.category === value && c.id !== id)) {
       toast.error("You cannot select the same category twice.");
@@ -181,7 +317,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
     setCategories(prev =>
       prev.map(cat =>
-        cat.id === id ? { ...cat, category: value } : cat
+        cat.id === id ? { ...cat, category: value, specialization: "" } : cat
       )
     );
 
@@ -327,7 +463,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
             {data?.experienceStatus === 'REJECTED' && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+                 <div className="bg-red-100 p-2 rounded-lg shrink-0">
                     <XMarkIcon className="w-6 h-6 text-red-600" />
                  </div>
                 <div>
@@ -339,7 +475,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
             {data?.experienceStatus === 'RESUBMIT' && (
               <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-amber-100 p-2 rounded-lg flex-shrink-0">
+                 <div className="bg-amber-100 p-2 rounded-lg shrink-0">
                     <EyeIcon className="w-6 h-6 text-amber-600" />
                  </div>
                 <div>
@@ -351,7 +487,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
             {data?.experienceStatus === 'PENDING' && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+                 <div className="bg-blue-100 p-2 rounded-lg shrink-0">
                     <EyeIcon className="w-6 h-6 text-blue-600" />
                  </div>
                 <div>
@@ -374,7 +510,14 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Select Category</option>
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {contractorSkills.length > 0
+                        ? contractorSkills.map(skill => (
+                            <option key={skill.skillName} value={skill.skillName}>
+                              {skill.skillName}
+                            </option>
+                          ))
+                        : CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)
+                      }
                     </select>
 
                     <select
@@ -385,10 +528,13 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                         )
                       }
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !cat.category}
                     >
                       <option value="">Specialization</option>
-                      {(SPECIALIZATIONS[cat.category] || []).map(s => <option key={s} value={s}>{s}</option>)}
+                      {(categorySpecsMap[cat.category] || []).map((s: any) => {
+                        const specName = typeof s === 'string' ? s : (s?.label || s?.name || s?.code || "");
+                        return <option key={specName} value={specName}>{specName}</option>;
+                      })}
                     </select>
 
                     <select
