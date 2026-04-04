@@ -10,6 +10,28 @@ import { BuilderType } from '@/types/builder';
  */
 const specializationCache: Record<string, Record<string, string>> = {};
 
+// ── Global cache invalidation functions ────────────────────────────────────
+/**
+ * Clear specialization cache for a specific builder type
+ * Call this after skills are updated (added/removed/modified) for that type
+ */
+export const clearSpecializationCache = (builderType?: string) => {
+  if (builderType) {
+    delete specializationCache[builderType];
+  } else {
+    // Clear entire cache
+    Object.keys(specializationCache).forEach(key => delete specializationCache[key]);
+  }
+};
+
+/**
+ * Invalidate all cached specializations
+ * Call this after any skill modifications to ensure fresh data
+ */
+export const invalidateSpecializationCache = () => {
+  clearSpecializationCache();
+};
+
 interface UseSpecializationMappingsOptions {
   /** Optional: Only fetch mappings for specific builder type on mount */
   builderType?: BuilderType;

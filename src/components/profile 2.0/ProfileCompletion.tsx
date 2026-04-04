@@ -40,42 +40,31 @@ export function ProfileCompletion({
     const [countries, setCountries] = useState<any[]>([]);
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
-    const hasAdminUploadedDocs = 
-        (user?.contractorProjects?.length > 0) || 
-        (user?.previousJobPhotoUrls?.length > 0) ||
-        (user?.professionalProjects?.length > 0) ||
-        (user?.hardwareProjects?.length > 0);
-
-    const isServiceProvider = ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType || "");
-    const shouldSkipVerification = isServiceProvider && hasAdminUploadedDocs;
-    const totalSteps = shouldSkipVerification ? 3 : 4;
-
-
-
+    const totalSteps = 4;
 
     const [personalInfo, setPersonalInfo] = useState({
         firstName: user?.firstName || "",
         lastName: user?.lastName || "",
-        idNumber: "",
-        idType: "NATIONAL_ID",
+        idNumber: user?.idNumber || "",
+        idType: user?.idType || "NATIONAL_ID",
         organizationName: user?.organizationName || "",
-        contactFullName: "",
+        contactFullName: user?.contactFullName || "",
     });
 
     const [location, setLocation] = useState({
-        country: "Kenya",
-        county: "",
-        subCounty: "",
-        town: "",
-        estate: "",
+        country: user?.country || "Kenya",
+        county: user?.county || "",
+        subCounty: user?.subCounty || "",
+        town: user?.townCity || user?.town || "",
+        estate: user?.estateVillage || user?.estate || "",
     });
 
     const [reference, setReference] = useState({
-        howDidYouHearAboutUs: "",
-        referralDetail: "",
-        socialMediaOther: "",
-        interestedServices: [],
-        otherService: "",
+        howDidYouHearAboutUs: user?.referenceInfo || user?.howDidYouHearAboutUs || "",
+        referralDetail: user?.referralDetail || "",
+        socialMediaOther: user?.socialMediaOther || "",
+        interestedServices: user?.interestedServices || [],
+        otherService: user?.otherService || "",
     });
 
     const [secondaryContact, setSecondaryContact] = useState({
@@ -118,10 +107,13 @@ export function ProfileCompletion({
             else if (user.phone && !user.email) secondaryMethod = "EMAIL";
         }
         const contactValue = secondaryMethod === "PHONE" ? user?.phone : user?.email;
+        const isAlreadyVerified = secondaryMethod === "PHONE" ? user?.phoneVerified : user?.emailVerified;
+
         setSecondaryContact((prev) => ({
             ...prev,
             contactType: secondaryMethod,
             contact: contactValue || "",
+            isVerified: !!isAlreadyVerified,
         }));
     }, [user]);
 
@@ -180,9 +172,9 @@ export function ProfileCompletion({
 
 
 
-    const countyList = location.country === "Kenya" ? Object.keys(counties) : [];
-    const subCountyList = (location.country === "Kenya" && location.county)
-        ? counties[location.county as keyof typeof counties] || []
+    const countyList = Object.keys(counties).sort();
+    const subCountyList = location.county
+        ? (counties as any)[location.county] || []
         : [];
 
     const isOrganizationType = accountType === "ORGANIZATION" || userType === "CONTRACTOR" || userType === "HARDWARE";
@@ -350,7 +342,7 @@ export function ProfileCompletion({
     };
 
     const handleSubmit = async () => {
-        if (!validateStep4()) {
+        if (totalSteps === 4 && !secondaryContact.isVerified) {
             toast.error("Please verify your contact first.");
             return;
         }
@@ -362,18 +354,11 @@ export function ProfileCompletion({
                 : { firstName, lastName };
 
             const profileData = {
-                email: user?.email,
                 ...restPersonalInfo,
                 ...nameFields,
                 ...location,
                 ...reference,
-                secondaryContactVerification: {
-                    contact: secondaryContact.contact,
-                    contactType: secondaryContact.contactType,
-                    otp: secondaryContact.otp,
-                    isVerified: secondaryContact.isVerified,
-                },
-                redirectTo: shouldSkipVerification ? "/profile" : null
+                redirectTo: "/profile"
             };
 
             console.log("FINAL PROFILE DATA IN MODAL SUBMIT:", profileData);
@@ -401,7 +386,7 @@ export function ProfileCompletion({
         { icon: ShieldCheck, label: "Verify" }
     ];
 
-    const stepInfo = shouldSkipVerification ? baseStepInfo.slice(0, 3) : baseStepInfo;
+    const stepInfo = baseStepInfo;
 
 
     const socialPlatforms = [
@@ -942,7 +927,7 @@ export function ProfileCompletion({
                     ) : (
                         <Button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || (!shouldSkipVerification && !secondaryContact.isVerified)}
+                            disabled={isSubmitting || !secondaryContact.isVerified}
                             className="flex-1 h-12 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
                         >
                             {isSubmitting ? (
@@ -950,13 +935,12 @@ export function ProfileCompletion({
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     Completing...
                                 </span>
-                            ) : shouldSkipVerification ? "Finish and Go to Profile" : "Complete Profile"}
+                            ) : "Complete Profile"}
                         </Button>
                     )}
                 </div>
             </div>
         </div>
-
     );
 }
 

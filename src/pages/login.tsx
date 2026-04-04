@@ -23,9 +23,8 @@ const isValidPhone = (phone) => /^\d{10}$/.test(phone);
 const Button = ({ children, disabled, ...props }) => (
   <button
     disabled={disabled}
-    className={`w-full h-12 rounded-lg bg-[#00007a] text-white font-medium ${
-      disabled ? "opacity-50" : "hover:bg-[#00007a]/90"
-    }`}
+    className={`w-full h-12 rounded-lg bg-[#00007a] text-white font-medium ${disabled ? "opacity-50" : "hover:bg-[#00007a]/90"
+      }`}
     {...props}
   >
     {children}
@@ -57,11 +56,25 @@ export default function Login() {
 
   const handleProfileComplete = async (profileData: any) => {
     try {
-      const { redirectTo, ...apiData } = profileData;
+      const { redirectTo } = profileData;
       const payload = {
         email: registeredUser?.email || contextUser?.email,
-        ...apiData,
+        firstName: profileData.firstName || "",
+        lastName: profileData.lastName || "",
+        organizationName: profileData.organizationName || "",
+        contactFullName: profileData.contactFullName || "",
+        country: profileData.country || "Kenya",
+        county: profileData.county || "",
+        subCounty: profileData.subCounty || "",
+        townCity: profileData.town || "",
+        estateVillage: profileData.estate || "",
+        referenceInfo: profileData.howDidYouHearAboutUs || "",
+        referralDetail: profileData.referralDetail || "",
+        socialMediaOther: profileData.socialMediaOther || "",
+        idNumber: profileData.idNumber || "",
+        idType: profileData.idType || "NATIONAL_ID",
       };
+
       const response = await completeProfile(payload);
       if (response.data?.success) {
         const updatedUser = response.data.user;
@@ -69,7 +82,7 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(updatedUser));
         setShowProfileCompletionModal(false);
         toast.success("Profile Completed!");
-        redirectUser(updatedUser, redirectTo); // Pass optional redirectTo
+        redirectUser(updatedUser, redirectTo);
       } else {
         toast.error(response.data?.message || "Failed to complete profile");
       }
@@ -147,7 +160,7 @@ export default function Login() {
         if (inputType === "email") {
           await emailOtpLogin({ email: formData.email.trim() });
         } else {
-          // existing phone logic
+
           const phoneNumber = formData.email.replace(/\D/g, "");
           const moddedPhoneNumber = phoneNumber.startsWith("254")
             ? phoneNumber
@@ -167,7 +180,7 @@ export default function Login() {
       return;
     }
 
-    // And in the OTP verify block:
+
     if (isOtpFlow && otpSent) {
       setIsLoading(true);
       const inputType = detectInputType(formData.email);
@@ -294,20 +307,34 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    if (user.status === "SIGNED_UP" && !user.isSuperAdmin && user.profileStatus !== "COMPLETE") {
+    if (!user.isSuperAdmin) {
       try {
         setIsLoading(true);
         const profileResponse = await getProviderProfile(axios, user.id);
         const profileData = profileResponse?.data || profileResponse;
-        setRegisteredUser({ ...user, ...profileData });
-        setShowProfileCompletionModal(true);
+
+
+        const areFieldsEmpty =
+          (!profileData?.emailVerified && !profileData?.phoneVerified) ||
+          !profileData?.referenceInfo;
+
+        if (
+          (user.status === "SIGNED_UP" && user.profileStatus !== "COMPLETE") ||
+          areFieldsEmpty
+        ) {
+          setRegisteredUser({ ...user, ...profileData });
+          setShowProfileCompletionModal(true);
+          return;
+        }
       } catch (error) {
         console.error("Error fetching provider profile:", error);
-        toast.error("Failed to fetch profile details");
+        if (user.status === "SIGNED_UP") {
+          toast.error("Failed to fetch profile details");
+          return;
+        }
       } finally {
         setIsLoading(false);
       }
-      return;
     }
 
     toast.success("Login successful!");

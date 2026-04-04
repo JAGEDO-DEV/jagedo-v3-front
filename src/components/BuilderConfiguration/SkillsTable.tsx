@@ -20,6 +20,7 @@ import { BulkDeleteConfirmDialog } from "./BulkDeleteConfirmDialog";
 import { SkillDetailView } from "./SkillDetailView";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { useMasterData } from "@/hooks/useMasterData";
+import { invalidateSpecializationCache } from "@/hooks/useSpecializationMappings";
 import { getAuthHeaders } from "@/utils/auth";
 import { getSpecializationMappings, toggleSkillActive, deactivateSkill, activateSkill } from "@/api/builderSkillsApi.api";
 import { getMasterDataValues } from "@/api/masterData";
@@ -227,6 +228,8 @@ export function SkillsTable({
     if (!onRemoveSpecialization) return;
     try {
       await onRemoveSpecialization(skillId, code);
+      // Invalidate cache so provider dropdowns refresh with updated specializations
+      invalidateSpecializationCache();
       setError(null);
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || err?.message || "Failed to remove specialization";
@@ -285,12 +288,9 @@ export function SkillsTable({
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-          <Wrench className="h-9 w-9 text-gray-800" />
-          Builder Skills
-        </h1>
-        <div className="flex gap-2">
+      <div className="flex justify-end items-center">
+       
+        <div className="flex  gap-2">
           {canDelete && onDeleteByType && activeTab !== "ALL" && (
             <Button
               onClick={() => {

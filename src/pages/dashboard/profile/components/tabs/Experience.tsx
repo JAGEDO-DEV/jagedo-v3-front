@@ -175,6 +175,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
           setFundiSkills(activeSkills);
           
+          // Get specialization mappings directly
           const mappingsRes = await getSpecializationMappings(authAxios, userType);
           setSpecMappings(mappingsRes);
         } catch (error) {
@@ -191,20 +192,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   // ── Load specializations when skill/profession/category/type changes ───────────────────────────────
   useEffect(() => {
     // Determine which field triggers specialization loading based on user type
+    // Use editingFields if in edit mode, otherwise use userData
+    const sourceData = isEditingFields ? editingFields : (userData?.userProfile || userData || {});
+    
     let triggerField: string | undefined;
     
     switch (userType) {
       case 'FUNDI':
-        triggerField = editingFields?.skill;
+        triggerField = sourceData?.skill || sourceData?.fundiSpecialization;
         break;
       case 'PROFESSIONAL':
-        triggerField = editingFields?.profession;
+        triggerField = sourceData?.profession || sourceData?.professionalSpecialization;
         break;
       case 'CONTRACTOR':
-        triggerField = editingFields?.category;
+        triggerField = sourceData?.category || sourceData?.contractorTypes;
         break;
       case 'HARDWARE':
-        triggerField = editingFields?.hardwareType;
+        triggerField = sourceData?.hardwareType;
         break;
       default:
         triggerField = undefined;
@@ -228,17 +232,53 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         const specTypeCode = specMappings[normalizedField];
         
         if (!specTypeCode) {
+          console.warn(`No specialization mapping found for: ${normalizedField}`);
           setSpecializations([]);
           return;
         }
 
+        // Find the skill in fundiSkills to get its assigned specializations array
+        const selectedSkill = fundiSkills.find((s: any) => 
+          normalizeSkillName(s.skillName) === normalizedField
+        );
+        
+        // If skill not found, show all master data specs (fallback)
+        if (!selectedSkill) {
+          console.warn(`Skill not found for: ${triggerField}, falling back to all master data`);
+          const authAxios = axios.create({
+            headers: { Authorization: getAuthHeaders() },
+          });
+          const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+          const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+          setSpecializations(specs);
+          return;
+        }
+
+        // Get the specialization codes assigned to this skill
+        const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
+          ? selectedSkill.specializations 
+          : [];
+
+        if (assignedSpecCodes.length === 0) {
+          console.info(`No specializations assigned to skill: ${selectedSkill.skillName}`);
+          setSpecializations([]);
+          return;
+        }
+
+        // Fetch all available specializations for this type
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
-        
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-        const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-        setSpecializations(specs);
+        const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+
+        // Filter to only show the specializations assigned to this skill
+        const filteredSpecs = allSpecs.filter((spec: any) => {
+          const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+          return assignedSpecCodes.includes(specCode);
+        });
+
+        setSpecializations(filteredSpecs);
       } catch (error) {
         console.error('Failed to load specializations:', error);
         setSpecializations([]);
@@ -248,7 +288,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     };
 
     loadSpecializations();
-  }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, specMappings, userType]);
+  }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, userData?.skill, userData?.profession, userData?.category, userData?.hardwareType, userData?.fundiSpecialization, userData?.professionalSpecialization, userData?.contractorTypes, userData?.levelOrClass, specMappings, userType, isEditingFields, fundiSkills]);
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -474,13 +514,41 @@ useEffect(() => {
         return;
       }
 
+      // Find the skill to get its assigned specializations
+      const selectedSkill = fundiSkills.find((s: any) => 
+        normalizeSkillName(s.skillName) === normalizedField
+      );
+      
+      if (!selectedSkill) {
+        setSpecializations([]);
+        return;
+      }
+
+      // Get the specialization codes assigned to this category/skill
+      const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
+        ? selectedSkill.specializations 
+        : [];
+
+      if (assignedSpecCodes.length === 0) {
+        setSpecializations([]);
+        return;
+      }
+
+      // Fetch all available specializations for this type
       const authAxios = axios.create({
         headers: { Authorization: getAuthHeaders() },
       });
       
       const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-      const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-      setSpecializations(specs);
+      const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+      
+      // Filter to only show the specializations assigned to this category
+      const filteredSpecs = allSpecs.filter((spec: any) => {
+        const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+        return assignedSpecCodes.includes(specCode);
+      });
+
+      setSpecializations(filteredSpecs);
     } catch (error) {
       console.error('Failed to load contractor specializations:', error);
       setSpecializations([]);
@@ -490,7 +558,7 @@ useEffect(() => {
   };
 
   loadContractorSpecializations();
-}, [categories, specMappings, userType]);
+}, [categories, specMappings, userType, fundiSkills]);
   type ContractorCategory = {
     category: string;
     specialization: string;
@@ -2088,6 +2156,11 @@ useEffect(() => {
                               <p className="text-blue-900 font-bold text-sm">
                                 {fieldValue || "N/A"}
                               </p>
+                            ) : userType === "PROFESSIONAL" && field.name === "profession" ? (
+                              // PROFESSIONAL profession - read only
+                              <p className="text-blue-900 font-bold text-sm">
+                                {fieldValue || "N/A"}
+                              </p>
                             ) : userType === "FUNDI" && field.name === "specialization" ? (
                               // Dynamic FUNDI specialization select
                               <select
@@ -2179,6 +2252,8 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+
+              
             </div>
 
             {/* Contractor Categories Section */}
@@ -2373,6 +2448,19 @@ useEffect(() => {
                           </select>
                         </div>
                       </div>
+
+                      {/* Selected Specialization Display */}
+                      {cat.specialization && (
+                        <div className="mt-4 pt-4 border-t border-gray-300">
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                            Selected Specialization
+                          </h4>
+                          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <span>{cat.specialization}</span>
+                            <span className="text-blue-600 font-semibold">({cat.specialization})</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Category info hint */}
                       {cat.category && (

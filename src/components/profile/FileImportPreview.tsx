@@ -70,22 +70,26 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
       return;
     }
 
-    const file = selectedFiles[0];
-    
-    if (!isValidFile(file)) {
-      toast.error("Invalid file type. Only .xlsx and .csv files are allowed.");
-      return;
+    const validFiles = [];
+    for (const file of selectedFiles) {
+      if (!isValidFile(file)) {
+        toast.error(`Invalid file type for ${file.name}. Only .xlsx and .csv allowed.`);
+        continue;
+      }
+
+      const isValidStructure = await validateFileStructure(file);
+      if (!isValidStructure) {
+        toast.error(`File structure for ${file.name} does not match template.`);
+        continue;
+      }
+      validFiles.push(file);
     }
 
-    const isValidStructure = await validateFileStructure(file);
-    if (!isValidStructure) {
-      toast.error("File structure or headers do not match the required template.");
-      return;
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      setShowPreview(true);
+      toast.success(`${validFiles.length} file(s) added! Please review the data.`);
     }
-
-    setFiles((prev) => [...prev, file]);
-    setShowPreview(true);
-    toast.success("File uploaded successfully! Please review the data.");
   };
 
   const handleDrop = (e) => {
@@ -101,6 +105,12 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
 
   const handleBackToBrowse = () => {
     setShowPreview(false);
+  };
+
+  const handleReturnToPreview = () => {
+    if (files.length > 0) {
+      setShowPreview(true);
+    }
   };
 
   return (
@@ -121,17 +131,26 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
               Upload Another File
             </button>
           </div>
-          <ParsedPreviewTable file={files[files.length - 1]} onSubmitSuccess={onBack} />
+          <ParsedPreviewTable files={files} onSubmitSuccess={onBack} />
         </div>
 
         <div className={`${!showPreview || files.length === 0 ? "" : "hidden"} w-full max-w-xl`}>
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="mb-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
-          >
-            ← Back
-          </button>
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={onBack}
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+            >
+              ← Back to Catalog
+            </button>
+            {files.length > 0 && (
+              <button
+                onClick={handleReturnToPreview}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition font-bold"
+              >
+                View Current Preview ({files.length} files)
+              </button>
+            )}
+          </div>
 
           {/* Upload Area */}
           <div
@@ -152,7 +171,7 @@ export default function FileUploadPage({ onBack }: FileUploadPageProps) {
               Browse Files
               <input
                 type="file"
-                multiple={false}
+                multiple={true}
                 onChange={handleBrowse}
                 className="hidden"
                 accept=".xlsx,.csv"

@@ -7,12 +7,8 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { bulkCreateProducts } from "@/api/products.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 
-// const expectedHeaders = [
-//   "Number", "Thumbnail", "Product Name", "Product Description", "Price",
-//   "SKU", "BID", "Material", "Size", "Color", "Region", "UOM"
-// ];
 
-const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
+const ParsedPreviewTable = ({ files, onSubmitSuccess }) => {
   const [products, setProducts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -26,61 +22,68 @@ const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
   const { user } = useGlobalContext();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
+  const [parsedFileNames, setParsedFileNames] = useState(new Set());
+
   React.useEffect(() => {
-    const parseFile = async () => {
-      try {
-        const data = await file.arrayBuffer(); //reads file to binary data suitable for parsing with xlsx
+    const parseAllFiles = async () => {
+      const newFiles = files.filter(f => !parsedFileNames.has(f.name + f.size));
+      if (newFiles.length === 0) return;
 
-        // parse the binary data into a workbook object.
-        const workbook = XLSX.read(data, { type: "array" });
+      for (const file of newFiles) {
+        try {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        // Get the first sheet from the workbook (assuming that's the one with relevant data).
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          if (!jsonData || jsonData.length < 2) continue;
 
-        // Convert the whole sheet (column names & remaining data) to json array
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          const headers = jsonData[0].map(h => h?.trim());
+          const rows = jsonData.slice(1);
 
-        const headers = jsonData[0].map(h => h?.trim()); // defines column names
-        const rows = jsonData.slice(1); // defines the rest of the data
+          const headerIndexMap = {
+            name: headers.indexOf("Product Name"),
+            price: headers.indexOf("Price"),
+            sku: headers.indexOf("SKU"),
+            bid: headers.indexOf("BID"),
+            thumbnail: headers.indexOf("Thumbnail"),
+          };
 
-        const headerIndexMap = {
-          name: headers.indexOf("Product Name"),
-          price: headers.indexOf("Price"),
-          sku: headers.indexOf("SKU"),
-          bid: headers.indexOf("BID"),
-          thumbnail: headers.indexOf("Thumbnail"),
-        };
-
-        setProducts((prev) => {
-          const nextId = prev.length > 0 ? Math.max(...prev.map((p) => p.id)) + 1 : 1;
-          const newlyMapped = rows.map((row, i) => ({
-            id: nextId + i,
-            name: row[headerIndexMap.name],
-            price: row[headerIndexMap.price],
-            sku: row[headerIndexMap.sku],
-            bid: row[headerIndexMap.bid],
-            status: "Drafts",
-            images: row[headerIndexMap.thumbnail]
-              ? [
+          setProducts((prev) => {
+            const nextId = prev.length > 0 ? Math.max(...prev.map((p) => p.id)) + 1 : 1;
+            const newlyMapped = rows.map((row, i) => ({
+              id: nextId + i,
+              name: row[headerIndexMap.name],
+              price: row[headerIndexMap.price],
+              sku: row[headerIndexMap.sku],
+              bid: row[headerIndexMap.bid],
+              status: "Drafts",
+              images: row[headerIndexMap.thumbnail]
+                ? [
                   {
                     dataUrl: row[headerIndexMap.thumbnail],
                     label: row[headerIndexMap.name] || `Image ${i + 1}`,
                   },
                 ]
-              : [],
-          }));
-          return [...prev, ...newlyMapped];
-        });
+                : [],
+            }));
+            return [...prev, ...newlyMapped];
+          });
 
+          setParsedFileNames(prev => new Set(prev).add(file.name + file.size));
 
-      } catch (err) {
-        console.error("Error parsing file:", err);
+        } catch (err) {
+          console.error("Error parsing file:", err);
+          toast.error(`Error parsing ${file.name}`);
+        }
       }
     };
 
-    if (file) parseFile();
+    if (files && files.length > 0) {
+      parseAllFiles();
+    }
 
-  }, [file]);
+  }, [files]);
 
   const handleDelete = (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this product?");
@@ -140,13 +143,13 @@ const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
     const updatedProducts = products.map((p) =>
       p.id === editingId
         ? {
-            ...p,
-            name: editFormData.name,
-            price: editFormData.price,
-            sku: editFormData.sku,
-            bid: editFormData.bid,
-            images: editFormData.images,
-          }
+          ...p,
+          name: editFormData.name,
+          price: editFormData.price,
+          sku: editFormData.sku,
+          bid: editFormData.bid,
+          images: editFormData.images,
+        }
         : p
     );
 
@@ -182,15 +185,15 @@ const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
 
     setIsSubmitting(true);
     try {
-      // Transform products to match API expectations
+
       const productsToUpload = products.map((p) => ({
         name: p.name,
-        description: p.name, // Using name as description since it's not in the template
+        description: p.name,
         customPrice: parseFloat(p.price) || 0,
         sku: p.sku,
         bId: p.bid,
         type: user.userType,
-        category: "", // Will need to be filled from template
+        category: "",
         sellerId: user.id,
         images: p.images?.map((img) => img.dataUrl).filter(Boolean) || [],
         regionId: "",
@@ -425,9 +428,9 @@ const ParsedPreviewTable = ({ file, onSubmitSuccess }) => {
   );
 };
 ParsedPreviewTable.propTypes = {
-  file: PropTypes.shape({
+  files: PropTypes.arrayOf(PropTypes.shape({
     arrayBuffer: PropTypes.func.isRequired,
-  }).isRequired,
+  })).isRequired,
   onSubmitSuccess: PropTypes.func,
 };
 
