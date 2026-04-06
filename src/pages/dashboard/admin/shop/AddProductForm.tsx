@@ -15,7 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Loader2, Upload, X } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Upload, X, Check, ChevronsUpDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { createProductAdmin, updateProduct } from "@/api/products.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -689,6 +697,7 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
+      const coreFields = ['name', 'description', 'type', 'category', 'subcategory', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
@@ -704,6 +713,19 @@ export default function AddProductForm({
         images: imageUrls,
       };
 
+      
+      const specs: any = {};
+      filteredAttributes.forEach(attr => {
+        const fieldName = attr.type.toLowerCase();
+        if (!coreFields.includes(fieldName) && formData[fieldName] !== undefined) {
+          specs[fieldName] = formData[fieldName];
+        }
+      });
+      
+      if (Object.keys(specs).length > 0) {
+        submitData.specs = specs;
+      }
+
       console.log("📤 Product submission data:", {
         name: submitData.name,
         type: submitData.type,
@@ -711,6 +733,7 @@ export default function AddProductForm({
         subcategory: submitData.subcategory,
         sku: submitData.sku,
         imagesCount: imageUrls.length,
+        specsCount: Object.keys(specs).length
       });
 
       if (isEditMode && product) {
@@ -748,6 +771,7 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
+      const coreFields = ['name', 'description', 'type', 'category', 'subcategory', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
@@ -764,11 +788,25 @@ export default function AddProductForm({
         status: "DRAFT", 
       };
 
+      
+      const specs: any = {};
+      filteredAttributes.forEach(attr => {
+        const fieldName = attr.type.toLowerCase();
+        if (!coreFields.includes(fieldName) && formData[fieldName] !== undefined) {
+          specs[fieldName] = formData[fieldName];
+        }
+      });
+      
+      if (Object.keys(specs).length > 0) {
+        submitData.specs = specs;
+      }
+
       console.log("📋 Saving product as draft:", {
         name: submitData.name,
         category: submitData.category,
         subcategory: submitData.subcategory,
         status: submitData.status,
+        specsCount: Object.keys(specs).length
       });
 
       await createProductAdmin(axiosInstance, submitData);
@@ -795,6 +833,14 @@ export default function AddProductForm({
         category: product.category,
         subcategory: product.subcategory,
       });
+
+      
+      if (product.product_specifications?.specs) {
+        setFormData(prev => ({
+          ...prev,
+          ...product.product_specifications.specs
+        }));
+      }
     }
   }, []);
 
@@ -1005,14 +1051,87 @@ export default function AddProductForm({
               const fieldName = attr.type.toLowerCase() as keyof ProductFormData;
               const hasValues = attr.values && attr.values.trim().length > 0;
               const options = hasValues ? attr.values.split(",").map(v => v.trim()) : [];
-              const isSelect = attr.attributeType === 'select' || attr.attributeType === 'multiselect' || hasValues;
+              const isMultiSelect = attr.attributeType === 'multiselect';
+              const isSelect = attr.attributeType === 'select' || (!attr.attributeType && hasValues);
+
+              const currentValue = formData[fieldName];
+              let selectedOptions: string[] = [];
+              if (isMultiSelect) {
+                if (Array.isArray(currentValue)) {
+                  selectedOptions = currentValue;
+                } else if (typeof currentValue === 'string') {
+                  selectedOptions = currentValue.split(',').filter(Boolean);
+                }
+              }
 
               return (
                 <div key={attr.id} className="space-y-2">
                   <Label htmlFor={`attr-${attr.id}`} className="text-sm">
                     {attr.type}
                   </Label>
-                  {isSelect ? (
+                  {isMultiSelect ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between h-auto min-h-[40px] px-3 py-2 text-left font-normal",
+                            !selectedOptions.length && "text-muted-foreground"
+                          )}
+                        >
+                          <div className="flex flex-wrap gap-1">
+                            {selectedOptions.length > 0 ? (
+                              selectedOptions.map((opt) => (
+                                <Badge
+                                  key={opt}
+                                  variant="secondary"
+                                  className="mr-1 mb-1"
+                                >
+                                  {opt}
+                                  <X
+                                    className="ml-1 h-3 w-3 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInputChange(
+                                        fieldName,
+                                        selectedOptions.filter((o) => o !== opt)
+                                      );
+                                    }}
+                                  />
+                                </Badge>
+                              ))
+                            ) : (
+                              <span>Select {attr.type}...</span>
+                            )}
+                          </div>
+                          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 bg-white shadow-md border rounded-md">
+                        <div className="p-2 space-y-1">
+                          {options.map((opt) => (
+                            <div
+                              key={opt}
+                              className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-sm cursor-pointer"
+                              onClick={() => {
+                                const newOptions = selectedOptions.includes(opt)
+                                  ? selectedOptions.filter((o) => o !== opt)
+                                  : [...selectedOptions, opt];
+                                handleInputChange(fieldName, newOptions);
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedOptions.includes(opt)}
+                                onCheckedChange={() => {}} 
+                              />
+                              <span className="text-sm">{opt}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : isSelect ? (
                     <Select
                       value={(formData[fieldName] as string) || ""}
                       onValueChange={(val) => handleInputChange(fieldName, val)}

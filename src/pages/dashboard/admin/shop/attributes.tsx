@@ -107,32 +107,8 @@ export default function ShopAttributes() {
     const [showAddAttribute, setShowAddAttribute] = useState(false);
     const [showEditAttribute, setShowEditAttribute] = useState(false);
     const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null);
-    const [editFormData, setEditFormData] = useState({
-        type: "",
-        productType: "",
-        values: "",
-        attributeGroup: "",
-        categoryId: "",
-        filterable: false,
-        active: true,
-        customerView: false
-    });
     const [availableCategories, setAvailableCategories] = useState<any[]>([]);
-    const [editSelectedSubcategory, setEditSelectedSubcategory] =
-        useState(CATEGORY_SCOPE);
 
-    const selectedEditCategory = availableCategories.find(
-        (category) => category.id.toString() === editFormData.categoryId,
-    );
-    const editSubcategoryOptions = getSubcategoryNames(selectedEditCategory);
-    const hasLegacyEditSubcategory =
-        editSelectedSubcategory !== CATEGORY_SCOPE &&
-        !!editSelectedSubcategory &&
-        !editSubcategoryOptions.some(
-            (subCategory) =>
-                normalizeText(subCategory) ===
-                normalizeText(editSelectedSubcategory),
-        );
 
     const categories = [
         { label: "Hardware", type: "HARDWARE" },
@@ -218,66 +194,8 @@ export default function ShopAttributes() {
     };
 
     const handleEditAttribute = (attribute: Attribute) => {
-        const selectedCategory = availableCategories.find(
-            (category) =>
-                category.id.toString() ===
-                attribute.categoryId?.toString(),
-        );
-        const categoryName = selectedCategory?.name || "";
-        const usesCategoryScope =
-            !attribute.attributeGroup ||
-            normalizeText(attribute.attributeGroup) ===
-                normalizeText(categoryName);
-
         setEditingAttribute(attribute);
-        setEditSelectedSubcategory(
-            usesCategoryScope ? CATEGORY_SCOPE : attribute.attributeGroup,
-        );
-        setEditFormData({
-            type: attribute.type,
-            productType: attribute.productType,
-            values: attribute.values,
-            attributeGroup: attribute.attributeGroup,
-            //@ts-ignore
-            categoryId: attribute.categoryId?.toString() || "",
-            filterable: attribute.filterable,
-            active: attribute.active,
-            customerView: attribute.customerView
-        });
         setShowEditAttribute(true);
-    };
-
-    const handleSaveEditAttribute = async () => {
-        if (!editingAttribute) return;
-
-        const isDuplicate = attributes.some((attr) =>
-            attr.id !== editingAttribute.id &&
-            attr.type.toLowerCase().trim() === editFormData.type.toLowerCase().trim() &&
-            normalizeText(attr.productType) === normalizeText(editFormData.productType) &&
-            normalizeText(attr.attributeGroup) === normalizeText(editFormData.attributeGroup)
-        );
-
-        if (isDuplicate) {
-            toast.error("An attribute with this name already exists for the selected product type.");
-            return;
-        }
-
-        try {
-            const response = await updateAttribute(axiosInstance, editingAttribute.id, {
-                id: editingAttribute.id,
-                ...editFormData
-            });
-            if (response.success) {
-                toast.success("Attribute updated successfully");
-                setShowEditAttribute(false);
-                fetchAttributes();
-            } else {
-                toast.error(response.message || "Failed to update attribute");
-            }
-        } catch (error) {
-            console.error("Error updating attribute:", error);
-            toast.error("Failed to update attribute");
-        }
     };
 
     const handleDeleteAttribute = (attribute: Attribute) => {
@@ -342,17 +260,23 @@ export default function ShopAttributes() {
         setShowAddAttribute(true);
     };
 
-    if (showAddAttribute) {
+    if (showAddAttribute || (showEditAttribute && editingAttribute)) {
         return (
             <AddAttributeForm
                 onBack={() => {
                     setShowAddAttribute(false);
+                    setShowEditAttribute(false);
+                    setEditingAttribute(null);
                 }}
                 onSuccess={() => {
                     setShowAddAttribute(false);
+                    setShowEditAttribute(false);
+                    setEditingAttribute(null);
                     fetchAttributes();
                 }}
                 defaultProductType={selectedCategory}
+                attribute={editingAttribute}
+                isEdit={showEditAttribute}
             />
         );
     }
@@ -622,208 +546,6 @@ export default function ShopAttributes() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={showEditAttribute} onOpenChange={setShowEditAttribute}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Attribute</DialogTitle>
-                        <DialogDescription>
-                            Update the attribute details below.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-type">Attribute Name</Label>
-                            <Input
-                                id="edit-type"
-                                value={editFormData.type}
-                                onChange={(e) =>
-                                    setEditFormData({
-                                        ...editFormData,
-                                        type: e.target.value
-                                    })
-                                }
-                                placeholder="e.g., Color, Size"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-product-type">Product Type</Label>
-                            <Select
-                                value={editFormData.productType}
-                                onValueChange={(value) =>
-                                    setEditFormData({
-                                        ...editFormData,
-                                        productType: value
-                                    })
-                                }
-                            >
-                                <SelectTrigger id="edit-product-type">
-                                    <SelectValue placeholder="Select product type" />
-                                </SelectTrigger>
-                                <SelectContent className='bg-white'>
-                                    <SelectItem value="HARDWARE">Hardware</SelectItem>
-                                    <SelectItem value="FUNDI">Custom Products</SelectItem>
-                                    <SelectItem value="PROFESSIONAL">Designs</SelectItem>
-                                    <SelectItem value="CONTRACTOR">Hire Machinery & E</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-values">Values</Label>
-                            <Input
-                                id="edit-values"
-                                value={editFormData.values}
-                                onChange={(e) =>
-                                    setEditFormData({
-                                        ...editFormData,
-                                        values: e.target.value
-                                    })
-                                }
-                                placeholder="e.g., Red, Blue, Green"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-group">Category (Attribute Group)</Label>
-                            <Select
-                                value={editFormData.categoryId}
-                                onValueChange={(value) => {
-                                    const selectedCat = availableCategories.find(c => c.id.toString() === value);
-                                    setEditSelectedSubcategory(CATEGORY_SCOPE);
-                                    setEditFormData({
-                                        ...editFormData,
-                                        //@ts-ignore
-                                        categoryId: value,
-                                        attributeGroup: selectedCat ? selectedCat.name : ""
-                                    });
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select category" />
-                                </SelectTrigger>
-                                <SelectContent className='bg-white'>
-                                    {availableCategories
-                                        .filter(cat =>
-                                            cat.active &&
-                                            ((cat.type || "").trim().toUpperCase() === editFormData.productType ||
-                                                (editFormData.productType === "HARDWARE" && !cat.type))
-                                        )
-                                        .map((cat) => (
-                                            <SelectItem key={cat.id.toString()} value={cat.id.toString()}>
-                                                {cat.name}
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-sub-category">Sub-category (Optional)</Label>
-                            <Select
-                                value={editSelectedSubcategory}
-                                onValueChange={(value) => {
-                                    setEditSelectedSubcategory(value);
-                                    setEditFormData({
-                                        ...editFormData,
-                                        attributeGroup:
-                                            value === CATEGORY_SCOPE
-                                                ? selectedEditCategory?.name || ""
-                                                : value
-                                    });
-                                }}
-                                disabled={!selectedEditCategory || editSubcategoryOptions.length === 0}
-                            >
-                                <SelectTrigger id="edit-sub-category">
-                                    <SelectValue
-                                        placeholder={
-                                            selectedEditCategory
-                                                ? "Choose scope"
-                                                : "Select a category first"
-                                        }
-                                    />
-                                </SelectTrigger>
-                                <SelectContent className='bg-white'>
-                                    <SelectItem value={CATEGORY_SCOPE}>
-                                        Entire category
-                                    </SelectItem>
-                                    {hasLegacyEditSubcategory && (
-                                        <SelectItem value={editSelectedSubcategory}>
-                                            {editSelectedSubcategory}
-                                        </SelectItem>
-                                    )}
-                                    {editSubcategoryOptions.map((subCategory) => (
-                                        <SelectItem key={subCategory} value={subCategory}>
-                                            {subCategory}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="edit-filterable"
-                                    checked={editFormData.filterable}
-                                    onCheckedChange={(checked) =>
-                                        setEditFormData({
-                                            ...editFormData,
-                                            filterable: checked as boolean
-                                        })
-                                    }
-                                />
-                                <Label htmlFor="edit-filterable" className="cursor-pointer">
-                                    Is Filterable
-                                </Label>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="edit-customer-view"
-                                    checked={editFormData.customerView}
-                                    onCheckedChange={(checked) =>
-                                        setEditFormData({
-                                            ...editFormData,
-                                            customerView: checked as boolean
-                                        })
-                                    }
-                                />
-                                <Label htmlFor="edit-customer-view" className="cursor-pointer">
-                                    Show To Customers
-                                </Label>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="edit-active"
-                                    checked={editFormData.active}
-                                    onCheckedChange={(checked) =>
-                                        setEditFormData({
-                                            ...editFormData,
-                                            active: checked as boolean
-                                        })
-                                    }
-                                />
-                                <Label htmlFor="edit-active" className="cursor-pointer">
-                                    Active
-                                </Label>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowEditAttribute(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSaveEditAttribute}
-                            style={{ backgroundColor: "#00007A", color: "white" }}
-                        >
-                            Save Changes
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

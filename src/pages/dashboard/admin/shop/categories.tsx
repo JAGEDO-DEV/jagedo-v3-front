@@ -55,7 +55,7 @@ import {
 } from "@/api/categories.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
-// ✅ SubCategory Item Interface
+
 interface SubCategoryItem {
   id: string;
   name: string;
@@ -64,7 +64,7 @@ interface SubCategoryItem {
   metaKeywords: string;
 }
 
-// ✅ Edit Category Data Interface
+
 interface EditCategoryData {
   id: number | string;
   name: string;
@@ -184,19 +184,20 @@ export default function ShopCategories() {
   const handleEditCategory = (category: Category) => {
     let existingSub: SubCategoryItem[] = [];
     if (Array.isArray(category.subCategory)) {
-      // Convert all subcategories to object format for consistency
+      
       existingSub = category.subCategory.map((sub: any) => {
         if (typeof sub === "string") {
-          // Legacy string format - convert to object
+          
+          const details = getSubCategoryDetails(sub);
           return {
-            id: `sub-${Date.now()}-${Math.random()}`,
-            name: sub,
-            urlKey: "",
-            metaTitle: "",
-            metaKeywords: "",
+            id: details.id || `sub-${Date.now()}-${Math.random()}`,
+            name: details.name,
+            urlKey: details.urlKey || "",
+            metaTitle: details.metaTitle || "",
+            metaKeywords: details.metaKeywords || "",
           } as SubCategoryItem;
         }
-        // Already object format - ensure all fields exist
+        
         const subObj = sub as Partial<SubCategoryItem> || {};
         return {
           id: subObj.id || `sub-${Date.now()}-${Math.random()}`,
@@ -207,7 +208,7 @@ export default function ShopCategories() {
         } as SubCategoryItem;
       });
     } else if (typeof category.subCategory === "string" && (category.subCategory as string).trim() !== "") {
-      // Legacy string format from API
+      
       existingSub = (category.subCategory as string).split(",").map((s, i) => ({
         id: `sub-${i}-${Date.now()}`,
         name: s.trim(),
@@ -242,7 +243,7 @@ export default function ShopCategories() {
     const val = newSubCategoryInput.trim();
     if (!val) return;
     
-    // Extract names from existing subcategories (all should be objects in editCategoryData)
+    
     const existingNames = editCategoryData.subCategory.map((s) => s.name);
     
     console.log("🔍 Adding subcategory during edit:", {
@@ -260,7 +261,7 @@ export default function ShopCategories() {
       return;
     }
     
-    // Add as object with metadata fields
+    
     const newSubCategoryObj: SubCategoryItem = {
       id: `sub-${Date.now()}`,
       name: val,
@@ -321,7 +322,7 @@ export default function ShopCategories() {
     });
 
     try {
-      // ✅ Backend accepts objects for subCategory, frontend uses SubCategoryItem[] internally
+      
       await updateCategory(axiosInstance, editCategoryData.id, updatePayload as any);
       console.log("✅ Category updated successfully");
       toast.success("Category updated successfully");
@@ -425,7 +426,7 @@ export default function ShopCategories() {
       return;
     }
 
-    // Extract existing subcategory data (handle both string and object formats)
+    
     let existing: any[] = [];
     let existingNames: string[] = [];
     
@@ -435,10 +436,10 @@ export default function ShopCategories() {
     if (Array.isArray(rawSub)) {
       existing = rawSub.map((sub) => {
         if (typeof sub === "string") {
-          // Legacy string format - convert to object
+          
           return { id: Math.random().toString(), name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
         }
-        // Already object format
+        
         return sub;
       });
       existingNames = existing.map((sub) => sub.name || "");
@@ -453,7 +454,7 @@ export default function ShopCategories() {
       }));
     }
 
-    // Check for duplicate names
+    
     if (
       existingNames
         .map((s) => s.toLowerCase())
@@ -464,7 +465,7 @@ export default function ShopCategories() {
     }
 
     try {
-      // Create new subcategory object with full metadata
+      
       const newSubCategoryObj = {
         id: `sub-${Date.now()}`,
         name: subCategoryData.name.trim(),
@@ -543,7 +544,14 @@ export default function ShopCategories() {
     if (Array.isArray(subCategory)) {
       subCategoryList = subCategory.map((sub) => {
         if (typeof sub === "string") {
-          return { id: Math.random().toString(), name: sub, urlKey: "", metaTitle: "", metaKeywords: "" };
+          const details = getSubCategoryDetails(sub);
+          return { 
+            id: details.id || Math.random().toString(), 
+            name: details.name, 
+            urlKey: details.urlKey || "", 
+            metaTitle: details.metaTitle || "", 
+            metaKeywords: details.metaKeywords || "" 
+          };
         }
         return sub;
       }).filter(sub => sub?.name);
@@ -628,13 +636,13 @@ export default function ShopCategories() {
     let list: string[] = [];
     
     if (Array.isArray(subCategory)) {
-      // Handle new object format: {id, name, urlKey, metaTitle, metaKeywords}
+      
       list = subCategory.map((sub) => {
         if (typeof sub === "string") {
-          // Legacy string format
+          
           return sub;
         } else if (typeof sub === "object" && sub?.name) {
-          // New object format
+          
           return sub.name;
         }
         return "";
@@ -714,7 +722,8 @@ export default function ShopCategories() {
                       </label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {category.subCategory.map((sub: string | SubCategoryItem, i) => {
-                          const subName = typeof sub === "string" ? sub : (sub?.name || "");
+                          const details = typeof sub === "string" ? getSubCategoryDetails(sub) : sub;
+                          const subName = details?.name || "";
                           return (
                             <span
                               key={i}
@@ -916,7 +925,7 @@ export default function ShopCategories() {
                 </TableHeader>
                 <TableBody>
                   {filteredCategories?.map((category, categoryIndex) => {
-                    // Convert subCategory to array format
+                    
                     let subCategoryList: any[] = [];
                     if (Array.isArray(category.subCategory)) {
                       subCategoryList = category.subCategory.map((sub: string | SubCategoryItem) => {

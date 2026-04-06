@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
 import { initiateSecondaryVerification, verifySecondaryVerification } from "@/api/auth.api";
+import { BUILDER_TYPE_LABELS } from "@/types/builder";
 import { useNavigate } from "react-router-dom";
 
 interface ProfileCompletionProps {
@@ -23,6 +24,8 @@ interface ProfileCompletionProps {
     onCancel?: () => void;
     isModal?: boolean;
 }
+
+const CUSTOMER_SERVICE_TYPES = ["FUNDI", "PROFESSIONAL", "CONTRACTOR", "HARDWARE"];
 
 export function ProfileCompletion({
     user,
@@ -78,7 +81,9 @@ export function ProfileCompletion({
         canResend: false,
     });
 
-
+    const isCustomerProfile =
+        userType === "CUSTOMER" ||
+        (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"));
 
     useEffect(() => {
         const fetchCountries = async () => {
@@ -178,6 +183,16 @@ export function ProfileCompletion({
         : [];
 
     const isOrganizationType = accountType === "ORGANIZATION" || userType === "CONTRACTOR" || userType === "HARDWARE";
+    const customerServiceOptions = CUSTOMER_SERVICE_TYPES.map(
+        (builderType) => BUILDER_TYPE_LABELS[builderType]
+    );
+    const selectedInterestedService = reference.interestedServices[0] || "";
+    const selectedInterestedServiceValue =
+        selectedInterestedService === "Other"
+            ? "Other"
+            : customerServiceOptions.find((option) => option === selectedInterestedService)
+                || customerServiceOptions.find((option) => selectedInterestedService.startsWith(`${option}:`))
+                || selectedInterestedService;
 
 
     const validateStep1 = (): boolean => {
@@ -215,11 +230,7 @@ export function ProfileCompletion({
             if (reference.referralDetail.trim().length < 2) return false;
         }
 
-
-        const isCustomer = userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"));
-        const isServiceProvider = userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType);
-
-        if (isCustomer && !isServiceProvider) {
+        if (isCustomerProfile) {
             if (reference.interestedServices.length === 0) return false;
 
 
@@ -397,16 +408,6 @@ export function ProfileCompletion({
         "WhatsApp",
         "YouTube",
         "LinkedIn",
-        "Other",
-    ];
-    const customerServices = [
-        "Plumbing",
-        "Electrical",
-        "Carpentry",
-        "Painting",
-        "Masonry",
-        "Interior Design",
-        "Cleaning",
         "Other",
     ];
 
@@ -709,26 +710,30 @@ export function ProfileCompletion({
                             )}
 
                             
-                            {(userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
-                                !(userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType)) && (
+                            {isCustomerProfile && (
 
                                     <div className="space-y-2 mt-6 animate-fade-in">
                                         <Label>What services are you interested in? *</Label>
                                         <Select
-                                            value={reference.interestedServices[0] || ""}
+                                            value={selectedInterestedServiceValue}
                                             onValueChange={(value) =>
-                                                setReference({ ...reference, interestedServices: [value] })
+                                                setReference({
+                                                    ...reference,
+                                                    interestedServices: [value],
+                                                    otherService: value === "Other" ? reference.otherService : "",
+                                                })
                                             }
                                         >
                                             <SelectTrigger className="w-full border-gray-300 py-3 h-auto">
-                                                <SelectValue placeholder="Select a service" />
+                                                <SelectValue placeholder="Select a service type" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-white scrollbar-hide">
-                                                {customerServices.map((service) => (
-                                                    <SelectItem key={service} value={service}>
-                                                        {service}
+                                                {customerServiceOptions.map((serviceType) => (
+                                                    <SelectItem key={serviceType} value={serviceType}>
+                                                        {serviceType}
                                                     </SelectItem>
                                                 ))}
+                                                <SelectItem value="Other">Other</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         
