@@ -1,11 +1,11 @@
 import { Product } from "@/hooks/useProducts";
 
 interface ProductFilters {
-    activeCategory: string;
+    activeGroup: string;
     selectedLocationName: string | null;
     selectedSidebarFilters: string[];
-    categoryMappings: Record<string, string[]>;
-    categoriesWithoutLocationFilter: string[];
+    groupMappings: Record<string, string[]>;
+    groupsWithoutLocationFilter: string[];
 }
 
 export const filterProducts = ({
@@ -16,33 +16,33 @@ export const filterProducts = ({
     filters: ProductFilters;
 }): Product[] => {
     const {
-        activeCategory,
+        activeGroup,
         selectedLocationName,
         selectedSidebarFilters,
-        categoryMappings,
-        categoriesWithoutLocationFilter,
+        groupMappings,
+        groupsWithoutLocationFilter,
     } = filters;
 
     if (!allProducts.length) {
         return [];
     }
 
-    // Filter for active products only (Redundant if useProducts handles it, but safe to keep)
+    
     const activeProducts = allProducts.filter(product => product.active === true);
 
-    const shouldApplyLocationFilter = !categoriesWithoutLocationFilter.includes(activeCategory);
-    // These are now strictly Types (e.g., ["HARDWARE"])
-    const allowedTypesForTab = categoryMappings[activeCategory] || [];
+    const shouldApplyLocationFilter = !groupsWithoutLocationFilter.includes(activeGroup);
+    
+    const allowedTypesForTab = groupMappings[activeGroup] || [];
 
-    const categoryFilteredProducts = activeProducts.filter(product => {
-        // Strict check: The product TYPE must match one of the allowed types for this tab.
+    const groupFilteredProducts = activeProducts.filter(product => {
+        
         const isCorrectType = allowedTypesForTab.some(type => 
             product.type?.trim().toLowerCase() === type.trim().toLowerCase()
         );
 
         if (!isCorrectType) return false;
 
-        // Only apply location filter if a specific region is selected (not "All Regions")
+        
         if (shouldApplyLocationFilter && selectedLocationName && selectedLocationName !== "All Regions") {
             return product.isLocationAgnostic || product.regionName === selectedLocationName;
         }
@@ -54,14 +54,14 @@ export const filterProducts = ({
     const activeSidebarFilters = selectedSidebarFilters.filter(f => f.trim().toLowerCase() !== "all products");
 
     const sidebarFilteredProducts = activeSidebarFilters.length > 0
-        ? categoryFilteredProducts.filter(product =>
+        ? groupFilteredProducts.filter(product =>
             activeSidebarFilters.some(filter =>
-                product.category?.trim().toLowerCase() === filter.trim().toLowerCase() ||
-                product.subcategory?.trim().toLowerCase() === filter.trim().toLowerCase() ||
+                product.group?.trim().toLowerCase() === filter.trim().toLowerCase() ||
+                product.subGroup?.trim().toLowerCase() === filter.trim().toLowerCase() ||
                 product.name?.trim().toLowerCase().includes(filter.trim().toLowerCase())
             )
         )
-        : categoryFilteredProducts;
+        : groupFilteredProducts;
 
     const hasSelectedLocation = !!selectedLocationName && selectedLocationName !== "All Regions";
     if (!hasSelectedLocation) {
@@ -85,6 +85,7 @@ export const filterProducts = ({
                 ...base,
                 id: `${base.productId}-all`,
                 price: minPrice,
+                isPriceSet: minPrice > 0,
                 showFromPrice: true,
                 isAggregated: true,
                 regionName: undefined,

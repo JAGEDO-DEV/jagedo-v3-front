@@ -64,33 +64,32 @@ import {
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import AddAttributeForm from "./AddAttributeForm";
 
-const CATEGORY_SCOPE = "__category__";
+const GROUP_SCOPE = "__group__";
 
 const normalizeText = (value?: string | null) =>
     (value || "").trim().toLowerCase();
 
-const getSubcategoryNames = (category: any) => {
-    if (!category) return [];
-
-    if (Array.isArray(category.subCategory)) {
-        return category.subCategory
-            .map((sub: any) => {
-                if (typeof sub === "string") {
-                    return sub.trim();
+const getSubGroupNames = (group: any) => {
+    if (!group) return [];
+    
+    const subGroup = group.subGroup;
+    if (Array.isArray(subGroup)) {
+        return subGroup.map((sub: any) => {
+            if (typeof sub === "string") return sub.trim();
+            try {
+                if (typeof sub === "string" && sub.startsWith("{")) {
+                   const parsed = JSON.parse(sub);
+                   return (parsed.name || "").trim();
                 }
-
-                return (sub?.name || "").trim();
-            })
-            .filter(Boolean);
+            } catch(e) {}
+            return (sub?.name || "").trim();
+        }).filter(Boolean);
     }
-
-    if (typeof category.subCategory === "string") {
-        return category.subCategory
-            .split(",")
-            .map((sub: string) => sub.trim())
-            .filter(Boolean);
+    
+    if (typeof subGroup === "string" && subGroup.trim() !== "") {
+        return subGroup.split(",").map((s: string) => s.trim()).filter(Boolean);
     }
-
+    
     return [];
 };
 
@@ -99,7 +98,7 @@ export default function ShopAttributes() {
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
+    const [selectedGroup, setSelectedGroup] = useState("HARDWARE");
     const [attributeToDelete, setAttributeToDelete] =
         useState<Attribute | null>(null);
     const [attributeToToggle, setAttributeToToggle] =
@@ -107,10 +106,10 @@ export default function ShopAttributes() {
     const [showAddAttribute, setShowAddAttribute] = useState(false);
     const [showEditAttribute, setShowEditAttribute] = useState(false);
     const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null);
-    const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+    const [availableGroups, setAvailableGroups] = useState<any[]>([]);
 
 
-    const categories = [
+    const groups = [
         { label: "Hardware", type: "HARDWARE" },
         { label: "Custom Products", type: "FUNDI" },
         { label: "Designs", type: "PROFESSIONAL" },
@@ -139,18 +138,18 @@ export default function ShopAttributes() {
         fetchAttributes();
 
         
-        const fetchCategories = async () => {
+        const fetchGroups = async () => {
             try {
-                const { getAllCategories } = await import("@/api/categories.api");
-                const response = await getAllCategories(axiosInstance);
+                const { getAllGroups } = await import("@/api/groups.api");
+                const response = await getAllGroups(axiosInstance);
                 if (response.success) {
-                    setAvailableCategories(response.data || response.hashSet || []);
+                    setAvailableGroups(response.data || response.hashSet || []);
                 }
             } catch (error) {
-                console.error("Error fetching categories:", error);
+                console.error("Error fetching groups:", error);
             }
         };
-        fetchCategories();
+        fetchGroups();
     }, []);
 
     const filteredAttributes = attributes?.filter(
@@ -161,10 +160,10 @@ export default function ShopAttributes() {
                 attribute.attributeGroup
                     .toLowerCase()
                     .includes(searchTerm.toLowerCase());
+                
+            const matchesGroup = attribute.productType === selectedGroup;
 
-            const matchesCategory = attribute.productType === selectedCategory;
-
-            return matchesSearch && matchesCategory;
+            return matchesSearch && matchesGroup;
         }
     );
 
@@ -274,7 +273,7 @@ export default function ShopAttributes() {
                     setEditingAttribute(null);
                     fetchAttributes();
                 }}
-                defaultProductType={selectedCategory}
+                defaultProductType={selectedGroup}
                 attribute={editingAttribute}
                 isEdit={showEditAttribute}
             />
@@ -302,16 +301,16 @@ export default function ShopAttributes() {
             </div>
 
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                {categories.map((category) => (
+                {groups.map((group) => (
                     <button
-                        key={category.type}
-                        onClick={() => setSelectedCategory(category.type)}
-                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedCategory === category.type
+                        key={group.type}
+                        onClick={() => setSelectedGroup(group.type)}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedGroup === group.type
                             ? "bg-[#00007A] text-white"
                             : "bg-transparent text-black hover:bg-blue-50"
                             }`}
                     >
-                        {category.label}
+                        {group.label}
                     </button>
                 ))}
             </div>
@@ -333,7 +332,7 @@ export default function ShopAttributes() {
                     <CardTitle>Product Attributes</CardTitle>
                     <CardDescription>
                         Manage product specifications and features for{" "}
-                        {selectedCategory}
+                        {selectedGroup}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -343,7 +342,7 @@ export default function ShopAttributes() {
                                 <TableHead className="w-14">No</TableHead>
                                 <TableHead className="w-[200px]">Attribute Name</TableHead>
                                 <TableHead className="w-[140px]">Input Type</TableHead>
-                                <TableHead className="w-[220px]">Category</TableHead>
+                                <TableHead className="w-[220px]">Group</TableHead>
                                 <TableHead className="w-[320px]">Attribute Values</TableHead>
                                 <TableHead className="w-[120px]">Status</TableHead>
                                 <TableHead className="w-[130px]">Filterable</TableHead>
@@ -389,7 +388,7 @@ export default function ShopAttributes() {
                                         </TableCell>
                                         <TableCell className="align-top whitespace-normal break-words text-sm text-slate-700">
                                             {/* @ts-ignore */}
-                                            {attribute.category?.name || attribute.attributeGroup || "N/A"}
+                                            {attribute.group?.name || attribute.attributeGroup || "N/A"}
                                         </TableCell>
                                         <TableCell className="align-top whitespace-normal">
                                             {renderAttributeValues(attribute.values)}

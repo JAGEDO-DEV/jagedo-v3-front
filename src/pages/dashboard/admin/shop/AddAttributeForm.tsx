@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createAttribute, updateAttribute, AttributeCreateRequest, getAllAttributes } from '@/api/attributes.api';
-import { getAllCategories } from '@/api/categories.api';
+import { getAllGroups } from '@/api/groups.api';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 
 interface AddAttributeFormProps {
@@ -20,31 +20,30 @@ interface AddAttributeFormProps {
   isEdit?: boolean;
 }
 
-const CATEGORY_SCOPE = "__category__";
+const GROUP_SCOPE = "__group__";
 
 const normalizeText = (value?: string | null) =>
   (value || "").trim().toLowerCase();
 
-const getSubcategoryNames = (category: any) => {
-  if (!category) return [];
+const getSubGroupNames = (group: any) => {
+  if (!group) return [];
 
-  if (Array.isArray(category.subCategory)) {
-    return category.subCategory
-      .map((sub: any) => {
-        if (typeof sub === "string") {
-          return sub.trim();
-        }
-
-        return (sub?.name || "").trim();
-      })
-      .filter(Boolean);
+  const subGroup = group.subGroup;
+  if (Array.isArray(subGroup)) {
+    return subGroup.map((sub: any) => {
+      if (typeof sub === "string") return sub.trim();
+      try {
+          if (typeof sub === "string" && sub.startsWith("{")) {
+              const parsed = JSON.parse(sub);
+              return (parsed.name || "").trim();
+          }
+      } catch(e) {}
+      return (sub?.name || "").trim();
+    }).filter(Boolean);
   }
 
-  if (typeof category.subCategory === "string") {
-    return category.subCategory
-      .split(",")
-      .map((sub: string) => sub.trim())
-      .filter(Boolean);
+  if (typeof subGroup === "string" && subGroup.trim() !== "") {
+    return subGroup.split(",").map((s: string) => s.trim()).filter(Boolean);
   }
 
   return [];
@@ -54,7 +53,7 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
   const [existingAttributes, setExistingAttributes] = useState<any[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<any[]>([]);
   const [formData, setFormData] = useState<AttributeCreateRequest>({
     type: attribute?.type || '',
     productType: attribute?.productType || defaultProductType,
@@ -70,19 +69,19 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
     attribute?.values ? attribute.values.split(',').map((v: any) => v.trim()).filter(Boolean) : []
   );
   const [newValue, setNewValue] = useState('');
-  const [selectedSubcategory, setSelectedSubcategory] = useState(CATEGORY_SCOPE);
+  const [selectedSubGroup, setSelectedSubGroup] = useState(GROUP_SCOPE);
 
-  const selectedCategory = availableCategories.find(
-    (category) => category.id.toString() === formData.categoryId?.toString(),
+  const selectedGroup = availableGroups.find(
+    (group) => group.id.toString() === formData.categoryId?.toString(),
   );
-  const subcategoryOptions = getSubcategoryNames(selectedCategory);
+  const subGroupOptions = getSubGroupNames(selectedGroup);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [attributesResponse, categoriesResponse] = await Promise.all([
+        const [attributesResponse, groupsResponse] = await Promise.all([
           getAllAttributes(axiosInstance),
-          getAllCategories(axiosInstance)
+          getAllGroups(axiosInstance)
         ]);
 
         if (attributesResponse.success) {
@@ -92,25 +91,25 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
           }
         }
 
-        if (categoriesResponse.success) {
-          const categoriesData = categoriesResponse.data || categoriesResponse.hashSet;
-          if (Array.isArray(categoriesData)) {
+        if (groupsResponse.success) {
+          const groupsData = groupsResponse.data || groupsResponse.hashSet;
+          if (Array.isArray(groupsData)) {
             const defaultTypeUpper = (defaultProductType || "").trim().toUpperCase();
 
-            const filteredCategories = categoriesData.filter((cat: any) => {
+            const filteredGroups = groupsData.filter((cat: any) => {
               if (!cat.active) return false;
               const catType = (cat.type || "").trim().toUpperCase();
               return catType === defaultTypeUpper || (defaultTypeUpper === "HARDWARE" && !catType);
             });
 
-            setAvailableCategories(filteredCategories);
+            setAvailableGroups(filteredGroups);
 
             
             if (isEdit && attribute && attribute.categoryId) {
-              const category = filteredCategories.find(c => c.id.toString() === attribute.categoryId.toString());
-              if (category) {
-                const usesCategoryScope = !attribute.attributeGroup || attribute.attributeGroup === category.name;
-                setSelectedSubcategory(usesCategoryScope ? CATEGORY_SCOPE : attribute.attributeGroup);
+              const group = filteredGroups.find(c => c.id.toString() === attribute.categoryId.toString());
+              if (group) {
+                const usesGroupScope = !attribute.attributeGroup || attribute.attributeGroup === group.name;
+                setSelectedSubGroup(usesGroupScope ? GROUP_SCOPE : attribute.attributeGroup);
               }
             }
           }
@@ -311,32 +310,32 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="attributeGroup">Attribute Group (Category)</Label>
+                <Label htmlFor="attributeGroup">Attribute Group (Group)</Label>
                 <Select
                   value={formData.categoryId?.toString()}
                   onValueChange={(value) => {
-                    const selectedCat = availableCategories.find(c => c.id.toString() === value);
-                    setSelectedSubcategory(CATEGORY_SCOPE);
+                    const selectedG = availableGroups.find(c => c.id.toString() === value);
+                    setSelectedSubGroup(GROUP_SCOPE);
                     setFormData({
                       ...formData,
                       categoryId: value,
-                      attributeGroup: selectedCat ? selectedCat.name : ''
+                      attributeGroup: selectedG ? selectedG.name : ''
                     });
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category..." />
+                    <SelectValue placeholder="Select group..." />
                   </SelectTrigger>
                   <SelectContent className='bg-white'>
-                    {availableCategories.length > 0 ? (
-                      availableCategories.map((cat) => (
-                        <SelectItem key={cat.id.toString()} value={cat.id.toString()}>
-                          {cat.name}
+                    {availableGroups.length > 0 ? (
+                      availableGroups.map((group) => (
+                        <SelectItem key={group.id.toString()} value={group.id.toString()}>
+                          {group.name}
                         </SelectItem>
                       ))
                     ) : (
                       <div className="p-2 text-sm text-gray-500 text-center">
-                        No active categories found for {defaultProductType}
+                        No active groups found for {defaultProductType}
                       </div>
                     )}
                   </SelectContent>
@@ -344,35 +343,35 @@ export default function AddAttributeForm({ onBack, onSuccess, defaultProductType
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="attributeSubCategory">Sub-category (Optional)</Label>
+                <Label htmlFor="attributeSubGroup">Sub-group (Optional)</Label>
                 <Select
-                  value={selectedSubcategory}
+                  value={selectedSubGroup}
                   onValueChange={(value) => {
-                    setSelectedSubcategory(value);
+                    setSelectedSubGroup(value);
                     setFormData({
                       ...formData,
                       attributeGroup:
-                        value === CATEGORY_SCOPE
-                          ? selectedCategory?.name || ""
+                        value === GROUP_SCOPE
+                          ? selectedGroup?.name || ""
                           : value
                     });
                   }}
-                  disabled={!selectedCategory || subcategoryOptions.length === 0}
+                  disabled={!selectedGroup || subGroupOptions.length === 0}
                 >
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        selectedCategory
+                        selectedGroup
                           ? "Choose scope"
-                          : "Select a category first"
+                          : "Select a group first"
                       }
                     />
                   </SelectTrigger>
                   <SelectContent className='bg-white'>
-                    <SelectItem value={CATEGORY_SCOPE}>Entire category</SelectItem>
-                    {subcategoryOptions.map((subCategory) => (
-                      <SelectItem key={subCategory} value={subCategory}>
-                        {subCategory}
+                    <SelectItem value={GROUP_SCOPE}>Entire group</SelectItem>
+                    {subGroupOptions.map((subGroup) => (
+                      <SelectItem key={subGroup} value={subGroup}>
+                        {subGroup}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -64,8 +64,8 @@ interface Product {
     name: string;
     description: string;
     type: string;
-    category: string;
-    subcategory: string | null;
+    group: string;
+    subGroup: string | null;
     basePrice: number | null;
     pricingReference: string | null;
     lastUpdated: string | null;
@@ -84,7 +84,7 @@ interface Product {
     prices: Price[];
 }
 
-// --- EXTRACTED COMPONENTS (Fixes re-render/focus issues) ---
+
 
 const PriceInput = React.memo(({ 
     regionId, 
@@ -97,18 +97,18 @@ const PriceInput = React.memo(({
     initialValue: string; 
     onChange: (id: number, val: string) => void 
 }) => {
-    // We use local state for the input to ensure smooth typing
-    // but we sync with parent via onChange
+    
+    
     const [value, setValue] = useState(initialValue);
 
-    // Update local state if initialValue changes (e.g. when opening modal for different product)
+    
     useEffect(() => {
         setValue(initialValue);
     }, [initialValue]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
-        // Allow only numbers and decimal point
+        
         if (/^\d*\.?\d*$/.test(newValue) || newValue === '') {
             setValue(newValue);
             onChange(regionId, newValue);
@@ -137,7 +137,7 @@ const PriceModal = ({
     product,
     isOpen,
     onClose,
-    categoryType,
+    groupType,
     regions,
     onSave,
     isSaving
@@ -145,18 +145,18 @@ const PriceModal = ({
     product: Product | null;
     isOpen: boolean;
     onClose: () => void;
-    categoryType: string;
+    groupType: string;
     regions: Region[];
     onSave: (prices: { regionId: number; regionName: string; price: number }[]) => void;
     isSaving: boolean;
 }) => {
-    // Store price edits in a simple object: { [regionId]: "100.00" }
+    
     const [priceMap, setPriceMap] = useState<Record<number, string>>({});
 
-    // Filter regions by type
-    const modalFilteredRegions = regions.filter(region => region.type === categoryType);
+    
+    const modalFilteredRegions = regions.filter(region => region.type === groupType);
 
-    // Initialize prices when modal opens or product changes
+    
     useEffect(() => {
         if (isOpen && product) {
             const initialMap: Record<number, string> = {};
@@ -166,7 +166,7 @@ const PriceModal = ({
             });
             setPriceMap(initialMap);
         }
-    }, [isOpen, product, regions, categoryType]); // Added dependencies
+    }, [isOpen, product, regions, groupType]); 
 
     const handleInputChange = useCallback((regionId: number, val: string) => {
         setPriceMap(prev => ({ ...prev, [regionId]: val }));
@@ -203,7 +203,7 @@ const PriceModal = ({
                     {/* Product Info */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <h3 className="font-semibold text-lg">{product.name}</h3>
-                        <p className="text-gray-600">{product.category} • {product.type}</p>
+                        <p className="text-gray-600">{product.group} • {product.type}</p>
                         {product.sku && <p className="text-sm text-gray-500">SKU: {product.sku}</p>}
                     </div>
 
@@ -245,7 +245,7 @@ const PriceModal = ({
     );
 };
 
-// --- MAIN COMPONENT ---
+
 
 export default function ShopPrices() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -253,20 +253,20 @@ export default function ShopPrices() {
     const [regions, setRegions] = useState<Region[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
+    const [selectedGroup, setSelectedGroup] = useState("HARDWARE");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showPriceModal, setShowPriceModal] = useState(false);
     const [savingPrices, setSavingPrices] = useState(false);
 
-    // Main category tabs with correct mapping
-    const categories = [
+    
+    const groups = [
         { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
         { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
         { id: "DESIGNS", label: "Designs", type: "PROFESSIONAL" },
         { id: "HIRE_MACHINERY", label: "Hire Machinery & E", type: "CONTRACTOR" }
     ];
 
-    // Fetch products and regions from API
+    
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -294,23 +294,23 @@ export default function ShopPrices() {
         }
     };
 
-    // Get the selected category type
-    const selectedCategoryType = categories.find(cat => cat.id === selectedCategory)?.type || "HARDWARE";
+    
+    const selectedGroupType = groups.find(cat => cat.id === selectedGroup)?.type || "HARDWARE";
 
-    // Filter regions based on selected category type
-    const filteredRegions = regions?.filter((region) => region.type === selectedCategoryType);
+    
+    const filteredRegions = regions?.filter((region) => region.type === selectedGroupType);
 
-    // Filter products based on search term and category
+    
     const filteredProducts = products?.filter((product) => {
         const matchesSearch =
             product?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
             (product?.sku?.toLowerCase() || "").includes(searchTerm?.toLowerCase()) ||
             (product?.bId?.toLowerCase() || "").includes(searchTerm?.toLowerCase()) ||
-            (product?.category?.toLowerCase() || "").includes(searchTerm?.toLowerCase());
+            (product?.group?.toLowerCase() || "").includes(searchTerm?.toLowerCase());
 
-        const matchesCategory = product.type === selectedCategoryType;
+        const matchesGroup = product.type === selectedGroupType;
 
-        return matchesSearch && matchesCategory;
+        return matchesSearch && matchesGroup;
     });
 
     useEffect(() => {
@@ -324,13 +324,13 @@ export default function ShopPrices() {
         }).format(price);
     };
 
-    // Handle edit prices
+    
     const handleEditPrices = (product: Product) => {
         setSelectedProduct(product);
         setShowPriceModal(true);
     };
 
-    // Save prices
+    
     const handleSavePrices = async (priceData: Price[]) => {
         if (!selectedProduct) return;
 
@@ -339,7 +339,7 @@ export default function ShopPrices() {
             
             const payload = {
                 productId: selectedProduct.id,
-                prices: priceData.filter(price => price.price > 0) // Only save prices > 0
+                prices: priceData.filter(price => price.price > 0) 
             };
 
             const response = await axiosInstance.put(
@@ -365,7 +365,7 @@ export default function ShopPrices() {
         }
     };
 
-    // Get price for a specific region
+    
     const getPriceForRegion = (product: Product, regionId: number) => {
         const price = product.prices?.find(p => p.regionId === regionId);
         return price ? formatPrice(price.price) : "-";
@@ -385,19 +385,19 @@ export default function ShopPrices() {
                 </div>
             </div>
 
-            {/* Main Category Tabs */}
+            {/* Main Group Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                {categories.map((category) => (
+                {groups.map((group) => (
                     <button
-                        key={category.id}
-                        onClick={() => setSelectedCategory(category.id)}
+                        key={group.id}
+                        onClick={() => setSelectedGroup(group.id)}
                         className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                            selectedCategory === category.id
+                            selectedGroup === group.id
                                 ? "bg-[#00007A] text-white"
                                 : "bg-transparent text-black hover:bg-blue-50"
                         }`}
                     >
-                        {category.label}
+                        {group.label}
                     </button>
                 ))}
             </div>
@@ -407,7 +407,7 @@ export default function ShopPrices() {
                 <div className="relative flex-1 border-none">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by Name, SKU, BID, Category"
+                        placeholder="Search by Name, SKU, BID, Group"
                         className="pl-8"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -420,7 +420,7 @@ export default function ShopPrices() {
                 <CardHeader>
                     <CardTitle>Product Pricing</CardTitle>
                     <CardDescription>
-                        Manage regional pricing for {selectedCategory.toLowerCase()} products
+                        Manage regional pricing for {selectedGroup.toLowerCase()} products
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -442,7 +442,7 @@ export default function ShopPrices() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-12">No</TableHead>
-                                        <TableHead>Category</TableHead>
+                                        <TableHead>Group</TableHead>
                                         <TableHead>Product Name</TableHead>
                                         {filteredRegions.map((region) => (
                                             <TableHead key={region.id}>{region.name}</TableHead>
@@ -458,7 +458,7 @@ export default function ShopPrices() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline">
-                                                    {product.category}
+                                                    {product.group}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -510,7 +510,7 @@ export default function ShopPrices() {
                     setShowPriceModal(false);
                     setSelectedProduct(null);
                 }}
-                categoryType={selectedCategoryType}
+                groupType={selectedGroupType}
                 regions={regions}
                 onSave={handleSavePrices}
                 isSaving={savingPrices}

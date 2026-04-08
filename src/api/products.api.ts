@@ -89,16 +89,16 @@ export const updateProduct = async (axiosInstance: any, id: string | number, pro
 };
 
 
-export const getProductCategories = async (axiosInstance: any): Promise<any> => {
+export const getProductGroups = async (axiosInstance: any): Promise<any> => {
     try {
-        const response = await axiosInstance.get(`${import.meta.env.VITE_SERVER_URL}/api/product_categories`, {
+        const response = await axiosInstance.get(`${import.meta.env.VITE_SERVER_URL}/api/product_groups`, {
             headers: {
                 Authorization: getAuthHeaders()
             }
         });
         return response.data;
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to fetch product categories");
+        throw new Error(error.response?.data?.message || "Failed to fetch product groups");
     }
 };
 
