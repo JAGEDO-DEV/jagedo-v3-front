@@ -7,7 +7,7 @@ import { Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import HeroSection from "@/components/shop/HeroSection";
-import CategoryTabs from "@/components/shop/CategoryTabs";
+import GroupTabs from "@/components/shop/GroupTabs";
 import LocationDropdown from "@/components/shop/LocationDropdown";
 import Sidebar from "@/components/shop/SideBar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -29,16 +29,16 @@ import { useCart } from "@/context/CartContext";
 const ITEMS_PER_PAGE = 12;
 const INITIAL_FILTERS = ["All Products"];
 
-const CATEGORIES_WITHOUT_LOCATION_FILTER: string[] = [];
+const GROUPS_WITHOUT_LOCATION_FILTER: string[] = [];
 
-const CATEGORY_MAPPINGS: Record<string, string[]> = {
+const GROUP_MAPPINGS: Record<string, string[]> = {
     hardware: ["Cement", "Pipes and Fittings", "Reinforcement Bars", "Steel", "Aluminum", "Glass", "HARDWARE"],
     custom: ["Custom Products", "Windows", "Doors", "Gates", "FUNDI"],
     equipment: ["Equipment", "Machinery", "Tools", "CONTRACTOR"],
     designs: ["Plans", "Designs", "PROFESSIONAL"],
 };
 
-const LOCATION_CATEGORY_TYPES: Record<string, string[]> = {
+const LOCATION_GROUP_TYPES: Record<string, string[]> = {
     hardware: ["HARDWARE"],
     custom: ["FUNDI"],
     equipment: ["CONTRACTOR"],
@@ -46,7 +46,7 @@ const LOCATION_CATEGORY_TYPES: Record<string, string[]> = {
 };
 
 const ShopApp = () => {
-    const [activeCategory, setActiveCategory] = useState("hardware");
+    const [activeGroup, setActiveGroup] = useState("hardware");
     const [selectedFilters, setSelectedFilters] = useState<string[]>(INITIAL_FILTERS);
     const [selectedLocationName, setSelectedLocationName] = useState<string | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -57,18 +57,18 @@ const ShopApp = () => {
     const { data: products = [], isLoading, error } = useProducts();
     const { addToCart } = useCart();
 
-    const locationCategoryTypes = useMemo(
-        () => LOCATION_CATEGORY_TYPES[activeCategory] || [],
-        [activeCategory]
+    const locationGroupTypes = useMemo(
+        () => LOCATION_GROUP_TYPES[activeGroup] || [],
+        [activeGroup]
     );
 
     useEffect(() => {
         setSelectedFilters(INITIAL_FILTERS);
         setCurrentPage(1);
-        if (!CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory)) {
+        if (!GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup)) {
             setSelectedLocationName(null);
         }
-    }, [activeCategory]);
+    }, [activeGroup]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -104,7 +104,7 @@ const ShopApp = () => {
             return [];
         }
 
-        const shouldApplyLocationFilter = !CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory);
+        const shouldApplyLocationFilter = !GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup);
         const hasSelectedLocation = !!selectedLocationName;
 
         let baseProductList = products;
@@ -113,35 +113,35 @@ const ShopApp = () => {
             baseProductList = products.filter(product => product.regionName === selectedLocationName);
         }
 
-        const primaryCategoryFilters = CATEGORY_MAPPINGS[activeCategory] || [];
-        const categoryFilteredProducts = baseProductList.filter(product => {
+        const primaryGroupFilters = GROUP_MAPPINGS[activeGroup] || [];
+        const groupFilteredProducts = baseProductList.filter(product => {
             const isCustom = product.custom;
-            const matchesCategoryMapping = primaryCategoryFilters.some(cat =>
+            const matchesGroupMapping = primaryGroupFilters.some(cat =>
                 product.type?.toLowerCase().includes(cat.toLowerCase())
             );
 
-            // In the "custom" tab, show anything explicitly marked custom OR matching the "custom" mapping (like FUNDI)
-            if (activeCategory === 'custom') {
-                return isCustom || matchesCategoryMapping;
+            
+            if (activeGroup === 'custom') {
+                return isCustom || matchesGroupMapping;
             }
 
-            // For other tabs (hardware, equipment, designs), only show non-custom items that match the category type mapping
+            
             if (shouldApplyLocationFilter) {
-                return !isCustom && matchesCategoryMapping;
+                return !isCustom && matchesGroupMapping;
             }
 
-            return matchesCategoryMapping;
+            return matchesGroupMapping;
         });
 
         const activeSidebarFilters = selectedFilters.filter(f => f !== "All Products");
         const sidebarFilteredProducts = activeSidebarFilters.length > 0
-            ? categoryFilteredProducts.filter(product =>
+            ? groupFilteredProducts.filter(product =>
                 activeSidebarFilters.some(filter =>
                     product.type.toLowerCase().includes(filter.toLowerCase()) ||
                     product.name.toLowerCase().includes(filter.toLowerCase())
                 )
             )
-            : categoryFilteredProducts;
+            : groupFilteredProducts;
 
         if (!hasSelectedLocation) {
             const grouped = new Map<string, { base: Product; minPrice: number; count: number }>();
@@ -172,7 +172,7 @@ const ShopApp = () => {
         }
 
         return sidebarFilteredProducts;
-    }, [products, activeCategory, selectedFilters, selectedLocationName]);
+    }, [products, activeGroup, selectedFilters, selectedLocationName]);
 
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -300,7 +300,7 @@ const ShopApp = () => {
             </div>
             <HeroSection />
             <div className="px-4">
-                <CategoryTabs activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+                <GroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} />
             </div>
 
             <div className="px-4 pt-4 md:hidden">
@@ -332,15 +332,15 @@ const ShopApp = () => {
                             <X className="h-6 w-6" />
                         </button>
                     </div>
-                    {!CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory) && (
+                    {!GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup) && (
                         <LocationDropdown
                             selectedLocationName={selectedLocationName}
                             onSelectLocation={handleLocationSelect}
-                            categoryTypes={locationCategoryTypes}
+                            groupTypes={locationGroupTypes}
                         />
                     )}
                     <Sidebar
-                        category={activeCategory}
+                        group={activeGroup}
                         filters={selectedFilters}
                         onFilterChange={handleFilterChange}
                     />

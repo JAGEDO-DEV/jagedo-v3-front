@@ -83,11 +83,11 @@ export default function AdminRootLayout() {
       try {
         if (!user?.id) return;
         const profile = await getProviderProfile(axiosInstance, user.id);
-        // getProviderProfile returns response.data
+        
         const img = profile?.data?.profileImage || profile?.profileImage || null;
         setProfileImage(img);
       } catch (error) {
-        // keep silent; we'll fall back to default avatar
+        
       }
     };
     fetchProfileImage();
@@ -255,14 +255,6 @@ export default function AdminRootLayout() {
                             alt="User avatar"
                             className="h-full w-full object-cover"
                           />
-                        </div>
-                        <div className="hidden sm:flex flex-col items-start pr-1">
-                          <span className="text-sm font-bold text-gray-800 leading-none">
-                            {user?.firstName || "Admin"}
-                          </span>
-                          <span className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-wider">
-                            Super Admin
-                          </span>
                         </div>
                       </button>
                     </DropdownMenuTrigger>

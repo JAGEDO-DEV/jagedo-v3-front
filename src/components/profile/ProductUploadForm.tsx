@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
-// Local/Utility Imports
+
 import ImageUploader from "./ImageUploader";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import Preview from "./Preview";
@@ -13,7 +13,7 @@ import {
   createProduct,
   updateProduct,
   getProductById,
-  getProductCategories,
+  getProductGroups,
 } from "@/api/products.api";
 import { getAllRegions } from "@/api/countries.api";
 import Loader from "../Loader";
@@ -34,13 +34,13 @@ const ProductUploadForm = ({ onCancel }) => {
     color: "",
     region: "",
     uom: "",
-    category: "",
+    group: "",
     status: "",
   });
   const [productDesc, setProductDesc] = useState("");
   const [images, setImages] = useState([]);
 
-  const [categories, setCategories] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [regions, setRegions] = useState([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +61,7 @@ const ProductUploadForm = ({ onCancel }) => {
       formData.bid,
       formData.sku,
       formData.price,
-      formData.category,
+      formData.group,
       formData.region,
       productDesc,
     ];
@@ -81,19 +81,19 @@ const ProductUploadForm = ({ onCancel }) => {
 
       setIsDropdownLoading(true);
       try {
-        const [categoriesResponse, regionsResponse] = await Promise.all([
-          getProductCategories(axiosInstance),
+        const [groupsResponse, regionsResponse] = await Promise.all([
+          getProductGroups(axiosInstance),
           getAllRegions(axiosInstance),
         ]);
 
-        // If user is ADMIN, show all categories. Otherwise, filter by user type
+        
         const isAdmin =
           user.userType?.toUpperCase() === "ADMIN" ||
           user.userType?.toUpperCase() === "SUPER_ADMIN";
 
-        const categoriesRes = isAdmin
-          ? categoriesResponse.data || []
-          : (categoriesResponse.data || []).filter(
+        const groupsRes = isAdmin
+          ? groupsResponse.data || []
+          : (groupsResponse.data || []).filter(
               (cat) => cat.type?.toLowerCase() === user.userType.toLowerCase(),
             );
 
@@ -102,10 +102,10 @@ const ProductUploadForm = ({ onCancel }) => {
           : (regionsResponse.hashSet || []).filter(
               (reg) => reg.type?.toLowerCase() === user.userType.toLowerCase(),
             );
-        setCategories(categoriesRes || []);
+        setGroups(groupsRes || []);
         setRegions(regionsRes || []);
       } catch (error) {
-        toast.error("Failed to load categories or regions.");
+        toast.error("Failed to load groups or regions.");
         console.error("Dropdown fetch error:", error);
       } finally {
         setIsDropdownLoading(false);
@@ -146,7 +146,7 @@ const ProductUploadForm = ({ onCancel }) => {
                 existingProduct.basePrice ||
                 ""
               ).toString(),
-              category: existingProduct.category || "",
+              group: existingProduct.group || "",
               status: existingProduct.status || "",
             });
             setProductDesc(existingProduct.description || "");
@@ -219,8 +219,8 @@ const ProductUploadForm = ({ onCancel }) => {
     }
 
     if (statusType !== "Drafts") {
-      if (!formData.category) {
-        toast.error("Please select a Category.");
+      if (!formData.group) {
+        toast.error("Please select a Group.");
         return;
       }
       if (!formData.name?.trim()) {
@@ -278,7 +278,7 @@ const ProductUploadForm = ({ onCancel }) => {
         name: formData.name,
         description: productDesc,
         type: user.userType,
-        category: formData.category,
+        group: formData.group,
         sellerId: user.id,
         bId: formData.bid,
         sku: formData.sku,
@@ -342,18 +342,18 @@ const ProductUploadForm = ({ onCancel }) => {
         <form className="grid grid-cols-1 gap-6">
           <div>
             <h2 className="block font-semibold mb-2 text-gray-700">
-              Category*
+              Group*
             </h2>
             <select
-              name="category"
-              value={formData.category}
+              name="group"
+              value={formData.group}
               onChange={handleInputChange}
               className="w-full border border-gray-400 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="" disabled>
-                {isDropdownLoading ? "Loading..." : "Select a category"}
+                {isDropdownLoading ? "Loading..." : "Select a group"}
               </option>
-              {categories.map((cat) => (
+              {groups.map((cat) => (
                 <option key={cat.id} value={cat.name}>
                   {cat.name} {cat.type ? `(${cat.type})` : ""}
                 </option>

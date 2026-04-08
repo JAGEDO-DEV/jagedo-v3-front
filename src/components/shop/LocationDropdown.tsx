@@ -34,7 +34,7 @@ interface ApiResponse {
 interface LocationDropdownProps {
   selectedLocationName: string | null;
   onSelectLocation: (name: string | null) => void;
-  categoryTypes?: string[];
+  groupTypes?: string[];
 }
 
 const locationDescriptions: { [key: string]: string } = {
@@ -45,7 +45,7 @@ const locationDescriptions: { [key: string]: string } = {
   Central: "Central region covers the highlands of Kenya, including Nyeri, Murang'a, and Kiambu.",
 };
 
-const LocationDropdown = ({ selectedLocationName, onSelectLocation, categoryTypes = [] }: LocationDropdownProps) => {
+const LocationDropdown = ({ selectedLocationName, onSelectLocation, groupTypes = [] }: LocationDropdownProps) => {
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,11 +75,11 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation, categoryType
   }, []);
 
   const filteredRegions = useMemo(() => {
-    if (!categoryTypes.length) {
+    if (!groupTypes.length) {
       return regions;
     }
-    return regions.filter(region => categoryTypes.includes(region.type));
-  }, [regions, categoryTypes]);
+    return regions.filter(region => groupTypes.includes(region.type));
+  }, [regions, groupTypes]);
 
   useEffect(() => {
     if (!selectedLocationName) return;
@@ -102,7 +102,7 @@ const LocationDropdown = ({ selectedLocationName, onSelectLocation, categoryType
   }
 
   if (!filteredRegions.length) {
-    return <div className="text-muted-foreground p-4">No locations available for this category.</div>;
+    return <div className="text-muted-foreground p-4">No locations available for this group.</div>;
   }
 
   return (

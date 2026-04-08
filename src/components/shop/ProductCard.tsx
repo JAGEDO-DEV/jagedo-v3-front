@@ -61,7 +61,11 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <div className="text-3xl font-bold text-green-600 mb-4">
-              {detailPricePrefix} {product.price.toLocaleString()}
+              {product.isPriceSet ? (
+                `${detailPricePrefix} ${product.price.toLocaleString()}`
+              ) : (
+                <span className="text-blue-900/40 text-lg uppercase tracking-wider">price not set</span>
+              )}
             </div>
             <p className="text-gray-500 mb-6">{product.description || "No description available."}</p>
 
@@ -119,7 +123,11 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
           <div className="flex-grow" />
           <div className="flex justify-between items-center mt-4 pt-4">
             <p className="text-lg font-bold text-green-600">
-              {gridPricePrefix} {product.price.toLocaleString()}
+              {product.isPriceSet ? (
+                `${gridPricePrefix} ${product.price.toLocaleString()}`
+              ) : (
+                <span className="text-blue-900/40 text-[13px] uppercase tracking-wider">price not set</span>
+              )}
             </p>
             <button
               onClick={handleAddToCartClick}

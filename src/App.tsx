@@ -213,8 +213,8 @@ const ShopProducts = React.lazy(
 const ShopCustomerView = React.lazy(
     () => import("@/pages/dashboard/admin/shop/customer-view")
 );
-const ShopCategories = React.lazy(
-    () => import("@/pages/dashboard/admin/shop/categories")
+const ShopGroups = React.lazy(
+    () => import("@/pages/dashboard/admin/shop/groups")
 );
 const ShopAttributes = React.lazy(
     () => import("@/pages/dashboard/admin/shop/attributes")
@@ -916,13 +916,13 @@ function App() {
                                                 />
                                             </Route>
 
-                                            {/* Shop Categories */}
+                                            {/* Shop Groups */}
                                             <Route
-                                                element={<ProtectedAdminRoute requiredMenu="shop-categories" />}
+                                                element={<ProtectedAdminRoute requiredMenu="shop-groups" />}
                                             >
                                                 <Route
-                                                    path="shop/categories"
-                                                    element={<ShopCategories />}
+                                                    path="shop/groups"
+                                                    element={<ShopGroups />}
                                                 />
                                             </Route>
 
