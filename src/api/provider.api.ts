@@ -364,7 +364,7 @@ export const adminUpdateAddress = async (axiosInstance: any, data: any, id: any)
     return response.data;
 };
 
-// Upload profile image
+
 export const updateProfileImage = async (
     axiosInstance: any,
     imageUrl: string
@@ -423,7 +423,7 @@ export const updateProfilePhoneNumberAdmin = async (
                 }
             }
         );
-        return response.data.success;
+        return response.data;
     } catch (error: any) {
         throw new Error(
             error.response?.data?.message ||
@@ -447,7 +447,7 @@ export const updateProfileEmailAdmin = async (
                 }
             }
         );
-        return response.data.success;
+        return response.data;
     } catch (error: any) {
         throw new Error(
             error.response?.data?.message ||
@@ -676,7 +676,7 @@ export const updateAccountStatus = async (
     }
 };
 
-//Get user profile by id
+
 export const getUserProfileAdmin = async (axiosInstance: any, userId: string): Promise<any> => {
     try {
         const response = await axiosInstance.get(
