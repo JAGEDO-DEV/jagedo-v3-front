@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart } from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -22,11 +23,19 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!product.isPriceSet) {
+      toast.error("Price not set for this product.");
+      return;
+    }
     onAddToCart();
   };
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!product.isPriceSet) {
+      toast.error("Price not set for this product.");
+      return;
+    }
     if (onBuyNow) {
       onBuyNow(product);
     }
@@ -84,14 +93,26 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
             <div className="flex gap-4">
               <button
                 onClick={handleAddToCartClick}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                disabled={!product.isPriceSet}
+                className={cn(
+                  "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
+                  product.isPriceSet 
+                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                )}
               >
                 Add To Cart
               </button>
               {onBuyNow && (
                 <button
                   onClick={handleBuyNowClick}
-                  className="flex-1 bg-green-500 hover:bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded-lg transition-colors"
+                  disabled={!product.isPriceSet}
+                  className={cn(
+                    "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
+                    product.isPriceSet
+                      ? "bg-green-500 hover:bg-green-600 text-gray-900"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed border-none"
+                  )}
                 >
                   Buy Now
                 </button>
@@ -131,9 +152,15 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
             </p>
             <button
               onClick={handleAddToCartClick}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              disabled={!product.isPriceSet}
+              className={cn(
+                "p-2 border rounded-lg transition-colors",
+                product.isPriceSet
+                  ? "border-gray-300 hover:bg-gray-100"
+                  : "border-gray-200 bg-gray-50 cursor-not-allowed"
+              )}
             >
-              <ShoppingCart className="h-4 w-4 text-gray-700" />
+              <ShoppingCart className={cn("h-4 w-4", product.isPriceSet ? "text-gray-700" : "text-gray-300")} />
             </button>
           </div>
         </div>

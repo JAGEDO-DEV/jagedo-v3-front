@@ -135,7 +135,11 @@ const ShopApp = () => {
     const handleProductClick = (product: Product) => setSelectedProduct(product);
     const handleBackToGrid = () => setSelectedProduct(null);
 
-    const ensureLocationSelected = (product: Product) => {
+    const ensureCanPurchase = (product: Product) => {
+        if (!product.isPriceSet) {
+            toast.error("Price not set for this product.");
+            return false;
+        }
         if (!selectedLocationName && product.isAggregated) {
             toast.error("Please select a location to see the exact price.");
             return false;
@@ -144,7 +148,7 @@ const ShopApp = () => {
     };
 
     const handleAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -155,14 +159,14 @@ const ShopApp = () => {
     };
 
     const handleGridAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) toast.success(`${product.name} added to cart!`);
         else toast.error(result.message);
     };
 
     const handleBuyNow = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`Proceeding to checkout for ${product.name}`);

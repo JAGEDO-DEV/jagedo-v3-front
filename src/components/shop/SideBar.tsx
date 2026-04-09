@@ -3,11 +3,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface SidebarProps {
   group: string;
   filters: string[];
-  filterOptions: string[];
+  filterOptions?: string[];
   onFilterChange: (filter: string, checked: boolean) => void;
 }
 
-const Sidebar = ({ group, filters, filterOptions, onFilterChange }: SidebarProps) => {
+const Sidebar = ({ group, filters, filterOptions = [], onFilterChange }: SidebarProps) => {
   const currentFilters = filterOptions;
   const groupTitle = group.toUpperCase();
 
