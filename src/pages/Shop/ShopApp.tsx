@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import ShopSlider from "@/components/shop/ShopSlider";
 import HeroSection from "@/components/shop/HeroSection";
 import GroupTabs from "@/components/shop/GroupTabs";
 import LocationDropdown from "@/components/shop/LocationDropdown";
@@ -25,6 +25,8 @@ import {
 
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { getActiveFilterOptionsByType } from "@/api/groups.api";
 
 const ITEMS_PER_PAGE = 12;
 const INITIAL_FILTERS = ["All Products"];
@@ -54,8 +56,11 @@ const ShopApp = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navigate = useNavigate();
+    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const { data: products = [], isLoading, error } = useProducts();
     const { addToCart } = useCart();
+
+    const [filterOptions, setFilterOptions] = useState<string[]>(INITIAL_FILTERS);
 
     const locationGroupTypes = useMemo(
         () => LOCATION_GROUP_TYPES[activeGroup] || [],
@@ -98,6 +103,20 @@ const ShopApp = () => {
     const handleLocationSelect = useCallback((locationName: string | null) => {
         setSelectedLocationName(locationName);
     }, []);
+
+    useEffect(() => {
+        const fetchDynamicFilters = async () => {
+            try {
+                const type = LOCATION_GROUP_TYPES[activeGroup]?.[0] || "HARDWARE";
+                const options = await getActiveFilterOptionsByType(axiosInstance, type);
+                setFilterOptions(options);
+            } catch (err) {
+                console.error("Failed to load dynamic filters:", err);
+                setFilterOptions(INITIAL_FILTERS);
+            }
+        };
+        fetchDynamicFilters();
+    }, [activeGroup, axiosInstance]);
 
     const filteredProducts = useMemo(() => {
         if (!products.length) {
@@ -205,7 +224,11 @@ const ShopApp = () => {
     const handleProductClick = (product: Product) => setSelectedProduct(product);
     const handleBackToGrid = () => setSelectedProduct(null);
 
-    const ensureLocationSelected = (product: Product) => {
+    const ensureCanPurchase = (product: Product) => {
+        if (!product.isPriceSet) {
+            toast.error("Price not set for this product.");
+            return false;
+        }
         if (!selectedLocationName && product.isAggregated) {
             toast.error("Please select a location to see the exact price.");
             return false;
@@ -214,7 +237,7 @@ const ShopApp = () => {
     };
 
     const handleAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -225,7 +248,7 @@ const ShopApp = () => {
     };
 
     const handleGridAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -236,7 +259,7 @@ const ShopApp = () => {
     };
 
     const handleBuyNow = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
 
         const token = localStorage.getItem("token");
         const userStr = localStorage.getItem("user");
@@ -299,6 +322,9 @@ const ShopApp = () => {
 
             </div>
             <HeroSection />
+            <div className="py-4">
+                <ShopSlider />
+            </div>
             <div className="px-4">
                 <GroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} />
             </div>
@@ -342,6 +368,7 @@ const ShopApp = () => {
                     <Sidebar
                         group={activeGroup}
                         filters={selectedFilters}
+                        filterOptions={filterOptions}
                         onFilterChange={handleFilterChange}
                     />
                 </aside>
