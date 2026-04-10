@@ -245,6 +245,20 @@ const SystemLogs = React.lazy(
     () => import("@/pages/dashboard/admin/SystemLogs")
 );
 
+// Reports Module
+const SystemReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/SystemReports")
+);
+const ProductReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/ProductReports")
+);
+const JobsReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/JobsReports")
+);
+const OrdersReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/OrdersReports")
+);
+
 const ProtectedRoutesLayout = () => (
     <Outlet />
 );
@@ -1007,6 +1021,28 @@ function App() {
                                                 <Route
                                                     path="logs"
                                                     element={<SystemLogs />}
+                                                />
+                                            </Route>
+
+                                            {/* Reports Module */}
+                                            <Route
+                                                element={<ProtectedAdminRoute requiredMenu="reports" />}
+                                            >
+                                                <Route
+                                                    path="reports/system"
+                                                    element={<SystemReports />}
+                                                />
+                                                <Route
+                                                    path="reports/products"
+                                                    element={<ProductReports />}
+                                                />
+                                                <Route
+                                                    path="reports/jobs"
+                                                    element={<JobsReports />}
+                                                />
+                                                <Route
+                                                    path="reports/orders"
+                                                    element={<OrdersReports />}
                                                 />
                                             </Route>
 

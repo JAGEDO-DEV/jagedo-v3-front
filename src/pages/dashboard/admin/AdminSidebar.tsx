@@ -144,6 +144,38 @@ export const sidebarItems = [
         color: "#FB3C47",
       },
       {
+        id: "reports",
+        title: "Reports",
+        icon: ChartNoAxesCombined,
+        color: "#4F46E5",
+        submenu: [
+          {
+            id: "reports-system",
+            title: "System Snapshot",
+            href: "/dashboard/admin/reports/system",
+            icon: Users,
+          },
+          {
+            id: "reports-products",
+            title: "Product Snapshot",
+            href: "/dashboard/admin/reports/products",
+            icon: Package,
+          },
+          {
+            id: "reports-jobs",
+            title: "Jobs Snapshot",
+            href: "/dashboard/admin/reports/jobs",
+            icon: Briefcase,
+          },
+          {
+            id: "reports-orders",
+            title: "Orders Snapshot",
+            href: "/dashboard/admin/reports/orders",
+            icon: ShoppingCart,
+          },
+        ],
+      },
+      {
         id: "system-logs",
         title: "System Logs",
         icon: ShieldCheck,
