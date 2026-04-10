@@ -245,6 +245,14 @@ const SystemLogs = React.lazy(
     () => import("@/pages/dashboard/admin/SystemLogs")
 );
 
+const SummaryPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/SummaryPage"));
+const customersPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/UserSegmentPage"));
+const requestsPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/RequestsPage"));
+const productsPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/ProductsPage"));
+const webPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/WebPage"));
+const buildersPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/BuildersPage"));
+
+
 const ProtectedRoutesLayout = () => (
     <Outlet />
 );
@@ -673,17 +681,32 @@ function App() {
                                                 element={<ProtectedAdminRoute requiredMenu="analytics" />}
                                             >
                                                 <Route
-                                                    path="analytics"
-                                                    element={React.createElement(
-                                                        React.lazy(
-                                                            () =>
-                                                                import(
-                                                                    "@/pages/dashboard/admin/Analytics"
-                                                                )
-                                                        )
-                                                    )}
+                                                    path="analytics/summary"
+                                                    element={React.createElement(SummaryPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/customers"
+                                                    element={React.createElement(customersPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/requests"
+                                                    element={React.createElement(requestsPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/products"
+                                                    element={React.createElement(productsPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/web"
+                                                    element={React.createElement(webPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/builders"
+                                                    element={React.createElement(buildersPage)}
                                                 />
                                             </Route>
+
+
 
                                             {/* User Management */}
                                             <Route
