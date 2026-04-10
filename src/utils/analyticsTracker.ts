@@ -30,7 +30,7 @@ export const trackPageView = async (
       userAgent: navigator.userAgent,
     };
 
-    await axiosInstance.post('/api/analytics/page-view', payload, {
+    await axiosInstance.post('/api/dashboard/analytics/page-view', payload, {
       timeout: 5000, // 5 second timeout
     });
   } catch (err) {
@@ -55,7 +55,7 @@ export const trackUserAction = async (
       userAgent: navigator.userAgent,
     };
 
-    await axiosInstance.post('/api/analytics/event', payload, {
+    await axiosInstance.post('/api/dashboard/analytics/event', payload, {
       timeout: 5000, // 5 second timeout
     });
   } catch (err) {

@@ -12,8 +12,8 @@ export default function BarChartCard({ title, description, data, bars }: BarChar
     <div className="rounded-xl border border-border bg-card p-5">
       <h4 className="font-semibold text-foreground">{title}</h4>
       {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
-      <div className="h-64 mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full h-64 mt-4">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />

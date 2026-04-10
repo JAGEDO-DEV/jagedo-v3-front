@@ -19,8 +19,8 @@ export default function HorizontalBarChartCard({
     <div className="rounded-xl border border-border bg-card p-5">
       <h4 className="font-semibold text-foreground">{title}</h4>
       {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
-      <div className="h-40 mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full h-40 mt-4">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart 
             data={data}
             layout="vertical"
