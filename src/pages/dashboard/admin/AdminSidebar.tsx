@@ -91,9 +91,9 @@ export const sidebarItems = [
             icon: Eye,
           },
           {
-            id: "shop-categories",
-            title: "Categories",
-            href: "/dashboard/admin/shop/categories",
+            id: "shop-groups",
+            title: "Groups & SubGroups",
+            href: "/dashboard/admin/shop/groups",
             icon: Tag,
           },
           {
@@ -216,14 +216,14 @@ export function AdminSidebar({ expanded, setExpanded }) {
   const { userMenuPermissions, isLoadingPermissions } = useRolePermissions();
   const { user } = useGlobalContext();
 
-  // Filter items based on user permissions
+  
   const getAccessibleItems = () => {
-    // While loading → show skeleton (or all items)
+    
     if (isLoadingPermissions) {
       return sidebarItems;
     }
 
-    // If no permissions returned → fallback to full menu (super admin case)
+    
     if (!userMenuPermissions || userMenuPermissions.length === 0) {
       return sidebarItems;
     }
@@ -273,10 +273,10 @@ export function AdminSidebar({ expanded, setExpanded }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [setExpanded]);
 
-  // Log whenever permissions change
+  
   useEffect(() => {
-    getAccessibleItems(); // Recalculate accessible items when permissions change
-    // Permissions updated
+    getAccessibleItems(); 
+    
   }, [userMenuPermissions, isLoadingPermissions]);
 
   const accessibleItems = getAccessibleItems();
@@ -326,7 +326,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
           </div>
 
           <SidebarContext.Provider value={{ expanded, setExpanded }}>
-            <ul className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
+            <ul className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide">
               {accessibleItems.map((section, sectionIndex) => (
                 <div key={sectionIndex} className="py-2">
                   {expanded && (

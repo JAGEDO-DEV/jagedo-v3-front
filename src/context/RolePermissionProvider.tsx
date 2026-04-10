@@ -18,7 +18,7 @@ interface RolePermissionContextType {
 
 const RolePermissionContext = createContext<RolePermissionContextType | undefined>(undefined);
 
-// Default admin menu items - shown when user is not logged in or permissions fail to load
+
 const DEFAULT_ADMIN_MENU_ITEMS: MenuItem[] = [
   { id: "home", title: "Home", category: "Overview" },
   { id: "user-management", title: "User Management", category: "Management" },
@@ -27,7 +27,7 @@ const DEFAULT_ADMIN_MENU_ITEMS: MenuItem[] = [
   { id: "orders", title: "Orders", category: "Management" },
   { id: "shop-products", title: "Products", category: "Management - Shop App" },
   { id: "shop-customer-view", title: "Customer View", category: "Management - Shop App" },
-  { id: "shop-categories", title: "Categories", category: "Management - Shop App" },
+  { id: "shop-groups", title: "Groups", category: "Management - Shop App" },
   { id: "shop-attributes", title: "Attributes", category: "Management - Shop App" },
   { id: "shop-regions", title: "Regions", category: "Management - Shop App" },
   { id: "shop-prices", title: "Prices", category: "Management - Shop App" },
@@ -47,11 +47,11 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
   const [rolesError, setRolesError] = useState<string | null>(null);
   const [cachedUserId, setCachedUserId] = useState<string | null>(null);
 
-  // Derive final permissions synchronously during render to prevent race conditions during login/navigation
+  
   const userMenuPermissions = useMemo(() => {
     if (permissionsState.length > 0) return permissionsState;
 
-    // If no explicit permissions set yet, but user is an admin type, return defaults
+    
     const userType = String(user?.userType || "").toUpperCase();
     const isAdmin = userType === "ADMIN" || userType === "SUPER_ADMIN";
 
@@ -62,7 +62,7 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
     return [];
   }, [permissionsState, user?.userType]);
 
-  // Load user's menu permissions with localStorage caching
+  
   const refreshPermissions = async () => {
     const hasToken = localStorage.getItem("token");
     const userType = String(user?.userType || "").toUpperCase();
@@ -79,14 +79,14 @@ export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       const permissions = await getCurrentUserMenuPermissions();
 
-      // If the API returns empty list for an admin, we fall back to defaults
+      
       if (isAdmin && (!permissions || permissions.length === 0)) {
         setPermissionsState(DEFAULT_ADMIN_MENU_ITEMS);
       } else {
         setPermissionsState(permissions || []);
       }
 
-      // Persist to localStorage
+      
       if (permissions && permissions.length > 0) {
         localStorage.setItem("cachedPermissions", JSON.stringify(permissions));
         if (user?.id) {

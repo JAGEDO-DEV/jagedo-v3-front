@@ -20,8 +20,8 @@ interface RawApiProduct {
     name: string;
     description: string | null;
     type: string;
-    category: string;
-    subcategory: string | null;
+    group: string;
+    subGroup: string | null;
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
     custom: boolean;
@@ -42,9 +42,10 @@ export interface Product {
     name: string;
     description?: string;
     type: string;
-    category: string;
-    subcategory?: string;
+    group: string;
+    subGroup?: string;
     price: number;
+    isPriceSet: boolean;
     showFromPrice?: boolean;
     isAggregated?: boolean;
     custom: boolean;
@@ -70,8 +71,8 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             name: rawProduct.name,
             description: rawProduct.description ?? undefined,
             type: rawProduct.type,
-            category: rawProduct.category,
-            subcategory: rawProduct.subcategory ?? undefined,
+            group: rawProduct.group,
+            subGroup: rawProduct.subGroup ?? undefined,
             images: rawProduct.images || [],
             active: rawProduct.active,
             specifications: {
@@ -84,22 +85,27 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             },
         };
 
-        // If it has specific regional prices, create one entry per region
+        
         if (rawProduct.prices && rawProduct.prices.length > 0) {
             return rawProduct.prices.map(priceEntry => ({
                 ...baseProductData,
                 id: `${rawProduct.id}-${priceEntry.regionId}`,
                 price: priceEntry.price,
+                isPriceSet: priceEntry.price > 0,
                 custom: rawProduct.custom,
                 regionName: priceEntry.regionName,
             }));
         }
 
-        // Fallback: If no regional prices, treat as location-agnostic (shows under all regions unless UI chooses strict matching)
+        const fallbackPrice = rawProduct.customPrice ?? rawProduct.basePrice ?? 0;
+        const isPriceSet = (rawProduct.customPrice !== null && rawProduct.customPrice > 0) || 
+                          (rawProduct.basePrice !== null && rawProduct.basePrice > 0);
+
         return [{
             ...baseProductData,
             id: `${rawProduct.id}-base`,
-            price: rawProduct.basePrice ?? 0,
+            price: fallbackPrice,
+            isPriceSet: isPriceSet,
             custom: rawProduct.custom,
             regionName: "Universal",
             isLocationAgnostic: true,

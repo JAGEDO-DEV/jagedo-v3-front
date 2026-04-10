@@ -83,11 +83,11 @@ export default function AdminRootLayout() {
       try {
         if (!user?.id) return;
         const profile = await getProviderProfile(axiosInstance, user.id);
-        // getProviderProfile returns response.data
+        
         const img = profile?.data?.profileImage || profile?.profileImage || null;
         setProfileImage(img);
       } catch (error) {
-        // keep silent; we'll fall back to default avatar
+        
       }
     };
     fetchProfileImage();
