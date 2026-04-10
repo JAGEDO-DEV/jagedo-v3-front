@@ -256,6 +256,14 @@ export default function AdminRootLayout() {
                             className="h-full w-full object-cover"
                           />
                         </div>
+                        <div className="hidden sm:flex flex-col items-start pr-1">
+                          <span className="text-sm font-bold text-gray-800 leading-none">
+                            {user?.firstName || "Admin"}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-wider">
+                            {user?.role || "Administrator"}
+                          </span>
+                        </div>
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 mt-2 p-1.5 shadow-2xl rounded-2xl border-gray-100">
