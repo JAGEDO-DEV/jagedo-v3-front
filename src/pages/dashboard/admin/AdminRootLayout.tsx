@@ -261,7 +261,7 @@ export default function AdminRootLayout() {
                             {user?.firstName || "Admin"}
                           </span>
                           <span className="text-[11px] text-gray-500 font-medium mt-0.5 uppercase tracking-wider">
-                            Super Admin
+                            {user?.role || "Administrator"}
                           </span>
                         </div>
                       </button>

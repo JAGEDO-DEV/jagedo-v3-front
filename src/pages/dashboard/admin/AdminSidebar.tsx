@@ -140,9 +140,53 @@ export const sidebarItems = [
         id: "analytics",
         title: "Analytics",
         icon: ChartNoAxesCombined,
-        href: "/dashboard/admin/analytics",
         color: "#FB3C47",
+        submenu: [
+          {
+            id: "summary",
+            title: "Summary",
+            href: "/dashboard/admin/analytics/summary",
+            icon: ChartNoAxesCombined,
+          },
+          {
+            id: "customers",
+            title: "Customers",
+            href: "/dashboard/admin/analytics/customers",
+            icon: Users,
+          },
+           {
+            id: "builder",
+            title: "Builders",
+            href: "/dashboard/admin/analytics/builders",
+            icon: Hammer,
+          },
+           {
+            id: "requests",
+            title: "Requests",
+            href: "/dashboard/admin/analytics/requests",
+            icon: LayoutDashboard,
+          },
+          {
+            id: "web",
+            title: "Web",
+            href: "/dashboard/admin/analytics/web",
+            icon: Eye,
+          },
+          {
+            id: "products",
+            title: "Products",
+            href: "/dashboard/admin/analytics/products",
+            icon: Package,
+          },
+        ],
       },
+      // {
+      //   id: "analytics",
+      //   title: "Analytics",
+      //   icon: ChartNoAxesCombined,
+      //   href: "/dashboard/admin/analytics",
+      //   color: "#FB3C47",
+      // },
       {
         id: "system-logs",
         title: "System Logs",
@@ -312,36 +356,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
             </ul>
           </SidebarContext.Provider>
 
-          {/* User Profile Section */}
-          <div className="p-4 mt-auto border-t border-gray-50">
-            <div className={`flex items-center gap-3 p-2 rounded-2xl transition-all ${expanded ? "bg-gray-50/80" : "justify-center"}`}>
-              <div className="relative flex-shrink-0">
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || "Admin")}&background=4f46e5&color=fff&bold=true`}
-                  alt="User Avatar"
-                  className="w-10 h-10 rounded-xl object-cover shadow-sm ring-2 ring-white"
-                />
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </div>
-              
-              {expanded && (
-                <div className="flex-1 min-w-0 pr-2">
-                  <h4 className="font-bold text-sm text-gray-800 truncate leading-none mb-1">
-                    {user?.firstName} {user?.lastName}
-                  </h4>
-                  <p className="text-[11px] font-medium text-gray-500 truncate uppercase tracking-wider">
-                    {user?.role || "ADMINISTRATOR"}
-                  </p>
-                </div>
-              )}
-
-              {!expanded && (
-                <div className="absolute left-full ml-6 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all shadow-xl z-50 whitespace-nowrap">
-                  {user?.firstName} {user?.lastName}
-                </div>
-              )}
-            </div>
-          </div>
+          
         </nav>
       </aside>
     </>
