@@ -1,450 +1,509 @@
 //@ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createAttribute, updateAttribute, AttributeCreateRequest, getAllAttributes } from '@/api/attributes.api';
+import {
+  createAttribute,
+  updateAttribute,
+  getAllAttributes,
+} from '@/api/attributes.api';
 import { getAllGroups } from '@/api/groups.api';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 
 interface AddAttributeFormProps {
-  onBack: () => void;
+  open: boolean;
+  onClose: () => void;
   onSuccess: () => void;
   defaultProductType: string;
   attribute?: any;
   isEdit?: boolean;
 }
 
-const GROUP_SCOPE = "__group__";
-
 const normalizeText = (value?: string | null) =>
-  (value || "").trim().toLowerCase();
+  (value || '').trim().toLowerCase();
 
-const getSubGroupNames = (group: any) => {
+const getSubGroupNames = (group: any): string[] => {
   if (!group) return [];
-
   const subGroup = group.subGroup;
   if (Array.isArray(subGroup)) {
-    return subGroup.map((sub: any) => {
-      if (typeof sub === "string") return sub.trim();
-      try {
-          if (typeof sub === "string" && sub.startsWith("{")) {
-              const parsed = JSON.parse(sub);
-              return (parsed.name || "").trim();
-          }
-      } catch(e) {}
-      return (sub?.name || "").trim();
-    }).filter(Boolean);
+    return subGroup
+      .map((sub: any) => {
+        if (typeof sub === 'string') return sub.trim();
+        return (sub?.name || '').trim();
+      })
+      .filter(Boolean);
   }
-
-  if (typeof subGroup === "string" && subGroup.trim() !== "") {
-    return subGroup.split(",").map((s: string) => s.trim()).filter(Boolean);
+  if (typeof subGroup === 'string' && subGroup.trim() !== '') {
+    return subGroup.split(',').map((s: string) => s.trim()).filter(Boolean);
   }
-
   return [];
 };
 
-export default function AddAttributeForm({ onBack, onSuccess, defaultProductType, attribute, isEdit = false }: AddAttributeFormProps) {
+const generateCode = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+
+export default function AddAttributeForm({
+  open,
+  onClose,
+  onSuccess,
+  defaultProductType,
+  attribute,
+  isEdit = false,
+}: AddAttributeFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [existingAttributes, setExistingAttributes] = useState<any[]>([]);
   const [availableGroups, setAvailableGroups] = useState<any[]>([]);
-  const [formData, setFormData] = useState<AttributeCreateRequest>({
-    type: attribute?.type || '',
-    productType: attribute?.productType || defaultProductType,
-    values: attribute?.values || '',
-    attributeGroup: attribute?.attributeGroup || '',
-    categoryId: attribute?.categoryId?.toString() || '',
-    filterable: attribute?.filterable ?? false,
-    active: attribute?.active ?? true,
-    customerView: attribute?.customerView ?? false
-  });
-  const [attributeType, setAttributeType] = useState(attribute?.attributeType || 'text');
-  const [attributeValues, setAttributeValues] = useState<string[]>(
-    attribute?.values ? attribute.values.split(',').map((v: any) => v.trim()).filter(Boolean) : []
+
+  
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(
+    attribute?.groupId?.toString() || attribute?.categoryId?.toString() || ''
   );
-  const [newValue, setNewValue] = useState('');
-  const [selectedSubGroup, setSelectedSubGroup] = useState(GROUP_SCOPE);
+  const [selectedSubGroup, setSelectedSubGroup] = useState<string>(
+    attribute?.attributeGroup || ''
+  );
+
+  
+  const [attributeName, setAttributeName] = useState(attribute?.type || '');
+  const [attributeCode, setAttributeCode] = useState('');
+  const [attributeType, setAttributeType] = useState(
+    attribute?.attributeType || 'text'
+  );
+  const [filterable, setFilterable] = useState(attribute?.filterable ?? false);
+  const [customerView, setCustomerView] = useState(
+    attribute?.customerView ?? false
+  );
+  const [active, setActive] = useState(attribute?.active ?? true);
+  const [attributeValues, setAttributeValues] = useState<string[]>([]);
+  const [newValue, setNewValue] = useState("");
 
   const selectedGroup = availableGroups.find(
-    (group) => group.id.toString() === formData.categoryId?.toString(),
+    (g) => g.id.toString() === selectedGroupId
   );
   const subGroupOptions = getSubGroupNames(selectedGroup);
 
+  
   useEffect(() => {
+    if (!isEdit) {
+      setAttributeCode(generateCode(attributeName));
+    }
+  }, [attributeName, isEdit]);
+
+  
+  useEffect(() => {
+    if (open) {
+      setStep(isEdit ? 2 : 1);
+      setSelectedGroupId(
+        attribute?.groupId?.toString() ||
+          attribute?.categoryId?.toString() ||
+          ''
+      );
+      setSelectedSubGroup(attribute?.attributeGroup || '');
+      setAttributeName(attribute?.type || '');
+      setAttributeCode('');
+      setAttributeType(attribute?.attributeType || 'text');
+      setFilterable(attribute?.filterable ?? false);
+      setCustomerView(attribute?.customerView ?? false);
+      setActive(attribute?.active ?? true);
+      if (attribute?.values) {
+        setAttributeValues(attribute.values.split(",").map((v: string) => v.trim()).filter(Boolean));
+      } else {
+        setAttributeValues([]);
+      }
+      setNewValue("");
+    }
+  }, [open, attribute, isEdit]);
+
+  
+  useEffect(() => {
+    if (!open) return;
     const fetchData = async () => {
       try {
-        const [attributesResponse, groupsResponse] = await Promise.all([
+        const [attrsRes, groupsRes] = await Promise.all([
           getAllAttributes(axiosInstance),
-          getAllGroups(axiosInstance)
+          getAllGroups(axiosInstance),
         ]);
 
-        if (attributesResponse.success) {
-          const attributes = attributesResponse.data || attributesResponse.hashSet;
-          if (Array.isArray(attributes)) {
-            setExistingAttributes(attributes);
-          }
+        if (attrsRes.success) {
+          const data = attrsRes.data || attrsRes.hashSet;
+          if (Array.isArray(data)) setExistingAttributes(data);
         }
 
-        if (groupsResponse.success) {
-          const groupsData = groupsResponse.data || groupsResponse.hashSet;
+        if (groupsRes.success) {
+          const groupsData = groupsRes.data || groupsRes.hashSet;
           if (Array.isArray(groupsData)) {
-            const defaultTypeUpper = (defaultProductType || "").trim().toUpperCase();
-
-            const filteredGroups = groupsData.filter((cat: any) => {
-              if (!cat.active) return false;
-              const catType = (cat.type || "").trim().toUpperCase();
-              return catType === defaultTypeUpper || (defaultTypeUpper === "HARDWARE" && !catType);
+            const defaultTypeUpper = (defaultProductType || '').trim().toUpperCase();
+            const filtered = groupsData.filter((g: any) => {
+              if (!g.active) return false;
+              const gType = (g.type || '').trim().toUpperCase();
+              return (
+                gType === defaultTypeUpper ||
+                (defaultTypeUpper === 'HARDWARE' && !gType)
+              );
             });
-
-            setAvailableGroups(filteredGroups);
-
-            
-            if (isEdit && attribute && attribute.categoryId) {
-              const group = filteredGroups.find(c => c.id.toString() === attribute.categoryId.toString());
-              if (group) {
-                const usesGroupScope = !attribute.attributeGroup || attribute.attributeGroup === group.name;
-                setSelectedSubGroup(usesGroupScope ? GROUP_SCOPE : attribute.attributeGroup);
-              }
-            }
+            setAvailableGroups(filtered);
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch data for validation and options', error);
+      } catch (err) {
+        console.error('Failed to load form data', err);
       }
     };
     fetchData();
-  }, [defaultProductType, isEdit, attribute]);
+  }, [open, defaultProductType]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleNext = () => {
+    if (step === 1) {
+      if (!selectedGroupId) {
+        toast.error('Please select a group');
+        return;
+      }
+      setStep(2);
+    }
+  };
 
-    if (!formData.type.trim()) {
+  const handleBack = () => {
+    if (step === 2) setStep(1);
+  };
+
+  const handleSubmit = async () => {
+    if (!attributeName.trim()) {
       toast.error('Attribute name is required');
       return;
     }
 
-    if (attributeType === 'select' || attributeType === 'multiselect') {
-      if (attributeValues.length === 0) {
-        toast.error('At least one attribute value is required for select/multiselect types');
-        return;
-      }
-    }
+    
+    
+    const resolvedAttributeGroup =
+      selectedSubGroup && selectedSubGroup !== '__group__'
+        ? selectedSubGroup
+        : selectedGroup?.name || '';
 
-    const isDuplicate = !isEdit && existingAttributes.some((attr) => {
-      const existingName = normalizeText(attr.type);
-      const newName = normalizeText(formData.type);
-      const existingGroup = normalizeText(attr.attributeGroup);
-      const newGroup = normalizeText(formData.attributeGroup);
-
-      return (
-        existingName === newName &&
-        normalizeText(attr.productType) === normalizeText(formData.productType) &&
-        existingGroup === newGroup
-      );
-    });
+    const isDuplicate =
+      !isEdit &&
+      existingAttributes.some((attr) => {
+        const existingName = normalizeText(attr.type);
+        const newName = normalizeText(attributeName);
+        const existingGroupId = attr.groupId?.toString() || attr.categoryId?.toString();
+        return existingName === newName && existingGroupId === selectedGroupId;
+      });
 
     if (isDuplicate) {
-      toast.error(`An attribute with the name "${formData.type}" already exists for ${formData.attributeGroup || formData.productType}.`);
+      toast.error(
+        `An attribute named "${attributeName}" already exists in this group.`
+      );
       return;
     }
 
     try {
       setLoading(true);
 
-      const submitData: AttributeCreateRequest = {
-        ...formData,
-        values: attributeValues.join(','),
-        attributeType: attributeType
+      const submitData = {
+        type: attributeName.trim(),
+        attributeType,
+        filterable,
+        active,
+        customerView,
+        groupId: selectedGroupId,
+        attributeGroup: resolvedAttributeGroup,
+        values: attributeType === "multiselect" 
+          ? attributeValues.join(",")
+          : attributeType === "select"
+          ? (attributeValues[0] || null)
+          : null
       };
 
-      const response = isEdit 
+      const response = isEdit
         ? await updateAttribute(axiosInstance, attribute.id, submitData)
         : await createAttribute(axiosInstance, submitData);
 
       if (response.success) {
-        toast.success(isEdit ? 'Attribute updated successfully' : 'Attribute created successfully');
+        toast.success(
+          isEdit ? 'Attribute updated successfully' : 'Attribute created successfully'
+        );
         onSuccess();
       } else {
-        toast.error(response.message || (isEdit ? 'Failed to update attribute' : 'Failed to create attribute'));
+        toast.error(
+          response.message ||
+            (isEdit ? 'Failed to update attribute' : 'Failed to create attribute')
+        );
       }
     } catch (error) {
-      console.error('Error creating attribute:', error);
-      toast.error('Failed to create attribute');
+      console.error('Error saving attribute:', error);
+      toast.error('Failed to save attribute');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddValue = () => {
-    if (newValue.trim() && !attributeValues.includes(newValue.trim())) {
-      setAttributeValues([...attributeValues, newValue.trim()]);
-      setNewValue('');
-    }
-  };
-
-  const handleRemoveValue = (index: number) => {
-    setAttributeValues(attributeValues.filter((_, i) => i !== index));
-  };
-
-  const handleDiscard = () => {
-    onBack();
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDiscard}
-          className="p-0 h-auto"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Edit attribute" : "Create a new attribute"}
-          </h1>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden rounded-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
+          <DialogTitle className="text-lg font-semibold text-gray-900">
+            {isEdit ? 'Edit Attribute' : 'Create New Attribute'}
+          </DialogTitle>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>General</CardTitle>
-              <CardDescription>
-                Basic attribute information and configuration
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter attribute name"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <RadioGroup
-                  value={attributeType}
-                  onValueChange={setAttributeType}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="text" id="text" />
-                    <Label htmlFor="text">Text</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="select" id="select" />
-                    <Label htmlFor="select">Select</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="multiselect" id="multiselect" />
-                    <Label htmlFor="multiselect">Multiselect</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="textarea" id="textarea" />
-                    <Label htmlFor="textarea">Textarea</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5">
+          {step === 1 && (
+            <>
+              <p className="text-sm font-medium text-gray-500">
+                Step 1: Assign To Group
+              </p>
 
-              {(attributeType === 'select' || attributeType === 'multiselect') && (
-                <div className="space-y-2">
-                  <Label>Values</Label>
-
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Enter new value (e.g., Red, Small, Cotton)"
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddValue())}
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAddValue}
-                      disabled={!newValue.trim()}
-                      style={{ backgroundColor: "#00007A", color: "white" }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-
-                  {attributeValues.length > 0 && (
-                    <div className="space-y-2 mt-4">
-                      <Label className="text-xs text-gray-500">Added Values:</Label>
-                      <div className="flex flex-wrap gap-2 border p-2 rounded-md bg-gray-50 min-h-[40px]">
-                        {attributeValues.map((value, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm"
-                          >
-                            <span className="text-sm font-medium">{value}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveValue(index)}
-                              className="h-4 w-4 p-0 text-gray-500 hover:text-red-500"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="attributeGroup">Attribute Group (Group)</Label>
+              {/* Group */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Group <span className="text-red-500">*</span>
+                </Label>
                 <Select
-                  value={formData.categoryId?.toString()}
-                  onValueChange={(value) => {
-                    const selectedG = availableGroups.find(c => c.id.toString() === value);
-                    setSelectedSubGroup(GROUP_SCOPE);
-                    setFormData({
-                      ...formData,
-                      categoryId: value,
-                      attributeGroup: selectedG ? selectedG.name : ''
-                    });
+                  value={selectedGroupId}
+                  onValueChange={(val) => {
+                    setSelectedGroupId(val);
+                    setSelectedSubGroup('');
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full border-gray-300 rounded-lg">
                     <SelectValue placeholder="Select group..." />
                   </SelectTrigger>
-                  <SelectContent className='bg-white'>
+                  <SelectContent className="bg-white">
                     {availableGroups.length > 0 ? (
-                      availableGroups.map((group) => (
-                        <SelectItem key={group.id.toString()} value={group.id.toString()}>
-                          {group.name}
+                      availableGroups.map((g) => (
+                        <SelectItem key={g.id.toString()} value={g.id.toString()}>
+                          {g.name}
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-2 text-sm text-gray-500 text-center">
-                        No active groups found for {defaultProductType}
+                      <div className="p-2 text-sm text-gray-400 text-center">
+                        No active groups found
                       </div>
                     )}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="attributeSubGroup">Sub-group (Optional)</Label>
+              {/* Subgroup */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Subgroup <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={selectedSubGroup}
-                  onValueChange={(value) => {
-                    setSelectedSubGroup(value);
-                    setFormData({
-                      ...formData,
-                      attributeGroup:
-                        value === GROUP_SCOPE
-                          ? selectedGroup?.name || ""
-                          : value
-                    });
-                  }}
+                  onValueChange={setSelectedSubGroup}
                   disabled={!selectedGroup || subGroupOptions.length === 0}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full border-gray-300 rounded-lg">
                     <SelectValue
                       placeholder={
                         selectedGroup
-                          ? "Choose scope"
-                          : "Select a group first"
+                          ? subGroupOptions.length === 0
+                            ? 'No subgroups available'
+                            : 'Select subgroup...'
+                          : 'Select a group first'
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent className='bg-white'>
-                    <SelectItem value={GROUP_SCOPE}>Entire group</SelectItem>
-                    {subGroupOptions.map((subGroup) => (
-                      <SelectItem key={subGroup} value={subGroup}>
-                        {subGroup}
+                  <SelectContent className="bg-white">
+                    {subGroupOptions.map((sub) => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
+            </>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Setting</CardTitle>
-              <CardDescription>
-                Configure attribute behavior and visibility
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Is Filterable?</Label>
-                <RadioGroup
-                  value={formData.filterable ? 'yes' : 'no'}
-                  onValueChange={(value) => setFormData({ ...formData, filterable: value === 'yes' })}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="filterable-no" />
-                    <Label htmlFor="filterable-no">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="filterable-yes" />
-                    <Label htmlFor="filterable-yes">Yes</Label>
-                  </div>
-                </RadioGroup>
+          {step === 2 && (
+            <>
+              <p className="text-sm font-medium text-gray-500">
+                Step 2: Define Attributes
+              </p>
+
+              {/* Attribute Name */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Attribute Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. Material"
+                  value={attributeName}
+                  onChange={(e) => setAttributeName(e.target.value)}
+                  className="border-gray-300 rounded-lg"
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label>Show to customers?</Label>
-                <RadioGroup
-                  value={formData.customerView ? 'yes' : 'no'}
-                  onValueChange={(value) => setFormData({ ...formData, customerView: value === 'yes' })}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="customer-no" />
-                    <Label htmlFor="customer-no">No</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="customer-yes" />
-                    <Label htmlFor="customer-yes">Yes</Label>
-                  </div>
-                </RadioGroup>
+              {/* Attribute Code */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Attribute Code
+                </Label>
+                <Input
+                  placeholder="auto-generated"
+                  value={attributeCode}
+                  onChange={(e) => setAttributeCode(e.target.value)}
+                  className="border-gray-300 rounded-lg text-gray-400"
+                />
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Type */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-gray-700">Type</Label>
+                <Select value={attributeType} onValueChange={setAttributeType}>
+                  <SelectTrigger className="w-full border-gray-300 rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="select">Select</SelectItem>
+                    <SelectItem value="multiselect">Multiselect</SelectItem>
+                    <SelectItem value="textarea">Textarea</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-400">
+                  Type becomes immutable after creation.
+                </p>
+              </div>
+
+              {/* Values Management */}
+              {attributeType === "multiselect" ? (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Attribute Values (Multiple)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add value..."
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newValue.trim()) {
+                            if (!attributeValues.includes(newValue.trim())) {
+                              setAttributeValues([...attributeValues, newValue.trim()]);
+                            }
+                            setNewValue("");
+                          }
+                        }
+                      }}
+                      className="border-gray-300 rounded-lg"
+                    />
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (newValue.trim()) {
+                          if (!attributeValues.includes(newValue.trim())) {
+                            setAttributeValues([...attributeValues, newValue.trim()]);
+                          }
+                          setNewValue("");
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {attributeValues.length > 0 ? (
+                      attributeValues.map((v, i) => (
+                        <span 
+                          key={i} 
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-[#00007A] text-xs font-medium rounded-full border border-blue-100"
+                        >
+                          {v}
+                          <button 
+                            type="button"
+                            onClick={() => setAttributeValues(attributeValues.filter((_, idx) => idx !== i))}
+                            className="hover:text-red-500 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">No values added yet.</p>
+                    )}
+                  </div>
+                </div>
+              ) : attributeType === "select" ? (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Attribute Value (Single)
+                  </Label>
+                  <Input
+                    placeholder="Enter value..."
+                    value={attributeValues[0] || ""}
+                    onChange={(e) => setAttributeValues([e.target.value])}
+                    className="border-gray-300 rounded-lg"
+                  />
+                  <p className="text-[10px] text-gray-400">
+                    This type only supports a single predefined value.
+                  </p>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
 
-        <div className="flex justify-end space-x-4 mt-8">
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 pb-6 pt-2">
           <Button
-            type="button"
             variant="outline"
-            onClick={handleDiscard}
-            className="border-red-500 text-red-500 hover:bg-red-50"
+            onClick={step === 1 ? onClose : handleBack}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg"
           >
-            Discard
+            {step === 1 ? 'Cancel' : 'Back'}
           </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            style={{ backgroundColor: "#00007A", color: "white" }}
-          >
-            {loading ? (isEdit ? 'Updating...' : 'Saving...') : (isEdit ? 'Update Attribute' : 'Save Attribute')}
-          </Button>
+
+          {step === 1 ? (
+            <Button
+              onClick={handleNext}
+              className="rounded-lg px-6 bg-[#00007A] hover:bg-[#00007A]/90 text-white"
+            >
+              Next
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="rounded-lg px-6 bg-[#00007A] hover:bg-[#00007A]/90 text-white"
+            >
+              {loading
+                ? isEdit
+                  ? 'Updating...'
+                  : 'Saving...'
+                : isEdit
+                ? 'Update'
+                : 'Next'}
+            </Button>
+          )}
         </div>
-      </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -24,14 +24,9 @@ interface RawApiProduct {
     subGroup: string | null;
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
+    specs: any | null;
     custom: boolean;
     customPrice: number | null;
-    material: string | null;
-    size: string | null;
-    color: string | null;
-    sku: string | null;
-    bId: string | null;
-    uom: string | null;
     active: boolean;
     basePrice: number | null;
 }
@@ -53,15 +48,9 @@ export interface Product {
     images: string[];
     active: boolean;
     isLocationAgnostic?: boolean;
-    specifications: {
-        material?: string;
-        size?: string;
-        color?: string;
-        sku?: string;
-        bid?: string;
-        uom?: string;
-    };
+    specifications: Record<string, any>;
 }
+
 
 
 const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] => {
@@ -76,16 +65,11 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             images: rawProduct.images || [],
             active: rawProduct.active,
             specifications: {
-                material: rawProduct.material ?? undefined,
-                size: rawProduct.size ?? undefined,
-                color: rawProduct.color ?? undefined,
-                sku: rawProduct.sku ?? undefined,
-                bid: rawProduct.bId ?? undefined,
-                uom: rawProduct.uom ?? undefined,
+                ...(rawProduct.specs || {}),
             },
         };
 
-        
+
         if (rawProduct.prices && rawProduct.prices.length > 0) {
             return rawProduct.prices.map(priceEntry => ({
                 ...baseProductData,
@@ -98,8 +82,8 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
         }
 
         const fallbackPrice = rawProduct.customPrice ?? rawProduct.basePrice ?? 0;
-        const isPriceSet = (rawProduct.customPrice !== null && rawProduct.customPrice > 0) || 
-                          (rawProduct.basePrice !== null && rawProduct.basePrice > 0);
+        const isPriceSet = (rawProduct.customPrice !== null && rawProduct.customPrice > 0) ||
+            (rawProduct.basePrice !== null && rawProduct.basePrice > 0);
 
         return [{
             ...baseProductData,

@@ -83,7 +83,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
               {Object.entries(product.specifications).map(([key, value]) =>
                 value ? (
                   <div key={key}>
-                    <span className="font-semibold capitalize">{key}:</span> {value}
+                    <span className="font-semibold capitalize">{key}:</span> {Array.isArray(value) ? value.join(", ") : value}
                   </div>
                 ) : null
               )}

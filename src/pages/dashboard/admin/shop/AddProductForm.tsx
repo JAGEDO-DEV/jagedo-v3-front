@@ -45,13 +45,8 @@ interface ProductFormData {
   type: string;
   group: string;
   subGroup: string;
-  bId: string;
-  sku: string;
-  material: string;
-  size: string;
-  color: string;
-  uom: string;
   images: string[];
+  [key: string]: any; 
 }
 
 interface UploadedImage {
@@ -247,19 +242,6 @@ const ProductPreviewModal = ({
                   {formData.type}
                 </span>
               )}
-              {formData.sku && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    padding: "3px 10px",
-                    borderRadius: "6px",
-                    background: "#f3f4f6",
-                    color: "#6b7280",
-                  }}
-                >
-                  {formData.sku}
-                </span>
-              )}
             </div>
 
             <div
@@ -271,15 +253,14 @@ const ProductPreviewModal = ({
                 gap: "8px",
               }}
             >
-              {[
-                { label: "Material", value: formData.material },
-                { label: "Size", value: formData.size },
-                { label: "Color", value: formData.color },
-                { label: "UOM", value: formData.uom },
-                { label: "B-ID", value: formData.bId },
-              ].map(({ label, value }) =>
-                value ? (
-                  <div key={label}>
+              {Object.entries(formData)
+                .filter(([key, value]) => 
+                  !['name', 'description', 'type', 'group', 'subGroup', 'images', 'active'].includes(key) && 
+                  value && 
+                  (typeof value === 'string' || Array.isArray(value))
+                )
+                .map(([key, value]) => (
+                  <div key={key}>
                     <p
                       style={{
                         fontSize: "11px",
@@ -289,16 +270,15 @@ const ProductPreviewModal = ({
                         letterSpacing: "0.05em",
                       }}
                     >
-                      {label}
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
                     </p>
                     <p
                       style={{ fontSize: "13px", margin: 0, color: "#111827" }}
                     >
-                      {value}
+                      {Array.isArray(value) ? value.join(", ") : value}
                     </p>
                   </div>
-                ) : null,
-              )}
+                ))}
             </div>
 
             {formData.description && (
@@ -423,7 +403,7 @@ const getRelevantAttributes = ({
   const activeTypeAttributes = attributes.filter(
     (attribute) =>
       attribute?.active &&
-      normalizeText(attribute.productType) === normalizedType,
+      normalizeText(attribute.group?.type) === normalizedType,
   );
 
   const globalAttributes = activeTypeAttributes.filter(
@@ -460,12 +440,6 @@ export default function AddProductForm({
     type: product?.type || initialType || "",
     group: product?.group || "",
     subGroup: product?.subGroup || "",
-    bId: product?.bId || "",
-    sku: product?.sku || "",
-    material: product?.material || "",
-    size: product?.size || "",
-    color: product?.color || "",
-    uom: product?.uom || "",
     images: product?.images || [],
   });
 
@@ -494,11 +468,7 @@ export default function AddProductForm({
     { value: "CONTRACTOR", label: "Contractor" },
   ];
 
-  const generateBID = () => {
-    const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
-    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `BID-${timestamp}-${randomPart}`;
-  };
+
 
   const fetchGroups = useCallback(
     async (type?: string) => {
@@ -560,13 +530,6 @@ export default function AddProductForm({
     }
   }, [axiosInstance]);
 
-  const uomOptions = [
-    { value: "pcs", label: "Pieces" },
-    { value: "kg", label: "Kilograms" },
-    { value: "m", label: "Meters" },
-    { value: "sqm", label: "Square Meters" },
-    { value: "l", label: "Liters" },
-  ];
 
   const handleInputChange = (field: keyof ProductFormData, value: any) => {
     setFormData((prev) => {
@@ -658,8 +621,6 @@ export default function AddProductForm({
     formData.group &&
     formData.name &&
     formData.description &&
-    formData.bId &&
-    formData.sku &&
     uploadedImages.length > 0
   );
 
@@ -688,8 +649,6 @@ export default function AddProductForm({
       { key: "group", label: "Group" },
       { key: "name", label: "Product Name" },
       { key: "description", label: "Description" },
-      { key: "bId", label: "B-ID" },
-      { key: "sku", label: "SKU" },
     ];
 
     const missingField = requiredFields.find(
@@ -711,19 +670,13 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
         group: formData.group,
         subGroup: formData.subGroup,
-        bId: formData.bId,
-        sku: formData.sku,
-        material: formData.material,
-        size: formData.size,
-        color: formData.color,
-        uom: formData.uom,
         images: imageUrls,
       };
 
@@ -785,21 +738,15 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
         group: formData.group,
         subGroup: formData.subGroup,
-        bId: formData.bId,
-        sku: formData.sku,
-        material: formData.material,
-        size: formData.size,
-        color: formData.color,
-        uom: formData.uom,
+        status: "DRAFT",
         images: imageUrls,
-        status: "DRAFT", 
       };
 
       
@@ -857,15 +804,6 @@ export default function AddProductForm({
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (!isEditMode && !formData.bId) {
-      setFormData((prev) => ({
-        ...prev,
-        bId: generateBID(),
-      }));
-    }
-  }, [isEditMode]);
 
   useEffect(() => {
     if (!isEditMode && formData.type) {
@@ -1035,31 +973,6 @@ export default function AddProductForm({
         <div className="space-y-4">
           <Label className="font-semibold">Product Attributes</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="bId" className="text-sm">
-                B-ID (Auto)*
-              </Label>
-              <Input
-                id="bId"
-                value={formData.bId}
-                readOnly
-                className="bg-gray-100 text-gray-500 cursor-not-allowed"
-                placeholder="Auto-generated"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sku" className="text-sm">
-                SKU*
-              </Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => handleInputChange("sku", e.target.value)}
-                placeholder="Enter SKU"
-              />
-            </div>
-
             {/* Dynamic Attributes */}
             {filteredAttributes.map((attr) => {
               const fieldName = attr.type.toLowerCase() as keyof ProductFormData;
@@ -1180,64 +1093,6 @@ export default function AddProductForm({
                 </div>
               );
             })}
-
-            {/* Fallback for core fields if not in dynamic attributes */}
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'material') && (
-              <div className="space-y-2">
-                <Label htmlFor="material" className="text-sm">Material</Label>
-                <Input
-                  id="material"
-                  value={formData.material}
-                  onChange={(e) => handleInputChange("material", e.target.value)}
-                  placeholder="Enter material"
-                />
-              </div>
-            )}
-            
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'size') && (
-              <div className="space-y-2">
-                <Label htmlFor="size" className="text-sm">Size</Label>
-                <Input
-                  id="size"
-                  value={formData.size}
-                  onChange={(e) => handleInputChange("size", e.target.value)}
-                  placeholder="Enter size"
-                />
-              </div>
-            )}
-
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'color') && (
-              <div className="space-y-2">
-                <Label htmlFor="color" className="text-sm">Color</Label>
-                <Input
-                  id="color"
-                  value={formData.color}
-                  onChange={(e) => handleInputChange("color", e.target.value)}
-                  placeholder="Enter color"
-                />
-              </div>
-            )}
-
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'uom') && (
-              <div className="space-y-2">
-                <Label htmlFor="uom" className="text-sm">UOM</Label>
-                <Select
-                  value={formData.uom}
-                  onValueChange={(val) => handleInputChange("uom", val)}
-                >
-                  <SelectTrigger id="uom">
-                    <SelectValue placeholder="Select UOM" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {uomOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
 
