@@ -91,13 +91,7 @@ export default function UserSegmentPage({
     );
   }
 
-  if (analytics.loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Loading analytics...</p>
-      </div>
-    );
-  }
+
 
   const data = analytics.data;
   const metrics = data?.metrics || {};
