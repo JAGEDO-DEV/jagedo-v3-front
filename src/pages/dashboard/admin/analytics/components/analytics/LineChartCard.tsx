@@ -4,11 +4,12 @@ interface LineChartCardProps {
   title: string;
   description?: string;
   data: Record<string, any>[];
-  lines: { key: string; color: string; dashed?: boolean }[];
+  lines: { key: string; color: string; name?: string; dashed?: boolean }[];
+  xAxisKey?: string;
   children?: React.ReactNode;
 }
 
-export default function LineChartCard({ title, description, data, lines, children }: LineChartCardProps) {
+export default function LineChartCard({ title, description, data, lines, xAxisKey = "date", children }: LineChartCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
@@ -22,7 +23,7 @@ export default function LineChartCard({ title, description, data, lines, childre
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
             <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
             <Tooltip
               contentStyle={{
@@ -37,6 +38,7 @@ export default function LineChartCard({ title, description, data, lines, childre
                 key={line.key}
                 type="monotone"
                 dataKey={line.key}
+                name={line.name || line.key}
                 stroke={line.color}
                 strokeWidth={2}
                 strokeDasharray={line.dashed ? "5 5" : undefined}
