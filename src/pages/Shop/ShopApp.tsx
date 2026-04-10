@@ -314,7 +314,7 @@ const ShopApp = () => {
             <DashboardHeader />
             <div className="p-4">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate('/dashboard/customer')}
                     className="text-jagedo-blue hover:underline flex items-center gap-1"
                 >
                     ← Back

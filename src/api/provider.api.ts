@@ -677,6 +677,54 @@ export const updateAccountStatus = async (
 };
 
 
+export const getDeletedBuilders = async (axiosInstance: any) => {
+    try {
+        const response = await axiosInstance.get(
+            `${import.meta.env.VITE_SERVER_URL}/api/users/builders/deleted`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to get deleted builders");
+    }
+};
+
+export const getDeletedCustomers = async (axiosInstance: any) => {
+    try {
+        const response = await axiosInstance.get(
+            `${import.meta.env.VITE_SERVER_URL}/api/users/customers/deleted`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to get deleted customers");
+    }
+};
+
+export const purgeUser = async (axiosInstance: any, userId: string) => {
+    try {
+        const response = await axiosInstance.delete(
+            `${import.meta.env.VITE_SERVER_URL}/api/users/purge/${userId}`,
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to purge user");
+    }
+};
+
 export const getUserProfileAdmin = async (axiosInstance: any, userId: string): Promise<any> => {
     try {
         const response = await axiosInstance.get(
