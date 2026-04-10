@@ -2,42 +2,42 @@ import { getAuthHeaders } from "@/utils/auth";
 
 const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/product_attributes`;
 
-// Types
+
 export interface Attribute {
-  productType: string;
   id: number | string;
   type: string;
   values: string;
   attributeGroup: string;
+  groupId?: number | string;
   categoryId?: number | string;
   filterable: boolean;
   customerView: boolean;
   active: boolean;
+  productType?: string;
   attributeType?: string;
+  group?: { id: number | string; name: string; type?: string };
 }
 
 export interface AttributeCreateRequest {
   type: string;
-  values: string;
-  attributeGroup: string;
-  productType?: string;
+  values?: string;
+  attributeGroup?: string;
   categoryId?: number | string;
-  filterable: boolean;
-  customerView: boolean;
-  active: boolean;
+  filterable?: boolean;
+  customerView?: boolean;
+  active?: boolean;
   attributeType?: string;
 }
 
 export interface AttributeUpdateRequest {
-  id: number | string;
-  type: string;
-  values: string;
-  attributeGroup: string;
-  productType?: string;
+  id?: number | string;
+  type?: string;
+  values?: string;
+  attributeGroup?: string;
   categoryId?: number | string;
-  filterable: boolean;
-  active: boolean;
-  customerView: boolean;
+  filterable?: boolean;
+  active?: boolean;
+  customerView?: boolean;
   attributeType?: string;
 }
 
@@ -49,7 +49,7 @@ export interface ApiResponse<T> {
   hashSet: unknown[];
 }
 
-// API Functions
+
 export const getAllAttributes = async (axiosInstance: any): Promise<ApiResponse<Attribute[]>> => {
   try {
     const response = await axiosInstance.get(API_BASE_URL, {

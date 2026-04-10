@@ -345,7 +345,15 @@ export default function Login() {
   const redirectUser = (user, redirectTo = null) => {
     const role = user.userType.toLowerCase();
 
-    const fromPath = location.state?.from;
+    let fromPath = location.state?.from;
+    
+    
+    if (fromPath && typeof fromPath === 'object' && fromPath.pathname) {
+      fromPath = fromPath.pathname;
+    }
+    
+    
+    const finalFromPath = typeof fromPath === 'string' ? fromPath : null;
 
     let path = redirectTo || "/dashboard/customer";
 
@@ -357,8 +365,8 @@ export default function Login() {
           break;
 
         case "customer":
-          if (fromPath && fromPath.startsWith("/customer/")) {
-            navigate(fromPath, { replace: true });
+          if (finalFromPath && finalFromPath.startsWith("/customer/")) {
+            navigate(finalFromPath, { replace: true });
             return;
           }
           path =

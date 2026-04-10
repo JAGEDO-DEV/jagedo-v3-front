@@ -14,20 +14,10 @@ import { Input } from "@/components/ui/input";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -36,62 +26,33 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
     Plus,
     Search,
     Edit,
     Trash2,
-    MoreHorizontal,
-    CheckCircle,
-    XCircle
+    ChevronDown,
+    ChevronUp,
+    Download,
+    Upload
 } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 
 import toast from "react-hot-toast";
 import {
     getAllAttributes,
     deleteAttribute,
     toggleAttributeStatus,
-    updateAttribute,
     Attribute
 } from "@/api/attributes.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import AddAttributeForm from "./AddAttributeForm";
 
-const GROUP_SCOPE = "__group__";
-
-const normalizeText = (value?: string | null) =>
-    (value || "").trim().toLowerCase();
-
-const getSubGroupNames = (group: any) => {
-    if (!group) return [];
-    
-    const subGroup = group.subGroup;
-    if (Array.isArray(subGroup)) {
-        return subGroup.map((sub: any) => {
-            if (typeof sub === "string") return sub.trim();
-            try {
-                if (typeof sub === "string" && sub.startsWith("{")) {
-                   const parsed = JSON.parse(sub);
-                   return (parsed.name || "").trim();
-                }
-            } catch(e) {}
-            return (sub?.name || "").trim();
-        }).filter(Boolean);
-    }
-    
-    if (typeof subGroup === "string" && subGroup.trim() !== "") {
-        return subGroup.split(",").map((s: string) => s.trim()).filter(Boolean);
-    }
-    
-    return [];
-};
+const groups = [
+    { label: "Hardware", type: "HARDWARE" },
+    { label: "Custom Products", type: "FUNDI" },
+    { label: "Designs", type: "PROFESSIONAL" },
+    { label: "Hire of Machinery & Equipment", type: "CONTRACTOR" }
+];
 
 export default function ShopAttributes() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -99,22 +60,11 @@ export default function ShopAttributes() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedGroup, setSelectedGroup] = useState("HARDWARE");
-    const [attributeToDelete, setAttributeToDelete] =
-        useState<Attribute | null>(null);
-    const [attributeToToggle, setAttributeToToggle] =
-        useState<Attribute | null>(null);
-    const [showAddAttribute, setShowAddAttribute] = useState(false);
-    const [showEditAttribute, setShowEditAttribute] = useState(false);
+    const [attributeToDelete, setAttributeToDelete] = useState<Attribute | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null);
-    const [availableGroups, setAvailableGroups] = useState<any[]>([]);
-
-
-    const groups = [
-        { label: "Hardware", type: "HARDWARE" },
-        { label: "Custom Products", type: "FUNDI" },
-        { label: "Designs", type: "PROFESSIONAL" },
-        { label: "Machinery & Equipment", type: "CONTRACTOR" }
-    ];
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
     const fetchAttributes = useCallback(async () => {
         try {
@@ -136,65 +86,51 @@ export default function ShopAttributes() {
 
     useEffect(() => {
         fetchAttributes();
-
-        
-        const fetchGroups = async () => {
-            try {
-                const { getAllGroups } = await import("@/api/groups.api");
-                const response = await getAllGroups(axiosInstance);
-                if (response.success) {
-                    setAvailableGroups(response.data || response.hashSet || []);
-                }
-            } catch (error) {
-                console.error("Error fetching groups:", error);
-            }
-        };
-        fetchGroups();
     }, []);
 
-    const filteredAttributes = attributes?.filter(
-        (attribute) => {
-            const matchesSearch =
-                attribute.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                attribute.values.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                attribute.attributeGroup
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase());
-                
-            const matchesGroup = attribute.productType === selectedGroup;
+    const filteredAttributes = attributes?.filter((attr) => {
+        
+        const groupType = (attr.group?.type || attr.productType || "").toUpperCase();
+        const matchesGroup = groupType === selectedGroup;
+        if (!matchesGroup) return false;
+        if (!searchTerm) return true;
+        const q = searchTerm.toLowerCase();
+        return (
+            (attr.type || "").toLowerCase().includes(q) ||
+            (attr.attributeGroup || "").toLowerCase().includes(q) ||
+            (attr.group?.name || "").toLowerCase().includes(q)
+        );
+    });
 
-            return matchesSearch && matchesGroup;
-        }
+    
+    const groupedAttributes = filteredAttributes?.reduce(
+        (acc: Record<string, Attribute[]>, attr) => {
+            //@ts-ignore
+            const groupName = attr.group?.name || attr.attributeGroup || "Ungrouped";
+            if (!acc[groupName]) acc[groupName] = [];
+            acc[groupName].push(attr);
+            return acc;
+        },
+        {}
     );
 
-    const renderAttributeValues = (values: string) => {
-        const items = (values || "")
-            .split(",")
-            .map((value) => value.trim())
-            .filter(Boolean);
+    
+    const sortedGroupKeys = Object.keys(groupedAttributes || {}).sort();
 
-        if (items.length === 0) {
-            return <span className="text-sm text-muted-foreground">N/A</span>;
-        }
-
-        return (
-            <div className="flex flex-wrap gap-1.5">
-                {items.map((value, index) => (
-                    <Badge
-                        key={`${value}-${index}`}
-                        variant="outline"
-                        className="max-w-full whitespace-normal break-words rounded-md border-slate-200 bg-slate-50 text-slate-700"
-                    >
-                        {value}
-                    </Badge>
-                ))}
-            </div>
-        );
+    
+    const toggleGroupExpand = (groupName: string) => {
+        setExpandedGroups((prev) => ({
+            ...prev,
+            [groupName]: !prev[groupName]
+        }));
     };
+
+    const isGroupExpanded = (groupName: string) =>
+        expandedGroups[groupName] !== false; 
 
     const handleEditAttribute = (attribute: Attribute) => {
         setEditingAttribute(attribute);
-        setShowEditAttribute(true);
+        setShowEditModal(true);
     };
 
     const handleDeleteAttribute = (attribute: Attribute) => {
@@ -203,12 +139,8 @@ export default function ShopAttributes() {
 
     const deleteAttributeHandler = async () => {
         if (!attributeToDelete) return;
-
         try {
-            const response = await deleteAttribute(
-                axiosInstance,
-                attributeToDelete.id
-            );
+            const response = await deleteAttribute(axiosInstance, attributeToDelete.id);
             if (response.success) {
                 toast.success("Attribute deleted successfully");
                 fetchAttributes();
@@ -223,282 +155,294 @@ export default function ShopAttributes() {
         }
     };
 
-    const handleToggleAttributeStatus = (attribute: Attribute) => {
-        setAttributeToToggle(attribute);
-    };
-
-    const toggleAttributeStatusHandler = async () => {
-        if (!attributeToToggle) return;
-
+    const handleToggleActive = async (attribute: Attribute) => {
         try {
             const response = await toggleAttributeStatus(
                 axiosInstance,
-                attributeToToggle.id,
-                attributeToToggle.active
+                attribute.id,
+                attribute.active
             );
             if (response.success) {
                 toast.success(
-                    `Attribute ${attributeToToggle.active ? "disabled" : "enabled"
-                    } successfully`
+                    `Attribute ${attribute.active ? "disabled" : "enabled"} successfully`
                 );
                 fetchAttributes();
             } else {
-                toast.error(
-                    response.message || "Failed to toggle attribute status"
-                );
+                toast.error(response.message || "Failed to toggle attribute status");
             }
         } catch (error) {
             console.error("Error toggling attribute status:", error);
             toast.error("Failed to toggle attribute status");
-        } finally {
-            setAttributeToToggle(null);
         }
     };
 
-    const handleAddAttribute = () => {
-        setShowAddAttribute(true);
-    };
-
-    if (showAddAttribute || (showEditAttribute && editingAttribute)) {
-        return (
-            <AddAttributeForm
-                onBack={() => {
-                    setShowAddAttribute(false);
-                    setShowEditAttribute(false);
-                    setEditingAttribute(null);
-                }}
-                onSuccess={() => {
-                    setShowAddAttribute(false);
-                    setShowEditAttribute(false);
-                    setEditingAttribute(null);
-                    fetchAttributes();
-                }}
-                defaultProductType={selectedGroup}
-                attribute={editingAttribute}
-                isEdit={showEditAttribute}
-            />
-        );
-    }
-
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Attributes
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Manage product attributes and specifications.
-                    </p>
-                </div>
-                <Button
-                    onClick={handleAddAttribute}
-                    style={{ backgroundColor: "#00007A", color: "white" }}
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Attribute
-                </Button>
+        <div className="space-y-5">
+            {/* Page header */}
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight">Attributes</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                    Manage product attributes and specifications.
+                </p>
             </div>
 
+            {/* Tab bar */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
                 {groups.map((group) => (
                     <button
                         key={group.type}
                         onClick={() => setSelectedGroup(group.type)}
-                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedGroup === group.type
-                            ? "bg-[#00007A] text-white"
-                            : "bg-transparent text-black hover:bg-blue-50"
-                            }`}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                            selectedGroup === group.type
+                                ? "bg-[#00007A] text-white"
+                                : "bg-transparent text-black hover:bg-blue-50"
+                        }`}
                     >
                         {group.label}
                     </button>
                 ))}
             </div>
 
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            {/* Toolbar: search + action buttons */}
+            <div className="flex items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search attributes..."
-                        className="pl-8"
+                        className="pl-8 h-9"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-gray-700 border-gray-300"
+                    >
+                        <Upload className="h-3.5 w-3.5" />
+                        Import
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-gray-700 border-gray-300"
+                    >
+                        <Download className="h-3.5 w-3.5" />
+                        Export
+                    </Button>
+                    <Button
+                        size="sm"
+                        onClick={() => setShowAddModal(true)}
+                        className="gap-1.5 bg-[#00007A] hover:bg-[#00007A]/90 text-white"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Attribute
+                    </Button>
+                </div>
             </div>
 
+            {/* Main content card */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Product Attributes</CardTitle>
-                    <CardDescription>
-                        Manage product specifications and features for{" "}
-                        {selectedGroup}
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold">
+                        Product Attributes
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                        {filteredAttributes?.length ?? 0} attributes grouped by subgroup
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Table className="min-w-[1180px] table-fixed">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-14">No</TableHead>
-                                <TableHead className="w-[200px]">Attribute Name</TableHead>
-                                <TableHead className="w-[140px]">Input Type</TableHead>
-                                <TableHead className="w-[220px]">Group</TableHead>
-                                <TableHead className="w-[320px]">Attribute Values</TableHead>
-                                <TableHead className="w-[120px]">Status</TableHead>
-                                <TableHead className="w-[130px]">Filterable</TableHead>
-                                <TableHead className="w-[150px]">Customer View</TableHead>
-                                <TableHead className="w-[90px] text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={9}
-                                        className="text-center py-8"
-                                    >
-                                        Loading attributes...
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredAttributes?.length == 0 ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={9}
-                                        className="text-center py-8 text-muted-foreground"
-                                    >
-                                        No attributes found
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredAttributes?.map((attribute, index) => (
-                                    <TableRow
-                                        key={attribute.id}
-                                        className={!attribute.active ? "bg-gray-100 opacity-60 grayscale" : ""}
-                                    >
-                                        <TableCell className="align-top text-muted-foreground">
-                                            {index + 1}
-                                        </TableCell>
-                                        <TableCell className="align-top font-medium whitespace-normal break-words">
-                                            {attribute.type}
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate-700">
-                                                {attribute.attributeType || "text"}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="align-top whitespace-normal break-words text-sm text-slate-700">
-                                            {/* @ts-ignore */}
-                                            {attribute.group?.name || attribute.attributeGroup || "N/A"}
-                                        </TableCell>
-                                        <TableCell className="align-top whitespace-normal">
-                                            {renderAttributeValues(attribute.values)}
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <Badge
-                                                variant={
-                                                    attribute.active
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                            >
-                                                {attribute.active
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <Badge
-                                                variant={
-                                                    attribute.filterable
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                            >
-                                                {attribute.filterable
-                                                    ? "Yes"
-                                                    : "No"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <Badge
-                                                variant={
-                                                    attribute.customerView
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                            >
-                                                {attribute.customerView
-                                                    ? "Yes"
-                                                    : "No"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="align-top text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        <span className="sr-only">
-                                                            Open menu
-                                                        </span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleEditAttribute(attribute)
-                                                        }
-                                                    >
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleToggleAttributeStatus(
-                                                                attribute
-                                                            )
-                                                        }
-                                                    >
-                                                        {attribute.active ? (
-                                                            <XCircle className="mr-2 h-4 w-4" />
-                                                        ) : (
-                                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                                        )}
-                                                        {attribute.active
-                                                            ? "Disable"
-                                                            : "Enable"}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleDeleteAttribute(
-                                                                attribute
-                                                            )
-                                                        }
-                                                        className="text-red-600"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                <CardContent className="p-0">
+                    {loading ? (
+                        <div className="py-16 text-center text-sm text-muted-foreground">
+                            Loading attributes...
+                        </div>
+                    ) : sortedGroupKeys.length === 0 ? (
+                        <div className="py-16 text-center text-sm text-muted-foreground">
+                            No attributes found
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table className="min-w-[900px] table-fixed">
+                                <TableHeader>
+                                    <TableRow className="bg-gray-50 text-xs uppercase tracking-wide">
+                                        <TableHead className="w-12 pl-4">NO</TableHead>
+                                        <TableHead className="w-[260px]">NAME</TableHead>
+                                        <TableHead className="w-[140px]">INPUT TYPE</TableHead>
+                                        <TableHead className="w-[200px]">ATTRIBUTE VALUES</TableHead>
+                                        <TableHead className="w-[140px]">SHOW TO CUSTOMER</TableHead>
+                                        <TableHead className="w-[100px] text-center">ACTIONS</TableHead>
+                                        <TableHead className="w-[90px] text-center">TOGGLE</TableHead>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedGroupKeys.map((gName) => {
+                                        const items = groupedAttributes[gName] || [];
+                                        const expanded = isGroupExpanded(gName);
+                                        const letter = gName.charAt(0).toUpperCase();
+
+                                        return (
+                                            <>
+                                                {/* Group header row */}
+                                                <TableRow
+                                                    key={`group-${gName}`}
+                                                    className="bg-white border-t cursor-pointer select-none hover:bg-gray-50"
+                                                    onClick={() => toggleGroupExpand(gName)}
+                                                >
+                                                    <TableCell className="pl-4 py-3">
+                                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#00007A] text-white text-xs font-bold">
+                                                            {letter}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell
+                                                        colSpan={4}
+                                                        className="py-3 font-semibold text-[#00007A]"
+                                                    >
+                                                        {gName}
+                                                    </TableCell>
+                                                    <TableCell />
+                                                    <TableCell className="text-center py-3">
+                                                        {expanded ? (
+                                                            <ChevronUp className="h-4 w-4 text-gray-400 mx-auto" />
+                                                        ) : (
+                                                            <ChevronDown className="h-4 w-4 text-gray-400 mx-auto" />
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+
+                                                {/* Attribute rows */}
+                                                {expanded &&
+                                                    items.map((attr, idx) => (
+                                                        <TableRow
+                                                            key={attr.id}
+                                                            className={`text-sm ${
+                                                                !attr.active
+                                                                    ? "opacity-50 grayscale"
+                                                                    : ""
+                                                            }`}
+                                                        >
+                                                            <TableCell className="pl-4 text-muted-foreground">
+                                                                {idx + 1}
+                                                            </TableCell>
+                                                            <TableCell className="font-medium">
+                                                                {attr.type}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-700">
+                                                                    {attr.attributeType || "text"}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-gray-600 whitespace-normal break-words">
+                                                                {attr.values
+                                                                    ? attr.values
+                                                                          .split(",")
+                                                                          .slice(0, 3)
+                                                                          .map((v) => v.trim())
+                                                                          .join(", ") +
+                                                                      (attr.values.split(",").length > 3
+                                                                          ? ` +${attr.values.split(",").length - 3} more`
+                                                                          : "")
+                                                                    : <span className="text-gray-400">–</span>}
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                {attr.customerView ? (
+                                                                    <span className="text-green-600 font-medium text-xs">Yes</span>
+                                                                ) : (
+                                                                    <span className="text-gray-400 text-xs">–</span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        onClick={() => handleEditAttribute(attr)}
+                                                                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                                                                        title="Edit"
+                                                                    >
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteAttribute(attr)}
+                                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                {/* Toggle switch */}
+                                                                <button
+                                                                    onClick={() => handleToggleActive(attr)}
+                                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                                                        attr.active
+                                                                            ? "bg-[#00007A]"
+                                                                            : "bg-gray-200"
+                                                                    }`}
+                                                                    title={attr.active ? "Disable" : "Enable"}
+                                                                >
+                                                                    <span
+                                                                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                                                                            attr.active
+                                                                                ? "translate-x-4"
+                                                                                : "translate-x-1"
+                                                                        }`}
+                                                                    />
+                                                                </button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                            </>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
-            <Dialog open={!!attributeToDelete} onOpenChange={(open) => !open && setAttributeToDelete(null)}>
+            {/* Add Attribute Modal */}
+            <AddAttributeForm
+                open={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    setShowAddModal(false);
+                    fetchAttributes();
+                }}
+                defaultProductType={selectedGroup}
+            />
+
+            {/* Edit Attribute Modal */}
+            <AddAttributeForm
+                open={showEditModal && !!editingAttribute}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setEditingAttribute(null);
+                }}
+                onSuccess={() => {
+                    setShowEditModal(false);
+                    setEditingAttribute(null);
+                    fetchAttributes();
+                }}
+                defaultProductType={selectedGroup}
+                attribute={editingAttribute}
+                isEdit
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog
+                open={!!attributeToDelete}
+                onOpenChange={(open) => !open && setAttributeToDelete(null)}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Delete Attribute</DialogTitle>
                     </DialogHeader>
-                    <p className="text-gray-600">
-                        Are you sure you want to delete "{attributeToDelete?.type}"? This action cannot be undone.
+                    <p className="text-gray-600 text-sm">
+                        Are you sure you want to delete "
+                        <strong>{attributeToDelete?.type}</strong>"? This action cannot
+                        be undone.
                     </p>
                     <DialogFooter>
                         <Button
@@ -507,44 +451,12 @@ export default function ShopAttributes() {
                         >
                             Cancel
                         </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={deleteAttributeHandler}
-                        >
+                        <Button variant="destructive" onClick={deleteAttributeHandler}>
                             Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            <Dialog open={!!attributeToToggle} onOpenChange={(open) => !open && setAttributeToToggle(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {attributeToToggle?.active ? "Disable" : "Enable"} Attribute
-                        </DialogTitle>
-                    </DialogHeader>
-                    <p className="text-gray-600">
-                        Are you sure you want to{" "}
-                        {attributeToToggle?.active ? "disable" : "enable"} "{attributeToToggle?.type}"?
-                    </p>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setAttributeToToggle(null)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant={attributeToToggle?.active ? "destructive" : "default"}
-                            onClick={toggleAttributeStatusHandler}
-                        >
-                            {attributeToToggle?.active ? "Disable" : "Enable"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
         </div>
     );
 }
