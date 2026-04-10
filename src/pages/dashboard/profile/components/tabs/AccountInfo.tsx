@@ -524,15 +524,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                     const isNonBuilder =
                       uType === "HARDWARE" || uType === "CUSTOMER";
 
-                    const showActions =
-                      isAdmin &&
-                      (isAlreadyActioned ||
-                        (isBuilder &&
-                          hasSubmittedExperience &&
-                          hasSubmittedDocs) ||
-                        (isNonBuilder && hasSubmittedDocs) ||
-                        (uType === "CONTRACTOR") || 
-                        (uType === "HARDWARE"));
+                    const showActions = isAdmin;
 
                     if (!showActions) return null;
 

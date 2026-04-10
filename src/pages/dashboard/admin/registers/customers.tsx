@@ -2,18 +2,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Download, File, Filter } from "lucide-react";
+import { ChevronDown, Download, File, Filter, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getAllCustomers } from "@/api/provider.api";
+import { getAllCustomers, getDeletedCustomers, purgeUser, updateAccountStatus } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { generatePDF } from "@/utils/pdfExport";
-import { BuilderStatus } from "@/data/mockBuilders"; // Import the status type
-import { StatusBadge } from "./StatusBadge"; // Import the StatusBadge component
+import { BuilderStatus } from "@/data/mockBuilders"; 
+import { StatusBadge } from "./StatusBadge"; 
+import { toast } from "react-hot-toast";
 
-const navItems = [{ name: "Individual" }, { name: "Organization" }];
+const navItems = [{ name: "Individual" }, { name: "Organization" }, { name: "TRASH" }];
 
-// Export to Excel function (unchanged)
+
 const exportToExcel = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
     alert("No data to export");
@@ -42,20 +43,20 @@ const exportToExcel = (data: any[], filename: string) => {
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
 
-  // Set column widths
+  
   worksheet["!cols"] = [
-    { wch: 5 }, // #
-    { wch: 20 }, // Builder ID
-    { wch: 25 }, // Name
-    { wch: 30 }, // Email
-    { wch: 15 }, // Phone
-    { wch: 10 }, // Gender
-    { wch: 15 }, // County
-    { wch: 15 }, // subCounty
-    { wch: 15 }, // Estate
-    { wch: 15 }, // Account Type
-    { wch: 15 }, // Registration Type
-    { wch: 12 }, // Status
+    { wch: 5 }, 
+    { wch: 20 }, 
+    { wch: 25 }, 
+    { wch: 30 }, 
+    { wch: 15 }, 
+    { wch: 10 }, 
+    { wch: 15 }, 
+    { wch: 15 }, 
+    { wch: 15 }, 
+    { wch: 15 }, 
+    { wch: 15 }, 
+    { wch: 12 }, 
   ];
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
@@ -65,7 +66,7 @@ const exportToExcel = (data: any[], filename: string) => {
   );
 };
 
-// Updated Export to PDF function with more fields (unchanged)
+
 const exportToPDF = async (
   data: any[],
   filename: string,
@@ -130,31 +131,45 @@ export default function CustomersAdmin() {
     name: "",
     phone: "",
     county: "",
-    verificationStatus: "", // Added status filter
+    verificationStatus: "", 
     search: "",
   });
   const [customers, setCustomers] = useState<any[]>([]);
+  const [deletedCustomers, setDeletedCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  
+  const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const navigate = useNavigate();
 
+  const fetchCustomers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [customersRes, deletedRes] = await Promise.all([
+        getAllCustomers(axiosInstance),
+        getDeletedCustomers(axiosInstance)
+      ]);
+      setCustomers(customersRes?.data || []);
+      setDeletedCustomers(deletedRes?.data || []);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch customers");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCustomers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getAllCustomers(axiosInstance);
-        setCustomers(data?.data || []);
-        
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch customers");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCustomers();
   }, []);
 
@@ -169,15 +184,17 @@ export default function CustomersAdmin() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   
-  const filteredCustomers = customers.filter((customer) => {
-    const matchesTab =
+  const filteredCustomers = (activeTab === "TRASH" ? deletedCustomers : customers).filter((customer) => {
+    const matchesTab = 
+      activeTab === "TRASH" ? true :
       activeTab === "Individual"
         ? customer.accountType === "INDIVIDUAL" || !customer.accountType
         : customer.accountType === "ORGANIZATION";
     const matchesName =
       !filters.name ||
       customer?.firstName?.toLowerCase().includes(filters.name.toLowerCase()) ||
-      customer?.lastName?.toLowerCase().includes(filters.name.toLowerCase());
+      customer?.lastName?.toLowerCase().includes(filters.name.toLowerCase()) ||
+      customer?.organizationName?.toLowerCase().includes(filters.name.toLowerCase());
     const matchesPhone =
       !filters.phone || customer?.phone === filters.phone;
     const matchesCounty =
@@ -224,25 +241,41 @@ export default function CustomersAdmin() {
       <div className="bg-white shadow-sm border-b p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Navigation Bar */}
-          <div className="flex gap-2 w-full">
+          <div className="flex flex-wrap md:flex-nowrap gap-2 w-full">
             {navItems.map((nav) => (
               <button
                 key={nav.name}
                 type="button"
-                onClick={() => setActiveTab(nav.name)}
-                className={`w-full px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
-                  ? "bg-blue-900 text-white border-blue-900"
-                  : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
+                onClick={() => {
+                  setActiveTab(nav.name);
+                  setCurrentPage(1);
+                }}
+                className={`flex-1 px-4 py-2 rounded-md font-semibold text-center transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm flex items-center justify-center gap-2 ${activeTab === nav.name
+                  ? nav.name === "TRASH"
+                    ? "bg-red-600 text-white border-red-600"
+                    : "bg-blue-900 text-white border-blue-900"
+                  : nav.name === "TRASH"
+                    ? "bg-red-50 text-red-600 border-red-100 hover:bg-red-100"
+                    : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
                   }`}
               >
-                {nav.name} (
-                {nav.name === "Individual"
-                  ? customers.filter(
-                    (c) => c.accountType === "INDIVIDUAL" || !c.accountType
-                  ).length
-                  : customers.filter((c) => c.accountType === "ORGANIZATION")
-                    .length}
-                )
+                {nav.name === "TRASH" ? (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>({deletedCustomers.length})</span>
+                  </>
+                ) : (
+                  <>
+                    {nav.name} (
+                    {nav.name === "Individual"
+                      ? customers.filter(
+                        (c) => c.accountType === "INDIVIDUAL" || !c.accountType
+                      ).length
+                      : customers.filter((c) => c.accountType === "ORGANIZATION")
+                        .length}
+                    )
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -380,6 +413,9 @@ export default function CustomersAdmin() {
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Status
                     </th>
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                      Actions
+                    </th>
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -387,9 +423,12 @@ export default function CustomersAdmin() {
                     <tr
                       key={row.id || rowIndex}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() => navigate(`/dashboard/profile/${row.id || rowIndex}/customer`, {
-                        state: { userData: row, userType: 'CUSTOMER' }
-                      })}
+                      onClick={() => {
+                        if (activeTab === "TRASH") return;
+                        navigate(`/dashboard/profile/${row.id || rowIndex}/customer`, {
+                          state: { userData: row, userType: 'CUSTOMER' }
+                        })
+                      }}
                     >
                       <td className="px-3 py-4 font-medium text-gray-800">
                         {(currentPage - 1) * rowsPerPage + rowIndex + 1}
@@ -416,6 +455,29 @@ export default function CustomersAdmin() {
                         <StatusBadge
                           status={(row.status as BuilderStatus) || "INCOMPLETE"}
                         />
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedUser(row);
+                            if (activeTab === "TRASH") {
+                              setIsPurgeModalOpen(true);
+                            } else {
+                              setNotificationEmail(row.email || "");
+                              setIsTrashModalOpen(true);
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                            activeTab === "TRASH"
+                              ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {activeTab === "TRASH" ? "Purge" : "Trash"}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -616,6 +678,121 @@ export default function CustomersAdmin() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Move to Trash Modal */}
+      {isTrashModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Move Customer To Trash</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Add a reason and notification email before deleting this customer.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Delete reason
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
+                    placeholder="Enter reason for deletion..."
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Notification Email
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="customer@example.com"
+                    value={notificationEmail}
+                    onChange={(e) => setNotificationEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsTrashModalOpen(false)}
+                  disabled={isActionLoading}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!deleteReason || isActionLoading}
+                  onClick={async () => {
+                    setIsActionLoading(true);
+                    try {
+                      await updateAccountStatus(axiosInstance, selectedUser.id, "DELETE", deleteReason);
+                      toast.success("Customer moved to trash successfully");
+                      setIsTrashModalOpen(false);
+                      setDeleteReason("");
+                      fetchCustomers();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to move customer to trash");
+                    } finally {
+                      setIsActionLoading(false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {isActionLoading ? "Processing..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purge (Permanent Delete) Modal */}
+      {isPurgeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Permanently Purge Customer?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This action is irreversible. All archived information for this customer will be permanently removed from the database.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPurgeModalOpen(false)}
+                disabled={isActionLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isActionLoading}
+                onClick={async () => {
+                  setIsActionLoading(true);
+                  try {
+                    await purgeUser(axiosInstance, selectedUser.id);
+                    toast.success("Customer permanently purged");
+                    setIsPurgeModalOpen(false);
+                    fetchCustomers();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to purge customer");
+                  } finally {
+                    setIsActionLoading(false);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isActionLoading ? "Purging..." : "Purge Permanently"}
+              </button>
             </div>
           </div>
         </div>

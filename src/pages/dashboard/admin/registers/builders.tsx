@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Download, File, Filter } from "lucide-react";
+import { ChevronDown, Download, File, Filter, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getAllProviders } from "@/api/provider.api";
+import { getAllProviders, getDeletedBuilders, purgeUser, updateAccountStatus } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { generatePDF } from "@/utils/pdfExport";
 import { BuilderStatus, STATUS_LABELS } from "@/data/mockBuilders";
@@ -13,15 +13,17 @@ import { StatusBadge } from "./StatusBadge";
 import { BuilderFilters } from "./BuilderFilters";
 import { CompletionStatus } from "@/hooks/useProfileCompletion";
 import { BuilderStatusCell } from "./BuilderStatusCell";
+import { toast } from "react-hot-toast";
 
 const navItems = [
   { name: "FUNDI" },
   { name: "PROFESSIONAL" },
   { name: "CONTRACTOR" },
   { name: "HARDWARE" },
+  { name: "TRASH" },
 ];
 
-// Export to Excel function
+
 const exportToExcel = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
     alert("No data to export");
@@ -55,7 +57,7 @@ const exportToExcel = (data: any[], filename: string) => {
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
 
-  // Set column widths
+  
   worksheet["!cols"] = [
     { wch: 5 },
     { wch: 25 },
@@ -75,7 +77,7 @@ const exportToExcel = (data: any[], filename: string) => {
   );
 };
 
-// Export to PDF function
+
 const exportToPDF = async (
   data: any[],
   filename: string,
@@ -131,30 +133,44 @@ export default function BuildersAdmin() {
     search: "",
   });
   const [builders, setBuilders] = useState<any[]>([]);
+  const [deletedBuilders, setDeletedBuilders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  
+  
+  const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const navigate = useNavigate();
 
+  const fetchBuilders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [buildersRes, deletedRes] = await Promise.all([
+        getAllProviders(axiosInstance),
+        getDeletedBuilders(axiosInstance)
+      ]);
+      setBuilders(Array.isArray(buildersRes.data) ? buildersRes.data : []);
+      setDeletedBuilders(Array.isArray(deletedRes.data) ? deletedRes.data : []);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch builders");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBuilders = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await getAllProviders(axiosInstance);
-        setBuilders(Array.isArray(response.data) ? response.data : []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch builders");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBuilders();
   }, []);
-  // Click outside handler for dropdown
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -168,12 +184,13 @@ export default function BuildersAdmin() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  const filteredBuilders = builders.filter((builder) => {
-    const matchesTab = builder?.userType === activeTab;
+  const filteredBuilders = (activeTab === "TRASH" ? deletedBuilders : builders).filter((builder) => {
+    const matchesTab = activeTab === "TRASH" ? true : builder?.userType === activeTab;
     const matchesName =
       !filters.name ||
       builder?.firstName?.toLowerCase().includes(filters.name.toLowerCase()) ||
-      builder?.lastName?.toLowerCase().includes(filters.name.toLowerCase());
+      builder?.lastName?.toLowerCase().includes(filters.name.toLowerCase()) ||
+      builder?.organizationName?.toLowerCase().includes(filters.name.toLowerCase());
     const matchesPhone =
       !filters.phone || builder?.phoneNumber === filters.phone;
     const matchesCounty =
@@ -250,7 +267,7 @@ export default function BuildersAdmin() {
         {/* Header Section */}
         <div className="flex flex-col gap-4">
           {/* Navigation tabs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+          <div className="flex flex-wrap lg:flex-nowrap gap-2 w-full lg:w-3/4">
             {navItems.map((nav) => (
               <button
                 key={nav.name}
@@ -259,14 +276,26 @@ export default function BuildersAdmin() {
                   setActiveTab(nav.name);
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${
+                className={`flex-1 px-4 py-2 rounded-md font-semibold text-center transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm flex items-center justify-center gap-2 ${
                   activeTab === nav.name
-                    ? "bg-blue-900 text-white border-blue-900"
-                    : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
+                    ? nav.name === "TRASH"
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-blue-900 text-white border-blue-900"
+                    : nav.name === "TRASH"
+                      ? "bg-red-50 text-red-600 border-red-100 hover:bg-red-100"
+                      : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
                 }`}
               >
-                {nav.name} (
-                {builders.filter((b) => b.userType === nav.name).length})
+                {nav.name === "TRASH" ? (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>({deletedBuilders.length})</span>
+                  </>
+                ) : (
+                  <>
+                    {nav.name} ({builders.filter((b) => b.userType === nav.name).length})
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -416,6 +445,9 @@ export default function BuildersAdmin() {
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Status
                     </th>
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -423,7 +455,8 @@ export default function BuildersAdmin() {
                     <tr
                       key={row.id || rowIndex}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() =>
+                      onClick={() => {
+                        if (activeTab === "TRASH") return;
                         navigate(
                           `/dashboard/profile/${row.id || rowIndex}/${
                             row.userType || activeTab
@@ -435,17 +468,12 @@ export default function BuildersAdmin() {
                             },
                           },
                         )
-                      }
+                      }}
                     >
                       <td className="px-3 py-4 font-medium text-gray-800">
                         {(currentPage - 1) * rowsPerPage + rowIndex + 1}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        {/* {
-                          row.organizationName || row.contactfirstName + ' ' + row.contactlastName || row.firstName + " " + row.lastName
-                      
-                        } */}
-
                         {row.organizationName && row.organizationName.length > 1
                           ? row.organizationName
                           : row.contactfirstName &&
@@ -488,9 +516,30 @@ export default function BuildersAdmin() {
                           : "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <BuilderStatusCell row={row} />
-                        </td>
+                        <BuilderStatusCell row={row} />
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedUser(row);
+                            if (activeTab === "TRASH") {
+                              setIsPurgeModalOpen(true);
+                            } else {
+                              setNotificationEmail(row.email || "");
+                              setIsTrashModalOpen(true);
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                            activeTab === "TRASH"
+                              ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {activeTab === "TRASH" ? "Purge" : "Trash"}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -581,6 +630,122 @@ export default function BuildersAdmin() {
         filters={filters}
         updateFilter={updateFilter}
       />
+
+      {/* Move to Trash Modal */}
+      {isTrashModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Move Builder To Trash</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Add a reason and notification email before deleting this builder.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Delete reason
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
+                    placeholder="Enter reason for deletion..."
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Notification Email
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="builder@example.com"
+                    value={notificationEmail}
+                    onChange={(e) => setNotificationEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsTrashModalOpen(false)}
+                  disabled={isActionLoading}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!deleteReason || isActionLoading}
+                  onClick={async () => {
+                    setIsActionLoading(true);
+                    try {
+                      await updateAccountStatus(axiosInstance, selectedUser.id, "DELETE", deleteReason);
+                      toast.success("Builder moved to trash successfully");
+                      setIsTrashModalOpen(false);
+                      setDeleteReason("");
+                      fetchBuilders();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to move builder to trash");
+                    } finally {
+                      setIsActionLoading(false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {isActionLoading ? "Processing..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purge (Permanent Delete) Modal */}
+      {isPurgeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Permanently Purge Builder?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This action is irreversible. All archived information for this builder will be permanently removed from the database.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPurgeModalOpen(false)}
+                disabled={isActionLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isActionLoading}
+                onClick={async () => {
+                  setIsActionLoading(true);
+                  try {
+                    await purgeUser(axiosInstance, selectedUser.id);
+                    toast.success("Builder permanently purged");
+                    setIsPurgeModalOpen(false);
+                    fetchBuilders();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to purge builder");
+                  } finally {
+                    setIsActionLoading(false);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isActionLoading ? "Purging..." : "Purge Permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
