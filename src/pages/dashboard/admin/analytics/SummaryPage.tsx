@@ -15,6 +15,12 @@ interface AnalyticsState {
   data: SummaryAnalyticsResponse | null;
 }
 
+interface PreviousAnalytics {
+  loading: boolean;
+  error: string | null;
+  data: SummaryAnalyticsResponse | null;
+}
+
 interface LifecycleState {
   loading: boolean;
   error: string | null;
@@ -27,6 +33,7 @@ export default function SummaryPage() {
   const [from, setFrom] = useState<string | undefined>(undefined);
   const [to, setTo] = useState<string | undefined>(undefined);
   const [analytics, setAnalytics] = useState<AnalyticsState>({ loading: true, error: null, data: null });
+  const [previousAnalytics, setPreviousAnalytics] = useState<PreviousAnalytics>({ loading: false, error: null, data: null });
   const [lifecycle, setLifecycle] = useState<LifecycleState>({ loading: false, error: null, data: null });
   const [lifecycleEvent, setLifecycleEvent] = useState<LifecycleEvent>("signup");
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
@@ -37,6 +44,15 @@ export default function SummaryPage() {
       setAnalytics({ loading: true, error: null, data: null });
       const result = await getSummaryAnalytics(axiosInstance, from, to);
       setAnalytics({ loading: false, error: null, data: result.data });
+
+      // Calculate and fetch previous period
+      const { prevFrom, prevTo } = calculatePreviousPeriod(from, to);
+      try {
+        const prevResult = await getSummaryAnalytics(axiosInstance, prevFrom, prevTo);
+        setPreviousAnalytics({ loading: false, error: null, data: prevResult.data });
+      } catch (err: any) {
+        setPreviousAnalytics({ loading: false, error: err.message, data: null });
+      }
     } catch (err: any) {
       setAnalytics({ loading: false, error: err.message, data: null });
     }
@@ -146,29 +162,29 @@ export default function SummaryPage() {
           title="All Active Users" 
           value={metrics?.activeUsers || 0} 
           icon={Users} 
-          change="-21 vs previous (-100%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.activeUsers, previousAnalytics.data?.metrics?.activeUsers)}
+          changeType={getChangeType(metrics?.activeUsers, previousAnalytics.data?.metrics?.activeUsers)}
         />
         <StatCard 
           title="New Signups" 
           value={metrics?.newSignups || 0} 
           icon={UserPlus} 
-          change="-3 vs previous (-60%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.newSignups, previousAnalytics.data?.metrics?.newSignups)}
+          changeType={getChangeType(metrics?.newSignups, previousAnalytics.data?.metrics?.newSignups)}
         />
         <StatCard 
           title="Profile Completion Rate" 
           value={`${metrics?.profileCompletion?.rate || 0}%`} 
           icon={Building2} 
-          change="-2 vs previous (-100%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.profileCompletion?.rate, previousAnalytics.data?.metrics?.profileCompletion?.rate)}
+          changeType={getChangeType(metrics?.profileCompletion?.rate, previousAnalytics.data?.metrics?.profileCompletion?.rate)}
         />
         <StatCard 
           title="Verification Rate" 
           value={`${metrics?.verificationRate?.rate || 0}%`} 
           icon={ShieldCheck} 
-          change="-21 vs previous (-100%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.verificationRate?.rate, previousAnalytics.data?.metrics?.verificationRate?.rate)}
+          changeType={getChangeType(metrics?.verificationRate?.rate, previousAnalytics.data?.metrics?.verificationRate?.rate)}
         />
       </div>
 
@@ -177,29 +193,29 @@ export default function SummaryPage() {
           title="Suspension Rate" 
           value={`${metrics?.suspensionRate?.rate || 0}%`} 
           icon={Ban} 
-          change="-2 vs previous (-100%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.suspensionRate?.rate, previousAnalytics.data?.metrics?.suspensionRate?.rate)}
+          changeType={getChangeType(metrics?.suspensionRate?.rate, previousAnalytics.data?.metrics?.suspensionRate?.rate)}
         />
         <StatCard 
           title="Return Rate" 
           value={`${metrics?.returnRate?.rate || 0}%`} 
           icon={RotateCcw} 
-          change="-2 vs previous (-100%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.returnRate?.rate, previousAnalytics.data?.metrics?.returnRate?.rate)}
+          changeType={getChangeType(metrics?.returnRate?.rate, previousAnalytics.data?.metrics?.returnRate?.rate)}
         />
         <StatCard 
           title="Deleted (Count Only)" 
           value={metrics?.deletedCount || 0} 
           icon={Trash2} 
-          change="-5 vs previous (-83.33%)" 
-          changeType="negative" 
+          change={calculateChange(metrics?.deletedCount, previousAnalytics.data?.metrics?.deletedCount)}
+          changeType={getChangeType(metrics?.deletedCount, previousAnalytics.data?.metrics?.deletedCount)}
         />
         <StatCard 
           title="Operational Sessions" 
           value={metrics?.operationalSessions || 0} 
           icon={Activity} 
-          change="—" 
-          changeType="neutral" 
+          change={calculateChange(metrics?.operationalSessions, previousAnalytics.data?.metrics?.operationalSessions)}
+          changeType={getChangeType(metrics?.operationalSessions, previousAnalytics.data?.metrics?.operationalSessions)}
         />
       </div>
 
@@ -323,6 +339,41 @@ export default function SummaryPage() {
 }
 
 // Helper functions
+function calculateChange(current: number | undefined, previous: number | undefined): string {
+  if (current === undefined || previous === undefined || previous === 0) return "—";
+  const diff = current - previous;
+  const percentage = ((diff / previous) * 100).toFixed(2);
+  const sign = diff >= 0 ? "+" : "";
+  return `${sign}${diff} vs previous (${sign}${percentage}%)`;
+}
+
+function getChangeType(current: number | undefined, previous: number | undefined): "positive" | "negative" | "neutral" {
+  if (current === undefined || previous === undefined) return "neutral";
+  const diff = current - previous;
+  if (diff > 0) return "positive";
+  if (diff < 0) return "negative";
+  return "neutral";
+}
+
+function calculatePreviousPeriod(from: string | undefined, to: string | undefined): { prevFrom: string | undefined; prevTo: string | undefined } {
+  if (!from || !to) return { prevFrom: undefined, prevTo: undefined };
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const periodDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  const prevTo = new Date(fromDate);
+  prevTo.setDate(prevTo.getDate() - 1);
+
+  const prevFrom = new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate() - periodDays);
+
+  return {
+    prevFrom: prevFrom.toISOString().split("T")[0],
+    prevTo: prevTo.toISOString().split("T")[0],
+  };
+}
+
 function getColorForUserType(label: string): string {
   const colorMap: Record<string, string> = {
     "Customer Individual": "hsl(234, 89%, 74%)",

@@ -4,6 +4,8 @@ import { trackPageView } from "@/utils/analyticsTracker";
 import GlobalDateRange from "./components/analytics/GlobalDateRange";
 import StatCard from "./components/analytics/StatCard";
 import BarChartCard from "./components/analytics/BarChartCard";
+import HorizontalBarChartCard from "./components/analytics/HorizontalBarChartCard";
+import LineChartCard from "./components/analytics/LineChartCard";
 import PieChartCard from "./components/analytics/PieChartCard";
 import { ShoppingCart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -55,8 +57,6 @@ export default function RequestsPage() {
     trackPageView("Analytics - Requests", axiosInstance);
   }, []);
 
-
-
   if (analytics.error) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -67,6 +67,7 @@ export default function RequestsPage() {
 
   const data = analytics.data;
   const metrics = data?.metrics || {};
+  const charts = data?.charts || {};
 
   // Convert API period format to preset format for GlobalDateRange
   const getPeriodDisplayName = (p: string): string => {
@@ -94,6 +95,18 @@ export default function RequestsPage() {
     { name: "Jobs", value: metrics.managementDistribution?.jobs?.count || 0, color: "hsl(217, 91%, 60%)" },
     { name: "Orders", value: metrics.managementDistribution?.orders?.count || 0, color: "hsl(160, 84%, 39%)" },
   ];
+
+  // Job type breakdown data
+  const jobTypeData = (charts.jobTypeBreakdown || []).filter((item: any) => item.count > 0);
+
+  // Order category breakdown data
+  const orderCategoryData = (charts.orderCategoryBreakdown || []).filter((item: any) => item.count > 0);
+
+  // Requests trend data
+  const requestsTrendData = charts.requestsTrend || [];
+
+  // Top services by job type
+  const topServices = charts.topServicesByJobType || {};
 
   return (
     <div>
@@ -125,7 +138,7 @@ export default function RequestsPage() {
           icon={ShoppingCart} 
           subtitle="Live" 
         />
-        <PieChartCard title="Management Distribution" data={mgmtDistribution} />
+        <PieChartCard title="Management Distribution" data={mgmtDistribution} showLegend={false} />
         <div className="rounded-xl border border-border bg-card p-5">
           <h4 className="font-semibold text-foreground">Jobs vs Orders</h4>
           <div className="mt-4 space-y-2">
@@ -145,11 +158,78 @@ export default function RequestsPage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-foreground mb-4">Jobs Requested by Type</h3>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {jobTypeData.map((item: any) => (
+              <div key={item.name} className="rounded-lg border border-border bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 text-center shadow-sm hover:shadow-md transition-shadow">
+                <p className="text-sm font-medium text-foreground">{item.name}</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">{item.count}</p>
+              </div>
+            ))}
+          </div>
+          <BarChartCard
+            title=""
+            data={jobTypeData}
+            bars={[{ key: "count", color: "#8884d8" }]}
+          />
+        </div>
+
+        <div>
+          <h3 className="text-lg font-bold text-foreground mb-4">Order Services Requested</h3>
+          <div className="grid grid-cols-4 gap-3 mb-6">
+            {orderCategoryData.map((item: any) => (
+              <div key={item.name} className="rounded-lg border border-border bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 p-4 text-center shadow-sm hover:shadow-md transition-shadow">
+                <p className="text-sm font-medium text-foreground">{item.name}</p>
+                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 mt-2">{item.count}</p>
+              </div>
+            ))}
+          </div>
+          <BarChartCard
+            title=""
+            data={orderCategoryData}
+            bars={[{ key: "count", color: "#0ea5e9" }]}
+          />
+        </div>
+      </div>
+
       <BarChartCard
         title="Request Status Breakdown"
         data={statusData}
         bars={[{ key: "value", color: "hsl(var(--chart-purple))" }]}
       />
+
+      <div className="mt-6">
+        <h3 className="text-lg font-bold text-foreground mb-4">Most Requested Services by Job Type</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Object.entries(topServices).map(([jobType, services]: any) => (
+            <div key={jobType} className="rounded-xl border border-border bg-card p-4">
+              <h4 className="font-semibold text-foreground mb-3">Top {jobType} Services</h4>
+              <div className="space-y-2">
+                {services.map((service: any) => (
+                  <div key={service.name} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{service.name}</span>
+                    <span className="font-bold text-foreground">{service.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <LineChartCard
+          title="Requests Trend on Platform"
+          data={requestsTrendData}
+          lines={[
+            { key: "jobs", name: "Jobs", color: "#8884d8" },
+            { key: "orders", name: "Orders", color: "#0ea5e9" },
+          ]}
+          xAxisKey="period"
+        />
+      </div>
     </div>
   );
 }
