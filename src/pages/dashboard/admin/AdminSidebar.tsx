@@ -79,16 +79,10 @@ export const sidebarItems = [
         color: "#F4C440",
         submenu: [
           {
-            id: "shop-products",
-            title: "Products",
-            href: "/dashboard/admin/shop/products",
-            icon: Package,
-          },
-          {
-            id: "shop-customer-view",
-            title: "Customer View",
-            href: "/dashboard/admin/shop/customer-view",
-            icon: Eye,
+            id: "shop-regions",
+            title: "Regions",
+            href: "/dashboard/admin/shop/regions",
+            icon: MapPin,
           },
           {
             id: "shop-groups",
@@ -102,17 +96,24 @@ export const sidebarItems = [
             href: "/dashboard/admin/shop/attributes",
             icon: Settings,
           },
+          
           {
-            id: "shop-regions",
-            title: "Regions",
-            href: "/dashboard/admin/shop/regions",
-            icon: MapPin,
+            id: "shop-products",
+            title: "Products",
+            href: "/dashboard/admin/shop/products",
+            icon: Package,
           },
           {
             id: "shop-prices",
             title: "Prices",
             href: "/dashboard/admin/shop/prices",
             icon: Banknote,
+          },
+          {
+            id: "shop-customer-view",
+            title: "Customer View",
+            href: "/dashboard/admin/shop/customer-view",
+            icon: Eye,
           },
         ],
       },
@@ -154,13 +155,13 @@ export const sidebarItems = [
             href: "/dashboard/admin/analytics/customers",
             icon: Users,
           },
-           {
+          {
             id: "builder",
             title: "Builders",
             href: "/dashboard/admin/analytics/builders",
             icon: Hammer,
           },
-           {
+          {
             id: "requests",
             title: "Requests",
             href: "/dashboard/admin/analytics/requests",
@@ -180,13 +181,7 @@ export const sidebarItems = [
           },
         ],
       },
-      // {
-      //   id: "analytics",
-      //   title: "Analytics",
-      //   icon: ChartNoAxesCombined,
-      //   href: "/dashboard/admin/analytics",
-      //   color: "#FB3C47",
-      // },
+
       {
         id: "system-logs",
         title: "System Logs",
@@ -216,14 +211,14 @@ export function AdminSidebar({ expanded, setExpanded }) {
   const { userMenuPermissions, isLoadingPermissions } = useRolePermissions();
   const { user } = useGlobalContext();
 
-  
+
   const getAccessibleItems = () => {
-    
+
     if (isLoadingPermissions) {
       return sidebarItems;
     }
 
-    
+
     if (!userMenuPermissions || userMenuPermissions.length === 0) {
       return sidebarItems;
     }
@@ -273,10 +268,10 @@ export function AdminSidebar({ expanded, setExpanded }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [setExpanded]);
 
-  
+
   useEffect(() => {
-    getAccessibleItems(); 
-    
+    getAccessibleItems();
+
   }, [userMenuPermissions, isLoadingPermissions]);
 
   const accessibleItems = getAccessibleItems();
@@ -289,23 +284,20 @@ export function AdminSidebar({ expanded, setExpanded }) {
           }`}
       />
       <aside
-        className={`fixed top-0 left-0 bottom-0 bg-white border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300 ease-in-out overflow-visible h-full flex flex-col ${
-          expanded
+        className={`fixed top-0 left-0 bottom-0 bg-white border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300 ease-in-out overflow-visible h-full flex flex-col ${expanded
             ? "translate-x-0 w-64"
             : "-translate-x-full lg:translate-x-0 lg:w-20"
-        }`}
+          }`}
       >
         <nav className="h-full flex flex-col">
           {/* Sidebar Header */}
           <div
-            className={`p-5 mb-2 flex items-center transition-all ${
-              expanded ? "justify-between" : "justify-center"
-            }`}
+            className={`p-5 mb-2 flex items-center transition-all ${expanded ? "justify-between" : "justify-center"
+              }`}
           >
             <div
-              className={`overflow-hidden transition-all duration-300 ${
-                expanded ? "w-32 opacity-100" : "w-0 opacity-0"
-              }`}
+              className={`overflow-hidden transition-all duration-300 ${expanded ? "w-32 opacity-100" : "w-0 opacity-0"
+                }`}
             >
               <Link to="/dashboard/admin" className="block transform hover:scale-105 transition-transform">
                 <img
@@ -319,8 +311,8 @@ export function AdminSidebar({ expanded, setExpanded }) {
               onClick={() => setExpanded((curr) => !curr)}
               className="p-2 rounded-xl bg-gray-50/80 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-gray-100 flex items-center justify-center group"
             >
-              <ChevronFirst 
-                className={`w-5 h-5 transition-transform duration-500 ${!expanded ? "rotate-180" : ""}`} 
+              <ChevronFirst
+                className={`w-5 h-5 transition-transform duration-500 ${!expanded ? "rotate-180" : ""}`}
               />
             </button>
           </div>
@@ -356,7 +348,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
             </ul>
           </SidebarContext.Provider>
 
-          
+
         </nav>
       </aside>
     </>
@@ -386,20 +378,18 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
   const itemContent = (
     <div
       onClick={submenu ? handleSubmenuClick : undefined}
-      className={`relative flex items-center py-2.5 px-4 my-1 font-semibold rounded-xl cursor-pointer transition-all duration-200 group text-sm ${
-        active
+      className={`relative flex items-center py-2.5 px-4 my-1 font-semibold rounded-xl cursor-pointer transition-all duration-200 group text-sm ${active
           ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100/50"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-      }`}
+        }`}
     >
       <div className={`flex items-center justify-center transition-all duration-300 ${active ? "scale-110" : ""}`}>
         {icon}
       </div>
-      
+
       <span
-        className={`overflow-hidden transition-all duration-300 whitespace-nowrap font-medium ${
-          expanded ? "w-44 ml-3.5 opacity-100" : "w-0 opacity-0"
-        }`}
+        className={`overflow-hidden transition-all duration-300 whitespace-nowrap font-medium ${expanded ? "w-44 ml-3.5 opacity-100" : "w-0 opacity-0"
+          }`}
       >
         {text}
       </span>
@@ -442,11 +432,10 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
               <li key={index}>
                 <Link
                   to={subItem.href}
-                  className={`flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-medium transition-all ${
-                    isSubActive
+                  className={`flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-medium transition-all ${isSubActive
                       ? "text-indigo-600 bg-indigo-50"
                       : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {SubIcon && <SubIcon size={16} className={isSubActive ? "text-indigo-600" : "text-gray-400"} />}
                   <span>{subItem.title}</span>
