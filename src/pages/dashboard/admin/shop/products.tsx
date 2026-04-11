@@ -76,6 +76,8 @@ interface Product {
     type: string;
     group: string;
     subGroup: string | null;
+    sku: string | null;
+    productCode: string | null;
     basePrice: number | null;
     pricingReference: string | null;
     lastUpdated: string | null;
@@ -281,14 +283,14 @@ export default function ShopProducts() {
         if (product.prices && product.prices.length > 0) {
             return Math.min(...product.prices.map(p => p.price));
         }
-        return product.basePrice || 0;
+        return Number(product.customPrice) || Number(product.basePrice) || 0;
     };
 
     const getHighestPrice = (product: Product) => {
         if (product.prices && product.prices.length > 0) {
             return Math.max(...product.prices.map(p => p.price));
         }
-        return product.basePrice || 0;
+        return Number(product.customPrice) || Number(product.basePrice) || 0;
     };
 
     if (showAddProduct) {
@@ -395,12 +397,12 @@ export default function ShopProducts() {
                                 <h3 className="text-base font-semibold text-gray-800 mb-3">Pricing Information</h3>
                                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
                                     <DetailItem label="Base Price">
-                                        <span className="font-semibold text-lg">{product.basePrice ? formatPrice(product.basePrice) : "Not set"}</span>
+                                        <span className="font-semibold text-lg">{product.basePrice ? formatPrice(Number(product.basePrice)) : "Not set"}</span>
                                     </DetailItem>
                                     <DetailItem label="Pricing Reference">{product.pricingReference || "Not set"}</DetailItem>
                                     {product.customPrice && (
                                         <DetailItem label="Custom Price">
-                                            <span className="font-semibold text-lg text-blue-600">{formatPrice(product.customPrice)}</span>
+                                            <span className="font-semibold text-lg text-blue-600">{formatPrice(Number(product.customPrice))}</span>
                                         </DetailItem>
                                     )}
                                 </dl>
@@ -575,6 +577,8 @@ export default function ShopProducts() {
                                         <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">Thumb</TableHead>
                                         <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">Name</TableHead>
                                         <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">Price (KES)</TableHead>
+                                        <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">SKU</TableHead>
+                                        <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">Product Code</TableHead>
                                         <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12">Status</TableHead>
                                         <TableHead className="text-xs font-bold text-gray-400 uppercase tracking-wider h-12 text-right">Actions</TableHead>
                                     </TableRow>
@@ -617,12 +621,20 @@ export default function ShopProducts() {
                                                         <span>
                                                             {formatPrice(getLowestPrice(product))} - {formatPrice(getHighestPrice(product))}
                                                         </span>
+                                                    ) : product.customPrice ? (
+                                                        formatPrice(Number(product.customPrice))
                                                     ) : product.basePrice ? (
-                                                        formatPrice(product.basePrice)
+                                                        formatPrice(Number(product.basePrice))
                                                     ) : (
                                                         "Not set"
                                                     )}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell className="text-sm font-medium text-gray-600">
+                                                {product.sku || "-"}
+                                            </TableCell>
+                                            <TableCell className="text-sm font-medium text-gray-600">
+                                                {product.productCode || "-"}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge 
@@ -653,8 +665,8 @@ export default function ShopProducts() {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem 
                                                             onClick={() => {
-                                                                const hasPrice = (product.basePrice && product.basePrice > 0) || 
-                                                                               (product.customPrice && product.customPrice > 0) || 
+                                                                const hasPrice = (product.basePrice && Number(product.basePrice) > 0) || 
+                                                                               (product.customPrice && Number(product.customPrice) > 0) || 
                                                                                (product.prices && product.prices.some(p => p.price > 0));
                                                                 if (hasPrice) {
                                                                     handleApproveProduct(product.id);
@@ -663,16 +675,16 @@ export default function ShopProducts() {
                                                                 }
                                                             }} 
                                                             className={`flex items-center space-x-2 p-2 rounded-lg ${
-                                                                !((product.basePrice && product.basePrice > 0) || 
-                                                                  (product.customPrice && product.customPrice > 0) || 
+                                                                !((product.basePrice && Number(product.basePrice) > 0) || 
+                                                                  (product.customPrice && Number(product.customPrice) > 0) || 
                                                                   (product.prices && product.prices.some(p => p.price > 0)))
                                                                 ? "opacity-50 cursor-not-allowed grayscale"
                                                                 : "cursor-pointer hover:bg-amber-50"
                                                             }`}
                                                         >
                                                             <Check className={`h-4 w-4 ${
-                                                                !((product.basePrice && product.basePrice > 0) || 
-                                                                  (product.customPrice && product.customPrice > 0) || 
+                                                                !((product.basePrice && Number(product.basePrice) > 0) || 
+                                                                  (product.customPrice && Number(product.customPrice) > 0) || 
                                                                   (product.prices && product.prices.some(p => p.price > 0)))
                                                                 ? "text-gray-400"
                                                                 : "text-amber-500"
