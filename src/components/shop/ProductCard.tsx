@@ -23,6 +23,10 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      toast.error("Please login first to add items to cart.");
+      return;
+    }
     if (!product.isPriceSet) {
       toast.error("Price not set for this product.");
       return;
@@ -32,6 +36,10 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      toast.error("Please login first to buy items.");
+      return;
+    }
     if (!product.isPriceSet) {
       toast.error("Price not set for this product.");
       return;
@@ -96,7 +104,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
                 disabled={!product.isPriceSet}
                 className={cn(
                   "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
-                  product.isPriceSet 
+                  product.isPriceSet && isLoggedIn
                     ? "bg-blue-600 hover:bg-blue-700 text-white" 
                     : "bg-gray-200 text-gray-500 cursor-not-allowed"
                 )}
@@ -109,7 +117,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
                   disabled={!product.isPriceSet}
                   className={cn(
                     "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
-                    product.isPriceSet
+                    product.isPriceSet && isLoggedIn
                       ? "bg-green-500 hover:bg-green-600 text-gray-900"
                       : "bg-gray-200 text-gray-400 cursor-not-allowed border-none"
                   )}
@@ -155,12 +163,12 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
               disabled={!product.isPriceSet}
               className={cn(
                 "p-2 border rounded-lg transition-colors",
-                product.isPriceSet
+                product.isPriceSet && isLoggedIn
                   ? "border-gray-300 hover:bg-gray-100"
                   : "border-gray-200 bg-gray-50 cursor-not-allowed"
               )}
             >
-              <ShoppingCart className={cn("h-4 w-4", product.isPriceSet ? "text-gray-700" : "text-gray-300")} />
+              <ShoppingCart className={cn("h-4 w-4", product.isPriceSet && isLoggedIn ? "text-gray-700" : "text-gray-300")} />
             </button>
           </div>
         </div>
