@@ -314,7 +314,14 @@ const ShopApp = () => {
             <DashboardHeader />
             <div className="p-4">
                 <button
-                    onClick={() => navigate('/dashboard/customer')}
+                    onClick={() => {
+                        const token = localStorage.getItem("token");
+                        if (token) {
+                            navigate('/dashboard/customer');
+                        } else {
+                            navigate(-1);
+                        }
+                    }}
                     className="text-jagedo-blue hover:underline flex items-center gap-1"
                 >
                     ← Back

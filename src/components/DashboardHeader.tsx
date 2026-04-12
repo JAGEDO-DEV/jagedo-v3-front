@@ -112,20 +112,22 @@ const CustomerNav = ({ totalItems, notifications, unreadCount, onNotificationCli
   return (
     <div className="flex items-center gap-1">
       {!isGuest && <NavComponent notifications={notifications} unreadCount={unreadCount} onNotificationClick={onNotificationClick} onViewAllNotifications={onViewAllNotifications} />}
-      <Link to="/customer/cart" className="group">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative hover:bg-green-50 transition-all duration-200 hover:scale-105 group-hover:shadow-sm"
-        >
-          <ShoppingCartIcon className="h-5 w-5 text-gray-600 group-hover:text-green-600 transition-colors duration-200" />
-          {totalItems > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-[#00a63e] text-white rounded-full text-xs flex items-center justify-center font-medium shadow-lg animate-bounce">
-              {totalItems > 99 ? '99+' : totalItems}
-            </span>
-          )}
-        </Button>
-      </Link>
+      {!isGuest && (
+        <Link to="/customer/cart" className="group">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-green-50 transition-all duration-200 hover:scale-105 group-hover:shadow-sm"
+          >
+            <ShoppingCartIcon className="h-5 w-5 text-gray-600 group-hover:text-green-600 transition-colors duration-200" />
+            {totalItems > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-[#00a63e] text-white rounded-full text-xs flex items-center justify-center font-medium shadow-lg animate-bounce">
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
+            )}
+          </Button>
+        </Link>
+      )}
       {!isGuest && (
         <Link to="/customer/receipts" className="group">
           <Button
@@ -340,12 +342,30 @@ export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-500 bg-white/80 backdrop-blur-md shadow-sm border-b border-white/20 px-2">
       <div className="mx-auto">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex h-16 items-center justify-between relative">
+          <div className="flex items-center gap-2 z-10">
             <Link to="/" className="flex items-center gap-2">
               <img src="/jagedologo.png" alt="JAGEDO Logo" width={180} height={50} className="relative rounded-lg hover:scale-105 transition-transform duration-300" />
             </Link>
           </div>
+
+          {!user && (
+            <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-6 md:space-x-10">
+              <span
+                onClick={() => navigate("/about-us")}
+                className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+              >
+                About Us
+              </span>
+
+              <span
+                onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+                className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+              >
+                Events
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 md:hidden">
             {!user ? (
@@ -401,9 +421,14 @@ export function DashboardHeader() {
             }
 
             {!user ? (
-              <Button variant="default" className="bg-[#00007a] hover:bg-[#00007a]/90 text-white rounded-full px-6" onClick={() => navigate("/login")}>
-                Login
-              </Button>
+              <>
+                <Button variant="default" className="bg-[#00007a] hover:bg-[#00007a]/90 text-white rounded-full px-6" onClick={() => navigate("/login")}>
+                  Login
+                </Button>
+                <Button variant="default" className="bg-[#00007a] hover:bg-[#00007a]/90 text-white rounded-full px-6" onClick={() => navigate("/")}>
+                  Signup
+                </Button>
+              </>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -440,9 +465,11 @@ export function DashboardHeader() {
                     <UserCircleIcon className="h-5 w-5" /> Login
                   </Link>
                 )}
-                <Link to="/customer/cart" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
-                  <ShoppingCartIcon className="h-5 w-5" /> Cart
-                </Link>
+                {user && (
+                  <Link to="/customer/cart" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100">
+                    <ShoppingCartIcon className="h-5 w-5" /> Cart
+                  </Link>
+                )}
                 {!user && (
                   <div className="flex items-center gap-2 p-2 rounded hover:bg-gray-100" onClick={() => window.open("https://jagedoplatform.zohodesk.com/portal/en/newticket", "_blank")}>
                     <QuestionMarkCircleIcon className="h-5 w-5" /> Help
