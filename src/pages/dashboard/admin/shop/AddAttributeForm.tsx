@@ -380,6 +380,7 @@ export default function AddAttributeForm({
                     <SelectContent className="bg-white">
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
                       <SelectItem value="select">Select</SelectItem>
                       <SelectItem value="multiselect">Multiselect</SelectItem>
                     </SelectContent>
@@ -387,15 +388,17 @@ export default function AddAttributeForm({
                 </div>
 
                 {/* Unit */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700">Unit</Label>
-                  <Input
-                    placeholder="e.g. 1''"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="border-gray-200 rounded-xl h-11"
-                  />
-                </div>
+                {attributeType === 'number' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-gray-700">Unit</Label>
+                    <Input
+                      placeholder="e.g. 1''"
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      className="border-gray-200 rounded-xl h-11"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Toggles */}
@@ -556,7 +559,7 @@ export default function AddAttributeForm({
                   : 'Saving...'
                 : isEdit
                 ? 'Update'
-                : 'Next'}
+                : 'Create Attribute'}
             </Button>
           )}
         </div>

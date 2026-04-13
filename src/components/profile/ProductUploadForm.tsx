@@ -36,6 +36,7 @@ import { uploadFile, validateFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import {
   createProduct,
+  createProductAdmin,
   updateProduct,
   getProductById,
 } from "@/api/products.api";
@@ -449,16 +450,17 @@ const generateProductCode = () => {
   return `BID-${segment1}-${segment2}`;
 };
 
-const ProductUploadForm = ({ onCancel }: { onCancel?: () => void }) => {
+const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: () => void, initialType?: string, targetUser?: any }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useGlobalContext();
+  const isAdmin = user?.userType?.toUpperCase() === "ADMIN" || user?.userType?.toUpperCase() === "SUPER_ADMIN" || user?.role?.toUpperCase() === "ADMIN" || user?.role?.toUpperCase() === "SUPER_ADMIN";
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     description: "",
-    type: user?.userType || "HARDWARE",
+    type: initialType ? initialType.toUpperCase() : (user?.userType || "HARDWARE"),
     group: "",
     subGroup: "",
     sku: "",
@@ -573,7 +575,7 @@ const ProductUploadForm = ({ onCancel }: { onCancel?: () => void }) => {
             const initialFormData: any = {
               name: existingProduct.name || "",
               description: existingProduct.description || "",
-              type: existingProduct.type || user?.userType || "HARDWARE",
+              type: existingProduct.type || (initialType ? initialType.toUpperCase() : user?.userType) || "HARDWARE",
               group: existingProduct.group || "",
               subGroup: existingProduct.subGroup || "",
               sku: (existingProduct.sku || "").toString(),
@@ -779,7 +781,7 @@ const ProductUploadForm = ({ onCancel }: { onCancel?: () => void }) => {
         images: imageUrls,
         customPrice: parseFloat(formData.price) || 0,
         regionId: formData.region,
-        sellerId: user.id,
+        sellerId: targetUser?.id || user.id,
         status: statusType === "Drafts" ? "DRAFT" : "PENDING",
       };
 
@@ -802,7 +804,11 @@ const ProductUploadForm = ({ onCancel }: { onCancel?: () => void }) => {
         await updateProduct(axiosInstance, productId, payload);
         toast.success("Product updated successfully!");
       } else {
-        await createProduct(axiosInstance, payload);
+        if (isAdmin && targetUser && targetUser.id !== user.id) {
+          await createProductAdmin(axiosInstance, payload);
+        } else {
+          await createProduct(axiosInstance, payload);
+        }
         toast.success(
           statusType === "Drafts"
             ? "Product saved as draft!"

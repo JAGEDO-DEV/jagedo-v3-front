@@ -162,6 +162,11 @@ export default function ShopProducts() {
         try {
             await approveProduct(axiosInstance, productId);
             toast.success("Product status updated successfully");
+            setProducts(prevProducts =>
+                prevProducts.map(p =>
+                    p.id === productId ? { ...p, active: !p.active } : p
+                )
+            );
             fetchProducts();
         } catch (error) {
             console.error("Error updating product:", error);

@@ -1136,6 +1136,7 @@ export default function AddProductForm({
                   ) : (
                     <Input
                       id={`attr-${attr.id}`}
+                      type={attr.attributeType === 'number' ? 'number' : attr.attributeType === 'date' ? 'date' : 'text'}
                       value={(formData[fieldName] as string) || ""}
                       onChange={(e) => handleInputChange(fieldName, e.target.value)}
                       placeholder={`Enter ${attr.type}`}
