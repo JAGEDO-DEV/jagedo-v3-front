@@ -5,7 +5,9 @@ import ProductUploadForm from "@/components/profile/ProductUploadForm.tsx";
 import FileImportButton from "@/components/profile/FileImportButton.tsx";
 import FileUploadPage from "@/components/profile/FileImportPreview.tsx";
 
-const ShopAppPage = () => {
+const ShopAppPage = ({ userType, userData, data }: { userType?: string, userData?: any, data?: any }) => {
+    const activeUser = userData || data;
+    const activeType = userType || activeUser?.userType;
     // 1. Use a string to manage which view is active.
     const [currentView, setCurrentView] = useState("default");
 
@@ -26,7 +28,7 @@ const ShopAppPage = () => {
         switch (currentView) {
             case "create":
                 // Pass the function to return to the default view
-                return <ProductUploadForm onCancel={showDefaultView} />;
+                return <ProductUploadForm onCancel={showDefaultView} initialType={activeType} targetUser={activeUser} />;
 
             case "import":
                 // Also pass the function to return to the default view
