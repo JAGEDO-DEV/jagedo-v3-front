@@ -34,6 +34,11 @@ const DEFAULT_ADMIN_MENU_ITEMS: MenuItem[] = [
   { id: "registers-customers", title: "Customers", category: "Management - Registers" },
   { id: "registers-builders", title: "Builders", category: "Management - Registers" },
   { id: "analytics", title: "Analytics", category: "Management" },
+  { id: "reports", title: "Reports", category: "Reports" },
+  { id: "reports-system", title: "System Snapshot", category: "Reports" },
+  { id: "reports-products", title: "Product Snapshot", category: "Reports" },
+  { id: "reports-jobs", title: "Jobs Snapshot", category: "Reports" },
+  { id: "reports-orders", title: "Orders Snapshot", category: "Reports" },
   { id: "configuration", title: "Configuration", category: "Configurations" },
 ];
 

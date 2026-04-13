@@ -82,6 +82,8 @@ export const createPermissionChecker = (userMenuPermissions) => {
       hasMenuAccess(userMenuPermissions, 'user-management'),
     canConfigureBuilders: () =>
       hasMenuAccess(userMenuPermissions, 'configuration'),
+    canViewReports: () =>
+      hasMenuAccess(userMenuPermissions, 'reports') || hasAnyMenuAccess(userMenuPermissions, ['reports-system', 'reports-products', 'reports-jobs', 'reports-orders']),
   };
 };
 
