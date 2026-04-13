@@ -43,7 +43,8 @@ import {
     Download,
     Filter,
     Upload,
-    LogOut
+    LogOut,
+    Loader2
 } from "lucide-react";
 import { 
     DropdownMenu, 
@@ -102,6 +103,9 @@ export default function ShopProducts() {
     const [showProductModal, setShowProductModal] = useState(false);
     const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
     const [statusFilter, setStatusFilter] = useState("all");
+    const [approvingId, setApprovingId] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [isBatchDeleting, setIsBatchDeleting] = useState(false);
 
     
     const [currentPage, setCurrentPage] = useState(1);
@@ -114,9 +118,9 @@ export default function ShopProducts() {
         { id: "HIRE_MACHINERY", label: "Hire Machinery & Equipment", type: "CONTRACTOR" }
     ];
 
-    const fetchProducts = async () => {
+    const fetchProducts = async (showLoader = true) => {
         try {
-            setLoading(true);
+            if (showLoader) setLoading(true);
             const response = await getAllProducts(axiosInstance);
             if (response.success) {
                 setProducts(response.hashSet);
@@ -127,7 +131,7 @@ export default function ShopProducts() {
             console.error("Error fetching products:", error);
             toast.error("Failed to fetch products");
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 
@@ -149,17 +153,21 @@ export default function ShopProducts() {
 
     const deleteProduct = async (productId: number) => {
         try {
+            setDeletingId(productId);
             await deleteProductAPI(axiosInstance, productId);
             toast.success("Product deleted successfully");
-            fetchProducts();
+            fetchProducts(false);
         } catch (error) {
             console.error("Error deleting product:", error);
             toast.error("Failed to delete product");
+        } finally {
+            setDeletingId(null);
         }
     };
 
     const handleApproveProduct = async (productId: number) => {
         try {
+            setApprovingId(productId);
             await approveProduct(axiosInstance, productId);
             toast.success("Product status updated successfully");
             setProducts(prevProducts =>
@@ -167,10 +175,12 @@ export default function ShopProducts() {
                     p.id === productId ? { ...p, active: !p.active } : p
                 )
             );
-            fetchProducts();
+            fetchProducts(false);
         } catch (error) {
             console.error("Error updating product:", error);
             toast.error("Failed to update product status");
+        } finally {
+            setApprovingId(null);
         }
     };
 
@@ -198,17 +208,17 @@ export default function ShopProducts() {
         if (!window.confirm(`Are you sure you want to delete ${selectedRows.size} products?`)) return;
 
         try {
-            setLoading(true);
+            setIsBatchDeleting(true);
             const deletePromises = Array.from(selectedRows).map(id => deleteProductAPI(axiosInstance, id));
             await Promise.all(deletePromises);
             toast.success(`${selectedRows.size} products deleted successfully`);
             setSelectedRows(new Set());
-            fetchProducts();
+            await fetchProducts(false);
         } catch (error) {
             console.error("Error batch deleting:", error);
             toast.error("An error occurred during batch deletion");
         } finally {
-            setLoading(false);
+            setIsBatchDeleting(false);
         }
     };
 
@@ -523,9 +533,15 @@ export default function ShopProducts() {
                         <Button 
                             variant="outline" 
                             onClick={handleDeleteBatch}
+                            disabled={isBatchDeleting}
                             className="h-10 text-red-600 border-red-200 bg-red-50/30 hover:bg-red-50 rounded-lg font-semibold"
                         >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Batch ({selectedRows.size})
+                            {isBatchDeleting ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            {isBatchDeleting ? 'Deleting...' : `Delete Batch (${selectedRows.size})`}
                         </Button>
                     )}
                     <Button
@@ -669,7 +685,9 @@ export default function ShopProducts() {
                                                             <span className="text-xs font-semibold">Edit Product</span>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem 
-                                                            onClick={() => {
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                if (approvingId === product.id) return;
                                                                 const hasPrice = (product.basePrice && Number(product.basePrice) > 0) || 
                                                                                (product.customPrice && Number(product.customPrice) > 0) || 
                                                                                (product.prices && product.prices.some(p => p.price > 0));
@@ -685,20 +703,37 @@ export default function ShopProducts() {
                                                                   (product.prices && product.prices.some(p => p.price > 0)))
                                                                 ? "opacity-50 cursor-not-allowed grayscale"
                                                                 : "cursor-pointer hover:bg-amber-50"
+                                                            } ${approvingId === product.id ? "opacity-50 pointer-events-none" : ""}`}
+                                                        >
+                                                            {approvingId === product.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                                                            ) : (
+                                                                <Check className={`h-4 w-4 ${
+                                                                    !((product.basePrice && Number(product.basePrice) > 0) || 
+                                                                      (product.customPrice && Number(product.customPrice) > 0) || 
+                                                                      (product.prices && product.prices.some(p => p.price > 0)))
+                                                                    ? "text-gray-400"
+                                                                    : "text-amber-500"
+                                                                }`} />
+                                                            )}
+                                                            <span className="text-xs font-semibold">{approvingId === product.id ? (product.active ? 'Disapproving...' : 'Approving...') : (product.active ? 'Disapprove' : 'Approve')}</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem 
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                if (deletingId === product.id) return;
+                                                                deleteProduct(product.id);
+                                                            }} 
+                                                            className={`flex items-center space-x-2 p-2 rounded-lg text-red-600 ${
+                                                                deletingId === product.id ? "opacity-50 pointer-events-none" : "cursor-pointer hover:bg-red-50"
                                                             }`}
                                                         >
-                                                            <Check className={`h-4 w-4 ${
-                                                                !((product.basePrice && Number(product.basePrice) > 0) || 
-                                                                  (product.customPrice && Number(product.customPrice) > 0) || 
-                                                                  (product.prices && product.prices.some(p => p.price > 0)))
-                                                                ? "text-gray-400"
-                                                                : "text-amber-500"
-                                                            }`} />
-                                                            <span className="text-xs font-semibold">{product.active ? 'Disapprove' : 'Approve'}</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => deleteProduct(product.id)} className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-red-50 rounded-lg text-red-600">
-                                                            <Trash2 className="h-4 w-4" />
-                                                            <span className="text-xs font-semibold">Delete</span>
+                                                            {deletingId === product.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                            <span className="text-xs font-semibold">{deletingId === product.id ? 'Deleting...' : 'Delete'}</span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
