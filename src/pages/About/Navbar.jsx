@@ -2,11 +2,16 @@ import { useEffect, useState, useRef } from "react";
 import { assets } from "../../assets/assets";
 import { useNavigate, Link } from "react-router-dom";
 
-const NAV_ITEMS = [
-    { name: "Login", route: "/login", scrollTo: false },
-    { name: "Sign Up", route: "/", scrollTo: false },
-    { name: "About Us", scrollTo: true },
-    { name: "Events", route: "/events", scrollTo: false }
+const PUBLIC_LINKS = [
+    { name: "Products", route: "/customer/hardware_shop", kind: "route" },
+    { name: "About Us", targetId: "About", kind: "scroll" },
+    { name: "Events", url: "https://jbis.vercel.app/", kind: "external" },
+];
+
+const ACTION_BUTTONS = [
+    { name: "Login", route: "/login" },
+    { name: "Sign Up", route: "/" },
+    { name: "Help", url: "https://jagedoplatform.zohodesk.com/portal/en/newticket" },
 ];
 
 const Navbar = () => {
@@ -70,19 +75,28 @@ const Navbar = () => {
         setOpenSubMenu(null);
     };
 
-    const handleClick = (item) => {
-        if (item.scrollTo) {
-            {
-                handleScroll(item.name.replace(/\s+/g, ""));
-            }
+    const handleLinkClick = (item) => {
+        if (item.kind === "scroll") {
+            handleScroll(item.targetId || item.name.replace(/\s+/g, ""));
+        } else if (item.kind === "external") {
+            window.open(item.url, "_blank");
+            setShowMobileMenu(false);
+            setOpenSubMenu(null);
         } else {
-            if (item.name == "Events") {
-                window.open("https://jbis.vercel.app/", "_blank");
-            } else {
-                navigate(item.route);
-            }
+            navigate(item.route);
+            setShowMobileMenu(false);
+            setOpenSubMenu(null);
+        }
+    };
+
+    const handleActionClick = (item) => {
+        if (item.url) {
+            window.open(item.url, "_blank");
+        } else {
+            navigate(item.route);
         }
         setShowMobileMenu(false);
+        setOpenSubMenu(null);
     };
 
     return (
@@ -91,7 +105,7 @@ const Navbar = () => {
                 isScrolled ? "shadow-md" : ""
             }`}
         >
-            <div className="container mx-auto flex justify-between items-center py-4 px-6 md:px-12 lg:px-16">
+            <div className="container mx-auto flex items-center justify-between gap-4 py-4 px-6 md:px-12 lg:px-16">
                 {/* Logo */}
                 <div className="flex items-center gap-2">
                     <Link to="/">
@@ -105,20 +119,60 @@ const Navbar = () => {
                 </div>
 
                 {/* Desktop Navigation */}
-                <nav className="hidden md:flex items-center gap-4">
-                    <ul className="flex gap-4 text-gray-800 font-medium items-center">
-                        {NAV_ITEMS.map((item) => (
-                            <li key={item.name} className="relative group">
-                                <button
-                                    onClick={() => handleClick(item)}
-                                    className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 transition duration-300 ease-in-out hover:bg-[#FFD700] hover:text-black flex items-center justify-center sm:w-36 md:w-32"
+                <div className="hidden md:flex flex-1 items-center justify-between ml-8">
+                    <div className="flex items-center gap-6 md:gap-10">
+                        {PUBLIC_LINKS.map((item) => {
+                            if (item.kind === "scroll") {
+                                return (
+                                    <button
+                                        key={item.name}
+                                        type="button"
+                                        onClick={() => handleLinkClick(item)}
+                                        className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition bg-transparent p-0"
+                                    >
+                                        {item.name}
+                                    </button>
+                                );
+                            }
+
+                            if (item.kind === "external") {
+                                return (
+                                    <button
+                                        key={item.name}
+                                        type="button"
+                                        onClick={() => handleLinkClick(item)}
+                                        className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition bg-transparent p-0"
+                                    >
+                                        {item.name}
+                                    </button>
+                                );
+                            }
+
+                            return (
+                                <Link
+                                    key={item.name}
+                                    to={item.route}
+                                    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
                                 >
                                     {item.name}
-                                </button>
-                            </li>
+                                </Link>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {ACTION_BUTTONS.map((item) => (
+                            <button
+                                key={item.name}
+                                type="button"
+                                onClick={() => handleActionClick(item)}
+                                className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md hover:scale-105 transition duration-300 ease-in-out hover:bg-[#3AB33A] flex items-center justify-center sm:w-32 md:w-28"
+                            >
+                                {item.name}
+                            </button>
                         ))}
-                    </ul>
-                </nav>
+                    </div>
+                </div>
 
                 {/* Mobile Menu Button */}
                 <button
@@ -150,7 +204,7 @@ const Navbar = () => {
                     ref={menuRef}
                     className={`bg-white w-[85%] h-full shadow-lg transform transition-transform duration-300 ease-in-out ${
                         showMobileMenu ? "translate-x-0" : "translate-x-full"
-                    } p-6 flex flex-col gap-4`}
+                    } p-6 flex flex-col gap-6`}
                 >
                     <div className="flex justify-end">
                         <button
@@ -166,20 +220,47 @@ const Navbar = () => {
                         </button>
                     </div>
 
-                    {/* Mobile Nav */}
-                    <nav aria-label="Mobile navigation" className="mt-6">
-                        <ul className="flex flex-col gap-4 text-gray-800 font-medium">
-                            {NAV_ITEMS.map((item) => (
-                                <li key={item.name}>
-                                    <button
-                                        onClick={() => handleClick(item)}
-                                        className="w-full block text-center bg-[rgb(0,0,122)] text-white py-3 px-6 rounded-full shadow-md hover:scale-105 hover:bg-[#FFD700] hover:text-black transition duration-300 ease-in-out"
+                    <nav aria-label="Mobile navigation" className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-3 border-b border-gray-200 pb-5">
+                            {PUBLIC_LINKS.map((item) => {
+                                if (item.kind === "scroll" || item.kind === "external") {
+                                    return (
+                                        <button
+                                            key={item.name}
+                                            type="button"
+                                            onClick={() => handleLinkClick(item)}
+                                            className="w-full text-left text-[rgb(0,0,122)] font-semibold px-2 py-2 hover:underline hover:text-[#3AB33A] transition bg-transparent"
+                                        >
+                                            {item.name}
+                                        </button>
+                                    );
+                                }
+
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        to={item.route}
+                                        onClick={() => setShowMobileMenu(false)}
+                                        className="w-full text-left text-[rgb(0,0,122)] font-semibold px-2 py-2 hover:underline hover:text-[#3AB33A] transition"
                                     >
                                         {item.name}
-                                    </button>
-                                </li>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            {ACTION_BUTTONS.map((item) => (
+                                <button
+                                    key={item.name}
+                                    type="button"
+                                    onClick={() => handleActionClick(item)}
+                                    className="w-full block text-center bg-[rgb(0,0,122)] text-white py-3 px-6 rounded-full shadow-md hover:scale-105 hover:bg-[#3AB33A] hover:text-white transition duration-300 ease-in-out"
+                                >
+                                    {item.name}
+                                </button>
                             ))}
-                        </ul>
+                        </div>
                     </nav>
                 </div>
             </div>

@@ -12,7 +12,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   CubeTransparentIcon, UserCircleIcon, Bars3Icon, BellIcon, ShoppingCartIcon,
-  DocumentIcon, QuestionMarkCircleIcon, BriefcaseIcon, ArrowRightOnRectangleIcon
+  DocumentIcon, QuestionMarkCircleIcon, BriefcaseIcon, ArrowRightOnRectangleIcon,
+  InformationCircleIcon
 } from "@heroicons/react/24/solid";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { useGlobalContext } from "@/context/GlobalProvider";
@@ -222,7 +223,7 @@ export function DashboardHeader() {
                 type = parsed.type || type;
                 originalItem = parsed.originalItem || originalItem;
               }
-            } catch (e) {
+            } catch {
               // Message is not a JSON string, use as is.
               if (text.includes("OTP")) {
                 title = "Security Alert";
@@ -339,6 +340,10 @@ export function DashboardHeader() {
     );
   };
 
+  const handleOpenHelp = () => {
+    window.open("https://jagedoplatform.zohodesk.com/portal/en/newticket", "_blank");
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-500 bg-white/80 backdrop-blur-md shadow-sm border-b border-white/20 px-2">
       <div className="mx-auto">
@@ -349,22 +354,98 @@ export function DashboardHeader() {
             </Link>
           </div>
 
-          {!user && (
-            <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-6 md:space-x-10">
-              <span
-                onClick={() => navigate("/about-us")}
-                className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-              >
-                About Us
-              </span>
+          {!user ? (
+            <div className="hidden md:flex flex-1 items-center justify-between ml-8">
+              <div className="flex items-center space-x-6 md:space-x-10">
+                <span
+                  onClick={() => navigate("/customer/hardware_shop")}
+                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                >
+                  Products
+                </span>
 
-              <span
-                onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
-                className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-              >
-                Events
-              </span>
+                <span
+                  onClick={() => navigate("/about-us")}
+                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                >
+                  About Us
+                </span>
+
+                <span
+                  onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                >
+                  Events
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md hover:scale-105 transition duration-300 ease-in-out hover:bg-[#3AB33A] flex items-center justify-center sm:w-32 md:w-28"
+                  onClick={() => navigate("/login")}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md hover:scale-105 transition duration-300 ease-in-out hover:bg-[#3AB33A] flex items-center justify-center sm:w-32 md:w-28"
+                  onClick={() => navigate("/")}
+                >
+                  Sign Up
+                </button>
+                <button
+                  type="button"
+                  className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md hover:scale-105 transition duration-300 ease-in-out hover:bg-[#3AB33A] flex items-center justify-center sm:w-32 md:w-28"
+                  onClick={handleOpenHelp}
+                >
+                  Help
+                </button>
+              </div>
             </div>
+          ) : (
+            <nav className="hidden md:flex items-center space-x-2 ml-auto">
+              {userType === 'customer' &&
+                <CustomerNav
+                  totalItems={totalItems}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onNotificationClick={handleNotificationClick}
+                  onViewAllNotifications={handleViewAllNotifications}
+                  isGuest={false}
+                />
+              }
+
+              {serviceProviderTypes.includes(userType) &&
+                <ServiceProviderNav
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onNotificationClick={handleNotificationClick}
+                  onViewAllNotifications={handleViewAllNotifications}
+                />
+              }
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="relative h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a63e]">
+                    <Avatar src={profileImage || user?.avatarUrl || "/images/customer-1.jpeg"} alt="User avatar" className="h-10 w-10" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-white">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}>
+                    <UserCircleIcon className="mr-2 h-4 w-4" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}>
+                    <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </nav>
           )}
 
           <div className="flex items-center gap-2 md:hidden">
@@ -398,60 +479,6 @@ export function DashboardHeader() {
               <Bars3Icon className="h-6 w-6" />
             </button>
           </div>
-
-          <nav className="hidden md:flex items-center space-x-2">
-            {(userType === 'customer' || !user) &&
-              <CustomerNav
-                totalItems={totalItems}
-                notifications={notifications}
-                unreadCount={unreadCount}
-                onNotificationClick={handleNotificationClick}
-                onViewAllNotifications={handleViewAllNotifications}
-                isGuest={!user}
-              />
-            }
-
-            {serviceProviderTypes.includes(userType) &&
-              <ServiceProviderNav
-                notifications={notifications}
-                unreadCount={unreadCount}
-                onNotificationClick={handleNotificationClick}
-                onViewAllNotifications={handleViewAllNotifications}
-              />
-            }
-
-            {!user ? (
-              <>
-                <Button variant="default" className="bg-[#00007a] hover:bg-[#00007a]/90 text-white rounded-full px-6" onClick={() => navigate("/login")}>
-                  Login
-                </Button>
-                <Button variant="default" className="bg-[#00007a] hover:bg-[#00007a]/90 text-white rounded-full px-6" onClick={() => navigate("/")}>
-                  Signup
-                </Button>
-              </>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className="relative h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a63e]">
-                    <Avatar src={profileImage || user?.avatarUrl || "/images/customer-1.jpeg"} alt="User avatar" className="h-10 w-10" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}>
-                    <UserCircleIcon className="mr-2 h-4 w-4" />
-                    <span>My Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}>
-                    <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </nav>
         </div>
       </div>
 
@@ -461,8 +488,31 @@ export function DashboardHeader() {
             {(userType === 'customer' || !user) && (
               <>
                 {!user && (
+                  <Link to="/customer/hardware_shop" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700">
+                    <ShoppingCartIcon className="h-5 w-5" /> Products
+                  </Link>
+                )}
+                {!user && (
+                  <Link to="/about-us" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700">
+                    <InformationCircleIcon className="h-5 w-5" /> About Us
+                  </Link>
+                )}
+                {!user && (
+                  <div
+                    className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700 cursor-pointer"
+                    onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+                  >
+                    <QuestionMarkCircleIcon className="h-5 w-5" /> Events
+                  </div>
+                )}
+                {!user && (
                   <Link to="/login" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700">
                     <UserCircleIcon className="h-5 w-5" /> Login
+                  </Link>
+                )}
+                {!user && (
+                  <Link to="/" className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 font-medium text-blue-700">
+                    <UserCircleIcon className="h-5 w-5" /> Sign Up
                   </Link>
                 )}
                 {user && (
