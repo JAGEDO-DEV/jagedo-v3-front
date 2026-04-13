@@ -6,11 +6,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { Menu, X, CheckCircleIcon, ChevronDown, User, PencilRuler, HardHat, Store, SquareUser, } from "lucide-react";
 import { motion } from "framer-motion";
 import { FaFacebookF, FaXTwitter, FaLinkedinIn, FaInstagram, FaTiktok, } from "react-icons/fa6";
-import customerImg from "../assets/customer(1).png";
-import fundiImg from "../assets/fundi.jpeg";
-import professionalImg from "../assets/professional.jpeg";
-import contractorImg from "../assets/contractor.jpeg";
-import hardwareImg from "../assets/hardware.jpeg";
 import JamesImg from "../assets/Builder.jpg";
 import micaImg from "../assets/mutonga.jpg";
 import ChatWidgetWrapper from "@/components/ChatWidget";
@@ -21,7 +16,6 @@ import Builder from "../assets/Builder.jpg";
 const GreenCheckIcon = (
   <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />
 );
-const VISIBLE = 3;
 const INTERVAL = 4000; // 4 seconds
 
 const testimonials = [
@@ -65,22 +59,44 @@ const testimonials = [
 
 const Home = () => {
   const [slideIndex, setSlideIndex] = useState(0);
+  const [visibleTestimonials, setVisibleTestimonials] = useState(1);
+
+  useEffect(() => {
+    const updateVisibleTestimonials = () => {
+      if (window.innerWidth >= 1024) {
+        setVisibleTestimonials(3);
+      } else if (window.innerWidth >= 640) {
+        setVisibleTestimonials(2);
+      } else {
+        setVisibleTestimonials(1);
+      }
+    };
+
+    updateVisibleTestimonials();
+    window.addEventListener("resize", updateVisibleTestimonials);
+
+    return () => window.removeEventListener("resize", updateVisibleTestimonials);
+  }, []);
+
+  useEffect(() => {
+    setSlideIndex(0);
+  }, [visibleTestimonials]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setSlideIndex((prev) => {
-        const next = prev + VISIBLE;
-        return next >= testimonials.length ? 0 : next;
+        const maxIndex = Math.max(testimonials.length - visibleTestimonials, 0);
+        const next = prev + 1;
+        return next > maxIndex ? 0 : next;
       });
     }, INTERVAL);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [visibleTestimonials]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Customer");
   const [image, setImage] = useState(micaImg);
-  const [active, setActive] = useState(false);
   const [showSignupDropdown, setShowSignupDropdown] = useState(false);
   const [showMobileSignupDropdown, setShowMobileSignupDropdown] =
     useState(false);
@@ -88,7 +104,6 @@ const Home = () => {
   const dropdownRef = useRef(null);
   const mobileDropdownRef = useRef(null);
   const signupSectionRef = useRef(null);
-  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const [steps, setSteps] = useState([
     {
@@ -127,14 +142,6 @@ const Home = () => {
   const section1Ref = React.useRef(null);
   const section2Ref = React.useRef(null);
   const navigate = useNavigate();
-
-  const navCards = [
-    { name: "Customer", img: customerImg },
-    { name: "Fundi", img: fundiImg },
-    { name: "Professional", img: professionalImg },
-    { name: "Contractor", img: contractorImg },
-    { name: "Hardware", img: hardwareImg },
-  ];
 
   const categories = [
     {
@@ -251,7 +258,9 @@ const Home = () => {
     );
   };
   const handleClick = () => {
-    setIsOpen(!isOpen);
+    setIsOpen((prev) => !prev);
+    setShowSignupDropdown(false);
+    setShowMobileSignupDropdown(false);
   };
 
   const handleClickSignUp = () => {
@@ -262,6 +271,7 @@ const Home = () => {
     setShowSignupDropdown(false);
     setShowMobileSignupDropdown(false);
     setShowSignupSection(false);
+    setIsOpen(false);
     navigate(`/signup/${userType.toLowerCase()}`);
   };
 
@@ -298,39 +308,15 @@ const Home = () => {
     };
   }, []);
 
-  const sliderRef = useRef(null);
-
   // const scrollToSection = (ref) => {
   //   if (ref.current) {
   //     ref.current.scrollIntoView({ behavior: "smooth" });
   //   }
   // };
 
-  const handleNavigation = (card) => {
-    switch (card.name) {
-      case "Customer":
-        navigate("/signup/customer");
-        break;
-      case "Fundi":
-        navigate("/signup/fundi");
-        break;
-      case "Professional":
-        navigate("/signup/professional");
-        break;
-      case "Contractor":
-        navigate("/signup/contractor");
-        break;
-      case "Hardware":
-        navigate("/signup/hardware");
-        break;
-      default:
-        break;
-    }
-  };
-
   const menuButtons = [
     "Products",
-    "About us ",
+    "About Us",
     "Events",
     "Login",
     "Sign Up",
@@ -338,26 +324,34 @@ const Home = () => {
   ];
 
   const handleMenuButtonClick = (index) => {
+    setShowMobileSignupDropdown(false);
+    setShowSignupDropdown(false);
+
     switch (menuButtons[index]) {
       case "Products":
+        setIsOpen(false);
         navigate("/customer/hardware_shop");
         break;
       case "Help":
+        setIsOpen(false);
         window.open(
           "https://jagedoplatform.zohodesk.com/portal/en/newticket",
           "_blank",
         );
         break;
       case "Login":
+        setIsOpen(false);
         navigate("/login");
         break;
       case "Sign Up":
         handleMobileSignupClick();
         break;
-      case "About Us ":
+      case "About Us":
+        setIsOpen(false);
         navigate("/about-us");
         break;
       case "Events":
+        setIsOpen(false);
         window.open("https://jbis.vercel.app/", "_blank");
         break;
       default:
@@ -378,13 +372,13 @@ const Home = () => {
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
-        className="flex justify-between items-center py-1 px-6 md:px-8"
+        className="relative flex items-center justify-between gap-3 px-4 py-2 sm:px-6 md:px-8"
       >
         <Link to="/">
           <img
             src="/JaGedo logo.webp"
             alt="Logo"
-            className="w-30 md:w-50 lg:w-50 h-auto"
+            className="h-auto w-28 sm:w-36 md:w-48 lg:w-52"
           />
         </Link>
 
@@ -416,7 +410,7 @@ const Home = () => {
 
         <div
           id="div2"
-          className="flex items-center space-x-4 md:space-x-9 ml-4"
+          className="hidden items-center space-x-4 md:space-x-9 ml-4 sm:flex"
         >
           <button
             type="button"
@@ -503,82 +497,119 @@ const Home = () => {
             className="hover:cursor-pointer"
             type="button"
             onClick={handleClick}
+            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isOpen}
           >
             {isOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
         {isOpen && (
-          <div className="absolute top-16 right-2 rounded-lg w-48 bg-gray-200 shadow-md flex flex-col items-center space-y-2 p-4 md:hidden">
-            {menuButtons.map((text, index) => {
-              if (text === "Sign Up") {
-                return (
-                  <div
-                    key={index}
-                    className="relative w-full"
-                    ref={mobileDropdownRef}
-                  >
-                    <button
-                      type="button"
-                      className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#FFD700] hover:text-black hover:cursor-pointer flex items-center justify-center w-full gap-2"
-                      onClick={handleMobileSignupClick}
-                    >
-                      {text}
-                      <ChevronDown
-                        size={16}
-                        className={`transition-transform duration-200 ${showMobileSignupDropdown ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {showMobileSignupDropdown && (
-                      <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                        <button
-                          onClick={() => handleSignupOptionClick("customer")}
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
-                        >
-                          Customer
-                        </button>
-                        <button
-                          onClick={() => handleSignupOptionClick("fundi")}
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
-                        >
-                          Fundi
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleSignupOptionClick("professional")
-                          }
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
-                        >
-                          Professional
-                        </button>
-                        <button
-                          onClick={() => handleSignupOptionClick("contractor")}
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
-                        >
-                          Contractor
-                        </button>
-                        <button
-                          onClick={() => handleSignupOptionClick("hardware")}
-                          className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
-                        >
-                          Hardware
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return (
+          <div className="fixed inset-0 z-50 sm:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              aria-label="Close navigation menu"
+              onClick={() => {
+                setIsOpen(false);
+                setShowMobileSignupDropdown(false);
+              }}
+            />
+            <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-white p-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+                <span className="text-lg font-semibold text-[rgb(0,0,122)]">
+                  Menu
+                </span>
                 <button
                   type="button"
-                  key={index}
-                  className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#FFD700] hover:text-black hover:cursor-pointer flex items-center justify-center w-full"
-                  onClick={handleMenuButtonClick.bind(null, index)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowMobileSignupDropdown(false);
+                  }}
+                  className="rounded-full p-2 hover:bg-gray-100"
+                  aria-label="Close navigation menu"
                 >
-                  {text}
+                  <X size={22} />
                 </button>
-              );
-            })}
+              </div>
+
+              <div className="relative z-10 mt-4 flex flex-col gap-3">
+                {menuButtons.map((text, index) => {
+                  if (text === "Sign Up") {
+                    return (
+                      <div
+                        key={index}
+                        className="w-full"
+                        ref={mobileDropdownRef}
+                      >
+                        <button
+                          type="button"
+                          className="relative flex w-full items-center justify-center rounded-2xl bg-[rgb(0,0,122)] px-4 py-3 text-center text-white shadow-md transition hover:bg-[#3AB33A]"
+                          onClick={handleMobileSignupClick}
+                        >
+                          <span className="pr-6">{text}</span>
+                          <ChevronDown
+                            size={16}
+                            className={`absolute right-4 transition-transform duration-200 ${showMobileSignupDropdown ? "rotate-180" : ""}`}
+                          />
+                        </button>
+
+                        {showMobileSignupDropdown && (
+                          <div className="mt-2 rounded-2xl border border-gray-200 bg-gray-50 p-2 shadow-sm">
+                            <button
+                              onClick={() => handleSignupOptionClick("customer")}
+                              className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-gray-700 transition hover:bg-white hover:text-[rgb(0,0,122)]"
+                            >
+                              <User size={18} color="#3AB33A" />
+                              Customer
+                            </button>
+                            <button
+                              onClick={() => handleSignupOptionClick("fundi")}
+                              className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-gray-700 transition hover:bg-white hover:text-[rgb(0,0,122)]"
+                            >
+                              <PencilRuler size={18} color="#3AB33A" />
+                              Fundi
+                            </button>
+                            <button
+                              onClick={() => handleSignupOptionClick("professional")}
+                              className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-gray-700 transition hover:bg-white hover:text-[rgb(0,0,122)]"
+                            >
+                              <SquareUser size={18} color="#3AB33A" />
+                              Professional
+                            </button>
+                            <button
+                              onClick={() => handleSignupOptionClick("contractor")}
+                              className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-gray-700 transition hover:bg-white hover:text-[rgb(0,0,122)]"
+                            >
+                              <HardHat size={18} color="#3AB33A" />
+                              Contractor
+                            </button>
+                            <button
+                              onClick={() => handleSignupOptionClick("hardware")}
+                              className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-gray-700 transition hover:bg-white hover:text-[rgb(0,0,122)]"
+                            >
+                              <Store size={18} color="#3AB33A" />
+                              Hardware
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      key={index}
+                      className="flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-[rgb(0,0,122)] px-6 py-3 text-white shadow-md transition duration-300 hover:bg-[#3AB33A]"
+                      onClick={handleMenuButtonClick.bind(null, index)}
+                    >
+                      {text}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </motion.div>
@@ -588,13 +619,13 @@ const Home = () => {
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
-        className="flex-grow py-8 px-6 flex flex-col items-center justify-center text-center bg-gray-100"
+        className="flex-grow bg-gray-100 px-4 py-10 text-center sm:px-6 md:py-14"
       >
-        <div className="max-w-4xl">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-gray-900 leading-tight mb-6">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="mb-5 text-4xl font-extrabold leading-tight text-gray-900 sm:mb-6 sm:text-5xl md:text-7xl">
             A One-Stop Construction Platform
           </h1>
-          <p className="text-lg sm:text-xl text-gray-700 mb-28">
+          <p className="mx-auto mb-10 max-w-3xl text-base text-gray-700 sm:mb-16 sm:text-lg md:mb-28 md:text-xl">
             JaGedo seamlessly connects customers and builders to other builders:
             fundis, professionals, contractors, and hardware suppliers in your
             locality.
@@ -605,7 +636,7 @@ const Home = () => {
         <button
           type="button"
           onClick={handleSignupForFreeClick}
-          className="bg-[rgb(0,0,122)] text-white py-3 px-8 rounded-md shadow-lg hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer text-lg font-medium transition-all"
+          className="bg-[rgb(0,0,122)] px-6 py-3 text-base font-medium text-white shadow-lg transition-all duration-300 hover:cursor-pointer hover:scale-110 hover:bg-[#3AB33A] rounded-md sm:px-8 sm:text-lg"
         >
           Sign Up For Free
         </button>
@@ -686,9 +717,8 @@ const Home = () => {
         className="bg-white text-black py-2 flex flex-col"
       >
         <h2
-          onClick={() => setShowHowItWorks((prev) => !prev)}
           className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4 
-             text-black-800 cursor-pointer hover:underline hover:text-green-600 transition"
+             text-black-800 transition"
         >
           How It Works
         </h2>
@@ -697,13 +727,13 @@ const Home = () => {
           Seamlessly connect with fundis, professionals, contractors, and
           hardware in just a few steps.
         </p>
-        <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-center gap-4 md:gap-10 px-10 mt-5 w-auto">
+        <div className="mt-5 flex w-full flex-col items-center justify-center gap-4 px-4 sm:flex-row sm:items-center sm:gap-6 sm:px-6 md:gap-10">
           {categories.map((category) => (
             <button
               type="button"
               key={category.name}
               onClick={() => handleCategory(category)}
-              className={`bg-[rgb(0,0,122)] w-72 sm:w-40 px-6 py-2 rounded-full my-1.5 justify-center text-white shadow-md hover:cursor-pointer hover:scale-105 hover:transition duration-700 ease-in-out transition  ${selectedCategory === category.name
+              className={`bg-[rgb(0,0,122)] w-full max-w-xs px-6 py-2 rounded-full my-1.5 justify-center text-white shadow-md hover:cursor-pointer hover:scale-105 hover:transition duration-700 ease-in-out transition sm:w-40  ${selectedCategory === category.name
                   ? "bg-green-600 text-white"
                   : " hover:bg-gray-400"
                 }`}
@@ -713,14 +743,14 @@ const Home = () => {
           ))}
         </div>
 
-        <div className="bg-[rgb(255, 255, 255)] p-4 hover:transition duration-700 ease-in-out md:px-4 w-4/5 sm:w-full mt-2 mx-auto">
+        <div className="mx-auto mt-2 w-full max-w-6xl bg-[rgb(255, 255, 255)] p-4 hover:transition duration-700 ease-in-out md:px-4">
           <div className="flex flex-col items-center justify-center text-gray-100 md:flex-row 2xl:pl-24">
             {steps.map((step) => (
               <div
                 key={step.id}
-                className="flex items-center w-full justify-between p-3"
+                className="flex w-full items-center justify-center p-3 md:justify-between"
               >
-                <div className="flex flex-col md:flex-row w-72 md:w-48 px-4 py-2 bg-white text-black rounded-lg justify-start items-start shadow-md relative">
+                <div className="flex flex-col md:flex-row w-full max-w-xs md:w-48 px-4 py-2 bg-white text-black rounded-lg justify-start items-start shadow-md relative">
                   <div className="flex absolute -top-4 -left-4 items-center justify-center w-8 h-8 bg-gray-300 border-2 border-gray-300 rounded-full text-black font-bold">
                     {step.id}
                   </div>
@@ -737,7 +767,7 @@ const Home = () => {
             ))}
           </div>
         </div>
-        <div className="flex flex-col md:flex-row gap-6 items-center px-8">
+        <div className="flex flex-col items-center gap-6 px-4 md:flex-row md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -768,11 +798,11 @@ const Home = () => {
         transition={{ duration: 1 }}
         className="bg-gray-50 py-16 overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-3">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <h2 className="mb-3 text-center text-2xl font-bold sm:text-3xl">
             What Our Users Say
           </h2>
-          <p className="text-center text-gray-600 mb-12">
+          <p className="mb-10 text-center text-gray-600 sm:mb-12">
             Join thousands of satisfied homeowners, builders, and suppliers
             building with Jagedo.
           </p>
@@ -782,16 +812,20 @@ const Home = () => {
             <div
               className="flex transition-transform duration-700 ease-in-out"
               style={{
-                transform: `translateX(-${slideIndex * (100 / VISIBLE)}%)`,
+                transform: `translateX(-${slideIndex * (100 / testimonials.length)}%)`,
               }}
             >
               {testimonials.map((item, index) => (
                 <div
                   key={index}
-                  className="w-1/3 flex-shrink-0 px-3"
+                  className="flex-shrink-0 px-2 sm:px-3"
+                  style={{
+                    flex: `0 0 ${100 / visibleTestimonials}%`,
+                    maxWidth: `${100 / visibleTestimonials}%`,
+                  }}
                 >
-                  <div className="bg-white p-6 rounded-2xl shadow-lg relative h-full">
-                    <div className="absolute top-4 right-4 text-gray-200 text-6xl font-serif">
+                  <div className="relative h-full rounded-2xl bg-white p-5 shadow-lg sm:p-6">
+                    <div className="absolute right-4 top-4 font-serif text-5xl text-gray-200 sm:text-6xl">
                       “
                     </div>
 
@@ -802,12 +836,12 @@ const Home = () => {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       <div>
-                        <h4 className="font-bold text-sm">{item.name}</h4>
+                        <h4 className="text-sm font-bold sm:text-base">{item.name}</h4>
                         <p className="text-[rgb(0,0,122)] text-sm">{item.role}</p>
                       </div>
                     </div>
 
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    <p className="mb-4 text-sm leading-relaxed text-gray-600 sm:text-base">
                       "{item.text}"
                     </p>
 
