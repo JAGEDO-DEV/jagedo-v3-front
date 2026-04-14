@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_SERVER_URL;
 
 /**
  * Get the complete permission matrix for all modules (public endpoint)
