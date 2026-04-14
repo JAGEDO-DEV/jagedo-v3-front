@@ -762,7 +762,7 @@ export function ProfileCompletion({
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 mb-4">
                                     <ShieldCheck className="h-8 w-8 text-amber-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800">
+                                <h3 className="text-xl font-semibold text-gray-800">
                                     Verify Your <strong className="font-semibold">{secondaryContact.contactType === "EMAIL" ? "Email " : "Phone number"}</strong>
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1">One last step to secure your account</p>
