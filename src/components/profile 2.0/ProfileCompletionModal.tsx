@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
 import { ProfileCompletion } from "./ProfileCompletion";
 
 
@@ -29,9 +29,10 @@ export function ProfileCompletionModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleRedirectClose}>
+    <Dialog open={isOpen} onOpenChange={handleRedirectClose} >
+      <DialogOverlay className="!bg-transparent !opacity-0 pointer-events-none" style={{ backgroundColor: 'transparent', opacity: 0 }} />
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide p-0 border-0 bg-transparent shadow-none sm:max-w-4xl focus:outline-none [&>button]:hidden">
-        <div className="bg-white rounded-lg overflow-hidden w-full">
+        <div className="bg-gray-100 rounded-lg overflow-hidden w-full">
           <ProfileCompletion
             user={user}
             accountType={accountType}

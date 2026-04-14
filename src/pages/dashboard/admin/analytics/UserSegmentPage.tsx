@@ -34,7 +34,7 @@ export default function UserSegmentPage({
   title = "Customers",
 }: UserSegmentPageProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("90d");
   const [from, setFrom] = useState<string | undefined>(undefined);
   const [to, setTo] = useState<string | undefined>(undefined);
   const [analytics, setAnalytics] = useState<AnalyticsState>({
@@ -153,6 +153,7 @@ export default function UserSegmentPage({
   const getPeriodDisplayName = (p: string): string => {
     const map: { [key: string]: string } = {
       today: "Today",
+      thisWeek: "This Week",
       "7d": "7d",
       "30d": "30d",
       "90d": "90d",

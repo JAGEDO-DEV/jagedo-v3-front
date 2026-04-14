@@ -459,11 +459,13 @@ export type GroupBy = "day" | "week" | "month";
 
 export const getSummaryAnalytics = async (
   axiosInstance: any,
+  period?: string,
   from?: string,
   to?: string
 ): Promise<ApiResponse<SummaryAnalyticsResponse>> => {
   try {
     const params = new URLSearchParams();
+    if (period) params.append("period", period);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
 
@@ -491,6 +493,7 @@ export const getLifecycleTrends = async (
   groupBy: GroupBy = "month",
   cumulative: boolean = false,
   segment?: string,
+  period?: string,
   from?: string,
   to?: string
 ): Promise<ApiResponse<LifecycleTrendItem[]>> => {
@@ -500,6 +503,7 @@ export const getLifecycleTrends = async (
     params.append("groupBy", groupBy);
     params.append("cumulative", String(cumulative));
     if (segment) params.append("segment", segment);
+    if (period) params.append("period", period);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
 
