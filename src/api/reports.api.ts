@@ -3,12 +3,7 @@ import { getAuthHeaders } from "@/utils/auth";
 
 const serverUrl = import.meta.env.VITE_SERVER_URL;
 
-const REPORTS_BASE =
-  (import.meta.env.VITE_SERVER_URL as string | undefined)
-    ? `${String(import.meta.env.VITE_SERVER_URL).replace(/\/$/, "")}/reports`
-    : serverUrl === ""
-    ? "/api/reports"
-    : `${String(serverUrl).replace(/\/$/, "")}/api/reports`;
+const REPORTS_BASE = `${serverUrl}/api/reports`;
 
 export const getCycleOneSummary = async (axiosInstance: any) => {
   const response = await axiosInstance.get(`${REPORTS_BASE}/cycle-one-summary/`, {
