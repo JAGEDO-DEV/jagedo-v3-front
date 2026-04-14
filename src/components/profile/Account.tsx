@@ -13,12 +13,13 @@ import {
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield, Clock, Check, X } from "lucide-react";
+import { FiCheck, FiX } from "react-icons/fi";
 
-const isValidPhone = (phone: string) => /^2547\d{8}$/.test(phone);
+const isValidPhone = (phone: string) => /^(?:254|0|7|1)\d{8,11}$/.test(phone.replace(/[\s+]/g, ''));
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-// Accept data prop
+
 function AccountInfo({ data, refreshData }) {
   const fileInputRef = useRef(null);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
@@ -26,7 +27,7 @@ function AccountInfo({ data, refreshData }) {
   const [profile, setProfile] = useState(null);
   const [imageSrc, setImageSrc] = useState("/profile.jpg");
 
-  // Edit states
+  
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -39,26 +40,22 @@ function AccountInfo({ data, refreshData }) {
   const [phoneValid, setPhoneValid] = useState(false);
   const [emailValid, setEmailValid] = useState(false);
 
-  // OTP states
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
-  const [emailOtpSent, setEmailOtpSent] = useState(false);
-  const [phoneOtpValue, setPhoneOtpValue] = useState("");
-  const [emailOtpValue, setEmailOtpValue] = useState("");
-  const [phoneOtpVerified, setPhoneOtpVerified] = useState(false);
-  const [emailOtpVerified, setEmailOtpVerified] = useState(false);
-
-  // Loading states
+  
   const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false);
-  const [isVerifyingPhoneOtp, setIsVerifyingPhoneOtp] = useState(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
-  const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpMethod, setOtpMethod] = useState<"email" | "phone" | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      // Map API Data to Profile Structure
+      
       const isOrgData = data?.accountType?.toLowerCase() === "organization" || 
                         data?.accountType?.toLowerCase() === "business" || 
                         data?.userType === "CONTRACTOR" || 
@@ -71,7 +68,7 @@ function AccountInfo({ data, refreshData }) {
         email: data.email || "",
         phone: data.phone || "",
         userType: data.userType,
-        type: data.accountType, // e.g., ORGANIZATION
+        type: data.accountType, 
         organizationName: data.organizationName || "",
         contactFullName: data.contactFullName || "",
         avatar: data.profileImage || null
@@ -102,12 +99,19 @@ function AccountInfo({ data, refreshData }) {
 
   /* ---------- OTP HELPERS ---------- */
   const sendPhoneOtp = async () => {
+    if (phoneValue === profile.phone) {
+        setIsEditingPhone(false);
+        return;
+    }
     if (phoneValid && !isSendingPhoneOtp) {
       setIsSendingPhoneOtp(true);
       try {
-        await requestPhoneUpdateOtp(axiosInstance, { phone: phoneValue });
-        toast.success("OTP sent to new phone number");
-        setPhoneOtpSent(true);
+        const response = await requestPhoneUpdateOtp(axiosInstance, { phone: phoneValue });
+        
+        const msg = response?.data?.message || response?.message || "OTP sent to new phone number";
+        toast.success(msg);
+        setOtpMethod("phone");
+        setShowOtpModal(true);
       } catch (error: any) {
         toast.error(error.message || "Failed to send phone OTP");
       } finally {
@@ -117,12 +121,19 @@ function AccountInfo({ data, refreshData }) {
   };
 
   const sendEmailOtp = async () => {
+    if (emailValue === profile.email) {
+        setIsEditingEmail(false);
+        return;
+    }
     if (emailValid && !isSendingEmailOtp) {
       setIsSendingEmailOtp(true);
       try {
-        await requestEmailUpdateOtp(axiosInstance, { email: emailValue });
-        toast.success("OTP sent to new email");
-        setEmailOtpSent(true);
+        const response = await requestEmailUpdateOtp(axiosInstance, { email: emailValue });
+        
+        const msg = response?.data?.message || response?.message || "OTP sent to new email";
+        toast.success(msg);
+        setOtpMethod("email");
+        setShowOtpModal(true);
       } catch (error: any) {
         toast.error(error.message || "Failed to send email OTP");
       } finally {
@@ -131,45 +142,39 @@ function AccountInfo({ data, refreshData }) {
     }
   };
 
-  const verifyPhoneOtp = async () => {
-    if (phoneOtpValue.length === 6 && !isVerifyingPhoneOtp) {
-      setIsVerifyingPhoneOtp(true);
-      try {
-        const success = await updateProfilePhoneNumber(axiosInstance, {
-          phone: phoneValue,
-          otp: phoneOtpValue
-        });
-        if (success) {
-          toast.success("Phone verified and updated successfully");
-          setPhoneOtpVerified(true);
-          handlePhoneSave();
-        }
-      } catch (error: any) {
-        toast.error(error.message || "Invalid phone OTP");
-      } finally {
-        setIsVerifyingPhoneOtp(false);
-      }
+  const handleVerifyOtp = async () => {
+    if (!otpValue.trim()) {
+      toast.error("Please enter the OTP");
+      return;
     }
-  };
 
-  const verifyEmailOtp = async () => {
-    if (emailOtpValue.length === 6 && !isVerifyingEmailOtp) {
-      setIsVerifyingEmailOtp(true);
-      try {
-        const success = await updateProfileEmail(axiosInstance, {
-          email: emailValue,
-          otp: emailOtpValue
+    setIsUpdating(true);
+    try {
+      if (otpMethod === "phone") {
+        await updateProfilePhoneNumber(axiosInstance, {
+          phone: phoneValue,
+          otp: otpValue.trim()
         });
-        if (success) {
-          toast.success("Email verified and updated successfully");
-          setEmailOtpVerified(true);
-          handleEmailSave();
-        }
-      } catch (error: any) {
-        toast.error(error.message || "Invalid email OTP");
-      } finally {
-        setIsVerifyingEmailOtp(false);
+        toast.success("Phone updated successfully");
+        setProfile(prev => ({ ...prev, phone: phoneValue }));
+        setIsEditingPhone(false);
+      } else if (otpMethod === "email") {
+        await updateProfileEmail(axiosInstance, {
+          email: emailValue,
+          otp: otpValue.trim()
+        });
+        toast.success("Email updated successfully");
+        setProfile(prev => ({ ...prev, email: emailValue }));
+        setIsEditingEmail(false);
       }
+
+      setShowOtpModal(false);
+      setOtpValue("");
+      if (refreshData) refreshData();
+    } catch (error: any) {
+      toast.error(error.message || "Invalid or expired OTP");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -180,9 +185,9 @@ function AccountInfo({ data, refreshData }) {
       setIsUploadingImage(true);
       const loadingToast = toast.loading("Uploading profile image...");
       try {
-        // 1. Upload to storage
+        
         const uploaded = await uploadFile(file);
-        // 2. Update profile
+        
         await updateProfileImage(axiosInstance, uploaded.url);
 
         setImageSrc(uploaded.url);
@@ -194,20 +199,6 @@ function AccountInfo({ data, refreshData }) {
         setIsUploadingImage(false);
       }
     }
-  };
-
-  const handlePhoneSave = () => {
-    setProfile(prev => ({ ...prev, phone: phoneValue }));
-    setIsEditingPhone(false);
-    toast.success("Phone updated");
-    if (refreshData) refreshData();
-  };
-
-  const handleEmailSave = () => {
-    setProfile(prev => ({ ...prev, email: emailValue }));
-    setIsEditingEmail(false);
-    toast.success("Email updated");
-    if (refreshData) refreshData();
   };
 
   if (!profile) return <div className="p-10">Loading info...</div>;
@@ -344,22 +335,15 @@ function AccountInfo({ data, refreshData }) {
         editing={isEditingPhone}
         onEdit={() => {
           setIsEditingPhone(true);
-          setPhoneOtpSent(false);
-          setPhoneOtpValue("");
-          setPhoneOtpVerified(false);
         }}
         onChange={setPhoneValue}
-        onSave={handlePhoneSave}
-        canSave={phoneOtpVerified}
+        onSave={sendPhoneOtp}
         isValid={phoneValid}
-        otpSent={phoneOtpSent}
-        otpValue={phoneOtpValue}
-        otpVerified={phoneOtpVerified}
-        onSendOtp={sendPhoneOtp}
-        onVerifyOtp={verifyPhoneOtp}
-        onOtpChange={setPhoneOtpValue}
-        isSendingOtp={isSendingPhoneOtp}
-        isVerifyingOtp={isVerifyingPhoneOtp}
+        isLoading={isSendingPhoneOtp}
+        onCancel={() => {
+            setIsEditingPhone(false);
+            setPhoneValue(profile.phone);
+        }}
       />
 
       {/* EMAIL */}
@@ -369,23 +353,70 @@ function AccountInfo({ data, refreshData }) {
         editing={isEditingEmail}
         onEdit={() => {
           setIsEditingEmail(true);
-          setEmailOtpSent(false);
-          setEmailOtpValue("");
-          setEmailOtpVerified(false);
         }}
         onChange={setEmailValue}
-        onSave={handleEmailSave}
-        canSave={emailOtpVerified}
+        onSave={sendEmailOtp}
         isValid={emailValid}
-        otpSent={emailOtpSent}
-        otpValue={emailOtpValue}
-        otpVerified={emailOtpVerified}
-        onSendOtp={sendEmailOtp}
-        onVerifyOtp={verifyEmailOtp}
-        onOtpChange={setEmailOtpValue}
-        isSendingOtp={isSendingEmailOtp}
-        isVerifyingOtp={isVerifyingEmailOtp}
+        isLoading={isSendingEmailOtp}
+        onCancel={() => {
+            setIsEditingEmail(false);
+            setEmailValue(profile.email);
+        }}
       />
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Clock className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Verify Update</h3>
+              <p className="text-gray-500 mb-8">
+                An OTP has been sent to your new {otpMethod === "email" ? "email address" : "phone number"}. 
+                Please enter it below to confirm the change.
+              </p>
+              
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full px-4 py-4 text-center text-2xl font-mono tracking-[0.5em] border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                  maxLength={6}
+                />
+                
+                <div className="flex flex-col gap-3 mt-8">
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={isUpdating || !otpValue.trim()}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Check className="w-5 h-5" />
+                    )}
+                    Verify & Update
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowOtpModal(false);
+                      setOtpValue("");
+                    }}
+                    disabled={isUpdating}
+                    className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-600 font-semibold rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -413,58 +444,45 @@ const Field = ({ label, value }) => (
 
 const EditableField = ({
   label, value, editing, onEdit, onChange, onSave,
-  isValid, otpSent, otpValue, otpVerified, onSendOtp, onVerifyOtp, onOtpChange,
-  isSendingOtp, isVerifyingOtp
+  isValid, isLoading, onCancel
 }) => (
-  <div className="space-y-2 mb-4">
-    <label className="block text-sm font-medium text-gray-700">{label}</label>
-    <div className="flex items-center border-b">
+  <div className="space-y-2 mb-6">
+    <label className="block text-sm font-medium text-gray-500 uppercase tracking-wider">{label}</label>
+    <div className="flex items-center gap-3 bg-gray-50 p-1 rounded-lg border focus-within:border-blue-500 transition-all">
       <input
         value={value}
         readOnly={!editing}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 outline-none bg-transparent"
+        className={`flex-1 px-4 py-2 outline-none bg-transparent font-medium ${!editing ? 'text-gray-700' : 'text-blue-900'}`}
       />
       {!editing ? (
-        <button onClick={onEdit}><FiEdit size={15} /></button>
+        <button 
+            onClick={onEdit}
+            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+        >
+            <FiEdit size={18} />
+        </button>
       ) : (
-        <div className="flex items-center gap-2">
-          {!otpSent && isValid && (
-            <button
-              onClick={onSendOtp}
-              disabled={isSendingOtp}
-              className="text-blue-600 text-sm whitespace-nowrap disabled:opacity-50"
-            >
-              {isSendingOtp ? "Sending..." : "Send OTP"}
-            </button>
-          )}
-          {otpSent && !otpVerified && otpValue.length === 6 && (
-            <button
-              onClick={onVerifyOtp}
-              disabled={isVerifyingOtp}
-              className="text-blue-600 text-sm whitespace-nowrap disabled:opacity-50"
-            >
-              {isVerifyingOtp ? "Verifying..." : "Verify OTP"}
-            </button>
-          )}
-          {otpVerified && (
-            <button onClick={onSave} className="text-green-600 text-sm whitespace-nowrap">Save</button>
-          )}
+        <div className="flex items-center gap-2 p-1">
+          <button
+              onClick={onSave}
+              disabled={isLoading || !isValid}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
+          >
+              {isLoading ? <Loader2 size={14} className="animate-spin" /> : <FiCheck size={14} />}
+              Save
+          </button>
+          <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition text-sm font-medium"
+          >
+              <FiX size={14} />
+              Cancel
+          </button>
         </div>
       )}
     </div>
-    {editing && otpSent && !otpVerified && (
-      <div className="mt-2">
-        <input
-          type="text"
-          value={otpValue}
-          onChange={(e) => onOtpChange(e.target.value.replace(/\D/g, ""))}
-          maxLength={6}
-          placeholder="Enter 6-digit OTP"
-          className="w-full px-4 py-2 border rounded outline-none"
-        />
-      </div>
-    )}
   </div>
 );
 

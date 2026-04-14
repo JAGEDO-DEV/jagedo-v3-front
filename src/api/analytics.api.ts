@@ -1,606 +1,579 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getAuthHeaders } from "@/utils/auth";
 
-/**
- * Get builders dashboard data
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with builders dashboard data
- */
-export const getBuildersDashboard = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/builders?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/builders`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get builders dashboard data");
-    }
+const API_BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics`;
+
+// ============================================================================
+// RESPONSE TYPES & INTERFACES
+// ============================================================================
+
+export interface DateRange {
+  from: string;
+  to: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+// CUSTOMER ANALYTICS
+export interface CustomerMetrics {
+  totalCustomers: number;
+  typeDistribution: {
+    total: number;
+    individual: { count: number; percentage: number };
+    organization: { count: number; percentage: number };
+  };
+  signupSegmentStats: {
+    totalSignups: number;
+    leader: "individual" | "organization";
+    segments: {
+      individual: { count: number; percentage: number };
+      organization: { count: number; percentage: number };
+    };
+  };
+  signupStats: {
+    totalSignups: number;
+    averagePerDay: number;
+    activeDays: number;
+    daysInRange: number;
+    activeDayPercentage: number;
+  };
+  highestLowest: {
+    highest: number;
+    lowest: number;
+    firstPeriod: number;
+    secondPeriod: number;
+  };
+}
+
+export interface SignupTrendItem {
+  period: string;
+  date: string;
+  count: number;
+}
+
+export interface SegmentPerformanceItem {
+  period: string;
+  total: number;
+  individual: number;
+  organization: number;
+  individualPct: number;
+  organizationPct: number;
+}
+
+export interface ActivityStatsItem {
+  count: number;
+  percentage: number;
+}
+
+export interface ActivityStats {
+  totalCustomers: number;
+  activities: {
+    draftRequests: ActivityStatsItem;
+    requests: ActivityStatsItem;
+    activeJobs: ActivityStatsItem;
+    completedJobs: ActivityStatsItem;
+    reviewed: ActivityStatsItem;
+  };
+}
+
+export interface CustomerChart {
+  signupTrend: SignupTrendItem[];
+  segmentPerformance: SegmentPerformanceItem[];
+  activityStats: ActivityStats;
+}
+
+export interface CustomerAnalytics {
+  period: string;
+  dateRange: DateRange;
+  metrics: CustomerMetrics;
+  charts: CustomerChart;
+}
+
+// BUILDER ANALYTICS
+export interface BuilderMetrics {
+  totalBuilders: number;
+  builderTypeDistribution: {
+    fundi: { count: number; percentage: number };
+    contractor: { count: number; percentage: number };
+    professional: { count: number; percentage: number };
+    hardware: { count: number; percentage: number };
+  };
+  signupSegmentStats: {
+    totalSignups: number;
+    leader: "fundi" | "contractor" | "professional" | "hardware";
+    segments: {
+      fundi: { count: number; percentage: number };
+      contractor: { count: number; percentage: number };
+      professional: { count: number; percentage: number };
+      hardware: { count: number; percentage: number };
+    };
+  };
+  signupStats: {
+    totalSignups: number;
+    averagePerDay: number;
+    activeDays: number;
+    daysInRange: number;
+    activeDayPercentage: number;
+  };
+  highestLowest: {
+    highest: number;
+    lowest: number;
+    firstPeriod: number;
+    secondPeriod: number;
+  };
+}
+
+export interface BuilderActivityStatsItem {
+  count: number;
+  percentage: number;
+}
+
+export interface BuilderActivityStats {
+  totalBuilders: number;
+  activities: {
+    activeJobs: BuilderActivityStatsItem;
+    completedJobs: BuilderActivityStatsItem;
+    bids: BuilderActivityStatsItem;
+    reviewed: BuilderActivityStatsItem;
+    rated: BuilderActivityStatsItem;
+  };
+}
+
+export interface BuilderSignupTrendItem {
+  period: string;
+  date: string;
+  count: number;
+}
+
+export interface BuilderSegmentPerformanceItem {
+  period: string;
+  total: number;
+  fundi: number;
+  contractor: number;
+  professional: number;
+  hardware: number;
+  fundiPct: number;
+  contractorPct: number;
+  professionalPct: number;
+  hardwarePct: number;
+}
+
+export interface BuilderChart {
+  signupTrend: BuilderSignupTrendItem[];
+  segmentPerformance: BuilderSegmentPerformanceItem[];
+  activityStats: BuilderActivityStats;
+}
+
+export interface BuilderAnalytics {
+  period: string;
+  dateRange: DateRange;
+  metrics: BuilderMetrics;
+  charts: BuilderChart;
+}
+
+// REQUEST ANALYTICS
+export interface RequestMetrics {
+  totalRequests: {
+    total: number;
+    jobRequests: number;
+    orders: number;
+  };
+  managementDistribution: {
+    total: number;
+    jobs: { count: number; percentage: number };
+    orders: { count: number; percentage: number };
+  };
+  jobsVsOrders: {
+    jobs: number;
+    orders: number;
+    total: number;
+  };
+  statusBreakdown: {
+    total: number;
+    statuses: {
+      draft: { count: number; percentage: number };
+      new: { count: number; percentage: number };
+      quotation: { count: number; percentage: number };
+      active: { count: number; percentage: number };
+      completed: { count: number; percentage: number };
+      reviewed: { count: number; percentage: number };
+    };
+  };
+}
+
+export interface RequestChart {
+  statusTrend: Array<{ period: string; total: number; statuses: any }>;
+  typeTrend: Array<{ period: string; jobs: number; orders: number }>;
+}
+
+export interface RequestAnalytics {
+  period: string;
+  dateRange: DateRange;
+  metrics: RequestMetrics;
+  charts: RequestChart;
+}
+
+// WEB ANALYTICS
+export interface WebMetrics {
+  totalVisitors: number;
+  activeUsers: number;
+  conversionRate: number;
+  bounceRate: number;
+}
+
+export interface WebChart {
+  topCountries: Array<{ country: string; count: number; percentage: number }>;
+  deviceUsage: { total: number; devices: Record<string, { count: number; percentage: number }> };
+  trafficSources: { total: number; sources: Array<{ name: string; count: number; percentage: number }> };
+  specificDevices: { total: number; devices: Array<{ name: string; count: number; percentage: number }> };
+  visitorTrend: Array<{ date: string; visitors: number; sessions: number }>;
+}
+
+export interface WebAnalytics {
+  period: string;
+  dateRange: DateRange;
+  metrics: WebMetrics;
+  charts: WebChart;
+}
+
+// PRODUCTS ANALYTICS
+export interface ProductMetrics {
+  totalProducts: number;
+  hardware: number;
+  customProducts: number;
+  machinery: number;
+  designs: number;
+  approved: number;
+  pendingApproval: number;
+  pricingCoverage: number;
+  averagePricePoint: number;
+}
+
+export interface ProductChart {
+  categoryDistribution: Array<{ name: string; count: number; percentage: number }>;
+  productProgression: Array<{ date: string; productCount: number }>;
+  topRegionsByAvailability: Array<{ region: string; count: number; percentage: number }>;
+}
+
+export interface ProductAnalytics {
+  period: string;
+  dateRange: DateRange;
+  metrics: ProductMetrics;
+  charts: ProductChart;
+}
+
+// ============================================================================
+// CUSTOMER ANALYTICS API
+// ============================================================================
+
+export const getCustomerAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<ApiResponse<CustomerAnalytics>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(`${API_BASE_URL}/customers?${params.toString()}`, {
+      headers: {
+        Authorization: getAuthHeaders(),
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch customer analytics");
+  }
 };
 
-/**
- * Get customers dashboard data
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with customers dashboard data
- */
-export const getCustomersDashboard = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/customers?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/customers`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get customers dashboard data");
-    }
+// ============================================================================
+// BUILDER ANALYTICS API
+// ============================================================================
+
+export const getBuilderAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<ApiResponse<BuilderAnalytics>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(`${API_BASE_URL}/builders?${params.toString()}`, {
+      headers: {
+        Authorization: getAuthHeaders(),
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch builder analytics");
+  }
 };
 
-/**
- * Get sales analytics data
- * @param axiosInstance - Axios instance for making requests
- * @returns Promise with sales analytics data
- */
-export const getSalesAnalytics = async (axiosInstance: any): Promise<any> => {
-    try {
-        const response = await axiosInstance.get(`${import.meta.env.VITE_SERVER_URL}/api/dashboard/sales`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get sales analytics data");
-    }
+// ============================================================================
+// REQUEST ANALYTICS API
+// ============================================================================
+
+export const getRequestAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<ApiResponse<RequestAnalytics>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(`${API_BASE_URL}/requests?${params.toString()}`, {
+      headers: {
+        Authorization: getAuthHeaders(),
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch request analytics");
+  }
 };
 
-/**
- * Get sales requests/admin activity data
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with sales requests data
- */
-export const getSalesRequests = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/sales/requests?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/sales/requests`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get sales requests data");
-    }
+// ============================================================================
+// WEB ANALYTICS API
+// ============================================================================
+
+export const getWebAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<ApiResponse<WebAnalytics>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(`${API_BASE_URL}/web?${params.toString()}`, {
+      headers: {
+        Authorization: getAuthHeaders(),
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch web analytics");
+  }
 };
 
-/**
- * Get dashboard overview (combines builders and customers data)
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with dashboard overview data
- */
-export const getDashboardOverview = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/overview?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/overview`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get dashboard overview");
-    }
+// ============================================================================
+// PRODUCTS ANALYTICS API
+// ============================================================================
+
+export const getProductsAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<ApiResponse<ProductAnalytics>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(`${API_BASE_URL}/products?${params.toString()}`, {
+      headers: {
+        Authorization: getAuthHeaders(),
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch products analytics");
+  }
 };
 
-/**
- * Export dashboard data
- * @param axiosInstance - Axios instance for making requests
- * @param type - Export type (builders, customers, sales)
- * @param format - Export format (csv, json)
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with exported data
- */
-export const exportDashboardData = async (
-    axiosInstance: any, 
-    type: 'builders' | 'customers' | 'sales',
-    format: 'csv' | 'json' = 'csv',
-    period?: string
-): Promise<any> => {
-    try {
-        let url = `${import.meta.env.VITE_SERVER_URL}/api/dashboard/export?type=${type}&format=${format}`;
-        
-        if (period) {
-            url += `&period=${period}`;
-        }
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            },
-            responseType: format === 'csv' ? 'blob' : 'json'
-        });
-        
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to export dashboard data");
-    }
+// ============================================================================
+// SUMMARY ANALYTICS (Single endpoint)
+// ============================================================================
+
+export interface SummaryMetrics {
+  activeUsers: number;
+  newSignups: number;
+  profileCompletion: { total: number; complete: number; rate: number };
+  verificationRate: { total: number; verified: number; rate: number };
+  suspensionRate: { total: number; suspended: number; rate: number };
+  returnRate: { returningCount: number; totalActive: number; rate: number };
+  deletedCount: number;
+  operationalSessions: number;
+}
+
+export interface UserCompositionItem {
+  label: string;
+  value: number;
+}
+
+export interface UserCategoryTrendItem {
+  month: string;
+  total: number;
+  customerIndividual: number;
+  customerOrg: number;
+  fundi: number;
+  professional: number;
+  contractor: number;
+  hardware: number;
+  other: number;
+}
+
+export interface TopLocationItem {
+  county: string;
+  count: number;
+}
+
+export interface SummaryCharts {
+  userComposition: UserCompositionItem[];
+  userCategoryTrend: UserCategoryTrendItem[];
+  topLocations: TopLocationItem[];
+}
+
+export interface SummaryAnalyticsResponse {
+  metrics: SummaryMetrics;
+  charts: SummaryCharts;
+}
+
+export interface LifecycleTrendItem {
+  period: string;
+  count: number;
+}
+
+export type LifecycleEvent = "signup" | "login" | "otp_success" | "otp_fail" | "suspension" | "deletion" | "verification";
+export type GroupBy = "day" | "week" | "month";
+
+export const getSummaryAnalytics = async (
+  axiosInstance: any,
+  from?: string,
+  to?: string
+): Promise<ApiResponse<SummaryAnalyticsResponse>> => {
+  try {
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(
+      `${import.meta.env.VITE_SERVER_URL}/api/dashboard/summary${params.toString() ? "?" + params.toString() : ""}`,
+      {
+        headers: {
+          Authorization: getAuthHeaders(),
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch summary analytics");
+  }
 };
 
-/**
- * Get admin summary (admin only)
- * @param axiosInstance - Axios instance for making requests
- * @returns Promise with admin summary data
- */
-export const getAdminSummary = async (axiosInstance: any): Promise<any> => {
-    try {
-        const response = await axiosInstance.get(`${import.meta.env.VITE_SERVER_URL}/api/dashboard/admin/summary`, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get admin summary");
-    }
+// ============================================================================
+// LIFECYCLE TRENDS API
+// ============================================================================
+
+export const getLifecycleTrends = async (
+  axiosInstance: any,
+  event: LifecycleEvent = "signup",
+  groupBy: GroupBy = "month",
+  cumulative: boolean = false,
+  segment?: string,
+  from?: string,
+  to?: string
+): Promise<ApiResponse<LifecycleTrendItem[]>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("event", event);
+    params.append("groupBy", groupBy);
+    params.append("cumulative", String(cumulative));
+    if (segment) params.append("segment", segment);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(
+      `${import.meta.env.VITE_SERVER_URL}/api/dashboard/summary/lifecycle?${params.toString()}`,
+      {
+        headers: {
+          Authorization: getAuthHeaders(),
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch lifecycle trends");
+  }
 };
 
-/**
- * Get builders activity statistics
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with builders activity data
- */
-export const getBuildersActivity = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/builders/activity?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/builders/activity`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get builders activity data");
-    }
+// ============================================================================
+// BATCH ANALYTICS (All at once)
+// ============================================================================
+
+export const getAllAnalytics = async (
+  axiosInstance: any,
+  period: string = "today",
+  from?: string,
+  to?: string
+): Promise<{
+  customers: ApiResponse<CustomerAnalytics>;
+  builders: ApiResponse<BuilderAnalytics>;
+  requests: ApiResponse<RequestAnalytics>;
+  web: ApiResponse<WebAnalytics>;
+  products: ApiResponse<ProductAnalytics>;
+}> => {
+  try {
+    const [customers, builders, requests, web, products] = await Promise.all([
+      getCustomerAnalytics(axiosInstance, period, from, to),
+      getBuilderAnalytics(axiosInstance, period, from, to),
+      getRequestAnalytics(axiosInstance, period, from, to),
+      getWebAnalytics(axiosInstance, period, from, to),
+      getProductsAnalytics(axiosInstance, period, from, to),
+    ]);
+
+    return { customers, builders, requests, web, products };
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to fetch all analytics");
+  }
 };
 
-/**
- * Get customers activity statistics
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with customers activity data
- */
-export const getCustomersActivity = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/customers/activity?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/customers/activity`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get customers activity data");
-    }
+// ============================================================================
+// PRODUCT VIEW TRACKING
+// ============================================================================
+
+export const logProductView = async (
+  axiosInstance: any,
+  productId: number,
+  productName?: string
+): Promise<void> => {
+  try {
+    await axiosInstance.post(
+      `${import.meta.env.VITE_SERVER_URL}/api/analytics/event`,
+      {
+        action: "product_view",
+        data: {
+          productId,
+          productName,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      {
+        timeout: 5000,
+      }
+    );
+  } catch (err) {
+    console.warn('[Analytics] Failed to log product view:', err);
+    // Don't throw - analytics failures shouldn't break the app
+  }
 };
-
-/**
- * Get revenue by builder type
- * @param axiosInstance - Axios instance for making requests
- * @param year - Optional year filter
- * @returns Promise with revenue by builder type data
- */
-export const getRevenueByBuilderType = async (axiosInstance: any, year?: number): Promise<any> => {
-    try {
-        const url = year 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/revenue/builder-type?year=${year}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/revenue/builder-type`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get revenue by builder type");
-    }
-};
-
-/**
- * Get sales performance data
- * @param axiosInstance - Axios instance for making requests
- * @param years - Number of years to include (default: 5)
- * @returns Promise with sales performance data
- */
-export const getSalesPerformance = async (axiosInstance: any, years: number = 5): Promise<any> => {
-    try {
-        const response = await axiosInstance.get(
-            `${import.meta.env.VITE_SERVER_URL}/api/dashboard/sales/performance?years=${years}`, 
-            {
-                headers: {
-                    Authorization: getAuthHeaders()
-                }
-            }
-        );
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get sales performance data");
-    }
-};
-
-/**
- * Get management distribution data
- * @param axiosInstance - Axios instance for making requests
- * @param year - Optional year filter
- * @returns Promise with management distribution data
- */
-export const getManagementDistribution = async (axiosInstance: any, year?: number): Promise<any> => {
-    try {
-        const url = year 
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/management/distribution?year=${year}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/management/distribution`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get management distribution data");
-    }
-};
-
-/**
- * Get sales activities (customer or service provider activity)
- * @param axiosInstance - Axios instance for making requests
- * @returns Promise with sales activity data
- */
-export const getSalesActivities = async (axiosInstance: any): Promise<any> => {
-    try {
-        const response = await axiosInstance.get(
-            `${import.meta.env.VITE_SERVER_URL}/api/dashboard/activity`,
-            {
-                headers: {
-                    Authorization: getAuthHeaders()
-                }
-            }
-        );
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get sales activities");
-    }
-};
-
-/**
- * Get admin analytics and summary data
- * @param axiosInstance - Axios instance for making requests
- * @param period - Optional period filter (1day, 1week, 1month, 1year, 5years)
- * @returns Promise with analytics data
- */
-export const getAnalytics = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics`;
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get analytics");
-    }
-};
-
-// --------- new analytics API helpers ---------
-export const getUserGrowthTrends = async (axiosInstance: any, period?: string, filters: Record<string, any> = {}): Promise<any> => {
-    try {
-        let url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/growth?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/growth`;
-        // append filter query params if present
-        Object.entries(filters).forEach(([k,v]) => {
-            if (v != null) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
-            }
-        });
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get user growth trends");
-    }
-};
-
-export const getUserAcquisitionSources = async (axiosInstance: any, period?: string, filters: Record<string, any> = {}): Promise<any> => {
-    try {
-        let url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/acquisition?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/acquisition`;
-        Object.entries(filters).forEach(([k,v]) => {
-            if (v != null) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
-            }
-        });
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get user acquisition sources");
-    }
-};
-
-export const getActiveInactiveUsers = async (axiosInstance: any, period?: string, filters: Record<string, any> = {}): Promise<any> => {
-    try {
-        let url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/active-inactive?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/active-inactive`;
-        Object.entries(filters).forEach(([k,v]) => {
-            if (v != null) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
-            }
-        });
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get active/inactive users");
-    }
-};
-
-export const getProfileCompletionRates = async (axiosInstance: any, period?: string, filters: Record<string, any> = {}): Promise<any> => {
-    try {
-        let url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/profile-completion?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/profile-completion`;
-        Object.entries(filters).forEach(([k,v]) => {
-            if (v != null) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
-            }
-        });
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get profile completion rates");
-    }
-};
-
-export const getRoleBasedActivity = async (axiosInstance: any, period?: string, filters: Record<string, any> = {}): Promise<any> => {
-    try {
-        let url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/role-activity?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/users/role-activity`;
-        Object.entries(filters).forEach(([k,v]) => {
-            if (v != null) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
-            }
-        });
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get role-based activity");
-    }
-};
-
-export const getProductUploadTrends = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/upload-trends?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/upload-trends`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get product upload trends");
-    }
-};
-
-export const getCategoryPerformance = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/category-performance?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/category-performance`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get category performance");
-    }
-};
-
-export const getSupplierActivity = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/supplier-activity?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/supplier-activity`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get supplier activity");
-    }
-};
-
-export const getMostViewedProducts = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/most-viewed?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/most-viewed`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get most viewed products");
-    }
-};
-
-export const getProductApprovalRejection = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/approval?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/products/approval`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get product approval stats");
-    }
-};
-
-export const getLoginFrequency = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/login-frequency?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/login-frequency`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get login frequency");
-    }
-};
-
-export const getOtpSuccessFailure = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/otp?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/otp`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get OTP stats");
-    }
-};
-
-export const getSessionTracking = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/sessions?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/sessions`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get session tracking data");
-    }
-};
-
-export const getFeatureUsage = async (axiosInstance: any, period?: string): Promise<any> => {
-    try {
-        const url = period
-            ? `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/feature-usage?period=${period}`
-            : `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/engagement/feature-usage`;
-        const response = await axiosInstance.get(url, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to get feature usage data");
-    }
-};
-
-// add other helpers similarly if needed (product/shop, engagement) as application evolves
-
-export const logProductView = async (axiosInstance: any, productId: string): Promise<any> => {
-    try {
-        const url = `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/event/product-view`;
-        const response = await axiosInstance.post(url, { productId }, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Failed to log product view');
-    }
-};
-
-export const logFeatureUsage = async (axiosInstance: any, feature: string): Promise<any> => {
-    try {
-        const url = `${import.meta.env.VITE_SERVER_URL}/api/dashboard/analytics/event/feature-usage`;
-        const response = await axiosInstance.post(url, { feature }, { headers: { Authorization: getAuthHeaders() } });
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Failed to log feature usage');
-    }
-};
-
-export const exportAnalyticsReport = async (
-    axiosInstance: any,
-    type: 'builders' | 'customers' | 'sales',
-    format: 'csv' | 'json' | 'xlsx' = 'csv',
-    period?: string
-): Promise<any> => {
-    try {
-        let url = `${import.meta.env.VITE_SERVER_URL}/api/dashboard/export?type=${type}&format=${format}`;
-        if (period) {
-            url += `&period=${period}`;
-        }
-        
-        const response = await axiosInstance.get(url, {
-            headers: {
-                Authorization: getAuthHeaders()
-            },
-            responseType: format === 'json' ? 'json' : 'blob'
-        });
-        
-        return response.data;
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Failed to export analytics report');
-    }
-};
-
-// Export all functions as a single object for convenience
-const analyticApi = {
-    getBuildersDashboard,
-    getCustomersDashboard,
-    getSalesAnalytics,
-    getSalesRequests,
-    getDashboardOverview,
-    exportDashboardData,
-    exportAnalyticsReport,
-    getAdminSummary,
-    getBuildersActivity,
-    getCustomersActivity,
-    getRevenueByBuilderType,
-    getSalesPerformance,
-    getManagementDistribution,
-    getSalesActivities,
-    getAnalytics,
-    getUserGrowthTrends,
-    getUserAcquisitionSources,
-    getActiveInactiveUsers,
-    getProfileCompletionRates,
-    getRoleBasedActivity,
-    getProductUploadTrends,
-    getProductApprovalRejection,
-    getCategoryPerformance,
-    getSupplierActivity,
-    getMostViewedProducts,
-    getLoginFrequency,
-    getOtpSuccessFailure,
-    getSessionTracking,
-    getFeatureUsage,
-    logProductView,
-    logFeatureUsage
-};
-
-export default analyticApi;

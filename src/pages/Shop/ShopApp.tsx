@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import ShopSlider from "@/components/shop/ShopSlider";
 import HeroSection from "@/components/shop/HeroSection";
-import CategoryTabs from "@/components/shop/CategoryTabs";
+import GroupTabs from "@/components/shop/GroupTabs";
 import LocationDropdown from "@/components/shop/LocationDropdown";
 import Sidebar from "@/components/shop/SideBar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -25,20 +25,22 @@ import {
 
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { getActiveFilterOptionsByType } from "@/api/groups.api";
 
 const ITEMS_PER_PAGE = 12;
 const INITIAL_FILTERS = ["All Products"];
 
-const CATEGORIES_WITHOUT_LOCATION_FILTER: string[] = [];
+const GROUPS_WITHOUT_LOCATION_FILTER: string[] = [];
 
-const CATEGORY_MAPPINGS: Record<string, string[]> = {
+const GROUP_MAPPINGS: Record<string, string[]> = {
     hardware: ["Cement", "Pipes and Fittings", "Reinforcement Bars", "Steel", "Aluminum", "Glass", "HARDWARE"],
     custom: ["Custom Products", "Windows", "Doors", "Gates", "FUNDI"],
     equipment: ["Equipment", "Machinery", "Tools", "CONTRACTOR"],
     designs: ["Plans", "Designs", "PROFESSIONAL"],
 };
 
-const LOCATION_CATEGORY_TYPES: Record<string, string[]> = {
+const LOCATION_GROUP_TYPES: Record<string, string[]> = {
     hardware: ["HARDWARE"],
     custom: ["FUNDI"],
     equipment: ["CONTRACTOR"],
@@ -46,7 +48,7 @@ const LOCATION_CATEGORY_TYPES: Record<string, string[]> = {
 };
 
 const ShopApp = () => {
-    const [activeCategory, setActiveCategory] = useState("hardware");
+    const [activeGroup, setActiveGroup] = useState("hardware");
     const [selectedFilters, setSelectedFilters] = useState<string[]>(INITIAL_FILTERS);
     const [selectedLocationName, setSelectedLocationName] = useState<string | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -54,21 +56,24 @@ const ShopApp = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navigate = useNavigate();
+    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const { data: products = [], isLoading, error } = useProducts();
     const { addToCart } = useCart();
 
-    const locationCategoryTypes = useMemo(
-        () => LOCATION_CATEGORY_TYPES[activeCategory] || [],
-        [activeCategory]
+    const [filterOptions, setFilterOptions] = useState<string[]>(INITIAL_FILTERS);
+
+    const locationGroupTypes = useMemo(
+        () => LOCATION_GROUP_TYPES[activeGroup] || [],
+        [activeGroup]
     );
 
     useEffect(() => {
         setSelectedFilters(INITIAL_FILTERS);
         setCurrentPage(1);
-        if (!CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory)) {
+        if (!GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup)) {
             setSelectedLocationName(null);
         }
-    }, [activeCategory]);
+    }, [activeGroup]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -99,12 +104,26 @@ const ShopApp = () => {
         setSelectedLocationName(locationName);
     }, []);
 
+    useEffect(() => {
+        const fetchDynamicFilters = async () => {
+            try {
+                const type = LOCATION_GROUP_TYPES[activeGroup]?.[0] || "HARDWARE";
+                const options = await getActiveFilterOptionsByType(axiosInstance, type);
+                setFilterOptions(options);
+            } catch (err) {
+                console.error("Failed to load dynamic filters:", err);
+                setFilterOptions(INITIAL_FILTERS);
+            }
+        };
+        fetchDynamicFilters();
+    }, [activeGroup, axiosInstance]);
+
     const filteredProducts = useMemo(() => {
         if (!products.length) {
             return [];
         }
 
-        const shouldApplyLocationFilter = !CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory);
+        const shouldApplyLocationFilter = !GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup);
         const hasSelectedLocation = !!selectedLocationName;
 
         let baseProductList = products;
@@ -113,35 +132,35 @@ const ShopApp = () => {
             baseProductList = products.filter(product => product.regionName === selectedLocationName);
         }
 
-        const primaryCategoryFilters = CATEGORY_MAPPINGS[activeCategory] || [];
-        const categoryFilteredProducts = baseProductList.filter(product => {
+        const primaryGroupFilters = GROUP_MAPPINGS[activeGroup] || [];
+        const groupFilteredProducts = baseProductList.filter(product => {
             const isCustom = product.custom;
-            const matchesCategoryMapping = primaryCategoryFilters.some(cat =>
+            const matchesGroupMapping = primaryGroupFilters.some(cat =>
                 product.type?.toLowerCase().includes(cat.toLowerCase())
             );
 
-            // In the "custom" tab, show anything explicitly marked custom OR matching the "custom" mapping (like FUNDI)
-            if (activeCategory === 'custom') {
-                return isCustom || matchesCategoryMapping;
+            
+            if (activeGroup === 'custom') {
+                return isCustom || matchesGroupMapping;
             }
 
-            // For other tabs (hardware, equipment, designs), only show non-custom items that match the category type mapping
+            
             if (shouldApplyLocationFilter) {
-                return !isCustom && matchesCategoryMapping;
+                return !isCustom && matchesGroupMapping;
             }
 
-            return matchesCategoryMapping;
+            return matchesGroupMapping;
         });
 
         const activeSidebarFilters = selectedFilters.filter(f => f !== "All Products");
         const sidebarFilteredProducts = activeSidebarFilters.length > 0
-            ? categoryFilteredProducts.filter(product =>
+            ? groupFilteredProducts.filter(product =>
                 activeSidebarFilters.some(filter =>
                     product.type.toLowerCase().includes(filter.toLowerCase()) ||
                     product.name.toLowerCase().includes(filter.toLowerCase())
                 )
             )
-            : categoryFilteredProducts;
+            : groupFilteredProducts;
 
         if (!hasSelectedLocation) {
             const grouped = new Map<string, { base: Product; minPrice: number; count: number }>();
@@ -172,7 +191,7 @@ const ShopApp = () => {
         }
 
         return sidebarFilteredProducts;
-    }, [products, activeCategory, selectedFilters, selectedLocationName]);
+    }, [products, activeGroup, selectedFilters, selectedLocationName]);
 
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -205,7 +224,11 @@ const ShopApp = () => {
     const handleProductClick = (product: Product) => setSelectedProduct(product);
     const handleBackToGrid = () => setSelectedProduct(null);
 
-    const ensureLocationSelected = (product: Product) => {
+    const ensureCanPurchase = (product: Product) => {
+        if (!product.isPriceSet) {
+            toast.error("Price not set for this product.");
+            return false;
+        }
         if (!selectedLocationName && product.isAggregated) {
             toast.error("Please select a location to see the exact price.");
             return false;
@@ -214,7 +237,7 @@ const ShopApp = () => {
     };
 
     const handleAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -225,7 +248,7 @@ const ShopApp = () => {
     };
 
     const handleGridAddToCartAndNavigate = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
@@ -236,7 +259,7 @@ const ShopApp = () => {
     };
 
     const handleBuyNow = (product: Product) => {
-        if (!ensureLocationSelected(product)) return;
+        if (!ensureCanPurchase(product)) return;
 
         const token = localStorage.getItem("token");
         const userStr = localStorage.getItem("user");
@@ -291,7 +314,14 @@ const ShopApp = () => {
             <DashboardHeader />
             <div className="p-4">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => {
+                        const token = localStorage.getItem("token");
+                        if (token) {
+                            navigate('/dashboard/customer');
+                        } else {
+                            navigate(-1);
+                        }
+                    }}
                     className="text-jagedo-blue hover:underline flex items-center gap-1"
                 >
                     ← Back
@@ -299,8 +329,11 @@ const ShopApp = () => {
 
             </div>
             <HeroSection />
+            <div className="py-4">
+                <ShopSlider />
+            </div>
             <div className="px-4">
-                <CategoryTabs activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+                <GroupTabs activeGroup={activeGroup} onGroupChange={setActiveGroup} />
             </div>
 
             <div className="px-4 pt-4 md:hidden">
@@ -332,16 +365,17 @@ const ShopApp = () => {
                             <X className="h-6 w-6" />
                         </button>
                     </div>
-                    {!CATEGORIES_WITHOUT_LOCATION_FILTER.includes(activeCategory) && (
+                    {!GROUPS_WITHOUT_LOCATION_FILTER.includes(activeGroup) && (
                         <LocationDropdown
                             selectedLocationName={selectedLocationName}
                             onSelectLocation={handleLocationSelect}
-                            categoryTypes={locationCategoryTypes}
+                            groupTypes={locationGroupTypes}
                         />
                     )}
                     <Sidebar
-                        category={activeCategory}
+                        group={activeGroup}
                         filters={selectedFilters}
+                        filterOptions={filterOptions}
                         onFilterChange={handleFilterChange}
                     />
                 </aside>

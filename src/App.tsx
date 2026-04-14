@@ -213,8 +213,8 @@ const ShopProducts = React.lazy(
 const ShopCustomerView = React.lazy(
     () => import("@/pages/dashboard/admin/shop/customer-view")
 );
-const ShopCategories = React.lazy(
-    () => import("@/pages/dashboard/admin/shop/categories")
+const ShopGroups = React.lazy(
+    () => import("@/pages/dashboard/admin/shop/groups")
 );
 const ShopAttributes = React.lazy(
     () => import("@/pages/dashboard/admin/shop/attributes")
@@ -244,6 +244,28 @@ const BuilderConfiguration = React.lazy(
 const SystemLogs = React.lazy(
     () => import("@/pages/dashboard/admin/SystemLogs")
 );
+
+// Reports Module
+const SystemReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/SystemReports")
+);
+const ProductReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/ProductReports")
+);
+const JobsReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/JobsReports")
+);
+const OrdersReports = React.lazy(
+    () => import("@/pages/dashboard/admin/reports/OrdersReports")
+);
+
+const SummaryPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/SummaryPage"));
+const customersPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/UserSegmentPage"));
+const requestsPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/RequestsPage"));
+const productsPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/ProductsPage"));
+const webPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/WebPage"));
+const buildersPage = React.lazy(()=> import("@/pages/dashboard/admin/analytics/BuildersPage"));
+
 
 const ProtectedRoutesLayout = () => (
     <Outlet />
@@ -673,17 +695,32 @@ function App() {
                                                 element={<ProtectedAdminRoute requiredMenu="analytics" />}
                                             >
                                                 <Route
-                                                    path="analytics"
-                                                    element={React.createElement(
-                                                        React.lazy(
-                                                            () =>
-                                                                import(
-                                                                    "@/pages/dashboard/admin/Analytics"
-                                                                )
-                                                        )
-                                                    )}
+                                                    path="analytics/summary"
+                                                    element={React.createElement(SummaryPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/customers"
+                                                    element={React.createElement(customersPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/requests"
+                                                    element={React.createElement(requestsPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/products"
+                                                    element={React.createElement(productsPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/web"
+                                                    element={React.createElement(webPage)}
+                                                />
+                                                <Route
+                                                    path="analytics/builders"
+                                                    element={React.createElement(buildersPage)}
                                                 />
                                             </Route>
+
+
 
                                             {/* User Management */}
                                             <Route
@@ -916,13 +953,13 @@ function App() {
                                                 />
                                             </Route>
 
-                                            {/* Shop Categories */}
+                                            {/* Shop Groups */}
                                             <Route
-                                                element={<ProtectedAdminRoute requiredMenu="shop-categories" />}
+                                                element={<ProtectedAdminRoute requiredMenu="shop-groups" />}
                                             >
                                                 <Route
-                                                    path="shop/categories"
-                                                    element={<ShopCategories />}
+                                                    path="shop/groups"
+                                                    element={<ShopGroups />}
                                                 />
                                             </Route>
 
@@ -1007,6 +1044,28 @@ function App() {
                                                 <Route
                                                     path="logs"
                                                     element={<SystemLogs />}
+                                                />
+                                            </Route>
+
+                                            {/* Reports Module */}
+                                            <Route
+                                                element={<ProtectedAdminRoute requiredMenu="reports" />}
+                                            >
+                                                <Route
+                                                    path="reports/system"
+                                                    element={<SystemReports />}
+                                                />
+                                                <Route
+                                                    path="reports/products"
+                                                    element={<ProductReports />}
+                                                />
+                                                <Route
+                                                    path="reports/jobs"
+                                                    element={<JobsReports />}
+                                                />
+                                                <Route
+                                                    path="reports/orders"
+                                                    element={<OrdersReports />}
                                                 />
                                             </Route>
 

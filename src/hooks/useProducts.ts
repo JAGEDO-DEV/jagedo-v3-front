@@ -20,20 +20,18 @@ interface RawApiProduct {
     name: string;
     description: string | null;
     type: string;
-    category: string;
-    subcategory: string | null;
+    group: string;
+    subGroup: string | null;
+    sku: string | null;
+    productCode: string | null;
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
+    specs: any | null;
     custom: boolean;
     customPrice: number | null;
-    material: string | null;
-    size: string | null;
-    color: string | null;
-    sku: string | null;
-    bId: string | null;
-    uom: string | null;
     active: boolean;
     basePrice: number | null;
+    users: { firstName: string; lastName: string; organizationName: string | null } | null;
 }
 
 export interface Product {
@@ -42,9 +40,13 @@ export interface Product {
     name: string;
     description?: string;
     type: string;
-    category: string;
-    subcategory?: string;
+    group: string;
+    subGroup?: string;
+    sku?: string;
+    productCode?: string;
+    sellerName?: string;
     price: number;
+    isPriceSet: boolean;
     showFromPrice?: boolean;
     isAggregated?: boolean;
     custom: boolean;
@@ -52,54 +54,56 @@ export interface Product {
     images: string[];
     active: boolean;
     isLocationAgnostic?: boolean;
-    specifications: {
-        material?: string;
-        size?: string;
-        color?: string;
-        sku?: string;
-        bid?: string;
-        uom?: string;
-    };
+    specifications: Record<string, any>;
 }
+
 
 
 const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] => {
     return rawProducts.flatMap((rawProduct): Product[] => {
+        const seller = rawProduct.users;
+        const sellerName = seller
+            ? (seller.organizationName || `${seller.firstName} ${seller.lastName}`.trim())
+            : undefined;
+
         const baseProductData = {
             productId: rawProduct.id,
             name: rawProduct.name,
             description: rawProduct.description ?? undefined,
             type: rawProduct.type,
-            category: rawProduct.category,
-            subcategory: rawProduct.subcategory ?? undefined,
+            group: rawProduct.group,
+            subGroup: rawProduct.subGroup ?? undefined,
+            sku: rawProduct.sku ?? undefined,
+            productCode: rawProduct.productCode ?? undefined,
+            sellerName,
             images: rawProduct.images || [],
             active: rawProduct.active,
             specifications: {
-                material: rawProduct.material ?? undefined,
-                size: rawProduct.size ?? undefined,
-                color: rawProduct.color ?? undefined,
-                sku: rawProduct.sku ?? undefined,
-                bid: rawProduct.bId ?? undefined,
-                uom: rawProduct.uom ?? undefined,
+                ...(rawProduct.specs || {}),
             },
         };
 
-        // If it has specific regional prices, create one entry per region
+
         if (rawProduct.prices && rawProduct.prices.length > 0) {
             return rawProduct.prices.map(priceEntry => ({
                 ...baseProductData,
                 id: `${rawProduct.id}-${priceEntry.regionId}`,
                 price: priceEntry.price,
+                isPriceSet: priceEntry.price > 0,
                 custom: rawProduct.custom,
                 regionName: priceEntry.regionName,
             }));
         }
 
-        // Fallback: If no regional prices, treat as location-agnostic (shows under all regions unless UI chooses strict matching)
+        const fallbackPrice = rawProduct.customPrice ?? rawProduct.basePrice ?? 0;
+        const isPriceSet = (rawProduct.customPrice !== null && rawProduct.customPrice > 0) ||
+            (rawProduct.basePrice !== null && rawProduct.basePrice > 0);
+
         return [{
             ...baseProductData,
             id: `${rawProduct.id}-base`,
-            price: rawProduct.basePrice ?? 0,
+            price: fallbackPrice,
+            isPriceSet: isPriceSet,
             custom: rawProduct.custom,
             regionName: "Universal",
             isLocationAgnostic: true,

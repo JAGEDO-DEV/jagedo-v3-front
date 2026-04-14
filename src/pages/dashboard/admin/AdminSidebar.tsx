@@ -79,21 +79,15 @@ export const sidebarItems = [
         color: "#F4C440",
         submenu: [
           {
-            id: "shop-products",
-            title: "Products",
-            href: "/dashboard/admin/shop/products",
-            icon: Package,
+            id: "shop-regions",
+            title: "Regions",
+            href: "/dashboard/admin/shop/regions",
+            icon: MapPin,
           },
           {
-            id: "shop-customer-view",
-            title: "Customer View",
-            href: "/dashboard/admin/shop/customer-view",
-            icon: Eye,
-          },
-          {
-            id: "shop-categories",
-            title: "Categories",
-            href: "/dashboard/admin/shop/categories",
+            id: "shop-groups",
+            title: "Groups & SubGroups",
+            href: "/dashboard/admin/shop/groups",
             icon: Tag,
           },
           {
@@ -102,17 +96,24 @@ export const sidebarItems = [
             href: "/dashboard/admin/shop/attributes",
             icon: Settings,
           },
+          
           {
-            id: "shop-regions",
-            title: "Regions",
-            href: "/dashboard/admin/shop/regions",
-            icon: MapPin,
+            id: "shop-products",
+            title: "Products",
+            href: "/dashboard/admin/shop/products",
+            icon: Package,
           },
           {
             id: "shop-prices",
             title: "Prices",
             href: "/dashboard/admin/shop/prices",
             icon: Banknote,
+          },
+          {
+            id: "shop-customer-view",
+            title: "Customer View",
+            href: "/dashboard/admin/shop/customer-view",
+            icon: Eye,
           },
         ],
       },
@@ -140,8 +141,78 @@ export const sidebarItems = [
         id: "analytics",
         title: "Analytics",
         icon: ChartNoAxesCombined,
-        href: "/dashboard/admin/analytics",
         color: "#FB3C47",
+        submenu: [
+          {
+            id: "summary",
+            title: "Summary",
+            href: "/dashboard/admin/analytics/summary",
+            icon: ChartNoAxesCombined,
+          },
+          {
+            id: "customers",
+            title: "Customers",
+            href: "/dashboard/admin/analytics/customers",
+            icon: Users,
+          },
+          {
+            id: "builder",
+            title: "Builders",
+            href: "/dashboard/admin/analytics/builders",
+            icon: Hammer,
+          },
+          {
+            id: "requests",
+            title: "Requests",
+            href: "/dashboard/admin/analytics/requests",
+            icon: LayoutDashboard,
+          },
+          {
+            id: "web",
+            title: "Web",
+            href: "/dashboard/admin/analytics/web",
+            icon: Eye,
+          },
+          {
+            id: "products",
+            title: "Products",
+            href: "/dashboard/admin/analytics/products",
+            icon: Package,
+          },
+        ],
+      },
+
+      {
+        id: "reports",
+        title: "Reports",
+        icon: ChartNoAxesCombined,
+        color: "#4F46E5",
+        submenu: [
+          {
+            id: "reports-system",
+            title: "System Snapshot",
+            href: "/dashboard/admin/reports/system",
+            icon: Users,
+          },
+          {
+            id: "reports-products",
+            title: "Product Snapshot",
+            href: "/dashboard/admin/reports/products",
+            icon: Package,
+          },
+          {
+            id: "reports-jobs",
+            title: "Jobs Snapshot",
+            href: "/dashboard/admin/reports/jobs",
+            icon: Briefcase,
+          },
+          {
+            id: "reports-orders",
+            title: "Orders Snapshot",
+            href: "/dashboard/admin/reports/orders",
+            icon: ShoppingCart,
+          },
+        ],
       },
       {
         id: "system-logs",
@@ -172,14 +243,14 @@ export function AdminSidebar({ expanded, setExpanded }) {
   const { userMenuPermissions, isLoadingPermissions } = useRolePermissions();
   const { user } = useGlobalContext();
 
-  // Filter items based on user permissions
+
   const getAccessibleItems = () => {
-    // While loading → show skeleton (or all items)
+
     if (isLoadingPermissions) {
       return sidebarItems;
     }
 
-    // If no permissions returned → fallback to full menu (super admin case)
+
     if (!userMenuPermissions || userMenuPermissions.length === 0) {
       return sidebarItems;
     }
@@ -229,10 +300,10 @@ export function AdminSidebar({ expanded, setExpanded }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [setExpanded]);
 
-  // Log whenever permissions change
+
   useEffect(() => {
-    getAccessibleItems(); // Recalculate accessible items when permissions change
-    // Permissions updated
+    getAccessibleItems();
+
   }, [userMenuPermissions, isLoadingPermissions]);
 
   const accessibleItems = getAccessibleItems();
@@ -245,23 +316,20 @@ export function AdminSidebar({ expanded, setExpanded }) {
           }`}
       />
       <aside
-        className={`fixed top-0 left-0 bottom-0 bg-white border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300 ease-in-out overflow-visible h-full flex flex-col ${
-          expanded
+        className={`fixed top-0 left-0 bottom-0 bg-white border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300 ease-in-out overflow-visible h-full flex flex-col ${expanded
             ? "translate-x-0 w-64"
             : "-translate-x-full lg:translate-x-0 lg:w-20"
-        }`}
+          }`}
       >
         <nav className="h-full flex flex-col">
           {/* Sidebar Header */}
           <div
-            className={`p-5 mb-2 flex items-center transition-all ${
-              expanded ? "justify-between" : "justify-center"
-            }`}
+            className={`p-5 mb-2 flex items-center transition-all ${expanded ? "justify-between" : "justify-center"
+              }`}
           >
             <div
-              className={`overflow-hidden transition-all duration-300 ${
-                expanded ? "w-32 opacity-100" : "w-0 opacity-0"
-              }`}
+              className={`overflow-hidden transition-all duration-300 ${expanded ? "w-32 opacity-100" : "w-0 opacity-0"
+                }`}
             >
               <Link to="/dashboard/admin" className="block transform hover:scale-105 transition-transform">
                 <img
@@ -275,14 +343,14 @@ export function AdminSidebar({ expanded, setExpanded }) {
               onClick={() => setExpanded((curr) => !curr)}
               className="p-2 rounded-xl bg-gray-50/80 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-gray-100 flex items-center justify-center group"
             >
-              <ChevronFirst 
-                className={`w-5 h-5 transition-transform duration-500 ${!expanded ? "rotate-180" : ""}`} 
+              <ChevronFirst
+                className={`w-5 h-5 transition-transform duration-500 ${!expanded ? "rotate-180" : ""}`}
               />
             </button>
           </div>
 
           <SidebarContext.Provider value={{ expanded, setExpanded }}>
-            <ul className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar">
+            <ul className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide">
               {accessibleItems.map((section, sectionIndex) => (
                 <div key={sectionIndex} className="py-2">
                   {expanded && (
@@ -312,36 +380,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
             </ul>
           </SidebarContext.Provider>
 
-          {/* User Profile Section */}
-          <div className="p-4 mt-auto border-t border-gray-50">
-            <div className={`flex items-center gap-3 p-2 rounded-2xl transition-all ${expanded ? "bg-gray-50/80" : "justify-center"}`}>
-              <div className="relative flex-shrink-0">
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || "Admin")}&background=4f46e5&color=fff&bold=true`}
-                  alt="User Avatar"
-                  className="w-10 h-10 rounded-xl object-cover shadow-sm ring-2 ring-white"
-                />
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </div>
-              
-              {expanded && (
-                <div className="flex-1 min-w-0 pr-2">
-                  <h4 className="font-bold text-sm text-gray-800 truncate leading-none mb-1">
-                    {user?.firstName} {user?.lastName}
-                  </h4>
-                  <p className="text-[11px] font-medium text-gray-500 truncate uppercase tracking-wider">
-                    {user?.role || "ADMINISTRATOR"}
-                  </p>
-                </div>
-              )}
 
-              {!expanded && (
-                <div className="absolute left-full ml-6 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all shadow-xl z-50 whitespace-nowrap">
-                  {user?.firstName} {user?.lastName}
-                </div>
-              )}
-            </div>
-          </div>
         </nav>
       </aside>
     </>
@@ -371,20 +410,18 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
   const itemContent = (
     <div
       onClick={submenu ? handleSubmenuClick : undefined}
-      className={`relative flex items-center py-2.5 px-4 my-1 font-semibold rounded-xl cursor-pointer transition-all duration-200 group text-sm ${
-        active
+      className={`relative flex items-center py-2.5 px-4 my-1 font-semibold rounded-xl cursor-pointer transition-all duration-200 group text-sm ${active
           ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100/50"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-      }`}
+        }`}
     >
       <div className={`flex items-center justify-center transition-all duration-300 ${active ? "scale-110" : ""}`}>
         {icon}
       </div>
-      
+
       <span
-        className={`overflow-hidden transition-all duration-300 whitespace-nowrap font-medium ${
-          expanded ? "w-44 ml-3.5 opacity-100" : "w-0 opacity-0"
-        }`}
+        className={`overflow-hidden transition-all duration-300 whitespace-nowrap font-medium ${expanded ? "w-44 ml-3.5 opacity-100" : "w-0 opacity-0"
+          }`}
       >
         {text}
       </span>
@@ -427,11 +464,10 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
               <li key={index}>
                 <Link
                   to={subItem.href}
-                  className={`flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-medium transition-all ${
-                    isSubActive
+                  className={`flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-medium transition-all ${isSubActive
                       ? "text-indigo-600 bg-indigo-50"
                       : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {SubIcon && <SubIcon size={16} className={isSubActive ? "text-indigo-600" : "text-gray-400"} />}
                   <span>{subItem.title}</span>

@@ -28,7 +28,7 @@ import { toast } from "react-hot-toast";
 import { createProductAdmin, updateProduct } from "@/api/products.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile, validateFile } from "@/utils/fileUpload";
-import { getAllCategories } from "@/api/categories.api";
+import { getAllGroups } from "@/api/groups.api";
 import { getAllAttributes, Attribute } from "@/api/attributes.api";
 
 interface AddProductFormProps {
@@ -43,15 +43,12 @@ interface ProductFormData {
   name: string;
   description: string;
   type: string;
-  category: string;
-  subcategory: string;
-  bId: string;
-  sku: string;
-  material: string;
-  size: string;
-  color: string;
-  uom: string;
+  group: string;
+  subGroup: string;
+  sku?: string;
+  productCode?: string;
   images: string[];
+  [key: string]: any; 
 }
 
 interface UploadedImage {
@@ -219,7 +216,7 @@ const ProductPreviewModal = ({
                   letterSpacing: "0.05em",
                 }}
               >
-                {formData.category}
+                {formData.group}
               </p>
               <p
                 style={{
@@ -247,19 +244,6 @@ const ProductPreviewModal = ({
                   {formData.type}
                 </span>
               )}
-              {formData.sku && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    padding: "3px 10px",
-                    borderRadius: "6px",
-                    background: "#f3f4f6",
-                    color: "#6b7280",
-                  }}
-                >
-                  {formData.sku}
-                </span>
-              )}
             </div>
 
             <div
@@ -271,15 +255,14 @@ const ProductPreviewModal = ({
                 gap: "8px",
               }}
             >
-              {[
-                { label: "Material", value: formData.material },
-                { label: "Size", value: formData.size },
-                { label: "Color", value: formData.color },
-                { label: "UOM", value: formData.uom },
-                { label: "B-ID", value: formData.bId },
-              ].map(({ label, value }) =>
-                value ? (
-                  <div key={label}>
+              {Object.entries(formData)
+                .filter(([key, value]) => 
+                  !['name', 'description', 'type', 'group', 'subGroup', 'images', 'active'].includes(key) && 
+                  value && 
+                  (typeof value === 'string' || Array.isArray(value))
+                )
+                .map(([key, value]) => (
+                  <div key={key}>
                     <p
                       style={{
                         fontSize: "11px",
@@ -289,16 +272,15 @@ const ProductPreviewModal = ({
                         letterSpacing: "0.05em",
                       }}
                     >
-                      {label}
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
                     </p>
                     <p
                       style={{ fontSize: "13px", margin: 0, color: "#111827" }}
                     >
-                      {value}
+                      {Array.isArray(value) ? value.join(", ") : value}
                     </p>
                   </div>
-                ) : null,
-              )}
+                ))}
             </div>
 
             {formData.description && (
@@ -364,11 +346,11 @@ const ProductPreviewModal = ({
 const normalizeText = (value?: string | null) =>
   (value || "").trim().toLowerCase();
 
-const extractSubcategoryNames = (category: any) => {
-  if (!category) return [];
+const extractSubGroupNames = (group: any) => {
+  if (!group) return [];
 
-  if (Array.isArray(category.subCategory)) {
-    return category.subCategory
+  if (Array.isArray(group.subGroup)) {
+    return group.subGroup
       .map((sub: any) => {
         if (typeof sub === "string") {
           return sub.trim();
@@ -379,8 +361,8 @@ const extractSubcategoryNames = (category: any) => {
       .filter(Boolean);
   }
 
-  if (typeof category.subCategory === "string") {
-    return category.subCategory
+  if (typeof group.subGroup === "string") {
+    return group.subGroup
       .split(",")
       .map((sub: string) => sub.trim())
       .filter(Boolean);
@@ -408,42 +390,49 @@ const mergeUniqueAttributes = (...attributeGroups: Attribute[][]) => {
 const getRelevantAttributes = ({
   attributes,
   productType,
-  category,
-  subcategory,
+  group,
+  subGroup,
 }: {
   attributes: Attribute[];
   productType: string;
-  category: string;
-  subcategory: string;
+  group: string;
+  subGroup: string;
 }) => {
   const normalizedType = normalizeText(productType);
-  const normalizedCategory = normalizeText(category);
-  const normalizedSubcategory = normalizeText(subcategory);
+  const normalizedGroup = normalizeText(group);
+  const normalizedSubGroup = normalizeText(subGroup);
 
   const activeTypeAttributes = attributes.filter(
     (attribute) =>
       attribute?.active &&
-      normalizeText(attribute.productType) === normalizedType,
+      normalizeText(attribute.group?.type) === normalizedType,
   );
 
   const globalAttributes = activeTypeAttributes.filter(
     (attribute) => !normalizeText(attribute.attributeGroup),
   );
 
-  const subcategoryAttributes = activeTypeAttributes.filter(
+  const subGroupAttributes = activeTypeAttributes.filter(
     (attribute) =>
-      normalizeText(attribute.attributeGroup) === normalizedSubcategory,
+      normalizeText(attribute.attributeGroup) === normalizedSubGroup,
   );
 
-  if (normalizedSubcategory && subcategoryAttributes.length > 0) {
-    return mergeUniqueAttributes(subcategoryAttributes, globalAttributes);
+  if (normalizedSubGroup && subGroupAttributes.length > 0) {
+    return mergeUniqueAttributes(subGroupAttributes, globalAttributes);
   }
 
-  const categoryAttributes = activeTypeAttributes.filter(
-    (attribute) => normalizeText(attribute.attributeGroup) === normalizedCategory,
+  const groupAttributes = activeTypeAttributes.filter(
+    (attribute) => normalizeText(attribute.attributeGroup) === normalizedGroup,
   );
 
-  return mergeUniqueAttributes(categoryAttributes, globalAttributes);
+  return mergeUniqueAttributes(groupAttributes, globalAttributes);
+};
+
+
+const generateProductCode = () => {
+  const segment1 = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const segment2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `BID-${segment1}-${segment2}`;
 };
 
 export default function AddProductForm({
@@ -457,25 +446,21 @@ export default function AddProductForm({
   const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || "",
     description: product?.description || "",
-    type: product?.type || initialType || "",
-    category: product?.category || "",
-    subcategory: product?.subcategory || "",
-    bId: product?.bId || "",
+    type: product?.type || initialType || "HARDWARE",
+    group: product?.group || "",
+    subGroup: product?.subGroup || "",
     sku: product?.sku || "",
-    material: product?.material || "",
-    size: product?.size || "",
-    color: product?.color || "",
-    uom: product?.uom || "",
+    productCode: product?.productCode || generateProductCode(),
     images: product?.images || [],
   });
 
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [allAttributes, setAllAttributes] = useState<Attribute[]>([]);
   const [filteredAttributes, setFilteredAttributes] = useState<Attribute[]>([]);
-  const [subcategoryOptions, setSubcategoryOptions] = useState<string[]>([]);
+  const [subGroupOptions, setSubGroupOptions] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>(
@@ -494,26 +479,22 @@ export default function AddProductForm({
     { value: "CONTRACTOR", label: "Contractor" },
   ];
 
-  const generateBID = () => {
-    const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
-    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `BID-${timestamp}-${randomPart}`;
-  };
 
-  const fetchCategories = useCallback(
+
+  const fetchGroups = useCallback(
     async (type?: string) => {
       try {
-        const response = await getAllCategories(axiosInstance);
+        const response = await getAllGroups(axiosInstance);
         if (response.success) {
-          const categoriesData = response.data || response.hashSet || [];
+          const groupsData = response.data || response.hashSet || [];
 
-          let filteredCategories = categoriesData;
+          let filteredGroups = groupsData;
           const typeToFilter = (type || formData.type || "")
             .trim()
             .toUpperCase();
 
           if (typeToFilter && !isEditMode) {
-            filteredCategories = categoriesData.filter((cat: any) => {
+            filteredGroups = groupsData.filter((cat: any) => {
               const catType = (cat.type || "").trim().toUpperCase();
 
               
@@ -524,25 +505,25 @@ export default function AddProductForm({
             });
           }
 
-          console.log("📥 Categories fetched for product form:", {
-            totalCount: filteredCategories.length,
-            categories: filteredCategories.map(c => ({
+          console.log("📥 Groups fetched for product form:", {
+            totalCount: filteredGroups.length,
+            groups: filteredGroups.map(c => ({
               name: c.name,
               type: c.type,
-              subCategoryCount: Array.isArray(c.subCategory) ? c.subCategory.length : 0,
-              subCategories: Array.isArray(c.subCategory) 
-                ? c.subCategory.map(s => typeof s === "string" ? s : s?.name)
+              subGroupCount: Array.isArray(c.subGroup) ? c.subGroup.length : 0,
+              subGroups: Array.isArray(c.subGroup) 
+                ? c.subGroup.map(s => typeof s === "string" ? s : s?.name)
                 : [],
             })),
           });
 
-          setCategories(filteredCategories);
+          setGroups(filteredGroups);
         } else {
-          toast.error("Failed to fetch categories");
+          toast.error("Failed to fetch groups");
         }
       } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Failed to fetch categories");
+        console.error("Error fetching groups:", error);
+        toast.error("Failed to fetch groups");
       }
     },
     [axiosInstance, isEditMode, formData.type],
@@ -560,39 +541,32 @@ export default function AddProductForm({
     }
   }, [axiosInstance]);
 
-  const uomOptions = [
-    { value: "pcs", label: "Pieces" },
-    { value: "kg", label: "Kilograms" },
-    { value: "m", label: "Meters" },
-    { value: "sqm", label: "Square Meters" },
-    { value: "l", label: "Liters" },
-  ];
 
   const handleInputChange = (field: keyof ProductFormData, value: any) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
 
-      if (field === "category") {
-        const selectedCategory = categories.find(
+      if (field === "group") {
+        const selectedGroup = groups.find(
           (cat: any) => cat.name === value,
         );
-        if (selectedCategory) {
-          const subs = extractSubcategoryNames(selectedCategory);
+        if (selectedGroup) {
+          const subs = extractSubGroupNames(selectedGroup);
           
-          setSubcategoryOptions(subs);
-          updated.subcategory = subs.includes(updated.subcategory)
-            ? updated.subcategory
+          setSubGroupOptions(subs);
+          updated.subGroup = subs.includes(updated.subGroup)
+            ? updated.subGroup
             : subs[0] || "";
           
-          console.log("📦 Subcategories loaded for category:", {
-            category: value,
-            subCategoryCount: subs.length,
+          console.log("📦 Sub Groups loaded for group:", {
+            group: value,
+            subGroupCount: subs.length,
             options: subs,
           });
           
         } else {
-          setSubcategoryOptions([]);
-          updated.subcategory = "";
+          setSubGroupOptions([]);
+          updated.subGroup = "";
         }
       }
 
@@ -608,44 +582,56 @@ export default function AddProductForm({
     if (files.length === 0) return;
 
     setUploadingImages(true);
+    let successCount = 0;
 
     try {
       for (const file of files) {
+        
         const validation = validateFile(file);
         if (!validation.isValid) {
-          toast.error(validation.error || "Invalid file");
+          toast.error(`${file.name}: ${validation.error || "Invalid file"}`, {
+            duration: 4000, 
+          });
           continue;
         }
 
-        const uploadedFile = await uploadFile(file);
+        try {
+          const uploadedFile = await uploadFile(file);
 
-        setUploadedImages((prev) => [
-          ...prev,
-          {
-            id: uploadedFile.id,
-            url: uploadedFile.url,
-            originalName: uploadedFile.originalName,
-            displayName: uploadedFile.displayName,
-          },
-        ]);
+          setUploadedImages((prev) => [
+            ...prev,
+            {
+              id: uploadedFile.id,
+              url: uploadedFile.url,
+              originalName: uploadedFile.originalName,
+              displayName: uploadedFile.displayName,
+            },
+          ]);
+          successCount++;
+        } catch (uploadError: any) {
+          console.error(`Error uploading ${file.name}:`, uploadError);
+          toast.error(`${file.name}: ${uploadError.message || "Failed to upload"}`);
+        }
       }
 
-      toast.success(`${files.length} image(s) uploaded successfully`);
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      toast.error("Failed to upload one or more images");
+      if (successCount > 0) {
+        toast.success(`${successCount} image(s) uploaded successfully`);
+      }
+    } catch (error: any) {
+      console.error("Error in upload process:", error);
+      toast.error(error.message || "An unexpected error occurred during upload");
     } finally {
       setUploadingImages(false);
+      
+      if (event.target) event.target.value = "";
     }
   };
 
   const isFormComplete = !!(
     formData.type &&
-    formData.category &&
+    formData.group &&
     formData.name &&
     formData.description &&
-    formData.bId &&
-    formData.sku &&
     uploadedImages.length > 0
   );
 
@@ -671,11 +657,9 @@ export default function AddProductForm({
   const handleSubmit = async () => {
     const requiredFields = [
       { key: "type", label: "Type" },
-      { key: "category", label: "Category" },
+      { key: "group", label: "Group" },
       { key: "name", label: "Product Name" },
       { key: "description", label: "Description" },
-      { key: "bId", label: "B-ID" },
-      { key: "sku", label: "SKU" },
     ];
 
     const missingField = requiredFields.find(
@@ -697,19 +681,15 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'category', 'subcategory', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'sku', 'productCode', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
-        category: formData.category,
-        subcategory: formData.subcategory,
-        bId: formData.bId,
+        group: formData.group,
+        subGroup: formData.subGroup,
         sku: formData.sku,
-        material: formData.material,
-        size: formData.size,
-        color: formData.color,
-        uom: formData.uom,
+        productCode: formData.productCode,
         images: imageUrls,
       };
 
@@ -729,8 +709,8 @@ export default function AddProductForm({
       console.log("📤 Product submission data:", {
         name: submitData.name,
         type: submitData.type,
-        category: submitData.category,
-        subcategory: submitData.subcategory,
+        group: submitData.group,
+        subGroup: submitData.subGroup,
         sku: submitData.sku,
         imagesCount: imageUrls.length,
         specsCount: Object.keys(specs).length
@@ -749,6 +729,15 @@ export default function AddProductForm({
       onSuccess();
     } catch (error: any) {
       console.error("Error saving product:", error);
+      
+      
+      if (error.response?.status === 409 && error.response?.data?.message?.toLowerCase().includes("product code")) {
+        toast.error("Product code already exists. Auto-generating a new one and retrying...");
+        const newCode = generateProductCode();
+        setFormData(prev => ({ ...prev, productCode: newCode }));
+        return; 
+      }
+
       toast.error(
         error.response?.data?.message ||
           (isEditMode
@@ -771,21 +760,17 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'category', 'subcategory', 'bId', 'sku', 'material', 'size', 'color', 'uom', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'sku', 'productCode', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
-        category: formData.category,
-        subcategory: formData.subcategory,
-        bId: formData.bId,
+        group: formData.group,
+        subGroup: formData.subGroup,
         sku: formData.sku,
-        material: formData.material,
-        size: formData.size,
-        color: formData.color,
-        uom: formData.uom,
+        productCode: formData.productCode,
+        status: "DRAFT",
         images: imageUrls,
-        status: "DRAFT", 
       };
 
       
@@ -803,8 +788,8 @@ export default function AddProductForm({
 
       console.log("📋 Saving product as draft:", {
         name: submitData.name,
-        category: submitData.category,
-        subcategory: submitData.subcategory,
+        group: submitData.group,
+        subGroup: submitData.subGroup,
         status: submitData.status,
         specsCount: Object.keys(specs).length
       });
@@ -815,6 +800,14 @@ export default function AddProductForm({
       onSuccess();
     } catch (error: any) {
       console.error("Error saving draft:", error);
+      
+      if (error.response?.status === 409 && error.response?.data?.message?.toLowerCase().includes("product code")) {
+        toast.error("Product code already exists. Auto-generating a new one. Please save again.");
+        const newCode = generateProductCode();
+        setFormData(prev => ({ ...prev, productCode: newCode }));
+        return;
+      }
+
       toast.error(error.response?.data?.message || "Failed to save draft.");
     } finally {
       setLoading(false);
@@ -822,7 +815,7 @@ export default function AddProductForm({
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchGroups();
     fetchAttributes();
     
     if (isEditMode && product) {
@@ -830,8 +823,8 @@ export default function AddProductForm({
         productId: product.id,
         productName: product.name,
         type: product.type,
-        category: product.category,
-        subcategory: product.subcategory,
+        group: product.group,
+        subGroup: product.subGroup,
       });
 
       
@@ -845,22 +838,13 @@ export default function AddProductForm({
   }, []);
 
   useEffect(() => {
-    if (!isEditMode && !formData.bId) {
-      setFormData((prev) => ({
-        ...prev,
-        bId: generateBID(),
-      }));
-    }
-  }, [isEditMode]);
-
-  useEffect(() => {
     if (!isEditMode && formData.type) {
-      fetchCategories(formData.type);
+      fetchGroups(formData.type);
     }
   }, [formData.type, isEditMode]);
 
   useEffect(() => {
-    if (!formData.category || allAttributes.length === 0) {
+    if (!formData.group || allAttributes.length === 0) {
       setFilteredAttributes([]);
       return;
     }
@@ -869,100 +853,84 @@ export default function AddProductForm({
       getRelevantAttributes({
         attributes: allAttributes,
         productType: formData.type,
-        category: formData.category,
-        subcategory: formData.subcategory,
+        group: formData.group,
+        subGroup: formData.subGroup,
       }),
     );
-  }, [formData.category, formData.subcategory, allAttributes, formData.type]);
+  }, [formData.group, formData.subGroup, allAttributes, formData.type]);
 
   useEffect(() => {
-    if (isEditMode && product?.category && categories.length > 0) {
-      const categoryExists = categories.some(
-        (cat) => cat.name === product.category,
+    if (isEditMode && product?.group && groups.length > 0) {
+      const groupExists = groups.some(
+        (cat) => cat.name === product.group,
       );
-      if (!categoryExists && formData.category !== product.category) {
+      if (!groupExists && formData.group !== product.group) {
         setFormData((prev) => ({
           ...prev,
-          category: product.category,
+          group: product.group,
         }));
       }
 
-      const selected = categories.find(c => c.name === (product.category || formData.category));
+      const selected = groups.find(c => c.name === (product.group || formData.group));
       if (selected) {
-        const subs = extractSubcategoryNames(selected);
+        const subs = extractSubGroupNames(selected);
         
-        setSubcategoryOptions(subs);
+        setSubGroupOptions(subs);
         
-        console.log("📦 Subcategories loaded for edit mode:", {
-          category: product.category || formData.category,
-          subCategoryCount: subs.length,
+        console.log("📦 Sub Groups loaded for edit mode:", {
+          group: product.group || formData.group,
+          subGroupCount: subs.length,
           options: subs,
-          currentSubcategory: product.subcategory,
+          currentSubGroup: product.subGroup,
         });
       }
     }
-  }, [categories, isEditMode, product]);
+  }, [groups, isEditMode, product]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" onClick={onBack} className="p-2">
+    <div className="max-w-[1000px] mx-auto p-4 md:p-8 space-y-10">
+      {/* Header */}
+      <div className="flex items-center space-x-4 pb-2">
+        <Button variant="ghost" onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100/50">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
           {isEditMode ? "Edit Product" : "Add Product"}
+          {formData.type && (
+            <Badge className="bg-[#1f2937] text-white hover:bg-[#1f2937] px-3 py-1 text-xs rounded-md font-medium tracking-wide">
+              {typeOptions.find(t => t.value === formData.type)?.label || formData.type}
+            </Badge>
+          )}
         </h1>
       </div>
 
-      <div className="space-y-8">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-12">
+        {/* Classification Section */}
+        <div className="space-y-5">
+          <h2 className="text-lg font-bold text-gray-900">Classification</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-2">
-              <Label htmlFor="type" className="font-semibold">
-                Type*
+              <Label htmlFor="group" className="text-sm font-semibold text-gray-700">
+                Group <span className="text-red-500">*</span>
               </Label>
               <Select
-                disabled={isEditMode || !!initialType}
-                value={formData.type}
-                onValueChange={(value) => handleInputChange("type", value)}
+                value={formData.group || ""}
+                onValueChange={(value) => handleInputChange("group", value)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {typeOptions.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category" className="font-semibold">
-                Category*
-              </Label>
-              <Select
-                value={formData.category || ""}
-                onValueChange={(value) => handleInputChange("category", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                <SelectTrigger className="h-12 border-gray-200">
+                  <SelectValue placeholder="Select a group" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   {isEditMode &&
-                    formData.category &&
-                    !categories.some(
-                      (cat) => cat.name === formData.category,
-                    ) && (
-                      <SelectItem value={formData.category}>
-                        {formData.category}
+                    formData.group &&
+                    !groups.some((cat) => cat.name === formData.group) && (
+                      <SelectItem value={formData.group}>
+                        {formData.group}
                       </SelectItem>
                     )}
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.name}>
-                      {category.name}
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.name}>
+                      {group.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -970,31 +938,19 @@ export default function AddProductForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-semibold">
-                Product Name*
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter product name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="subcategory" className="font-semibold">
-                Sub Category
+              <Label htmlFor="subGroup" className="text-sm font-semibold text-gray-700">
+                Subgroup <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={formData.subcategory || ""}
-                onValueChange={(value) => handleInputChange("subcategory", value)}
-                disabled={subcategoryOptions.length === 0}
+                value={formData.subGroup || ""}
+                onValueChange={(value) => handleInputChange("subGroup", value)}
+                disabled={subGroupOptions.length === 0}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={subcategoryOptions.length > 0 ? "Select a sub-category" : "No sub-categories"} />
+                <SelectTrigger className="h-12 border-gray-200">
+                  <SelectValue placeholder={subGroupOptions.length > 0 ? "Select a group first" : "No sub-groups"} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  {subcategoryOptions.map((sub, index) => (
+                  {subGroupOptions.map((sub, index) => (
                     <SelectItem key={`${sub}-${index}`} value={sub}>
                       {sub}
                     </SelectItem>
@@ -1003,10 +959,56 @@ export default function AddProductForm({
               </Select>
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description" className="font-semibold">
-              Product Description*
+        {/* Basic Information Section */}
+        <div className="space-y-5">
+          <h2 className="text-lg font-bold text-gray-900">Basic Information</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                Product Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter product name"
+                className="h-12 border-gray-200"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sku" className="text-sm font-semibold text-gray-700">
+                SKU <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="sku"
+                value={formData.sku || ""}
+                onChange={(e) => handleInputChange("sku", e.target.value)}
+                placeholder="Enter SKU"
+                className="h-12 border-gray-200"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="productCode" className="text-sm font-semibold text-gray-700">
+                Product Code (Auto)
+              </Label>
+              <Input
+                id="productCode"
+                value={formData.productCode || ""}
+                disabled
+                placeholder="Auto-generating..."
+                className="h-12 bg-gray-50 text-gray-500 cursor-not-allowed border-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="description" className="text-sm font-semibold text-gray-700">
+              Product Description <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="description"
@@ -1014,6 +1016,7 @@ export default function AddProductForm({
               onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Write product description here..."
               rows={4}
+              className="resize-none border-gray-200 p-4"
             />
           </div>
         </div>
@@ -1021,31 +1024,6 @@ export default function AddProductForm({
         <div className="space-y-4">
           <Label className="font-semibold">Product Attributes</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="bId" className="text-sm">
-                B-ID (Auto)*
-              </Label>
-              <Input
-                id="bId"
-                value={formData.bId}
-                readOnly
-                className="bg-gray-100 text-gray-500 cursor-not-allowed"
-                placeholder="Auto-generated"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sku" className="text-sm">
-                SKU*
-              </Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => handleInputChange("sku", e.target.value)}
-                placeholder="Enter SKU"
-              />
-            </div>
-
             {/* Dynamic Attributes */}
             {filteredAttributes.map((attr) => {
               const fieldName = attr.type.toLowerCase() as keyof ProductFormData;
@@ -1158,6 +1136,7 @@ export default function AddProductForm({
                   ) : (
                     <Input
                       id={`attr-${attr.id}`}
+                      type={attr.attributeType === 'number' ? 'number' : attr.attributeType === 'date' ? 'date' : 'text'}
                       value={(formData[fieldName] as string) || ""}
                       onChange={(e) => handleInputChange(fieldName, e.target.value)}
                       placeholder={`Enter ${attr.type}`}
@@ -1166,132 +1145,119 @@ export default function AddProductForm({
                 </div>
               );
             })}
-
-            {/* Fallback for core fields if not in dynamic attributes */}
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'material') && (
-              <div className="space-y-2">
-                <Label htmlFor="material" className="text-sm">Material</Label>
-                <Input
-                  id="material"
-                  value={formData.material}
-                  onChange={(e) => handleInputChange("material", e.target.value)}
-                  placeholder="Enter material"
-                />
-              </div>
-            )}
-            
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'size') && (
-              <div className="space-y-2">
-                <Label htmlFor="size" className="text-sm">Size</Label>
-                <Input
-                  id="size"
-                  value={formData.size}
-                  onChange={(e) => handleInputChange("size", e.target.value)}
-                  placeholder="Enter size"
-                />
-              </div>
-            )}
-
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'color') && (
-              <div className="space-y-2">
-                <Label htmlFor="color" className="text-sm">Color</Label>
-                <Input
-                  id="color"
-                  value={formData.color}
-                  onChange={(e) => handleInputChange("color", e.target.value)}
-                  placeholder="Enter color"
-                />
-              </div>
-            )}
-
-            {!filteredAttributes.some(a => a.type.toLowerCase() === 'uom') && (
-              <div className="space-y-2">
-                <Label htmlFor="uom" className="text-sm">UOM</Label>
-                <Select
-                  value={formData.uom}
-                  onValueChange={(val) => handleInputChange("uom", val)}
-                >
-                  <SelectTrigger id="uom">
-                    <SelectValue placeholder="Select UOM" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {uomOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <Label className="font-semibold">
-            Media Upload (Upload in the manner: Front, Back, Side Elevations)*
-          </Label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-            <div className="flex items-center justify-center space-x-4">
-              <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                <Camera className="h-8 w-8 text-gray-400" />
-              </div>
-              <div className="flex-1">
-                <div className="text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="mt-4">
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      <span className="text-blue-600 hover:text-blue-500">
-                        {uploadingImages ? "Uploading..." : "Click to upload"}
-                      </span>
-                      <span className="text-gray-500"> or drag and drop</span>
-                    </label>
-                    <input
-                      id="image-upload"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      disabled={uploadingImages}
-                    />
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold">Media Upload<span className="text-red-500">*</span></h3>
+            <p className="text-sm text-gray-500">Upload in the manner: Front, Back, Side Elevations</p>
+          </div>
+          
+          <div className="border border-dashed border-gray-200 rounded-3xl p-8 space-y-10 bg-white/40 shadow-sm">
+            {/* Elevation Slots */}
+            <div className="grid grid-cols-3 gap-8">
+              {[
+                { label: "Front Elevation", id: "front" },
+                { label: "Back Elevation", id: "back" },
+                { label: "Side Elevation", id: "side" }
+              ].map((slot, index) => (
+                <div key={slot.id} className="space-y-3">
+                  <p className="text-center text-sm font-semibold text-gray-500">{slot.label}</p>
+                  <div 
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                    className="relative aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#00007A]/40 hover:bg-[#00007A]/5 transition-all group overflow-hidden"
+                  >
+                    {uploadedImages[index] ? (
+                      <>
+                        <img 
+                          src={uploadedImages[index].url} 
+                          alt={slot.label}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="h-8 w-8 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeImage(uploadedImages[index].id);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="h-8 w-8 text-gray-300 group-hover:text-[#00007A] transition-colors" />
+                        <span className="mt-2 text-sm text-gray-400 group-hover:text-[#00007A] font-medium transition-colors">Upload</span>
+                      </>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    PNG, JPG, GIF up to 10MB each
-                  </p>
                 </div>
-              </div>
+              ))}
             </div>
 
-            {uploadedImages.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-medium mb-2">Uploaded Images:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {uploadedImages.map((image) => (
-                    <div key={image.id} className="relative group">
-                      <div className="w-full h-24 border rounded-lg overflow-hidden bg-gray-50">
-                        <img
-                          src={image.url}
-                          alt={image.displayName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+            {/* Main Upload Handle */}
+            <div className="flex flex-col items-center justify-center border-t border-gray-100 pt-8 mt-2">
+               <div className="p-3 rounded-full bg-gray-50 mb-3 group-hover:bg-blue-50 transition-colors">
+                 <Upload className="h-8 w-8 text-gray-400" />
+               </div>
+               <div className="text-center">
+                 <label htmlFor="image-upload" className="cursor-pointer">
+                   <span className="text-sm font-bold text-gray-800 hover:text-[#00007A] transition-colors">
+                     {uploadingImages ? "Uploading..." : "Click to upload"}
+                   </span>
+                   <span className="text-sm text-gray-500 font-medium"> or drag and drop</span>
+                 </label>
+                 <div className="mt-2 space-y-0.5">
+                   <p className="text-[11px] text-gray-400 font-medium">
+                     Tip: click this box, then press Ctrl+V to paste an image
+                   </p>
+                   <p className="text-[11px] text-gray-400">
+                     PNG, JPG, GIF up to 10MB each
+                   </p>
+                 </div>
+               </div>
+               <input
+                  id="image-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={uploadingImages}
+               />
+            </div>
+          </div>
+
+          {/* Gallery View for extra images if count > 3 */}
+          {uploadedImages.length > 3 && (
+            <div className="space-y-3 pt-2">
+               <h4 className="text-sm font-semibold text-gray-600 flex items-center">
+                 Other product images ({uploadedImages.length - 3})
+               </h4>
+               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                 {uploadedImages.slice(3).map((image) => (
+                    <div key={image.id} className="relative group aspect-square rounded-xl border border-gray-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-all">
+                      <img
+                        src={image.url}
+                        alt="product"
+                        className="w-full h-full object-cover"
+                      />
                       <button
                         onClick={() => removeImage(image.id)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remove image"
+                        className="absolute top-1 right-1 bg-red-500/90 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-all transform scale-90 hover:scale-100"
                       >
                         <X className="h-3 w-3" />
                       </button>
-                      <p className="text-xs text-gray-600 mt-1 truncate">
-                        {image.displayName}
-                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                 ))}
+               </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-end space-x-4 pt-6">
