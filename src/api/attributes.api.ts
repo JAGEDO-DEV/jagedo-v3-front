@@ -15,6 +15,9 @@ export interface Attribute {
   active: boolean;
   productType?: string;
   attributeType?: string;
+  code?: string;
+  unit?: string;
+  isRequired?: boolean;
   group?: { id: number | string; name: string; type?: string };
 }
 
@@ -27,6 +30,10 @@ export interface AttributeCreateRequest {
   customerView?: boolean;
   active?: boolean;
   attributeType?: string;
+  code?: string;
+  unit?: string;
+  isRequired?: boolean;
+  groupId?: number | string;
 }
 
 export interface AttributeUpdateRequest {
@@ -39,6 +46,10 @@ export interface AttributeUpdateRequest {
   active?: boolean;
   customerView?: boolean;
   attributeType?: string;
+  code?: string;
+  unit?: string;
+  isRequired?: boolean;
+  groupId?: number | string;
 }
 
 export interface ApiResponse<T> {

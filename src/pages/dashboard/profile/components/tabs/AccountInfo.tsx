@@ -291,6 +291,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       );
       Object.assign(userData, updates);
       setEditingField(null);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error(`Failed to update ${field}:`, error);
       toast.error(error.message || `Failed to update ${field} on server`);
@@ -331,6 +334,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       setShowOtpModal(false);
       setOtpValue("");
       setEditingField(null);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error("Failed to verify OTP:", error);
       toast.error(error.message || "Invalid or expired OTP");
@@ -399,7 +405,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       );
 
       setTimeout(() => {
-        navigate(-1);
+        window.location.reload();
       }, 1500);
     } catch (err: any) {
       toast.error(

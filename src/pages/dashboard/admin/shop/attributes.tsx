@@ -8,6 +8,8 @@ import {
     deleteGroup, 
     Group 
 } from "@/api/groups.api.ts";
+import * as XLSX from "xlsx";
+import { useRef } from "react";
 import {
     Card,
     CardContent,
@@ -49,6 +51,7 @@ import {
     getAllAttributes,
     deleteAttribute,
     toggleAttributeStatus,
+    createAttribute,
     Attribute
 } from "@/api/attributes.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -79,6 +82,8 @@ export default function ShopAttributes() {
     const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
     const [isGroupUpdating, setIsGroupUpdating] = useState(false);
     const [isGroupDeleting, setIsGroupDeleting] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchAttributes = useCallback(async () => {
         try {
@@ -255,6 +260,121 @@ export default function ShopAttributes() {
         }
     };
 
+    const handleExport = () => {
+        if (!filteredAttributes || filteredAttributes.length === 0) {
+            toast.error("No attributes to export");
+            return;
+        }
+
+        try {
+            const dataToExport = filteredAttributes.map(attr => ({
+                "Group": attr.group?.name || "Ungrouped",
+                "Subgroup": attr.attributeGroup || "General",
+                "Attribute Name": attr.type,
+                "Code": attr.code || "",
+                "Type": attr.attributeType || "text",
+                "Unit": attr.unit || "",
+                "Values": attr.values || "",
+                "Required": attr.isRequired ? "Yes" : "No",
+                "Filterable": attr.filterable ? "Yes" : "No",
+                "Show to Customer": attr.customerView ? "Yes" : "No",
+                "Active": attr.active ? "Yes" : "No"
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Attributes");
+            
+            const timestamp = new Date().toISOString().split('T')[0];
+            const groupName = groups.find(g => g.type === selectedGroup)?.label || selectedGroup;
+            XLSX.writeFile(wb, `shop_attributes_${groupName.replace(/\s+/g, '_').toLowerCase()}_${timestamp}.xlsx`);
+            toast.success("Attributes exported successfully");
+        } catch (error) {
+            console.error("Export error:", error);
+            toast.error("Failed to export attributes");
+        }
+    };
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+                if (data.length === 0) {
+                    toast.error("The file is empty");
+                    setImporting(false);
+                    return;
+                }
+
+                // Fetch groups to map names to IDs
+                const groupsRes = await getAllGroups(axiosInstance);
+                const allGroups = (groupsRes.data || groupsRes.hashSet || []) as Group[];
+
+                let successCount = 0;
+                let failCount = 0;
+
+                const loadingToast = toast.loading(`Importing ${data.length} attributes...`);
+
+                for (const row of data) {
+                    const groupName = row["Group"];
+                    const group = allGroups.find(g => g.name.toLowerCase() === groupName?.toLowerCase());
+                    
+                    if (!group) {
+                        console.warn(`Group not found: ${groupName}`);
+                        failCount++;
+                        continue;
+                    }
+
+                    const attrData: any = {
+                        type: row["Attribute Name"],
+                        code: row["Code"] || row["Attribute Name"]?.toLowerCase().replace(/\s+/g, '_'),
+                        attributeGroup: row["Subgroup"] || group.name,
+                        attributeType: (row["Type"] || "text").toLowerCase(),
+                        unit: row["Unit"] || "",
+                        values: row["Values"]?.toString() || "",
+                        isRequired: row["Required"]?.toString().toLowerCase() === "yes",
+                        filterable: row["Filterable"]?.toString().toLowerCase() === "yes",
+                        customerView: row["Show to Customer"]?.toString().toLowerCase() === "yes",
+                        active: row["Active"]?.toString().toLowerCase() === "yes",
+                        groupId: group.id
+                    };
+
+                    try {
+                        const res = await createAttribute(axiosInstance, attrData);
+                        if (res.success) successCount++;
+                        else failCount++;
+                    } catch (err) {
+                        failCount++;
+                    }
+                }
+
+                toast.dismiss(loadingToast);
+                toast.success(`Import complete: ${successCount} success, ${failCount} failed`);
+                fetchAttributes();
+            } catch (err) {
+                console.error("Import error:", err);
+                toast.error("Failed to parse the file");
+            } finally {
+                setImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
     return (
         <div className="space-y-5">
             {/* Page header */}
@@ -295,17 +415,27 @@ export default function ShopAttributes() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleImport} 
+                        accept=".xlsx, .xls, .csv" 
+                        className="hidden" 
+                    />
                     <Button
                         variant="outline"
                         size="sm"
+                        onClick={handleImportClick}
+                        disabled={importing}
                         className="gap-1.5 text-gray-700 border-gray-300"
                     >
                         <Upload className="h-3.5 w-3.5" />
-                        Import
+                        {importing ? "Importing..." : "Import"}
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
+                        onClick={handleExport}
                         className="gap-1.5 text-gray-700 border-gray-300"
                     >
                         <Download className="h-3.5 w-3.5" />
@@ -465,8 +595,8 @@ export default function ShopAttributes() {
                                                                         {attr.values || "-"}
                                                                     </TableCell>
                                                                     <TableCell className="text-center">
-                                                                        <span className="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded uppercase">
-                                                                            yes
+                                                                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${attr.isRequired ? "bg-green-50 text-green-600" : "bg-gray-50 text-gray-600"}`}>
+                                                                            {attr.isRequired ? "yes" : "no"}
                                                                         </span>
                                                                     </TableCell>
                                                                     <TableCell className="text-center">

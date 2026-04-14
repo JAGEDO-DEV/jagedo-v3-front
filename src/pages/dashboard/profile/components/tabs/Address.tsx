@@ -89,9 +89,9 @@ const Address = ({ userData }) => {
   }
 };
   return (
-    <div className="bg-white flex">
+    <div className="bg-white flex justify-center">
       <Toaster position="top-center" richColors />
-      <div className="w-full max-w-3xl items-center p-6">
+      <div className="w-full max-w-3xl p-6">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6 border-b pb-3">
             <h1 className="text-2xl font-bold">My Address</h1>

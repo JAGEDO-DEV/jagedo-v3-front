@@ -1023,7 +1023,7 @@ export default function AddProductForm({
 
         <div className="space-y-4">
           <Label className="font-semibold">Product Attributes</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
             {/* Dynamic Attributes */}
             {filteredAttributes.map((attr) => {
               const fieldName = attr.type.toLowerCase() as keyof ProductFormData;
@@ -1031,6 +1031,7 @@ export default function AddProductForm({
               const options = hasValues ? attr.values.split(",").map(v => v.trim()) : [];
               const isMultiSelect = attr.attributeType === 'multiselect';
               const isSelect = attr.attributeType === 'select' || (!attr.attributeType && hasValues);
+              const isTextarea = attr.attributeType === 'textarea';
 
               const currentValue = formData[fieldName];
               let selectedOptions: string[] = [];
@@ -1043,8 +1044,8 @@ export default function AddProductForm({
               }
 
               return (
-                <div key={attr.id} className="space-y-2">
-                  <Label htmlFor={`attr-${attr.id}`} className="text-sm">
+                <div key={attr.id} className={cn("space-y-1.5", isTextarea ? "col-span-full" : "")}>
+                  <Label htmlFor={`attr-${attr.id}`} className="text-[13px] font-medium text-gray-600">
                     {attr.type}
                   </Label>
                   {isMultiSelect ? (
@@ -1054,17 +1055,17 @@ export default function AddProductForm({
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "w-full justify-between h-auto min-h-[40px] px-3 py-2 text-left font-normal",
+                            "w-full justify-between h-11 px-3 py-2 text-left font-normal border-gray-200 rounded-lg bg-white hover:bg-gray-50",
                             !selectedOptions.length && "text-muted-foreground"
                           )}
                         >
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-1 overflow-hidden">
                             {selectedOptions.length > 0 ? (
-                              selectedOptions.map((opt) => (
+                              selectedOptions.slice(0, 2).map((opt) => (
                                 <Badge
                                   key={opt}
                                   variant="secondary"
-                                  className="mr-1 mb-1"
+                                  className="h-6 text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 border-none px-2"
                                 >
                                   {opt}
                                   <X
@@ -1080,18 +1081,24 @@ export default function AddProductForm({
                                 </Badge>
                               ))
                             ) : (
-                              <span>Select {attr.type}...</span>
+                              <span className="text-gray-400">Select {attr.type}...</span>
+                            )}
+                            {selectedOptions.length > 2 && (
+                              <span className="text-[11px] text-gray-500 font-medium">+{selectedOptions.length - 2} more</span>
                             )}
                           </div>
                           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0 bg-white shadow-md border rounded-md">
-                        <div className="p-2 space-y-1">
+                      <PopoverContent className="w-[250px] p-1 bg-white shadow-xl border border-gray-200 rounded-xl" align="start">
+                        <div className="max-h-[300px] overflow-y-auto p-1 space-y-0.5">
                           {options.map((opt) => (
                             <div
                               key={opt}
-                              className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-sm cursor-pointer"
+                              className={cn(
+                                "flex items-center space-x-3 p-2.5 rounded-lg cursor-pointer transition-colors",
+                                selectedOptions.includes(opt) ? "bg-blue-50/50" : "hover:bg-gray-50"
+                              )}
                               onClick={() => {
                                 const newOptions = selectedOptions.includes(opt)
                                   ? selectedOptions.filter((o) => o !== opt)
@@ -1102,8 +1109,12 @@ export default function AddProductForm({
                               <Checkbox
                                 checked={selectedOptions.includes(opt)}
                                 onCheckedChange={() => {}} 
+                                className="border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                               />
-                              <span className="text-sm">{opt}</span>
+                              <span className={cn(
+                                "text-sm",
+                                selectedOptions.includes(opt) ? "font-semibold text-blue-700" : "text-gray-700"
+                              )}>{opt}</span>
                             </div>
                           ))}
                         </div>
@@ -1114,24 +1125,24 @@ export default function AddProductForm({
                       value={(formData[fieldName] as string) || ""}
                       onValueChange={(val) => handleInputChange(fieldName, val)}
                     >
-                      <SelectTrigger id={`attr-${attr.id}`}>
+                      <SelectTrigger id={`attr-${attr.id}`} className="h-11 border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-blue-500">
                         <SelectValue placeholder={`Select ${attr.type}`} />
                       </SelectTrigger>
-                      <SelectContent className="bg-white">
+                      <SelectContent className="bg-white border-gray-200 rounded-xl shadow-xl">
                         {options.map((opt) => (
-                          <SelectItem key={opt} value={opt}>
+                          <SelectItem key={opt} value={opt} className="rounded-lg my-0.5 focus:bg-blue-50 focus:text-blue-700">
                             {opt}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  ) : attr.attributeType === 'textarea' ? (
+                  ) : isTextarea ? (
                     <Textarea 
                       id={`attr-${attr.id}`}
                       value={(formData[fieldName] as string) || ""}
                       onChange={(e) => handleInputChange(fieldName, e.target.value)}
                       placeholder={`Enter ${attr.type}`}
-                      className="min-h-[80px]"
+                      className="min-h-[100px] border-gray-200 rounded-xl bg-white focus:ring-1 focus:ring-blue-500"
                     />
                   ) : (
                     <Input
@@ -1140,6 +1151,10 @@ export default function AddProductForm({
                       value={(formData[fieldName] as string) || ""}
                       onChange={(e) => handleInputChange(fieldName, e.target.value)}
                       placeholder={`Enter ${attr.type}`}
+                      className={cn(
+                        "h-11 border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-blue-500 text-left px-4",
+                        attr.attributeType === 'date' && "block w-full text-left [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto"
+                      )}
                     />
                   )}
                 </div>
