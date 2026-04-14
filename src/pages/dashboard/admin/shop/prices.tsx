@@ -27,6 +27,13 @@ import {
     DialogTitle
 } from "@/components/ui/dialog";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
     Plus,
     Search,
     Save,
@@ -36,7 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
-    getActiveProducts
+    getAllProducts
 } from "@/api/products.api";
 import {
     getAllRegions
@@ -161,7 +168,7 @@ const PriceModal = ({
         if (isOpen && product) {
             const initialMap: Record<number, string> = {};
             modalFilteredRegions.forEach(region => {
-                const existingPrice = product.prices?.find(p => p.regionId === region.id);
+                const existingPrice = product.prices?.find(p => String(p.regionId) === String(region.id));
                 initialMap[region.id] = existingPrice ? String(existingPrice.price) : "";
             });
             setPriceMap(initialMap);
@@ -257,8 +264,8 @@ export default function ShopPrices() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showPriceModal, setShowPriceModal] = useState(false);
     const [savingPrices, setSavingPrices] = useState(false);
+    const [isGlobalAdd, setIsGlobalAdd] = useState(false);
 
-    
     const groups = [
         { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
         { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
@@ -266,12 +273,17 @@ export default function ShopPrices() {
         { id: "HIRE_MACHINERY", label: "Hire Machinery & E", type: "CONTRACTOR" }
     ];
 
+    const availableProductsForGlobalAdd = products?.filter(p => {
+        const selectedType = groups.find(g => g.id === selectedGroup)?.type || "HARDWARE";
+        return p.type?.toUpperCase() === selectedType.toUpperCase();
+    });
+
     
     const fetchData = async () => {
         try {
             setLoading(true);
             const [productsResponse, regionsResponse] = await Promise.all([
-                getActiveProducts(axiosInstance),
+                getAllProducts(axiosInstance),
                 getAllRegions(axiosInstance)
             ]);
             
@@ -298,7 +310,7 @@ export default function ShopPrices() {
     const selectedGroupType = groups.find(cat => cat.id === selectedGroup)?.type || "HARDWARE";
 
     
-    const filteredRegions = regions?.filter((region) => region.type === selectedGroupType);
+    const filteredRegions = regions?.filter((region) => region.type?.toUpperCase() === selectedGroupType?.toUpperCase());
 
     
     const filteredProducts = products?.filter((product) => {
@@ -308,7 +320,7 @@ export default function ShopPrices() {
             (product?.bId?.toLowerCase() || "").includes(searchTerm?.toLowerCase()) ||
             (product?.group?.toLowerCase() || "").includes(searchTerm?.toLowerCase());
 
-        const matchesGroup = product.type === selectedGroupType;
+        const matchesGroup = product.type?.toUpperCase() === selectedGroupType?.toUpperCase();
 
         return matchesSearch && matchesGroup;
     });
@@ -327,6 +339,13 @@ export default function ShopPrices() {
     
     const handleEditPrices = (product: Product) => {
         setSelectedProduct(product);
+        setIsGlobalAdd(false);
+        setShowPriceModal(true);
+    };
+
+    const handleGlobalAddPrices = () => {
+        setSelectedProduct(null);
+        setIsGlobalAdd(true);
         setShowPriceModal(true);
     };
 
@@ -366,8 +385,8 @@ export default function ShopPrices() {
     };
 
     
-    const getPriceForRegion = (product: Product, regionId: number) => {
-        const price = product.prices?.find(p => p.regionId === regionId);
+    const getPriceForRegion = (product: Product, regionId: number | string) => {
+        const price = product.prices?.find(p => String(p.regionId) === String(regionId));
         return price ? formatPrice(price.price) : "-";
     };
 
@@ -383,6 +402,16 @@ export default function ShopPrices() {
                         Manage regional pricing for all products.
                     </p>
                 </div>
+                <Button
+                    onClick={handleGlobalAddPrices}
+                    style={{
+                        backgroundColor: "#00007A",
+                        color: "white"
+                    }}
+                >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Prices
+                </Button>
             </div>
 
             {/* Main Group Tabs */}
@@ -509,12 +538,47 @@ export default function ShopPrices() {
                 onClose={() => {
                     setShowPriceModal(false);
                     setSelectedProduct(null);
+                    setIsGlobalAdd(false);
                 }}
                 groupType={selectedGroupType}
                 regions={regions}
                 onSave={handleSavePrices}
                 isSaving={savingPrices}
             />
+            
+            {/* Extended Modal logic for global add */}
+            {isGlobalAdd && showPriceModal && (
+                <Dialog open={true} onOpenChange={() => setShowPriceModal(false)}>
+                    <DialogContent className="max-w-2xl bg-white">
+                        <DialogHeader>
+                            <DialogTitle>Select Product for Pricing</DialogTitle>
+                            <DialogDescription>
+                                Pick a product to set its regional prices
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <Select onValueChange={(val) => {
+                                const prod = products.find(p => String(p.id) === val);
+                                if (prod) {
+                                    setSelectedProduct(prod);
+                                    setIsGlobalAdd(false);
+                                }
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Search and select a product..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60 overflow-y-auto">
+                                    {availableProductsForGlobalAdd.map(p => (
+                                        <SelectItem key={p.id} value={String(p.id)}>
+                                            {p.name} {p.sku ? `(${p.sku})` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }

@@ -45,6 +45,8 @@ interface ProductFormData {
   type: string;
   group: string;
   subGroup: string;
+  sku?: string;
+  productCode?: string;
   images: string[];
   [key: string]: any; 
 }
@@ -426,6 +428,13 @@ const getRelevantAttributes = ({
   return mergeUniqueAttributes(groupAttributes, globalAttributes);
 };
 
+
+const generateProductCode = () => {
+  const segment1 = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const segment2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `BID-${segment1}-${segment2}`;
+};
+
 export default function AddProductForm({
   onBack,
   onSuccess,
@@ -437,9 +446,11 @@ export default function AddProductForm({
   const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || "",
     description: product?.description || "",
-    type: product?.type || initialType || "",
+    type: product?.type || initialType || "HARDWARE",
     group: product?.group || "",
     subGroup: product?.subGroup || "",
+    sku: product?.sku || "",
+    productCode: product?.productCode || generateProductCode(),
     images: product?.images || [],
   });
 
@@ -670,13 +681,15 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'sku', 'productCode', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
         group: formData.group,
         subGroup: formData.subGroup,
+        sku: formData.sku,
+        productCode: formData.productCode,
         images: imageUrls,
       };
 
@@ -716,6 +729,15 @@ export default function AddProductForm({
       onSuccess();
     } catch (error: any) {
       console.error("Error saving product:", error);
+      
+      
+      if (error.response?.status === 409 && error.response?.data?.message?.toLowerCase().includes("product code")) {
+        toast.error("Product code already exists. Auto-generating a new one and retrying...");
+        const newCode = generateProductCode();
+        setFormData(prev => ({ ...prev, productCode: newCode }));
+        return; 
+      }
+
       toast.error(
         error.response?.data?.message ||
           (isEditMode
@@ -738,13 +760,15 @@ export default function AddProductForm({
 
       const imageUrls = uploadedImages.map((img) => img.url);
 
-      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'images'];
+      const coreFields = ['name', 'description', 'type', 'group', 'subGroup', 'sku', 'productCode', 'images'];
       const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
         group: formData.group,
         subGroup: formData.subGroup,
+        sku: formData.sku,
+        productCode: formData.productCode,
         status: "DRAFT",
         images: imageUrls,
       };
@@ -776,6 +800,14 @@ export default function AddProductForm({
       onSuccess();
     } catch (error: any) {
       console.error("Error saving draft:", error);
+      
+      if (error.response?.status === 409 && error.response?.data?.message?.toLowerCase().includes("product code")) {
+        toast.error("Product code already exists. Auto-generating a new one. Please save again.");
+        const newCode = generateProductCode();
+        setFormData(prev => ({ ...prev, productCode: newCode }));
+        return;
+      }
+
       toast.error(error.response?.data?.message || "Failed to save draft.");
     } finally {
       setLoading(false);
@@ -856,58 +888,42 @@ export default function AddProductForm({
   }, [groups, isEditMode, product]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" onClick={onBack} className="p-2">
+    <div className="max-w-[1000px] mx-auto p-4 md:p-8 space-y-10">
+      {/* Header */}
+      <div className="flex items-center space-x-4 pb-2">
+        <Button variant="ghost" onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100/50">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
           {isEditMode ? "Edit Product" : "Add Product"}
+          {formData.type && (
+            <Badge className="bg-[#1f2937] text-white hover:bg-[#1f2937] px-3 py-1 text-xs rounded-md font-medium tracking-wide">
+              {typeOptions.find(t => t.value === formData.type)?.label || formData.type}
+            </Badge>
+          )}
         </h1>
       </div>
 
-      <div className="space-y-8">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-12">
+        {/* Classification Section */}
+        <div className="space-y-5">
+          <h2 className="text-lg font-bold text-gray-900">Classification</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-2">
-              <Label htmlFor="type" className="font-semibold">
-                Type*
-              </Label>
-              <Select
-                disabled={isEditMode || !!initialType}
-                value={formData.type}
-                onValueChange={(value) => handleInputChange("type", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {typeOptions.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="group" className="font-semibold">
-                Group*
+              <Label htmlFor="group" className="text-sm font-semibold text-gray-700">
+                Group <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.group || ""}
                 onValueChange={(value) => handleInputChange("group", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 border-gray-200">
                   <SelectValue placeholder="Select a group" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   {isEditMode &&
                     formData.group &&
-                    !groups.some(
-                      (cat) => cat.name === formData.group,
-                    ) && (
+                    !groups.some((cat) => cat.name === formData.group) && (
                       <SelectItem value={formData.group}>
                         {formData.group}
                       </SelectItem>
@@ -922,28 +938,16 @@ export default function AddProductForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-semibold">
-                Product Name*
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter product name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="subGroup" className="font-semibold">
-                Sub Group
+              <Label htmlFor="subGroup" className="text-sm font-semibold text-gray-700">
+                Subgroup <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.subGroup || ""}
                 onValueChange={(value) => handleInputChange("subGroup", value)}
                 disabled={subGroupOptions.length === 0}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={subGroupOptions.length > 0 ? "Select a sub-group" : "No sub-groups"} />
+                <SelectTrigger className="h-12 border-gray-200">
+                  <SelectValue placeholder={subGroupOptions.length > 0 ? "Select a group first" : "No sub-groups"} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   {subGroupOptions.map((sub, index) => (
@@ -955,10 +959,56 @@ export default function AddProductForm({
               </Select>
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description" className="font-semibold">
-              Product Description*
+        {/* Basic Information Section */}
+        <div className="space-y-5">
+          <h2 className="text-lg font-bold text-gray-900">Basic Information</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                Product Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter product name"
+                className="h-12 border-gray-200"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sku" className="text-sm font-semibold text-gray-700">
+                SKU <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="sku"
+                value={formData.sku || ""}
+                onChange={(e) => handleInputChange("sku", e.target.value)}
+                placeholder="Enter SKU"
+                className="h-12 border-gray-200"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="productCode" className="text-sm font-semibold text-gray-700">
+                Product Code (Auto)
+              </Label>
+              <Input
+                id="productCode"
+                value={formData.productCode || ""}
+                disabled
+                placeholder="Auto-generating..."
+                className="h-12 bg-gray-50 text-gray-500 cursor-not-allowed border-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="description" className="text-sm font-semibold text-gray-700">
+              Product Description <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="description"
@@ -966,6 +1016,7 @@ export default function AddProductForm({
               onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Write product description here..."
               rows={4}
+              className="resize-none border-gray-200 p-4"
             />
           </div>
         </div>
@@ -1085,6 +1136,7 @@ export default function AddProductForm({
                   ) : (
                     <Input
                       id={`attr-${attr.id}`}
+                      type={attr.attributeType === 'number' ? 'number' : attr.attributeType === 'date' ? 'date' : 'text'}
                       value={(formData[fieldName] as string) || ""}
                       onChange={(e) => handleInputChange(fieldName, e.target.value)}
                       placeholder={`Enter ${attr.type}`}

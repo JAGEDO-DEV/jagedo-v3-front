@@ -23,6 +23,10 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      toast.error("Please login first to add items to cart.");
+      return;
+    }
     if (!product.isPriceSet) {
       toast.error("Price not set for this product.");
       return;
@@ -32,6 +36,10 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      toast.error("Please login first to buy items.");
+      return;
+    }
     if (!product.isPriceSet) {
       toast.error("Price not set for this product.");
       return;
@@ -43,61 +51,120 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   // DETAIL VIEW
   if (isDetailView) {
+    const specEntries = Object.entries(product.specifications ?? {});
+
     return (
-      <Card className="p-6 shadow-product bg-white border-none">
+      <div className="bg-white">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {product.sku && <span>SKU: {product.sku}</span>}
+            {product.sku && product.productCode && <span className="mx-2">|</span>}
+            {product.productCode && <span>BID: {product.productCode}</span>}
+          </p>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Image Gallery */}
-          <div className="flex-1">
-            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-4">
-              <img src={mainImage || '/jagedologo.png'} alt={product.name} className="w-full h-full object-cover" />
+          <div className="w-full lg:w-80 flex-shrink-0">
+            <div className="rounded-lg overflow-hidden mb-3 border border-gray-100">
+              <img
+                src={mainImage || '/jagedologo.png'}
+                alt={product.name}
+                className="w-full h-64 object-cover"
+              />
             </div>
             {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="flex gap-2">
                 {product.images.map((img, index) => (
-                  <div
+                  <button
                     key={index}
                     onClick={() => setMainImage(img)}
-                    className={`aspect-square bg-gray-100 rounded flex items-center justify-center overflow-hidden cursor-pointer border-2 ${mainImage === img ? 'border-blue-500' : 'border-transparent'}`}
+                    className={`w-20 h-20 rounded border-2 overflow-hidden flex-shrink-0 transition-colors ${mainImage === img ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
                   >
-                    <img src={img} alt={`${product.name} thumbnail ${index + 1}`} className="w-full h-full object-cover" />
-                  </div>
+                    <img src={img} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
           {/* Product Info */}
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
-            <div className="text-3xl font-bold text-green-600 mb-4">
-              {product.isPriceSet ? (
-                `${detailPricePrefix} ${product.price.toLocaleString()}`
-              ) : (
-                <span className="text-blue-900/40 text-lg uppercase tracking-wider">price not set</span>
-              )}
+          <div className="flex-1 divide-y divide-gray-100">
+            {/* Description */}
+            <div className="pb-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
+              <p className="text-sm text-gray-600">{product.description || "No description available."}</p>
             </div>
-            <p className="text-gray-500 mb-6">{product.description || "No description available."}</p>
 
-            {/* Specifications */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-6 text-sm">
-              {Object.entries(product.specifications).map(([key, value]) =>
-                value ? (
-                  <div key={key}>
-                    <span className="font-semibold capitalize">{key}:</span> {Array.isArray(value) ? value.join(", ") : value}
+            {/* Product Details */}
+            <div className="py-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">Product Details</h3>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Type</p>
+                  <p className="text-sm font-semibold text-gray-800 lowercase">{product.type}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Group</p>
+                  <p className="text-sm font-semibold text-gray-800">{product.group || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Price</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {product.isPriceSet
+                      ? `Ksh ${product.price.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`
+                      : <span className="text-gray-400 italic">Not set</span>}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Sub Group</p>
+                  <p className="text-sm font-semibold text-gray-800">{product.subGroup || "—"}</p>
+                </div>
+                {product.regionName && product.regionName !== "Universal" && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Region</p>
+                    <p className="text-sm font-semibold text-gray-800 lowercase">{product.regionName}</p>
                   </div>
-                ) : null
+                )}
+                {product.sellerName && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Seller</p>
+                    <p className="text-sm font-semibold text-gray-800">{product.sellerName}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Selected Attributes */}
+            <div className="py-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">Selected Attributes</h3>
+              {specEntries.length > 0 ? (
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  {specEntries.map(([key, value]) => (
+                    <div key={key}>
+                      <p className="text-xs text-gray-400 mb-0.5 capitalize">{key}</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {Array.isArray(value) ? value.join(", ") : String(value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No attribute values provided yet.</p>
               )}
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
+            <div className="pt-5 flex gap-4">
               <button
                 onClick={handleAddToCartClick}
                 disabled={!product.isPriceSet}
                 className={cn(
-                  "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
-                  product.isPriceSet 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                  "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors text-sm",
+                  product.isPriceSet && isLoggedIn
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "bg-gray-200 text-gray-500 cursor-not-allowed"
                 )}
               >
@@ -108,10 +175,10 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
                   onClick={handleBuyNowClick}
                   disabled={!product.isPriceSet}
                   className={cn(
-                    "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors",
-                    product.isPriceSet
+                    "flex-1 font-semibold py-2 px-4 rounded-lg transition-colors text-sm",
+                    product.isPriceSet && isLoggedIn
                       ? "bg-green-500 hover:bg-green-600 text-gray-900"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed border-none"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   )}
                 >
                   Buy Now
@@ -120,7 +187,7 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
             </div>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -155,12 +222,12 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
               disabled={!product.isPriceSet}
               className={cn(
                 "p-2 border rounded-lg transition-colors",
-                product.isPriceSet
+                product.isPriceSet && isLoggedIn
                   ? "border-gray-300 hover:bg-gray-100"
                   : "border-gray-200 bg-gray-50 cursor-not-allowed"
               )}
             >
-              <ShoppingCart className={cn("h-4 w-4", product.isPriceSet ? "text-gray-700" : "text-gray-300")} />
+              <ShoppingCart className={cn("h-4 w-4", product.isPriceSet && isLoggedIn ? "text-gray-700" : "text-gray-300")} />
             </button>
           </div>
         </div>

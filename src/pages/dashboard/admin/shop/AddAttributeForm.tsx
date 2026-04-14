@@ -84,18 +84,17 @@ export default function AddAttributeForm({
   );
 
   
-  const [attributeName, setAttributeName] = useState(attribute?.type || '');
-  const [attributeCode, setAttributeCode] = useState('');
-  const [attributeType, setAttributeType] = useState(
-    attribute?.attributeType || 'text'
-  );
-  const [filterable, setFilterable] = useState(attribute?.filterable ?? false);
-  const [customerView, setCustomerView] = useState(
-    attribute?.customerView ?? false
-  );
-  const [active, setActive] = useState(attribute?.active ?? true);
-  const [attributeValues, setAttributeValues] = useState<string[]>([]);
-  const [newValue, setNewValue] = useState("");
+    
+    const [attributeName, setAttributeName] = useState(attribute?.type || '');
+    const [attributeCode, setAttributeCode] = useState(attribute?.code || '');
+    const [attributeType, setAttributeType] = useState(attribute?.attributeType || 'text');
+    const [unit, setUnit] = useState(attribute?.unit || '');
+    const [isRequired, setIsRequired] = useState(attribute?.isRequired ?? false);
+    const [filterable, setFilterable] = useState(attribute?.filterable ?? false);
+    const [customerView, setCustomerView] = useState(attribute?.customerView ?? false);
+    const [active, setActive] = useState(attribute?.active ?? true);
+    const [attributeValues, setAttributeValues] = useState<string[]>([]);
+    const [newValue, setNewValue] = useState("");
 
   const selectedGroup = availableGroups.find(
     (g) => g.id.toString() === selectedGroupId
@@ -120,8 +119,10 @@ export default function AddAttributeForm({
       );
       setSelectedSubGroup(attribute?.attributeGroup || '');
       setAttributeName(attribute?.type || '');
-      setAttributeCode('');
+      setAttributeCode(attribute?.code || '');
       setAttributeType(attribute?.attributeType || 'text');
+      setUnit(attribute?.unit || '');
+      setIsRequired(attribute?.isRequired ?? false);
       setFilterable(attribute?.filterable ?? false);
       setCustomerView(attribute?.customerView ?? false);
       setActive(attribute?.active ?? true);
@@ -223,6 +224,9 @@ export default function AddAttributeForm({
         filterable,
         active,
         customerView,
+        isRequired,
+        unit,
+        code: attributeCode,
         groupId: selectedGroupId,
         attributeGroup: resolvedAttributeGroup,
         values: attributeType === "multiselect" 
@@ -339,53 +343,109 @@ export default function AddAttributeForm({
 
           {step === 2 && (
             <>
-              <p className="text-sm font-medium text-gray-500">
-                Step 2: Define Attributes
-              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Attribute Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Attribute Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    placeholder="e.g. Size"
+                    value={attributeName}
+                    onChange={(e) => setAttributeName(e.target.value)}
+                    className="border-gray-200 rounded-xl h-11"
+                  />
+                </div>
 
-              {/* Attribute Name */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Attribute Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  placeholder="e.g. Material"
-                  value={attributeName}
-                  onChange={(e) => setAttributeName(e.target.value)}
-                  className="border-gray-300 rounded-lg"
-                />
+                {/* Attribute Code */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Attribute Code
+                  </Label>
+                  <Input
+                    placeholder="size"
+                    value={attributeCode}
+                    onChange={(e) => setAttributeCode(e.target.value)}
+                    className="border-gray-200 rounded-xl h-11"
+                  />
+                </div>
+
+                {/* Type */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">Type {isEdit && "(Locked)"}</Label>
+                  <Select value={attributeType} onValueChange={setAttributeType}>
+                    <SelectTrigger className="w-full border-gray-200 rounded-xl h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="select">Select</SelectItem>
+                      <SelectItem value="multiselect">Multiselect</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Unit */}
+                {attributeType === 'number' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-gray-700">Unit</Label>
+                    <Input
+                      placeholder="e.g. 1''"
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      className="border-gray-200 rounded-xl h-11"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Attribute Code */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Attribute Code
-                </Label>
-                <Input
-                  placeholder="auto-generated"
-                  value={attributeCode}
-                  onChange={(e) => setAttributeCode(e.target.value)}
-                  className="border-gray-300 rounded-lg text-gray-400"
-                />
-              </div>
+              {/* Toggles */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActive(!active)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${active ? "bg-green-500" : "bg-gray-200"}`}
+                  >
+                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${active ? "translate-x-3.5" : "translate-x-1"}`} />
+                  </button>
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase">Active</span>
+                </div>
 
-              {/* Type */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700">Type</Label>
-                <Select value={attributeType} onValueChange={setAttributeType}>
-                  <SelectTrigger className="w-full border-gray-300 rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="select">Select</SelectItem>
-                    <SelectItem value="multiselect">Multiselect</SelectItem>
-                    <SelectItem value="textarea">Textarea</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-400">
-                  Type becomes immutable after creation.
-                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsRequired(!isRequired)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${isRequired ? "bg-green-500" : "bg-gray-200"}`}
+                  >
+                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${isRequired ? "translate-x-3.5" : "translate-x-1"}`} />
+                  </button>
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase">Required</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilterable(!filterable)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${filterable ? "bg-green-500" : "bg-gray-200"}`}
+                  >
+                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${filterable ? "translate-x-3.5" : "translate-x-1"}`} />
+                  </button>
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase">filterable</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCustomerView(!customerView)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${customerView ? "bg-green-500" : "bg-gray-200"}`}
+                  >
+                    <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${customerView ? "translate-x-3.5" : "translate-x-1"}`} />
+                  </button>
+                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase">show to customer</span>
+                </div>
               </div>
 
               {/* Values Management */}
@@ -499,7 +559,7 @@ export default function AddAttributeForm({
                   : 'Saving...'
                 : isEdit
                 ? 'Update'
-                : 'Next'}
+                : 'Create Attribute'}
             </Button>
           )}
         </div>
