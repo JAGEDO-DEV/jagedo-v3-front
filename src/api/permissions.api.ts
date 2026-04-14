@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_SERVER_URL;
+const API_BASE =`${import.meta.env.VITE_SERVER_URL}/api`;
 
 /**
  * Get the complete permission matrix for all modules (public endpoint)
