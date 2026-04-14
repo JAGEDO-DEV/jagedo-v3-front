@@ -3,7 +3,7 @@
 //@ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Loader2, User, MapPin, MessageSquare, ShieldCheck, Check } from "lucide-react";
+import { ArrowLeft, Loader2, User, MapPin, MessageSquare, ShieldCheck, Check,LogOut  } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -413,7 +413,7 @@ export function ProfileCompletion({
 
 
     return (
-        <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-50 py-8")}>
+        <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-900 py-8")}>
             <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
                 
                 <div className="mb-6 flex items-center justify-between">
@@ -428,9 +428,9 @@ export function ProfileCompletion({
                     {onCancel && (
                         <button
                             onClick={() => navigate("/")}
-                            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
+                            className="p-2 rounded-md justify-between flex items-center bg-gray-200 hover:bg-gray-200 text-gray-700 hover:text-gray-700 transition-all duration-200"
                         >
-                            <ArrowLeft className="h-5 w-5" />
+                           <LogOut className="h-4 w-4 mr-3" /> Log out 
                         </button>
                     )}
                 </div>
@@ -762,7 +762,7 @@ export function ProfileCompletion({
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 mb-4">
                                     <ShieldCheck className="h-8 w-8 text-amber-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800">
+                                <h3 className="text-xl font-semibold text-gray-800">
                                     Verify Your <strong className="font-semibold">{secondaryContact.contactType === "EMAIL" ? "Email " : "Phone number"}</strong>
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1">One last step to secure your account</p>

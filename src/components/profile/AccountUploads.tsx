@@ -344,11 +344,12 @@ const AccountUploads = ({ data, refreshData }) => {
 
   const totalUploaded = fields.filter((f) => !!documents[f.key]).length;
   const totalApproved = fields.filter(
-    (f) => approvalStatus[f.key] === "approved",
+    (f) => approvalStatus[f.key]?.status === "approved" || approvalStatus[f.key] === "approved",
   ).length;
   const totalPending = fields.filter(
-    (f) => !!documents[f.key] && approvalStatus[f.key] !== "approved",
+    (f) => !!documents[f.key] && approvalStatus[f.key]?.status !== "approved" && approvalStatus[f.key] !== "approved",
   ).length;
+console.log("Approval Status Map:", totalApproved, totalPending);
 
   const contractorTotalApproved = allContractorDocs.filter(
     (f) =>
@@ -678,12 +679,12 @@ const AccountUploads = ({ data, refreshData }) => {
                       className={`h-2 rounded-full transition-all ${
                         totalApproved === fields.length
                           ? "bg-green-500"
-                          : totalPending > 0
+                          : totalUploaded > 0
                             ? "bg-amber-500"
                             : "bg-gray-300"
                       }`}
                       style={{
-                        width: `${fields.length > 0 ? (totalApproved / fields.length) * 100 : 0}%`,
+                        width: `${fields.length > 0 ? (totalUploaded / fields.length) * 100 : 0}%`,
                       }}
                     />
                   </div>

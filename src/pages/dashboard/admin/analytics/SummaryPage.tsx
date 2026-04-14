@@ -5,9 +5,30 @@ import GlobalDateRange from "./components/analytics/GlobalDateRange";
 import StatCard from "./components/analytics/StatCard";
 import PieChartCard from "./components/analytics/PieChartCard";
 import LineChartCard from "./components/analytics/LineChartCard";
-import { Users, UserPlus, Building2, ShieldCheck, Ban, RotateCcw, Trash2, Activity } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getSummaryAnalytics, SummaryAnalyticsResponse, getLifecycleTrends, LifecycleTrendItem, LifecycleEvent } from "@/api/analytics.api";
+import {
+  Users,
+  UserPlus,
+  Building2,
+  ShieldCheck,
+  Ban,
+  RotateCcw,
+  Trash2,
+  Activity,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getSummaryAnalytics,
+  SummaryAnalyticsResponse,
+  getLifecycleTrends,
+  LifecycleTrendItem,
+  LifecycleEvent,
+} from "@/api/analytics.api";
 
 interface AnalyticsState {
   loading: boolean;
@@ -29,29 +50,55 @@ interface LifecycleState {
 
 export default function SummaryPage() {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [period, setPeriod] = useState("7d");
+  const [period, setPeriod] = useState("90d");
   const [from, setFrom] = useState<string | undefined>(undefined);
   const [to, setTo] = useState<string | undefined>(undefined);
-  const [analytics, setAnalytics] = useState<AnalyticsState>({ loading: true, error: null, data: null });
-  const [previousAnalytics, setPreviousAnalytics] = useState<PreviousAnalytics>({ loading: false, error: null, data: null });
-  const [lifecycle, setLifecycle] = useState<LifecycleState>({ loading: false, error: null, data: null });
-  const [lifecycleEvent, setLifecycleEvent] = useState<LifecycleEvent>("signup");
+  const [analytics, setAnalytics] = useState<AnalyticsState>({
+    loading: true,
+    error: null,
+    data: null,
+  });
+  const [previousAnalytics, setPreviousAnalytics] = useState<PreviousAnalytics>(
+    { loading: false, error: null, data: null },
+  );
+  const [lifecycle, setLifecycle] = useState<LifecycleState>({
+    loading: false,
+    error: null,
+    data: null,
+  });
+  const [lifecycleEvent, setLifecycleEvent] =
+    useState<LifecycleEvent>("signup");
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
   const [cumulative, setCumulative] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState<string>("all");
+  const [compareEvents, setCompareEvents] = useState(false);
 
   const fetchAnalytics = async () => {
     try {
       setAnalytics({ loading: true, error: null, data: null });
-      const result = await getSummaryAnalytics(axiosInstance, from, to);
+      const result = await getSummaryAnalytics(axiosInstance, period, from, to);
       setAnalytics({ loading: false, error: null, data: result.data });
 
       // Calculate and fetch previous period
       const { prevFrom, prevTo } = calculatePreviousPeriod(from, to);
       try {
-        const prevResult = await getSummaryAnalytics(axiosInstance, prevFrom, prevTo);
-        setPreviousAnalytics({ loading: false, error: null, data: prevResult.data });
+        const prevResult = await getSummaryAnalytics(
+          axiosInstance,
+          undefined,
+          prevFrom,
+          prevTo,
+        );
+        setPreviousAnalytics({
+          loading: false,
+          error: null,
+          data: prevResult.data,
+        });
       } catch (err: any) {
-        setPreviousAnalytics({ loading: false, error: err.message, data: null });
+        setPreviousAnalytics({
+          loading: false,
+          error: err.message,
+          data: null,
+        });
       }
     } catch (err: any) {
       setAnalytics({ loading: false, error: err.message, data: null });
@@ -67,8 +114,9 @@ export default function SummaryPage() {
         groupBy,
         cumulative,
         undefined,
+        period,
         from,
-        to
+        to,
       );
       setLifecycle({ loading: false, error: null, data: result.data });
     } catch (err: any) {
@@ -81,13 +129,16 @@ export default function SummaryPage() {
     from?: string;
     to?: string;
   }) => {
-    if (params.period) {
+    // If custom dates are provided, use them regardless of period
+    if (params.from && params.to) {
+      setPeriod("custom");
+      setFrom(params.from);
+      setTo(params.to);
+    } else if (params.period && params.period !== "custom") {
+      // For preset periods, clear custom dates
       setPeriod(params.period);
       setFrom(undefined);
       setTo(undefined);
-    } else if (params.from && params.to) {
-      setFrom(params.from);
-      setTo(params.to);
     }
   };
 
@@ -103,8 +154,6 @@ export default function SummaryPage() {
     trackPageView("Analytics - Summary", axiosInstance);
   }, []);
 
-
-
   if (analytics.error) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -117,24 +166,27 @@ export default function SummaryPage() {
   const charts = analytics.data?.charts;
 
   // Transform userComposition data for PieChartCard
-  const compositionData = charts?.userComposition?.map((item) => ({
-    name: item.label,
-    value: item.value,
-    color: getColorForUserType(item.label),
-  })) || [];
+  const compositionData =
+    charts?.userComposition?.map((item) => ({
+      name: item.label,
+      value: item.value,
+      color: getColorForUserType(item.label),
+    })) || [];
 
   // Transform topLocations data for PieChartCard
-  const topLocationsData = charts?.topLocations?.map((item, index) => ({
-    name: item.county,
-    value: item.count,
-    color: getColorForLocation(index),
-  })) || [];
+  const topLocationsData =
+    charts?.topLocations?.map((item, index) => ({
+      name: item.county,
+      value: item.count,
+      color: getColorForLocation(index),
+    })) || [];
 
   // Transform lifecycle data for chart
-  const lifecycleChartData = lifecycle.data?.map((item) => ({
-    date: item.period,
-    count: item.count,
-  })) || [];
+  const lifecycleChartData =
+    lifecycle.data?.map((item) => ({
+      date: item.period,
+      count: item.count,
+    })) || [];
 
   return (
     <div>
@@ -158,64 +210,112 @@ export default function SummaryPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard 
-          title="All Active Users" 
-          value={metrics?.activeUsers || 0} 
-          icon={Users} 
-          change={calculateChange(metrics?.activeUsers, previousAnalytics.data?.metrics?.activeUsers)}
-          changeType={getChangeType(metrics?.activeUsers, previousAnalytics.data?.metrics?.activeUsers)}
+        <StatCard
+          title="All Active Users"
+          value={metrics?.activeUsers || 0}
+          icon={Users}
+          change={calculateChange(
+            metrics?.activeUsers,
+            previousAnalytics.data?.metrics?.activeUsers,
+          )}
+          changeType={getChangeType(
+            metrics?.activeUsers,
+            previousAnalytics.data?.metrics?.activeUsers,
+          )}
         />
-        <StatCard 
-          title="New Signups" 
-          value={metrics?.newSignups || 0} 
-          icon={UserPlus} 
-          change={calculateChange(metrics?.newSignups, previousAnalytics.data?.metrics?.newSignups)}
-          changeType={getChangeType(metrics?.newSignups, previousAnalytics.data?.metrics?.newSignups)}
+        <StatCard
+          title="New Signups"
+          value={metrics?.newSignups || 0}
+          icon={UserPlus}
+          change={calculateChange(
+            metrics?.newSignups,
+            previousAnalytics.data?.metrics?.newSignups,
+          )}
+          changeType={getChangeType(
+            metrics?.newSignups,
+            previousAnalytics.data?.metrics?.newSignups,
+          )}
         />
-        <StatCard 
-          title="Profile Completion Rate" 
-          value={`${metrics?.profileCompletion?.rate || 0}%`} 
-          icon={Building2} 
-          change={calculateChange(metrics?.profileCompletion?.rate, previousAnalytics.data?.metrics?.profileCompletion?.rate)}
-          changeType={getChangeType(metrics?.profileCompletion?.rate, previousAnalytics.data?.metrics?.profileCompletion?.rate)}
+        <StatCard
+          title="Profile Completion Rate"
+          value={`${metrics?.profileCompletion?.rate || 0}%`}
+          icon={Building2}
+          change={calculateChange(
+            metrics?.profileCompletion?.rate,
+            previousAnalytics.data?.metrics?.profileCompletion?.rate,
+          )}
+          changeType={getChangeType(
+            metrics?.profileCompletion?.rate,
+            previousAnalytics.data?.metrics?.profileCompletion?.rate,
+          )}
         />
-        <StatCard 
-          title="Verification Rate" 
-          value={`${metrics?.verificationRate?.rate || 0}%`} 
-          icon={ShieldCheck} 
-          change={calculateChange(metrics?.verificationRate?.rate, previousAnalytics.data?.metrics?.verificationRate?.rate)}
-          changeType={getChangeType(metrics?.verificationRate?.rate, previousAnalytics.data?.metrics?.verificationRate?.rate)}
+        <StatCard
+          title="Verification Rate"
+          value={`${metrics?.verificationRate?.rate || 0}%`}
+          icon={ShieldCheck}
+          change={calculateChange(
+            metrics?.verificationRate?.rate,
+            previousAnalytics.data?.metrics?.verificationRate?.rate,
+          )}
+          changeType={getChangeType(
+            metrics?.verificationRate?.rate,
+            previousAnalytics.data?.metrics?.verificationRate?.rate,
+          )}
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard 
-          title="Suspension Rate" 
-          value={`${metrics?.suspensionRate?.rate || 0}%`} 
-          icon={Ban} 
-          change={calculateChange(metrics?.suspensionRate?.rate, previousAnalytics.data?.metrics?.suspensionRate?.rate)}
-          changeType={getChangeType(metrics?.suspensionRate?.rate, previousAnalytics.data?.metrics?.suspensionRate?.rate)}
+        <StatCard
+          title="Suspension Rate"
+          value={`${metrics?.suspensionRate?.rate || 0}%`}
+          icon={Ban}
+          change={calculateChange(
+            metrics?.suspensionRate?.rate,
+            previousAnalytics.data?.metrics?.suspensionRate?.rate,
+          )}
+          changeType={getChangeType(
+            metrics?.suspensionRate?.rate,
+            previousAnalytics.data?.metrics?.suspensionRate?.rate,
+          )}
         />
-        <StatCard 
-          title="Return Rate" 
-          value={`${metrics?.returnRate?.rate || 0}%`} 
-          icon={RotateCcw} 
-          change={calculateChange(metrics?.returnRate?.rate, previousAnalytics.data?.metrics?.returnRate?.rate)}
-          changeType={getChangeType(metrics?.returnRate?.rate, previousAnalytics.data?.metrics?.returnRate?.rate)}
+        <StatCard
+          title="Return Rate"
+          value={`${metrics?.returnRate?.rate || 0}%`}
+          icon={RotateCcw}
+          change={calculateChange(
+            metrics?.returnRate?.rate,
+            previousAnalytics.data?.metrics?.returnRate?.rate,
+          )}
+          changeType={getChangeType(
+            metrics?.returnRate?.rate,
+            previousAnalytics.data?.metrics?.returnRate?.rate,
+          )}
         />
-        <StatCard 
-          title="Deleted (Count Only)" 
-          value={metrics?.deletedCount || 0} 
-          icon={Trash2} 
-          change={calculateChange(metrics?.deletedCount, previousAnalytics.data?.metrics?.deletedCount)}
-          changeType={getChangeType(metrics?.deletedCount, previousAnalytics.data?.metrics?.deletedCount)}
+        <StatCard
+          title="Deleted (Count Only)"
+          value={metrics?.deletedCount || 0}
+          icon={Trash2}
+          change={calculateChange(
+            metrics?.deletedCount,
+            previousAnalytics.data?.metrics?.deletedCount,
+          )}
+          changeType={getChangeType(
+            metrics?.deletedCount,
+            previousAnalytics.data?.metrics?.deletedCount,
+          )}
         />
-        <StatCard 
-          title="Operational Sessions" 
-          value={metrics?.operationalSessions || 0} 
-          icon={Activity} 
-          change={calculateChange(metrics?.operationalSessions, previousAnalytics.data?.metrics?.operationalSessions)}
-          changeType={getChangeType(metrics?.operationalSessions, previousAnalytics.data?.metrics?.operationalSessions)}
+        <StatCard
+          title="Operational Sessions"
+          value={metrics?.operationalSessions || 0}
+          icon={Activity}
+          change={calculateChange(
+            metrics?.operationalSessions,
+            previousAnalytics.data?.metrics?.operationalSessions,
+          )}
+          changeType={getChangeType(
+            metrics?.operationalSessions,
+            previousAnalytics.data?.metrics?.operationalSessions,
+          )}
         />
       </div>
 
@@ -260,54 +360,113 @@ export default function SummaryPage() {
       {/* Lifecycle Trends Section */}
       <div className="mt-6 bg-card border border-border rounded-lg p-6">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-2">Lifecycle Trends</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            Lifecycle Trends
+          </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Selectable events, grouping, cumulative mode, comparison, and segment filters.
+            Selectable events, grouping, cumulative mode, comparison, and
+            segment filters.
           </p>
+          <div className="">
+            {/* Top Controls Row */}
+            <div className="flex flex-wrap justify-end gap-3 items-center mb-4">
+              {/* Time Period */}
+              <div className="flex items-center gap-2">
+                <Select
+                  value={groupBy}
+                  onValueChange={(val) =>
+                    setGroupBy(val as "day" | "week" | "month")
+                  }
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Daily</SelectItem>
+                    <SelectItem value="week">Weekly</SelectItem>
+                    <SelectItem value="month">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Event Buttons */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {["signup", "login", "otp_success", "otp_fail", "suspension", "deletion", "verification"].map((event) => (
-              <button
-                key={event}
-                onClick={() => setLifecycleEvent(event as LifecycleEvent)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  lifecycleEvent === event
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {formatEventName(event)}
-              </button>
-            ))}
-          </div>
+              {/* Segments Filter */}
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedSegment}
+                  onValueChange={setSelectedSegment}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Segments</SelectItem>
+                    <SelectItem value="customer-individual">
+                      Customer Individual
+                    </SelectItem>
+                    <SelectItem value="customer-org">
+                      Customer Organization
+                    </SelectItem>
+                    <SelectItem value="fundi">Fundi</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="contractor">Contractor</SelectItem>
+                    <SelectItem value="hardware">Hardware</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Controls Row */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-foreground">Group By:</label>
-              <Select value={groupBy} onValueChange={(val) => setGroupBy(val as "day" | "week" | "month")}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Daily</SelectItem>
-                  <SelectItem value="week">Weekly</SelectItem>
-                  <SelectItem value="month">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Cumulative Checkbox */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={cumulative}
+                    onChange={(e) => setCumulative(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    Cumulative
+                  </span>
+                </label>
+              </div>
+
+              {/* Compare Events Checkbox */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={compareEvents}
+                    onChange={(e) => setCompareEvents(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    Compare Events
+                  </span>
+                </label>
+              </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={cumulative}
-                  onChange={(e) => setCumulative(e.target.checked)}
-                  className="rounded"
-                />
-                <span className="text-sm font-medium text-foreground">Cumulative</span>
-              </label>
+            {/* Event Buttons */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[
+                "signup",
+                "login",
+                "otp_success",
+                "otp_fail",
+                "suspension",
+                "deletion",
+                "verification",
+              ].map((event) => (
+                <button
+                  key={event}
+                  onClick={() => setLifecycleEvent(event as LifecycleEvent)}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    lifecycleEvent === event
+                      ? "bg-blue-50 text-blue-600 border border-blue-600"
+                      : "bg-white text-gray-800 border border-gray-300"
+                  }`}
+                >
+                  {formatEventName(event)}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -330,7 +489,9 @@ export default function SummaryPage() {
           />
         ) : (
           <div className="flex items-center justify-center h-72">
-            <p className="text-muted-foreground">No data available for the selected filters</p>
+            <p className="text-muted-foreground">
+              No data available for the selected filters
+            </p>
           </div>
         )}
       </div>
@@ -339,15 +500,22 @@ export default function SummaryPage() {
 }
 
 // Helper functions
-function calculateChange(current: number | undefined, previous: number | undefined): string {
-  if (current === undefined || previous === undefined || previous === 0) return "—";
+function calculateChange(
+  current: number | undefined,
+  previous: number | undefined,
+): string {
+  if (current === undefined || previous === undefined || previous === 0)
+    return "—";
   const diff = current - previous;
   const percentage = ((diff / previous) * 100).toFixed(2);
   const sign = diff >= 0 ? "+" : "";
   return `${sign}${diff} vs previous (${sign}${percentage}%)`;
 }
 
-function getChangeType(current: number | undefined, previous: number | undefined): "positive" | "negative" | "neutral" {
+function getChangeType(
+  current: number | undefined,
+  previous: number | undefined,
+): "positive" | "negative" | "neutral" {
   if (current === undefined || previous === undefined) return "neutral";
   const diff = current - previous;
   if (diff > 0) return "positive";
@@ -355,12 +523,17 @@ function getChangeType(current: number | undefined, previous: number | undefined
   return "neutral";
 }
 
-function calculatePreviousPeriod(from: string | undefined, to: string | undefined): { prevFrom: string | undefined; prevTo: string | undefined } {
+function calculatePreviousPeriod(
+  from: string | undefined,
+  to: string | undefined,
+): { prevFrom: string | undefined; prevTo: string | undefined } {
   if (!from || !to) return { prevFrom: undefined, prevTo: undefined };
 
   const fromDate = new Date(from);
   const toDate = new Date(to);
-  const periodDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+  const periodDays = Math.ceil(
+    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
 
   const prevTo = new Date(fromDate);
   prevTo.setDate(prevTo.getDate() - 1);
@@ -378,11 +551,11 @@ function getColorForUserType(label: string): string {
   const colorMap: Record<string, string> = {
     "Customer Individual": "hsl(234, 89%, 74%)",
     "Customer Organization": "hsl(240, 84%, 60%)",
-    "Fundi": "hsl(160, 84%, 39%)",
-    "Professional": "hsl(45, 93%, 51%)",
-    "Contractor": "hsl(280, 85%, 65%)",
-    "Hardware": "hsl(0, 84%, 60%)",
-    "Other": "hsl(210, 14%, 60%)",
+    Fundi: "hsl(160, 84%, 39%)",
+    Professional: "hsl(45, 93%, 51%)",
+    Contractor: "hsl(280, 85%, 65%)",
+    Hardware: "hsl(0, 84%, 60%)",
+    Other: "hsl(210, 14%, 60%)",
   };
   return colorMap[label] || "hsl(210, 14%, 60%)";
 }

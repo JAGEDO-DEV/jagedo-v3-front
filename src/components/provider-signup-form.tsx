@@ -1316,7 +1316,7 @@ export function ProviderSignupForm({
               >
                 I agree to the{" "}
                 <a
-                  href="#"
+                  href="https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Terms%20of%20Service.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-blue-800 underline hover:text-blue-900 hover:no-underline transition-colors duration-200"
@@ -1325,7 +1325,7 @@ export function ProviderSignupForm({
                 </a>{" "}
                 and{" "}
                 <a
-                  href="#"
+                  href="https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Data%20Protection%20Policy.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-blue-800 underline hover:text-blue-900 hover:no-underline transition-colors duration-200"
