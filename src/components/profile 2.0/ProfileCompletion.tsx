@@ -413,7 +413,7 @@ export function ProfileCompletion({
 
 
     return (
-        <div className={cn("w-full font-roboto", isModal ? "!bg-transparent p-0" : "min-h-screen w-screen !bg-white py-8")} style={isModal ? { backgroundColor: 'transparent' } : { backgroundColor: 'white' }}>
+        <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-900 py-8")}>
             <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
                 
                 <div className="mb-6 flex items-center justify-between">
