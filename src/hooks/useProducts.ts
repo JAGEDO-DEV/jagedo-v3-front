@@ -22,6 +22,8 @@ interface RawApiProduct {
     type: string;
     group: string;
     subGroup: string | null;
+    sku: string | null;
+    productCode: string | null;
     images: string[] | null;
     prices: ApiPriceEntry[] | null;
     specs: any | null;
@@ -29,6 +31,7 @@ interface RawApiProduct {
     customPrice: number | null;
     active: boolean;
     basePrice: number | null;
+    users: { firstName: string; lastName: string; organizationName: string | null } | null;
 }
 
 export interface Product {
@@ -39,6 +42,9 @@ export interface Product {
     type: string;
     group: string;
     subGroup?: string;
+    sku?: string;
+    productCode?: string;
+    sellerName?: string;
     price: number;
     isPriceSet: boolean;
     showFromPrice?: boolean;
@@ -55,6 +61,11 @@ export interface Product {
 
 const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] => {
     return rawProducts.flatMap((rawProduct): Product[] => {
+        const seller = rawProduct.users;
+        const sellerName = seller
+            ? (seller.organizationName || `${seller.firstName} ${seller.lastName}`.trim())
+            : undefined;
+
         const baseProductData = {
             productId: rawProduct.id,
             name: rawProduct.name,
@@ -62,6 +73,9 @@ const transformAndFlattenProducts = (rawProducts: RawApiProduct[]): Product[] =>
             type: rawProduct.type,
             group: rawProduct.group,
             subGroup: rawProduct.subGroup ?? undefined,
+            sku: rawProduct.sku ?? undefined,
+            productCode: rawProduct.productCode ?? undefined,
+            sellerName,
             images: rawProduct.images || [],
             active: rawProduct.active,
             specifications: {

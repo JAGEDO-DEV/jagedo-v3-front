@@ -36,6 +36,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const showVerificationMessage = userData.status == "VERIFIED";
   const [avatarSrc, setAvatarSrc] = useState(userData?.profileImage);
 
@@ -96,6 +97,22 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   
   const [displayEmail, setDisplayEmail] = useState(userData?.email ?? "");
   const [displayPhone, setDisplayPhone] = useState(userData?.phone ?? "");
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowActionDropdown(false);
+      }
+    };
+
+    if (showActionDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showActionDropdown]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -531,7 +548,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                     return (
                       <>
                         <div className="mt-6">
-                          <div className="relative inline-block">
+                          <div ref={dropdownRef} className="relative inline-block">
                             <button
                               type="button"
                               onClick={() =>
