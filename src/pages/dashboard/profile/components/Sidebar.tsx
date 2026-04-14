@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertCircle,
+  Megaphone,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,6 +34,13 @@ const baseNavigationItems = [
     color: "text-green-600",
   },
 ];
+
+const marketingItem = {
+  id: "marketing",
+  label: "Marketing",
+  icon: Megaphone,
+  color: "text-green-600",
+};
 
 const experienceItem = {
   id: "experience",
@@ -79,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Navigation items
   const getNavigationItems = () => {
     if (userType === "CUSTOMER") {
-      return [...baseNavigationItems, uploadsItem];
+      return [...baseNavigationItems, marketingItem, uploadsItem];
     }
 
     if (userType === "HARDWARE") {
@@ -169,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             const status = completionStatus[item.id] || "incomplete";
             console.log("Item: ", item, "Status: ", status);
             let isComplete = status === "complete";
-            const isOptional = item.id === "products";
+            const isOptional = item.id === "products" || item.id === "marketing";
 
             return (
               <li key={item.id}>
@@ -198,7 +206,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                   <span className="font-medium flex-1">
                     {item.label}
-                    {isOptional && (
+                    {item.id === "products" && (
                       <span className="text-xs text-gray-400 ml-1">
                         (Optional)
                       </span>
@@ -210,12 +218,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                   </span>
 
-                  {!isOptional &&
-                    (isComplete ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                    ))}
+                  {isComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  )}
                 </button>
               </li>
             );

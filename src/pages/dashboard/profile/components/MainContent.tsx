@@ -2,6 +2,7 @@
 import React from 'react';
 import AccountInfo from './tabs/AccountInfo';
 import Address from './tabs/Address';
+import Marketing from './tabs/Marketing';
 import AccountUploads from './tabs/AccountUploads';
 import Experience from './tabs/Experience';
 import Products from './tabs/Products';
@@ -23,6 +24,12 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
           return <AccountInfo userData={userData} completionStatus={completionStatus} isAdmin={isAdmin} />;
       case 'address':
         return <Address userData={userData} />;
+      case 'marketing':
+        // Only show for customers
+        if (userType === 'CUSTOMER') {
+          return <Marketing userData={userData} onUpdate={refetch} />;
+        }
+        return <AccountInfo userData={userData} isAdmin={isAdmin} />;
       case 'account-uploads':
         return <AccountUploads userData={userData} isAdmin={isAdmin} />;
       case 'experience':

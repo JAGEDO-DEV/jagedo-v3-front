@@ -167,6 +167,10 @@ export default function FundiSignup() {
                 townCity: profileData.town || "", 
                 estateVillage: profileData.estate || "", 
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
+                referralDetail: profileData.referralDetail || "",
+                socialMediaOther: profileData.socialMediaOther || "",
+                interestedServices: profileData.interestedServices || [],
+                otherService: profileData.otherService || "",
             };
 
             console.log("Sending payload to API:", completeProfilePayload);
