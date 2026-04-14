@@ -44,13 +44,14 @@ import {
     Filter,
     Upload,
     LogOut,
-    Loader2
+    Loader2,
+    Power
 } from "lucide-react";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-hot-toast";
@@ -81,14 +82,20 @@ interface Product {
     productCode: string | null;
     basePrice: number | null;
     pricingReference: string | null;
-    lastUpdated: string | null;
+    priceLastUpdated: string | null;
     images: string[] | null;
     specs: any | null;
     customPrice: number | null;
+    custom: boolean;
     createdAt: string;
     updatedAt: string;
     active: boolean;
     prices: Price[];
+    users: {
+        firstName: string;
+        lastName: string;
+        organizationName: string | null;
+    } | null;
 }
 
 export default function ShopProducts() {
@@ -107,7 +114,6 @@ export default function ShopProducts() {
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [isBatchDeleting, setIsBatchDeleting] = useState(false);
 
-    
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -143,7 +149,7 @@ export default function ShopProducts() {
     const handleViewProduct = async (product: Product) => {
         setSelectedProduct(product);
         setShowProductModal(true);
-        
+
         try {
             await logProductView(axiosInstance, product.id.toString());
         } catch (e) {
@@ -204,7 +210,7 @@ export default function ShopProducts() {
 
     const handleDeleteBatch = async () => {
         if (selectedRows.size === 0) return;
-        
+
         if (!window.confirm(`Are you sure you want to delete ${selectedRows.size} products?`)) return;
 
         try {
@@ -232,21 +238,19 @@ export default function ShopProducts() {
             (product.active ? "active" : "inactive").includes(searchTerm.toLowerCase());
 
         const matchesGroup = product.type === selectedGroupType;
-        
-        const matchesStatus = statusFilter === "all" || 
-            (statusFilter === "active" && product.active) || 
+
+        const matchesStatus = statusFilter === "all" ||
+            (statusFilter === "active" && product.active) ||
             (statusFilter === "inactive" && !product.active);
 
         return matchesSearch && matchesGroup && matchesStatus;
     });
 
-    
     const totalPages = Math.ceil((filteredProducts?.length || 0) / itemsPerPage);
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentProducts = filteredProducts?.slice(indexOfFirstItem, indexOfLastItem) || [];
 
-    
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, selectedGroup]);
@@ -347,129 +351,258 @@ export default function ShopProducts() {
 
         return (
             <Dialog open={isOpen} onOpenChange={onClose}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-6 sm:p-8 rounded-lg hide-scrollbar">
-                    <DialogHeader>
-                        <DialogTitle className="text-3xl font-bold text-gray-900">
-                            {product.name}
-                        </DialogTitle>
-                    </DialogHeader>
+                <DialogContent className="max-w-[1200px] sm:max-w-[1200px] md:max-w-[1200px] lg:max-w-[1200px] xl:max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto bg-white p-0 rounded-3xl scrollbar-hide border-none shadow-2xl">
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mt-6">
-                        <div className="md:col-span-1 space-y-4">
-                            {product.images && product.images.length > 0 ? (
-                                <>
-                                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
-                                        <img
-                                            src={product.images[0]}
-                                            alt={`${product.name} - Primary`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    {product.images.length > 1 && (
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {product.images.slice(1).map((image, index) => (
-                                                <div key={index} className="aspect-square bg-gray-100 rounded-md overflow-hidden border">
+
+                    <div className="px-8 sm:px-12 pt-8 sm:pt-10 pb-0">
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="space-y-1">
+                                <DialogTitle className="text-4xl font-black text-[#111827] tracking-tight">
+                                    {product.name.toUpperCase()}
+                                </DialogTitle>
+                                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <span>SKU: <span className="text-gray-600 font-bold">{product.sku || 'N/A'}</span></span>
+                                    <span className="text-gray-300">|</span>
+                                    <span>BID: <span className="text-gray-600 font-bold">{product.productCode || 'N/A'}</span></span>
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-gray-100 text-gray-600 border-none rounded-full px-4 py-1.5 text-[10px] font-bold grayscale opacity-80"
+                                >
+                                    {product.group}
+                                </Badge>
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-blue-50 text-blue-600 border-none rounded-full px-4 py-1.5 text-[10px] font-bold"
+                                >
+                                    {product.active ? "Approved" : "Pending"}
+                                </Badge>
+                            </div>
+                        </div>
+
+
+                        <div className="flex gap-3 pb-6 border-b border-gray-100">
+                            <Button
+                                onClick={() => { onClose(); handleEditProduct(product); }}
+                                variant="outline"
+                                className="h-10 px-6 rounded-xl border-gray-200 hover:bg-gray-50 flex items-center gap-2 text-sm font-bold shadow-sm"
+                            >
+                                <Edit className="h-4 w-4" />
+                                Edit
+                            </Button>
+                        </div>
+                    </div>
+
+
+                    <div className="px-8 sm:px-12 pb-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-10 mt-6 items-start">
+
+
+                            <div className="space-y-10">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+
+                                    {product.images && product.images.length > 0 ? (
+                                        <div className="grid grid-cols-6 gap-3">
+                                            {product.images.map((img: string, i: number) => (
+                                                <div
+                                                    key={i}
+                                                    className="aspect-square rounded-xl overflow-hidden border border-gray-100 bg-white p-2 cursor-pointer hover:border-black hover:shadow-md transition-all group"
+                                                >
                                                     <img
-                                                        src={image}
-                                                        alt={`${product.name} - Thumbnail ${index + 1}`}
-                                                        className="w-full h-full object-cover"
+                                                        src={img}
+                                                        alt={`${product.name} ${i + 1}`}
+                                                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                                                     />
                                                 </div>
                                             ))}
                                         </div>
+                                    ) : (
+                                        <div className="aspect-square rounded-3xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center p-6">
+                                            <Package className="h-16 w-16 text-gray-400" />
+                                        </div>
                                     )}
-                                </>
-                            ) : (
-                                <div className="aspect-square bg-gray-100 rounded-lg flex flex-col items-center justify-center text-center p-4">
-                                    <Package className="h-10 w-10 text-gray-400 mb-2" />
-                                    <p className="text-sm text-gray-500">No Images</p>
+                                    <div className="flex flex-col gap-2">
+                                        <h3 className="text-[14px] font-bold text-black flex items-center gap-2">
+                                            Description
+                                        </h3>
+                                        <p className="text-[15px] text-gray-700 leading-relaxed max-w-3xl">
+                                            {product.description || "No description provided for this product."}
+                                        </p>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="md:col-span-2 space-y-6">
-                            <section>
-                                <p className="text-gray-700">{product.description || "No description available."}</p>
-                            </section>
 
-                            <div className="border-t"></div>
-
-                            <section>
-                                <h3 className="text-base font-semibold text-gray-800 mb-3">Product Details</h3>
-                                <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                    <DetailItem label="Group">{product.group}</DetailItem>
-                                    <DetailItem label="Sub Group">{product.subGroup || '-'}</DetailItem>
-                                    <DetailItem label="Type">{product.type}</DetailItem>
-                                    {product.specs && Object.entries(product.specs).map(([key, value]) => (
-                                        value && <DetailItem key={key} label={key.replace(/([A-Z])/g, ' $1').trim()}>{value as string}</DetailItem>
-                                    ))}
-                                </dl>
-                            </section>
-
-                            <div className="border-t"></div>
-
-                            <section>
-                                <h3 className="text-base font-semibold text-gray-800 mb-3">Pricing Information</h3>
-                                <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                    <DetailItem label="Base Price">
-                                        <span className="font-semibold text-lg">{product.basePrice ? formatPrice(Number(product.basePrice)) : "Not set"}</span>
-                                    </DetailItem>
-                                    <DetailItem label="Pricing Reference">{product.pricingReference || "Not set"}</DetailItem>
-                                    {product.customPrice && (
-                                        <DetailItem label="Custom Price">
-                                            <span className="font-semibold text-lg text-blue-600">{formatPrice(Number(product.customPrice))}</span>
-                                        </DetailItem>
-                                    )}
-                                </dl>
-                                {product.prices && product.prices.length > 0 && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-medium text-gray-500 mb-2">Regional Prices</h4>
-                                        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 border rounded-md p-2 bg-gray-50/50 hide-scrollbar">
-                                            {product.prices.map((price, index) => (
-                                                <div key={index} className="flex justify-between items-center text-sm">
-                                                    <span className="font-medium text-gray-700">{price.regionName}</span>
-                                                    <span className="font-semibold">{formatPrice(price.price)}</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    <section className="space-y-6">
+                                        <h3 className="text-[14px] font-bold text-black flex items-center gap-2 text-nowrap">
+                                            Attributes & Specifications
+                                        </h3>
+                                        <div className="grid grid-cols-1 gap-y-5">
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-bold text-gray-500 uppercase">Classification</p>
+                                                <p className="text-[14px] text-black">{product.group} {product.subGroup ? `— ${product.subGroup}` : ''}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[11px] font-bold text-gray-500 uppercase">Product Type</p>
+                                                <p className="text-[14px] text-black">{product.type}</p>
+                                            </div>
+                                            {product.specs && Object.entries(product.specs).map(([key, value]) => (
+                                                <div key={key} className="space-y-1">
+                                                    <p className="text-[11px] font-bold text-gray-500 uppercase">
+                                                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
+                                                    </p>
+                                                    <p className="text-[14px] text-black">
+                                                        {Array.isArray(value) ? value.join(', ') : String(value)}
+                                                    </p>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
-                            </section>
+                                    </section>
 
-                            <div className="border-t"></div>
-
-                            <section>
-                                <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                    <DetailItem label="Status">
-                                        <div className="flex flex-wrap gap-2">
-                                            <Badge variant={product.active ? "default" : "secondary"}>{product.active ? "Active" : "Inactive"}</Badge>
-                                            <Badge variant={product.custom ? "default" : "outline"}>{product.custom ? "Custom" : "Standard"}</Badge>
+                                    <section className="space-y-6">
+                                        <h3 className="text-[14px] font-bold text-black flex items-center gap-2">
+                                            Seller Information
+                                        </h3>
+                                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 space-y-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-lg">
+                                                    {product.users?.firstName?.[0] || 'S'}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[14px] font-bold text-black">
+                                                        {product.users ? `${product.users.firstName} ${product.users.lastName}` : 'System Product'}
+                                                    </p>
+                                                    <p className="text-[11px] font-bold text-gray-500 uppercase">
+                                                        {product.users?.organizationName || 'Verified Seller'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-200">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-gray-500 uppercase">Pricing Reference</p>
+                                                    <p className="text-[13px] text-black">{product.pricingReference || 'None'}</p>
+                                                </div>
+                                                {product.custom && (
+                                                    <Badge className="bg-gray-200 text-gray-700 hover:bg-gray-200 border-none rounded-md px-3 py-1 font-bold text-[10px] uppercase w-fit">
+                                                        Custom Quote
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
-                                    </DetailItem>
-                                    <DetailItem label="Timestamps">
-                                        <div className="text-sm">Created: {new Date(product.createdAt).toLocaleDateString('en-GB')}</div>
-                                        <div className="text-sm">Updated: {new Date(product.updatedAt).toLocaleDateString('en-GB')}</div>
-                                    </DetailItem>
-                                </dl>
-                            </section>
+                                    </section>
+                                </div>
+
+
+                                <section className="space-y-6 pt-10 border-t border-gray-100">
+                                    <h3 className="text-[14px] font-bold text-black flex items-center gap-2">
+                                        Pricing Information
+                                    </h3>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                        <div className="bg-white rounded-2xl p-5 border border-gray-100">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Base Price</p>
+                                            <p className="text-2xl font-bold text-black">
+                                                {product.basePrice ? formatPrice(product.basePrice) : "—"}
+                                            </p>
+                                        </div>
+                                        {(product.customPrice || product.custom) && (
+                                            <div className="bg-white rounded-2xl p-5 border border-gray-100">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Seller Price</p>
+                                                <p className="text-2xl font-bold text-black">
+                                                    {product.customPrice ? formatPrice(Number(product.customPrice)) : "Request Quote"}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="bg-white rounded-2xl p-5 border border-gray-100">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Status</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge className="bg-gray-100 text-gray-700 border-none rounded px-2 py-0.5 text-[10px] font-bold uppercase">
+                                                    {product.prices?.length > 0 ? 'Multi-Region' : 'Flat Rate'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    {product.prices?.length > 0 && (
+                                        <div className="space-y-4 rounded-2xl overflow-hidden border border-gray-100">
+                                            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                                                <p className="text-[11px] font-bold text-gray-500 uppercase">
+                                                    Regional Price Breakdown
+                                                </p>
+                                                <Badge className="bg-white text-gray-500 border-gray-200 text-[10px] font-bold">
+                                                    {product.prices.length} Regions
+                                                </Badge>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-y divide-gray-100 bg-white">
+                                                {product.prices.map((price: any, index: number) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex justify-between items-center px-6 py-5"
+                                                    >
+                                                        <span className="text-[14px] text-gray-700">
+                                                            {price.regionName}
+                                                        </span>
+                                                        <span className="text-[15px] font-bold text-black">
+                                                            {formatPrice(price.price)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+
+                                <div className="space-y-4">
+
+
+
+                                    <div className="pt-6 space-y-4 bg-gray-50/50 rounded-2xl p-5 border border-gray-100">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase">Added On</p>
+                                            <p className="text-[13px] text-black">
+                                                {product.createdAt ? new Date(product.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase">Last Updated</p>
+                                            <p className="text-[13px] text-black">
+                                                {product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                                            </p>
+                                        </div>
+                                        {product.priceLastUpdated && (
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase">Price Last Updated</p>
+                                                <p className="text-[13px] text-black">
+                                                    {new Date(product.priceLastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase">Product ID</p>
+                                            <p className="text-[13px] text-black">#{product.id}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="h-4" />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t mt-6">
-                        <Button variant="outline" onClick={onClose} className="hover:bg-gray-100 transition-colors">
+
+                    <div className="sticky bottom-0 bg-white/90 backdrop-blur-md px-8 sm:px-12 py-5 border-t border-gray-100 flex justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={onClose}
+                            className="h-10 px-10 rounded-xl border-gray-200 hover:bg-gray-100 transition-all font-bold text-gray-600 text-sm"
+                        >
                             Close
                         </Button>
-                        <Button
-                            onClick={() => {
-                                onClose();
-                                handleEditProduct(product);
-                            }}
-                            className="bg-[#00007A] hover:bg-[#00007A]/90 text-white transition-colors"
-                        >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Product
-                        </Button>
                     </div>
+
                 </DialogContent>
             </Dialog>
         );
@@ -522,16 +655,16 @@ export default function ShopProducts() {
                     <Button variant="outline" className="h-10 bg-white border-gray-200 text-gray-700 rounded-lg">
                         <Upload className="mr-2 h-4 w-4" /> Import
                     </Button>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         onClick={handleExportToXLSX}
                         className="h-10 bg-white border-gray-200 text-gray-700 rounded-lg"
                     >
                         <Download className="mr-2 h-4 w-4" /> Export
                     </Button>
                     {selectedRows.size > 0 && (
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={handleDeleteBatch}
                             disabled={isBatchDeleting}
                             className="h-10 text-red-600 border-red-200 bg-red-50/30 hover:bg-red-50 rounded-lg font-semibold"
@@ -568,7 +701,7 @@ export default function ShopProducts() {
                     <h2 className="text-base font-bold text-gray-900">Products</h2>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">{filteredProducts.length} products</p>
                 </div>
-                
+
                 <div className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
@@ -588,7 +721,7 @@ export default function ShopProducts() {
                                 <TableHeader className="bg-gray-50/50">
                                     <TableRow className="border-b border-gray-100 hover:bg-transparent">
                                         <TableHead className="w-12 h-12">
-                                            <Checkbox 
+                                            <Checkbox
                                                 checked={selectedRows.size === currentProducts.length && currentProducts.length > 0}
                                                 onCheckedChange={() => toggleSelectAll(currentProducts)}
                                                 className="translate-y-0.5"
@@ -608,7 +741,7 @@ export default function ShopProducts() {
                                     {currentProducts.map((product, index) => (
                                         <TableRow key={product.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors h-[72px]">
                                             <TableCell>
-                                                <Checkbox 
+                                                <Checkbox
                                                     checked={selectedRows.has(product.id)}
                                                     onCheckedChange={() => toggleSelectRow(product.id)}
                                                     className="translate-y-0.5"
@@ -658,12 +791,11 @@ export default function ShopProducts() {
                                                 {product.productCode || "-"}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge 
-                                                    className={`px-3 py-1 rounded-full text-[10px] font-bold border-none ${
-                                                        product.active 
-                                                        ? "bg-emerald-100 text-emerald-600 border-emerald-200" 
+                                                <Badge
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-bold border-none ${product.active
+                                                        ? "bg-emerald-100 text-emerald-600 border-emerald-200"
                                                         : "bg-gray-100 text-gray-500"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {product.active ? "Active" : "Inactive"}
                                                 </Badge>
@@ -684,49 +816,46 @@ export default function ShopProducts() {
                                                             <Edit className="h-4 w-4 text-emerald-500" />
                                                             <span className="text-xs font-semibold">Edit Product</span>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 if (approvingId === product.id) return;
-                                                                const hasPrice = (product.basePrice && Number(product.basePrice) > 0) || 
-                                                                               (product.customPrice && Number(product.customPrice) > 0) || 
-                                                                               (product.prices && product.prices.some(p => p.price > 0));
+                                                                const hasPrice = (product.basePrice && Number(product.basePrice) > 0) ||
+                                                                    (product.customPrice && Number(product.customPrice) > 0) ||
+                                                                    (product.prices && product.prices.some(p => p.price > 0));
                                                                 if (hasPrice) {
                                                                     handleApproveProduct(product.id);
                                                                 } else {
                                                                     toast.error("Please set a price before approving.");
                                                                 }
-                                                            }} 
-                                                            className={`flex items-center space-x-2 p-2 rounded-lg ${
-                                                                !((product.basePrice && Number(product.basePrice) > 0) || 
-                                                                  (product.customPrice && Number(product.customPrice) > 0) || 
-                                                                  (product.prices && product.prices.some(p => p.price > 0)))
+                                                            }}
+                                                            className={`flex items-center space-x-2 p-2 rounded-lg ${!((product.basePrice && Number(product.basePrice) > 0) ||
+                                                                (product.customPrice && Number(product.customPrice) > 0) ||
+                                                                (product.prices && product.prices.some(p => p.price > 0)))
                                                                 ? "opacity-50 cursor-not-allowed grayscale"
                                                                 : "cursor-pointer hover:bg-amber-50"
-                                                            } ${approvingId === product.id ? "opacity-50 pointer-events-none" : ""}`}
+                                                                } ${approvingId === product.id ? "opacity-50 pointer-events-none" : ""}`}
                                                         >
                                                             {approvingId === product.id ? (
                                                                 <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                                                             ) : (
-                                                                <Check className={`h-4 w-4 ${
-                                                                    !((product.basePrice && Number(product.basePrice) > 0) || 
-                                                                      (product.customPrice && Number(product.customPrice) > 0) || 
-                                                                      (product.prices && product.prices.some(p => p.price > 0)))
+                                                                <Check className={`h-4 w-4 ${!((product.basePrice && Number(product.basePrice) > 0) ||
+                                                                    (product.customPrice && Number(product.customPrice) > 0) ||
+                                                                    (product.prices && product.prices.some(p => p.price > 0)))
                                                                     ? "text-gray-400"
                                                                     : "text-amber-500"
-                                                                }`} />
+                                                                    }`} />
                                                             )}
                                                             <span className="text-xs font-semibold">{approvingId === product.id ? (product.active ? 'Disapproving...' : 'Approving...') : (product.active ? 'Disapprove' : 'Approve')}</span>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 if (deletingId === product.id) return;
                                                                 deleteProduct(product.id);
-                                                            }} 
-                                                            className={`flex items-center space-x-2 p-2 rounded-lg text-red-600 ${
-                                                                deletingId === product.id ? "opacity-50 pointer-events-none" : "cursor-pointer hover:bg-red-50"
-                                                            }`}
+                                                            }}
+                                                            className={`flex items-center space-x-2 p-2 rounded-lg text-red-600 ${deletingId === product.id ? "opacity-50 pointer-events-none" : "cursor-pointer hover:bg-red-50"
+                                                                }`}
                                                         >
                                                             {deletingId === product.id ? (
                                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -747,7 +876,6 @@ export default function ShopProducts() {
                 </div>
             </div>
 
-            {/* Pagination */}
             <div className="flex items-center justify-between pt-4">
                 <div className="flex items-center space-x-2">
                     <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -767,7 +895,7 @@ export default function ShopProducts() {
                         <option value="50">50</option>
                     </select>
                 </div>
-                
+
                 <div className="flex items-center space-x-6">
                     <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                         Page {currentPage} of {totalPages === 0 ? 1 : totalPages}
