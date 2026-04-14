@@ -139,6 +139,8 @@ export default function ProfessionalSignup() {
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
                 referralDetail: profileData.referralDetail || "",
                 socialMediaOther: profileData.socialMediaOther || "",
+                interestedServices: profileData.interestedServices || [],
+                otherService: profileData.otherService || "",
                 idNumber: profileData.idNumber || "",
                 idType: profileData.idType || "NATIONAL_ID",
             };

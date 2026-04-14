@@ -400,7 +400,8 @@ export const useProfileCompletion = (
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",
-      products: "incomplete", 
+      products: "incomplete",
+      marketing: "complete",
     };
 
     return statusObject;
