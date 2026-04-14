@@ -1,17 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getAuthHeaders } from "@/utils/auth";
 
-const serverUrl =
-  import.meta.env.VITE_SERVER_URL ??
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.DEV ? "" : "http://localhost:8000");
+const serverUrl = import.meta.env.VITE_SERVER_URL;
 
-const REPORTS_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)
-    ? `${String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, "")}/reports`
-    : serverUrl === ""
-    ? "/api/reports"
-    : `${String(serverUrl).replace(/\/$/, "")}/api/reports`;
+const REPORTS_BASE = `${serverUrl}/api/reports`;
 
 export const getCycleOneSummary = async (axiosInstance: any) => {
   const response = await axiosInstance.get(`${REPORTS_BASE}/cycle-one-summary/`, {
