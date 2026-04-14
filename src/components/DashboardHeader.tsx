@@ -355,31 +355,35 @@ export function DashboardHeader() {
           </div>
 
           {!user ? (
-            <div className="hidden md:flex flex-1 items-center justify-between ml-8">
-              <div className="flex items-center space-x-6 md:space-x-10">
-                <span
-                  onClick={() => navigate("/customer/hardware_shop")}
-                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-                >
-                  Products
-                </span>
+            <>
+              {/* Centered Navigation Links */}
+              <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none">
+                <div className="flex items-center space-x-6 md:space-x-10 pointer-events-auto">
+                  <span
+                    onClick={() => navigate("/customer/hardware_shop")}
+                    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                  >
+                    Products
+                  </span>
 
-                <span
-                  onClick={() => navigate("/about-us")}
-                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-                >
-                  About Us
-                </span>
+                  <span
+                    onClick={() => navigate("/about-us")}
+                    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                  >
+                    About Us
+                  </span>
 
-                <span
-                  onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
-                  className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
-                >
-                  Events
-                </span>
+                  <span
+                    onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+                    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+                  >
+                    Events
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Right Side Auth Buttons */}
+              <div className="hidden md:flex items-center gap-3 z-10">
                 <button
                   type="button"
                   className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md hover:scale-105 transition duration-300 ease-in-out hover:bg-[#3AB33A] flex items-center justify-center sm:w-32 md:w-28"
@@ -402,7 +406,7 @@ export function DashboardHeader() {
                   Help
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <nav className="hidden md:flex items-center space-x-2 ml-auto">
               {userType === 'customer' &&
