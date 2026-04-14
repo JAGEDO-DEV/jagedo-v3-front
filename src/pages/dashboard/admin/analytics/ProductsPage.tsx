@@ -17,7 +17,7 @@ interface AnalyticsState {
 
 export default function ProductsPage() {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [period, setPeriod] = useState("7d");
+  const [period, setPeriod] = useState("90d");
   const [from, setFrom] = useState<string | undefined>(undefined);
   const [to, setTo] = useState<string | undefined>(undefined);
   const [analytics, setAnalytics] = useState<AnalyticsState>({ loading: true, error: null, data: null });
@@ -69,6 +69,7 @@ export default function ProductsPage() {
   const getPeriodDisplayName = (p: string): string => {
     const map: { [key: string]: string } = {
       today: "Today",
+      thisWeek: "This Week",
       "7d": "7d",
       "30d": "30d",
       "90d": "90d",

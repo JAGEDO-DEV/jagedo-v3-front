@@ -12,15 +12,63 @@ interface GlobalDateRangeProps {
   initialPeriod?: string;
 }
 
-export default function GlobalDateRange({ onDateRangeChange, initialPeriod = "30d" }: GlobalDateRangeProps) {
+// Helper function to calculate date range dynamically
+function getDateRangeForPreset(preset: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const toDate = new Date(today);
+  toDate.setDate(toDate.getDate() + 1); // Tomorrow (end of today)
+  
+  let fromDate = new Date(today);
+  
+  switch (preset) {
+    case "Today":
+      fromDate = new Date(today);
+      break;
+    case "7d":
+      // Last 7 days including today
+      fromDate.setDate(fromDate.getDate() - 7);
+      break;
+    case "30d":
+      // Last 30 days including today
+      fromDate.setDate(fromDate.getDate() - 30);
+      break;
+    case "90d":
+      // Last 90 days including today
+      fromDate.setDate(fromDate.getDate() - 90);
+      break;
+    case "Custom":
+      return null; // Keep existing custom dates
+    default:
+      break;
+  }
+  
+  return {
+    from: fromDate.toISOString().split("T")[0],
+    to: toDate.toISOString().split("T")[0],
+  };
+}
+
+export default function GlobalDateRange({ onDateRangeChange, initialPeriod = "90d" }: GlobalDateRangeProps) {
+  // Initialize with dynamic date range
+  const defaultRange = getDateRangeForPreset(initialPeriod !== "Custom" ? initialPeriod : "90d");
+  
   const [selected, setSelected] = useState<string>(initialPeriod);
-  const [from, setFrom] = useState("2026-01-11");
-  const [to, setTo] = useState("2026-04-10");
+  const [from, setFrom] = useState(defaultRange?.from || "");
+  const [to, setTo] = useState(defaultRange?.to || "");
   const [compare, setCompare] = useState(true);
 
   // Sync selected state when initialPeriod changes from parent
   useEffect(() => {
     setSelected(initialPeriod);
+    if (initialPeriod !== "Custom") {
+      const range = getDateRangeForPreset(initialPeriod);
+      if (range) {
+        setFrom(range.from);
+        setTo(range.to);
+      }
+    }
   }, [initialPeriod]);
 
   // Convert preset button names to period strings for API
@@ -39,18 +87,37 @@ export default function GlobalDateRange({ onDateRangeChange, initialPeriod = "30
   const handlePresetClick = (preset: string) => {
     setSelected(preset);
     if (preset !== "Custom") {
-      const period = getPeriodFromPreset(preset);
-      onDateRangeChange?.({ period });
+      const range = getDateRangeForPreset(preset);
+      if (range) {
+        setFrom(range.from);
+        setTo(range.to);
+        const period = getPeriodFromPreset(preset);
+        // Send both period and dates for consistency with all endpoints
+        onDateRangeChange?.({ period, from: range.from, to: range.to });
+      }
     } else {
-      // When switching to Custom mode, send current dates
-      onDateRangeChange?.({ from, to });
+      // When switching to Custom mode, send current dates with adjusted "to"
+      let adjustedTo = to;
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setDate(toDate.getDate() + 1);
+        adjustedTo = toDate.toISOString().split("T")[0];
+      }
+      onDateRangeChange?.({ from, to: adjustedTo });
     }
   };
 
   // Handle custom date changes - only when in Custom mode
   useEffect(() => {
     if (selected === "Custom") {
-      onDateRangeChange?.({ from, to });
+      // Add 1 day to the "to" date to include the entire day (same as presets)
+      let adjustedTo = to;
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setDate(toDate.getDate() + 1);
+        adjustedTo = toDate.toISOString().split("T")[0];
+      }
+      onDateRangeChange?.({ from, to: adjustedTo });
     }
   }, [from, to, selected, onDateRangeChange]);
 
