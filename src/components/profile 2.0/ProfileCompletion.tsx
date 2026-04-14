@@ -58,7 +58,7 @@ export function ProfileCompletion({
         country: user?.country || "Kenya",
         county: user?.county || "",
         subCounty: user?.subCounty || "",
-        town: user?.townCity || user?.town || "",
+        city: user?.city || user?.townCity || user?.town || "",
         estate: user?.estateVillage || user?.estate || "",
     });
 
@@ -215,11 +215,11 @@ export function ProfileCompletion({
             return (
                 !!location.county &&
                 !!location.subCounty &&
-                location.town.trim().length >= 2 &&
+                location.city.trim().length >= 2 &&
                 location.estate.trim().length >= 2
             );
         }
-        return location.country.length > 0 && location.town.length > 0;
+        return location.country.length > 0 && location.city.length > 0;
     };
 
 
@@ -602,11 +602,11 @@ export function ProfileCompletion({
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label>Town/City *</Label>
+                                <Label>City/Town *</Label>
                                 <Input
-                                    value={location.town}
-                                    onChange={(e) => setLocation({ ...location, town: e.target.value })}
-                                    placeholder="Enter Town or City"
+                                    value={location.city}
+                                    onChange={(e) => setLocation({ ...location, city: e.target.value })}
+                                    placeholder="Enter City or Town"
                                     className="w-full border-gray-300 py-3"
                                 />
                             </div>
