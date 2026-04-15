@@ -51,7 +51,7 @@ const exportToExcel = (data: any[], filename: string) => {
     Created: item.createdAt
       ? new Date(item.createdAt).toLocaleDateString()
       : "N/A",
-    Status: item.status == "VERIFIED" ? "Verified" : "Not Verified",
+    Status: STATUS_LABELS[item.status as BuilderStatus] || item.status || "N/A",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -103,7 +103,7 @@ const exportToPDF = async (
     item.email || item.Email || "N/A",
     item.phoneNo || item.phone || item.phoneNumber || "N/A",
     item.county || "N/A",
-    item.status == "VERIFIED" ? "Verified" : "Not Verified",
+    STATUS_LABELS[item.status as BuilderStatus] || item.status || "N/A",
   ]);
 
   try {

@@ -368,6 +368,8 @@ export function ProfileCompletion({
                 ...restPersonalInfo,
                 ...nameFields,
                 ...location,
+                townCity: location.city,
+                estateVillage: location.estate,
                 ...reference,
                 redirectTo: "/profile"
             };

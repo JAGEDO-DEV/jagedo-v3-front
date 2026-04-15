@@ -18,7 +18,7 @@ import {
   adminResubmitDocuments,
   adminUpdateSingleDocumentStatus,
 } from "@/api/uploads.api";
-import { handleVerifyUser } from "@/api/provider.api";
+import { handleVerifyUser, updateAccountStatus } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFileWithAxios } from "@/utils/fileUpload";
 
@@ -704,6 +704,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           );
           toast.success("All documents returned for correction");
         }
+
+        // If user is currently VERIFIED, change overall status to PENDING (UNVERIFY)
+        if (userData.status === "VERIFIED" && (action === "reject" || action === "resubmit")) {
+            await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
+        }
         window.location.reload();
       } catch (error: any) {
         toast.error(error.message || "Action failed");
@@ -733,6 +738,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         toast.success(
           `Document ${action === "approve" ? "approved" : action === "reject" ? "disapproved" : "returned for correction"}`,
         );
+
+        // If user is currently VERIFIED and a document is rejected or returned, change overall status to PENDING (UNVERIFY)
+        if (userData.status === "VERIFIED" && (action === "reject" || action === "resubmit")) {
+            await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
+        }
         window.location.reload();
       } catch (error: any) {
         toast.error(error.message || "Action failed");
@@ -986,14 +996,15 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                 <FiRefreshCw className="w-3 h-3" />
                 Return
               </button>
-              <button
-                onClick={() => openActionModal(doc.key, "reject")}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
-                title="Disapprove"
-              >
-                <XCircle className="w-3 h-3" />
-                Disapprove
-              </button>
+                <button
+                  onClick={() => openActionModal(doc.key, "reject")}
+                  disabled={!isApproved}
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!isApproved ? "Only approved documents can be disapproved" : "Disapprove"}
+                >
+                  <XCircle className="w-3 h-3" />
+                  Disapprove
+                </button>
             </div>
           )}
         </div>
@@ -1213,7 +1224,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                               isGlobal: true,
                             });
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium"
+                          disabled={userData.documentStatus !== "VERIFIED"}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={userData.documentStatus !== "VERIFIED" ? "Only verified status can be disapproved" : "Disapprove All"}
                         >
                           <XCircle className="w-4 h-4" />
                           Disapprove All

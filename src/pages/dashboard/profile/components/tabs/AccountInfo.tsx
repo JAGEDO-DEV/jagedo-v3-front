@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
+import { FiEdit, FiCheck, FiX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import {
   Star,
@@ -15,7 +15,6 @@ import {
   updateProfileEmailAdmin,
   updateProfilePhoneNumberAdmin,
   updateProfileNameAdmin,
-  updateAccountStatus,
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
@@ -32,11 +31,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 }) => {
   const navigate = useNavigate();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [showActionDropdown, setShowActionDropdown] = useState(false);
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const showVerificationMessage = userData.status == "VERIFIED";
   const [avatarSrc, setAvatarSrc] = useState(userData?.profileImage);
 
@@ -97,22 +92,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   
   const [displayEmail, setDisplayEmail] = useState(userData?.email ?? "");
   const [displayPhone, setDisplayPhone] = useState(userData?.phone ?? "");
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowActionDropdown(false);
-      }
-    };
-
-    if (showActionDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showActionDropdown]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -345,95 +324,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     }
   };
 
-  const getMissingRequiredFields = (): string[] => {
-    const missing: string[] = [];
-    const uType = userData?.userType?.toUpperCase();
-
-    if (isOrganization) {
-      if (!userData?.organizationName?.trim() && !name.trim())
-        missing.push("Organization Name");
-      if (!userData?.email?.trim()) missing.push("Email");
-      if (!userData?.phone?.trim()) missing.push("Phone Number");
-      if ((uType === "CONTRACTOR" || uType === "HARDWARE") && !userData?.contactFullName?.trim())
-        missing.push("Contact Full Name");
-    } else {
-      if (!userData?.firstName?.trim()) missing.push("First Name");
-      if (!userData?.lastName?.trim()) missing.push("Last Name");
-      if (!userData?.email?.trim()) missing.push("Email");
-    }
-
-    if (
-      (uType === "FUNDI" ||
-        uType === "PROFESSIONAL" ||
-        uType === "CONTRACTOR") &&
-      userData?.experienceStatus === "REJECTED"
-    ) {
-      missing.push("Experience (rejected — please resubmit before verifying)");
-    }
-
-    return missing;
-  };
-  const handleActionSubmit = async () => {
-    if (!actionReason.trim() && pendingAction !== "verify") {
-      toast.error("Please enter a reason for this action.");
-      return;
-    }
-
-    const statusMap: Record<
-      string,
-      "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE"
-    > = {
-      verify: "VERIFY",
-      unverify: "UNVERIFY",
-      suspend: "SUSPEND",
-      blacklist: "BLACKLIST",
-      delete: "DELETE",
-    };
-
-    const status = statusMap[pendingAction ?? ""];
-    if (!status) return;
-
-    try {
-      await updateAccountStatus(
-        axiosInstance,
-        userData.id,
-        status,
-        actionReason || undefined,
-      );
-      toast.success(
-        `User ${getActionLabel(pendingAction ?? "")}d successfully`,
-      );
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (err: any) {
-      toast.error(
-        err.message ||
-          `Failed to ${getActionLabel(pendingAction ?? "").toLowerCase()} user`,
-      );
-    }
-
-    setPendingAction(null);
-    setActionReason("");
-  };
-
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case "verify":
-        return "Verify";
-      case "unverify":
-        return "Unverify";
-      case "suspend":
-        return "Suspend";
-      case "blacklist":
-        return "Blacklist";
-      case "delete":
-        return "Delete";
-      default:
-        return action;
-    }
-  };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
@@ -513,194 +403,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                       className="hidden"
                     />
                   </div>
-                </div>
-                <div>
-                  {/* Actions dropdown — visible based on user type and submission status */}
-                  {(() => {
-                    const uType = userData?.userType?.toUpperCase();
-                    const docStatus = userData?.documentStatus;
-                    const expStatus = userData?.experienceStatus;
-                    const acctStatus = userData?.status;
-
-                    
-                    const isAlreadyActioned = [
-                      "VERIFIED",
-                      "SUSPENDED",
-                      "BLACKLISTED",
-                    ].includes(acctStatus);
-
-                    
-                    const hasSubmittedDocs =
-                      docStatus &&
-                      docStatus !== "INCOMPLETE" &&
-                      docStatus !== "RESUBMIT";
-                    const hasSubmittedExperience =
-                      expStatus &&
-                      expStatus !== "INCOMPLETE" &&
-                      expStatus !== "RESUBMIT";
-
-                    const isBuilder = [
-                      "FUNDI",
-                      "PROFESSIONAL",
-                      "CONTRACTOR",
-                    ].includes(uType);
-                    const isNonBuilder =
-                      uType === "HARDWARE" || uType === "CUSTOMER";
-
-                    const showActions = isAdmin;
-
-                    if (!showActions) return null;
-
-                    return (
-                      <>
-                        <div className="mt-6">
-                          <div ref={dropdownRef} className="relative inline-block">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowActionDropdown(!showActionDropdown)
-                              }
-                              className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                            >
-                              Actions
-                              <FiChevronDown
-                                className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
-                                size={16}
-                              />
-                            </button>
-                            {showActionDropdown && (
-                              <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
-                                {/* Verify — only shown when user is NOT yet verified */}
-                                {!showVerificationMessage && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const missing =
-                                        getMissingRequiredFields();
-                                      if (missing.length > 0) {
-                                        toast.error(
-                                          `Cannot verify: missing ${missing.join(", ")}`,
-                                          { duration: 5000 },
-                                        );
-                                        setShowActionDropdown(false);
-                                        return;
-                                      }
-                                      setPendingAction("verify");
-                                      setShowActionDropdown(false);
-                                    }}
-                                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
-                                  >
-                                    Verify
-                                  </button>
-                                )}
-                                {/* Unverify — only shown when user IS verified */}
-                                {showVerificationMessage && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setPendingAction("unverify");
-                                      setShowActionDropdown(false);
-                                    }}
-                                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                                  >
-                                    Unverify
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPendingAction("suspend");
-                                    setShowActionDropdown(false);
-                                  }}
-                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-yellow-700"
-                                >
-                                  Suspend
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPendingAction("blacklist");
-                                    setShowActionDropdown(false);
-                                  }}
-                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
-                                >
-                                  Blacklist
-                                </button>
-                                <div className="border-t my-1" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPendingAction("delete");
-                                    setShowActionDropdown(false);
-                                  }}
-                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action Reason Modal */}
-                        {pendingAction && (
-                          <div
-                            className={`border px-4 py-4 rounded mt-4 ${
-                              pendingAction === "delete" ||
-                              pendingAction === "blacklist"
-                                ? "bg-red-50 border-red-300 text-red-800"
-                                : pendingAction === "verify"
-                                  ? "bg-green-50 border-green-300 text-green-800"
-                                  : "bg-blue-50 border-blue-300 text-blue-800"
-                            }`}
-                          >
-                            <p className="font-medium mb-2">
-                              {pendingAction === "verify"
-                                ? "Confirm verification of this user?"
-                                : `Please provide a reason for ${getActionLabel(pendingAction).toLowerCase()}ing this user:`}
-                            </p>
-                            {pendingAction !== "verify" && (
-                              <textarea
-                                value={actionReason}
-                                onChange={(e) =>
-                                  setActionReason(e.target.value)
-                                }
-                                placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
-                                className="w-full mt-2 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows={3}
-                              />
-                            )}
-                            <div className="mt-3 flex flex-wrap gap-3">
-                              <button
-                                type="button"
-                                onClick={handleActionSubmit}
-                                className={`text-white px-4 py-2 rounded transition ${
-                                  pendingAction === "delete" ||
-                                  pendingAction === "blacklist"
-                                    ? "bg-red-600 hover:bg-red-700"
-                                    : pendingAction === "verify"
-                                      ? "bg-green-600 hover:bg-green-700"
-                                      : "bg-blue-600 hover:bg-blue-700"
-                                }`}
-                              >
-                                Confirm {getActionLabel(pendingAction)}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPendingAction(null);
-                                  setActionReason("");
-                                }}
-                                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
                 </div>
               </div>
 

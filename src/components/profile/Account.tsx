@@ -51,6 +51,8 @@ function AccountInfo({ data, refreshData }) {
   const [otpValue, setOtpValue] = useState("");
   const [otpMethod, setOtpMethod] = useState<"email" | "phone" | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  const isReadOnly = data?.status === "VERIFIED";
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
@@ -232,15 +234,35 @@ function AccountInfo({ data, refreshData }) {
     <section className="w-full max-w-6xl bg-white rounded-xl shadow-md p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Account Info</h1>
-        {!isEditingName && (
-          <button
-            onClick={() => setIsEditingName(true)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-          >
-            <FiEdit /> Edit Names
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {isReadOnly && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
+              <Shield className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Verified Profile</span>
+            </div>
+          )}
+          {!isReadOnly && !isEditingName && (
+            <button
+              onClick={() => setIsEditingName(true)}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <FiEdit /> Edit Names
+            </button>
+          )}
+        </div>
       </div>
+
+      {isReadOnly && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+          <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-blue-900">Profile Verified</p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Your profile information has been verified. To update these details, please contact JAGEDO Support.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Avatar */}
       <div className="flex flex-col items-start mb-8">
@@ -256,15 +278,17 @@ function AccountInfo({ data, refreshData }) {
             </div>
           )}
         </div>
-        <div className="flex gap-3 mt-4">
-          <button
-            disabled={isUploadingImage}
-            onClick={() => fileInputRef.current.click()}
-            className="text-blue-700 text-sm hover:text-blue-900 disabled:opacity-50"
-          >
-            {isUploadingImage ? "Uploading..." : "Change Photo"}
-          </button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex gap-3 mt-4">
+            <button
+              disabled={isUploadingImage}
+              onClick={() => fileInputRef.current.click()}
+              className="text-blue-700 text-sm hover:text-blue-900 disabled:opacity-50 font-medium"
+            >
+              {isUploadingImage ? "Uploading..." : "Change Photo"}
+            </button>
+          </div>
+        )}
         <input type="file" hidden ref={fileInputRef} onChange={handleImageChange} accept="image/*" />
       </div>
 
@@ -333,6 +357,7 @@ function AccountInfo({ data, refreshData }) {
         label="Account Phone"
         value={phoneValue}
         editing={isEditingPhone}
+        isReadOnly={isReadOnly}
         onEdit={() => {
           setIsEditingPhone(true);
         }}
@@ -351,6 +376,7 @@ function AccountInfo({ data, refreshData }) {
         label="Account Email"
         value={emailValue}
         editing={isEditingEmail}
+        isReadOnly={isReadOnly}
         onEdit={() => {
           setIsEditingEmail(true);
         }}
@@ -444,7 +470,7 @@ const Field = ({ label, value }) => (
 
 const EditableField = ({
   label, value, editing, onEdit, onChange, onSave,
-  isValid, isLoading, onCancel
+  isValid, isLoading, onCancel, isReadOnly
 }) => (
   <div className="space-y-2 mb-6">
     <label className="block text-sm font-medium text-gray-500 uppercase tracking-wider">{label}</label>
@@ -456,12 +482,14 @@ const EditableField = ({
         className={`flex-1 px-4 py-2 outline-none bg-transparent font-medium ${!editing ? 'text-gray-700' : 'text-blue-900'}`}
       />
       {!editing ? (
-        <button 
-            onClick={onEdit}
-            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-        >
-            <FiEdit size={18} />
-        </button>
+        !isReadOnly && (
+          <button 
+              onClick={onEdit}
+              className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+          >
+              <FiEdit size={18} />
+          </button>
+        )
       ) : (
         <div className="flex items-center gap-2 p-1">
           <button

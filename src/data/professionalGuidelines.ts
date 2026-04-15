@@ -9,8 +9,8 @@ export const PROFESSIONAL_USER = {
     ],
     // DYNAMIC: Project fields based on selected level
     projectsByLevel: {
-      "Senior": 3, // 5 project file fields
-      "Professional": 2, // 3 project file fields
+      "Senior": 5, // 5 project file fields
+      "Professional": 3, // 3 project file fields
       "Graduate": 1, // 1 project file field
       "Student": 0, // 0 project file fields (no projects)
     },
