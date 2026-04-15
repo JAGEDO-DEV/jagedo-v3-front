@@ -1,4 +1,4 @@
-export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED" | "REJECTED" | "RESUBMIT"  | "DELETED" | "BLACKLISTED" | "SUSPENDED";
+export type BuilderStatus = "VERIFIED" | "UNVERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED" | "REJECTED" | "RESUBMIT"  | "DELETED" | "BLACKLISTED" | "SUSPENDED";
 
 export interface FundiEvaluation {
   hasMajorWorks: string;
@@ -82,6 +82,7 @@ export interface Builder {
 
 export const STATUS_LABELS: Record<BuilderStatus, string> = {
   VERIFIED: "Verified",
+  UNVERIFIED: "Unverified",
   COMPLETED: "Completed",
   SIGNED_UP: "Signed Up",
   PENDING: "Pending",
@@ -96,6 +97,7 @@ export const STATUS_LABELS: Record<BuilderStatus, string> = {
 
 export const STATUS_STYLES: Record<BuilderStatus, string> = {
   VERIFIED:    "bg-green-100 text-green-800 border-green-200",
+  UNVERIFIED:  "bg-gray-200 text-gray-800 border-gray-300",
   COMPLETED:   "bg-blue-100 text-blue-800 border-blue-200",
   SIGNED_UP:   "bg-purple-100 text-purple-800 border-purple-200",
   PENDING:     "bg-yellow-100 text-yellow-800 border-yellow-200",

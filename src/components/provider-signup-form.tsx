@@ -436,13 +436,14 @@ export function ProviderSignupForm({
     }
   };
 
-  const handleFormSubmit = () => {
+  const handleFormSubmit = async () => {
     if (validateStep()) {
       setIsSubmitting(true);
-      setTimeout(() => {
-        handleSubmit();
+      try {
+        await handleSubmit();
+      } finally {
         setIsSubmitting(false);
-      }, 1500);
+      }
     }
   };
 

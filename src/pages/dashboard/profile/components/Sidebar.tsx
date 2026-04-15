@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Megaphone,
+  Lock
 } from "lucide-react";
 
 interface SidebarProps {
@@ -87,14 +88,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Navigation items
   const getNavigationItems = () => {
     if (userType === "CUSTOMER") {
-      return [...baseNavigationItems, marketingItem, uploadsItem];
+      return [...baseNavigationItems, uploadsItem, marketingItem];
     }
 
     if (userType === "HARDWARE") {
-      return [...baseNavigationItems, uploadsItem, productsItem];
+      return [...baseNavigationItems, uploadsItem, experienceItem, productsItem];
     }
 
-    return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
+    return [...baseNavigationItems, uploadsItem, experienceItem, productsItem];
   };
 
   const navigationItems = getNavigationItems();
@@ -118,10 +119,22 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // Core rule {Eugine Here PLEASE Don't Change This!!!}
   const isTabDisabled = (itemId: string): boolean => {
-    if (itemId === "account-uploads") {
-      return completionStatus["experience"] !== "complete";
+    const items = getNavigationItems();
+    const currentIndex = items.findIndex(i => i.id === itemId);
+    
+    // First tab is always enabled
+    if (currentIndex <= 0) return false;
+    
+    // Check previous tab completion
+    const prevItem = items[currentIndex - 1];
+    
+    // Marketing and Products are special - usually don't lock or have specific rules
+    if (itemId === "marketing") return false;
+    if (itemId === "products") {
+       return userData?.status !== "VERIFIED";
     }
-    return false;
+
+    return completionStatus[prevItem.id] !== "complete";
   };
 
   console.log(isTabDisabled("account-uploads"));
@@ -208,17 +221,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {item.label}
                     {item.id === "products" && (
                       <span className="text-xs text-gray-400 ml-1">
-                        (Optional)
+                        (Active when Verified)
                       </span>
                     )}
                     {isDisabled && (
-                      <span className="block text-xs text-red-500">
-                        Complete Experience first
+                      <span className="block text-xs text-red-500 flex items-center gap-1 mt-0.5">
+                        <Lock className="w-3 h-3" />
+                         Locked
                       </span>
                     )}
                   </span>
 
-                  {isComplete ? (
+                  {isDisabled ? (
+                    <Lock className="w-4 h-4 text-gray-400" />
+                  ) : isComplete ? (
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   ) : (
                     <AlertCircle className="w-5 h-5 text-red-600" />

@@ -197,18 +197,14 @@ export function CustomerSignupForm({
     }
   };
 
-  const handleFormSubmit = () => {
+  const handleFormSubmit = async () => {
     if (validateStep()) {
       setIsSubmitting(true)
-
-
-      handleSubmit()
-
-
-
-
-
-
+      try {
+        await handleSubmit()
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
