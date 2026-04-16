@@ -44,6 +44,7 @@ const exportToExcel = (data: any[], filename: string) => {
       item.contractorTypes ||
       item.hardwareTypes ||
       "N/A",
+    Specialization: item.specialization || "N/A",
     Email: item.email || item.Email || "N/A",
     Phone: item.phoneNo || item.phone || item.phoneNumber || "N/A",
     County: item.county || "N/A",
@@ -100,6 +101,7 @@ const exportToPDF = async (
       item.contractorTypes ||
       item.hardwareTypes ||
       "N/A",
+    item.specialization || "N/A",
     item.email || item.Email || "N/A",
     item.phoneNo || item.phone || item.phoneNumber || "N/A",
     item.county || "N/A",
@@ -111,7 +113,7 @@ const exportToPDF = async (
       tableData,
       filename,
       "BUILDERS REPORT",
-      ["#", "Name", "Type", "Email", "Phone", "County", "Status"],
+      ["#", "Name", "Type", "Specialization", "Email", "Phone", "County", "Status"],
       builderType,
     );
   } catch (error) {
@@ -130,6 +132,8 @@ export default function BuildersAdmin() {
     phone: "",
     county: "",
     verificationStatus: "",
+    skill: "",
+    specialization: "",
     search: "",
   });
   const [builders, setBuilders] = useState<any[]>([]);
@@ -200,6 +204,16 @@ export default function BuildersAdmin() {
     const matchesVerificationStatus =
       !filters.verificationStatus ||
       builder?.status === filters.verificationStatus;
+    const matchesSkill =
+      !filters.skill ||
+      (builder?.skills || builder?.profession || builder?.contractorTypes || builder?.hardwareTypes || "")
+        .toLowerCase()
+        .includes(filters.skill.toLowerCase());
+    const matchesSpecialization =
+      !filters.specialization ||
+      (builder?.specialization || "")
+        .toLowerCase()
+        .includes(filters.specialization.toLowerCase());
 
     const searchValue = filters?.search?.toLowerCase() || "";
     const matchesSearch =
@@ -213,6 +227,7 @@ export default function BuildersAdmin() {
       builder?.profession?.toLowerCase().includes(searchValue) ||
       builder?.contractorTypes?.toLowerCase().includes(searchValue) ||
       builder?.hardwareTypes?.toLowerCase().includes(searchValue) ||
+      builder?.specialization?.toLowerCase().includes(searchValue) ||
       builder?.county?.toLowerCase().includes(searchValue);
 
     return (
@@ -221,6 +236,8 @@ export default function BuildersAdmin() {
       matchesPhone &&
       matchesCounty &&
       matchesVerificationStatus &&
+      matchesSkill &&
+      matchesSpecialization &&
       matchesSearch
     );
   });
@@ -427,7 +444,9 @@ export default function BuildersAdmin() {
                             ? "Contractor Type"
                             : "Hardware Type"}
                     </th>
-                    {/* <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">{activeTab === "PROFESSIONAL" ? "Level" : "Grade"}</th> */}
+                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                      Specialization
+                    </th>
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Email
                     </th>
@@ -490,7 +509,9 @@ export default function BuildersAdmin() {
                           row.hardwareTypes ||
                           "N/A"}
                       </td>
-                      {/* <td className="px-3 py-4 whitespace-nowrap">{row.grade || "N/A"}</td> */}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {row.specialization || "N/A"}
+                      </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.email || row.Email || "N/A"}
                       </td>

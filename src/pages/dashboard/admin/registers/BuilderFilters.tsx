@@ -17,6 +17,8 @@ interface FiltersState {
   phone: string;
   county: string;
   verificationStatus: string;
+  skill: string;
+  specialization: string;
   search: string;
 }
 
@@ -95,6 +97,28 @@ export function BuilderFilters({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="filter-skill">Skill / Profession</Label>
+            <Input
+              id="filter-skill"
+              type="text"
+              value={filters.skill}
+              onChange={(e) => updateFilter("skill", e.target.value)}
+              placeholder="Search by skill..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="filter-specialization">Specialization</Label>
+            <Input
+              id="filter-specialization"
+              type="text"
+              value={filters.specialization}
+              onChange={(e) => updateFilter("specialization", e.target.value)}
+              placeholder="Search by specialization..."
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="filter-status">Verification Status</Label>
             <Select
               value={filters.verificationStatus || "all"}
@@ -125,6 +149,8 @@ export function BuilderFilters({
               updateFilter("name", "");
               updateFilter("phone", "");
               updateFilter("county", "");
+              updateFilter("skill", "");
+              updateFilter("specialization", "");
               updateFilter("verificationStatus", "");
             }}
           >
