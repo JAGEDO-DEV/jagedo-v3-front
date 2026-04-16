@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
   User,
@@ -92,10 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     if (userType === "HARDWARE") {
-      return [...baseNavigationItems, uploadsItem, experienceItem, productsItem];
+      return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
     }
 
-    return [...baseNavigationItems, uploadsItem, experienceItem, productsItem];
+    return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
   };
 
   const navigationItems = getNavigationItems();
