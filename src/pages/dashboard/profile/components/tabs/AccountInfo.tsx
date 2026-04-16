@@ -52,18 +52,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
         .every(([, val]) => val === "complete")
     : false;
 
-  const displayStatus =
-    userData.status === "VERIFIED"
-      ? "Verified"
-      : userData.status === "SUSPENDED"
-        ? "Suspended"
-        : userData.status === "BLACKLISTED"
-          ? "Blacklisted"
-          : userData.status === "DELETED"
-            ? "Deleted"
-            : userData.status === "PENDING" || (["SIGNED_UP", "INCOMPLETE_PROFILE"].includes(userData.status) && allSectionsComplete)
-              ? "Pending Verification"
-              : "Profile Incomplete";
+  const displayStatus = userData.status || "N/A";
 
   const [editingField, setEditingField] = useState<string | null>(null);
 

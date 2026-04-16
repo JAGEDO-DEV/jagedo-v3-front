@@ -516,8 +516,12 @@ export default function BuildersAdmin() {
                             }) + " EAT"
                           : "N/A"}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <BuilderStatusCell row={row} />
+                      <td className="px-3 py-4 whitespace-nowrap b">
+                        {/* <BuilderStatusCell row={row} /> */}
+                        <div className="border border-black p-1 rounded-md text-center">
+                        {row.status}
+
+                        </div>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {activeTab === "TRASH" ? (
