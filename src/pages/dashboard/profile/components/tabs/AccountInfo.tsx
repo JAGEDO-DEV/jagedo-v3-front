@@ -327,41 +327,52 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                   <h1 className="text-2xl md:text-3xl font-bold mb-6">
                     Account Info
                   </h1>
-                  <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <div className="flex flex-col gap-3 mb-6">
                     <div
-                      className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                      className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium border ${
                         userData.status === "VERIFIED"
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-green-50 border-green-200 text-green-700"
                           : userData.status === "SUSPENDED"
-                            ? "bg-yellow-100 text-yellow-700"
+                            ? "bg-yellow-50 border-yellow-200 text-yellow-700"
                             : userData.status === "BLACKLISTED"
-                              ? "bg-orange-100 text-orange-700"
+                              ? "bg-orange-50 border-orange-200 text-orange-700"
                               : userData.status === "DELETED"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-blue-100 text-blue-700"
+                                ? "bg-red-50 border-red-200 text-red-700"
+                                : "bg-sky-50 border-sky-200 text-sky-700"
                       }`}
                     >
                       {userData.status === "VERIFIED" && (
-                        <Shield className="w-3.5 h-3.5" />
+                        <Shield className="w-4 h-4" />
                       )}
                       {userData.status === "SUSPENDED" && (
-                        <ShieldAlert className="w-3.5 h-3.5" />
+                        <ShieldAlert className="w-4 h-4" />
                       )}
                       {userData.status === "BLACKLISTED" && (
-                        <ShieldOff className="w-3.5 h-3.5" />
+                        <ShieldOff className="w-4 h-4" />
                       )}
                       {userData.status === "DELETED" && (
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       )}
                       {(userData.status === "SIGNED_UP" ||
-                        userData.status === "PENDING") && (
-                        <Clock className="w-3.5 h-3.5" />
+                        userData.status === "PENDING" ||
+                        !userData.status) && (
+                        <Clock className="w-4 h-4" />
                       )}
-                      <span>Status: {displayStatus || "N/A"}</span>
+                      <span>
+                        Status:{" "}
+                        {displayStatus
+                          .toLowerCase()
+                          .split("_")
+                          .map(
+                            (word: string) =>
+                              word.charAt(0).toUpperCase() + word.slice(1),
+                          )
+                          .join(" ")}
+                      </span>
                     </div>
 
                     {userData.status === "VERIFIED" && (
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1 px-1">
                         {[...Array(5)].map((_, index) => (
                           <Star
                             key={index}

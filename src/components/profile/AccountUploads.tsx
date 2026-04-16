@@ -232,6 +232,7 @@ const AccountUploads = ({ data, refreshData }) => {
   const [documents, setDocuments] = useState({});
   const [pendingFiles, setPendingFiles] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [approvalStatus, setApprovalStatus] = useState({});
   const [replacingFiles, setReplacingFiles] = useState({});
   const [categories, setCategories] = useState([]);
@@ -470,6 +471,9 @@ console.log("Approval Status Map:", totalApproved, totalPending);
     setDocuments(docsMap);
     setApprovalStatus(statusMap);
     setCategories(catNames);
+    setIsInitializing(false);
+  } else {
+    setIsInitializing(false);
   }
 }, [data, userType]);
 
@@ -603,6 +607,15 @@ console.log("Approval Status Map:", totalApproved, totalPending);
     }
   };
 
+  if (isInitializing || !data) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center bg-gray-50 pb-20">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-500 font-medium animate-pulse">Loading documents...</p>
+      </div>
+    );
+  }
+
   if (userType !== "contractor") {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -705,7 +718,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
                   isReplacing={!!replacingFiles[f.key]}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isSubmitting}
                 />
               ))}
             </div>
@@ -865,7 +878,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
                   isReplacing={!!replacingFiles[f.key]}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isSubmitting}
                 />
               ))}
             </div>
@@ -903,7 +916,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                           onReplace={(file) => replaceDocument(file, certKey)}
                           isUploading={isSubmitting && !!pendingFiles[certKey]}
                           isReplacing={!!replacingFiles[certKey]}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || isSubmitting}
                         />
                         <DocumentCard
                           label={`${cat} Practice License`}
@@ -920,7 +933,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                             isSubmitting && !!pendingFiles[licenseKey]
                           }
                           isReplacing={!!replacingFiles[licenseKey]}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || isSubmitting}
                         />
                       </div>
                     </div>
