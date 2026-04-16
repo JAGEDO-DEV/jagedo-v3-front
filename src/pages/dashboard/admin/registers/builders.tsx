@@ -517,11 +517,26 @@ export default function BuildersAdmin() {
                           : "N/A"}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap b">
-                        {/* <BuilderStatusCell row={row} /> */}
-                        <div className="border border-black p-1 rounded-md text-center">
-                        {row.status}
-
-                        </div>
+                          {(() => {
+                          const status = row.status?.toLowerCase() || "unknown";
+                          const statusStyles = {
+                            verified: "bg-green-100 text-green-800 border-green-300",
+                            pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+                            complete: "bg-blue-100 text-blue-800 border-blue-300",
+                            incomplete: "bg-gray-100 text-gray-800 border-gray-300",
+                            signed_up: "bg-purple-100 text-purple-800 border-purple-300",
+                            unverified: "bg-orange-100 text-orange-800 border-orange-300",
+                            suspended: "bg-red-100 text-red-800 border-red-300",
+                            blacklisted: "bg-red-200 text-red-900 border-red-400",
+                            deleted: "bg-gray-300 text-gray-900 border-gray-400",
+                          };
+                          const style = statusStyles[status as keyof typeof statusStyles] || statusStyles.incomplete;
+                          return (
+                            <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-semibold border ${style}`}>
+                              {status}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         {activeTab === "TRASH" ? (
