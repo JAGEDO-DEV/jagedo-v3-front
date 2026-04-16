@@ -39,7 +39,7 @@ export default function ProductReports() {
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState("total");
+  const [activeMetric, setActiveMetric] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReport();
@@ -60,6 +60,21 @@ export default function ProductReports() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadProductsCSV = () => {
+    if (!data?.register?.data) return;
+    const headers = ["No.", "Product Name", "SKU / BID", "Type", "Group", "Status", "Active", "Prices", "Updated At"];
+    const csvContent = data.register.data.map((p: any, idx: number) => 
+      [idx + 1, p.name, p.sku || "--", p.type || "Machinery / Equipment", p.group || "Earthmoving Equipments", p.status || "Approved", p.active ? "Yes" : "No", p.prices || "3 pts (Ksh 67,890 - Ksh 765,555)", p.updatedAt ? format(new Date(p.updatedAt), "dd/MM/yyyy HH:mm") : "07/04/2026 13:16"]
+        .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
+    );
+    const csv = [headers.join(","), ...csvContent].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `products_report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
   };
 
   const handlePeriodChange = (p: string) => {
@@ -209,7 +224,7 @@ export default function ProductReports() {
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-indigo-600 font-medium text-sm tracking-wide">Product Register Snapshot</h3>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
+          <Button onClick={downloadProductsCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
             <Download className="mr-2 h-4 w-4" /> 
             Export Register CSV
           </Button>
@@ -318,11 +333,13 @@ export default function ProductReports() {
         </div>
 
         {/* Sub-header above table */}
+        {activeMetric && (
+        <>
         <div className="flex justify-between items-center pt-2 pb-4 mt-6">
           <span className="font-medium text-[15px] text-gray-800">
             Viewing: {getActiveTitle()}
           </span>
-          <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50">
+          <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50" onClick={() => setActiveMetric(null)}>
             Close Register
           </Button>
         </div>
@@ -397,6 +414,8 @@ export default function ProductReports() {
             </TableBody>
           </Table>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export default function SystemReports() {
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState("total");
+  const [activeMetric, setActiveMetric] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReport();
@@ -61,6 +61,58 @@ export default function SystemReports() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFilteredUsers = () => {
+    let filteredData = data?.register?.data || [];
+    if (activeMetric === "builders") {
+      filteredData = filteredData.filter((u: any) => ["fundi", "hardware", "contractor", "professional"].includes(u.userType?.toLowerCase()));
+    } else if (activeMetric === "customers") {
+      filteredData = filteredData.filter((u: any) => ["customer"].includes(u.userType?.toLowerCase()));
+    } else if (activeMetric === "admins") {
+      filteredData = filteredData.filter((u: any) => ["admin", "superadmin"].includes(u.userType?.toLowerCase()));
+    }
+    return filteredData;
+  };
+
+  const downloadUsersCSV = () => {
+    const list = getFilteredUsers();
+    if (!list || list.length === 0) return;
+    const isCustomer = activeMetric === "customers";
+    const headers = [isCustomer ? "#id" : "#", "Name", "Email", "Role", "Location", "Lifecycle", "Signup Source", "Created At"];
+    const csvContent = list.map((u: any) => 
+      [u.id, `${u.firstName || ''} ${u.lastName || ''}`.trim(), u.email, u.userType, u.location, u.lifecycle, u.signupSource, format(new Date(u.createdAt), "MMM dd, yyyy")]
+        .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
+    );
+    const csv = [headers.join(","), ...csvContent].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `users_report_${activeMetric || 'total'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+  };
+
+  const downloadLifecycleCSV = () => {
+    if (!data?.breakdowns?.byLifecycle) return;
+    const lc = data.breakdowns.byLifecycle;
+    const headers = ["Metric", "Count"];
+    const rows = [
+      ["Signed Up", lc.signedUp || 0],
+      ["Incomplete", lc.incomplete || 0],
+      ["Complete", lc.complete || 0],
+      ["Pending Verification", lc.pendingVerification || 0],
+      ["Verified", lc.verified || 0],
+      ["Suspended", lc.suspended || 0],
+      ["Returned", lc.returned || 0],
+      ["Deleted", lc.deleted || 0],
+    ];
+    const csvContent = rows.map(r => `"${r[0]}",${r[1]}`).join("\n");
+    const csv = [headers.join(","), csvContent].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `lifecycle_report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
   };
 
   const handlePeriodChange = (p: string) => {
@@ -194,7 +246,7 @@ export default function SystemReports() {
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-indigo-600 font-medium text-sm tracking-wide">System Register Snapshot</h3>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
+          <Button onClick={downloadUsersCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
             <Download className="mr-2 h-4 w-4" /> 
             Export Users CSV
           </Button>
@@ -231,61 +283,75 @@ export default function SystemReports() {
         </div>
 
         {/* Sub-header above table */}
-        <div className="flex justify-between items-center pt-2 pb-4">
-          <span className="font-medium text-[15px] text-gray-800">
-            Viewing: {currentMetric?.title || 'Users'}
-          </span>
-          <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50">
-            Close Register
-          </Button>
-        </div>
-        
-        {/* Table Content */}
-        <div className="overflow-x-auto border rounded-xl rounded-t-none border-t-0 border-gray-100">
+        {activeMetric && (
+          <>
+            <div className="flex justify-between items-center pt-2 pb-4">
+              <span className="font-medium text-[15px] text-gray-800">
+                Viewing: {currentMetric?.title || 'Users'}
+              </span>
+              <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50" onClick={() => setActiveMetric(null)}>
+                Close Register
+              </Button>
+            </div>
+            
+            {/* Table Content */}
+            <div className="overflow-x-auto border rounded-xl rounded-t-none border-t-0 border-gray-100">
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow>
-                <TableHead className="text-gray-500 font-medium h-10">User</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Type</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Contact</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Account Status</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Joined</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10 w-12">{activeMetric === "customers" ? "#id" : "#"}</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Name</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Email</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Role</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Location</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Lifecycle</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Signup Source</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Created At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                  <TableRow>
-                   <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                   <TableCell colSpan={8} className="h-32 text-center text-gray-500">
                      <span className="flex items-center justify-center">Loading Data...</span>
                    </TableCell>
                  </TableRow>
-              ) : data?.register?.data?.map((user: any) => (
+              ) : (() => {
+                const list = getFilteredUsers();
+                return list.map((user: any) => (
                 <TableRow key={user.id} className="hover:bg-gray-50/50">
+                  <TableCell className="text-gray-600 font-medium">{user.id}</TableCell>
                   <TableCell className="font-medium text-gray-900">
                     {user.firstName} {user.lastName}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-800">{user.email}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider text-gray-600 border-gray-200">
                       {user.userType}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium text-gray-800">{user.email}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{user.phone}</div>
+                  <TableCell className="text-sm text-gray-800">
+                    {user.location}
                   </TableCell>
                   <TableCell>
+                    {/* @ts-ignore */}
                     <Badge variant={getStatusColor(user.status)}>
-                      {user.status || "UNKNOWN"}
+                      {user.lifecycle}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-800">
+                    {user.signupSource}
                   </TableCell>
                   <TableCell className="text-gray-600 text-sm">
                     {format(new Date(user.createdAt), "MMM dd, yyyy")}
                   </TableCell>
                 </TableRow>
-              ))}
+              ))})()}
               {(!loading && (!data?.register?.data || data.register.data.length === 0)) && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                  <TableCell colSpan={8} className="h-32 text-center text-gray-500">
                     No registrations found for the selected period.
                   </TableCell>
                 </TableRow>
@@ -293,7 +359,53 @@ export default function SystemReports() {
             </TableBody>
           </Table>
         </div>
+        </>
+        )}
       </div>
+
+      {/* Lifecycle Dashboard Block */}
+      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            <h3 className="text-indigo-700 text-[18px] font-semibold tracking-wide">Lifecycle Dashboard</h3>
+            <p className="text-gray-500 text-sm mt-1">Date-filtered lifecycle counts, lifecycle status reports, aging, and verification performance.</p>
+          </div>
+          <Button onClick={downloadLifecycleCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-10 px-5">
+            <Download className="mr-2 h-4 w-4" /> 
+            Export Lifecycle CSV
+          </Button>
+        </div>
+
+        {/* Lifecycle Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Signed Up", value: data?.breakdowns?.byLifecycle?.signedUp || 0 },
+            { label: "Incomplete", value: data?.breakdowns?.byLifecycle?.incomplete || 0 },
+            { label: "Complete", value: data?.breakdowns?.byLifecycle?.complete || 0 },
+            { label: "Pending Verification", value: data?.breakdowns?.byLifecycle?.pendingVerification || 0 },
+            { label: "Verified", value: data?.breakdowns?.byLifecycle?.verified || 0 },
+            { label: "Suspended", value: data?.breakdowns?.byLifecycle?.suspended || 0 },
+            { label: "Returned", value: data?.breakdowns?.byLifecycle?.returned || 0 },
+            { label: "Deleted", value: data?.breakdowns?.byLifecycle?.deleted || 0 },
+          ].map((item, idx) => (
+            <div key={idx} className="border border-gray-100 bg-[#fefeff] rounded-xl p-5 shadow-sm hover:border-indigo-100 transition-colors">
+              <div className="text-[13.5px] text-gray-500 mb-2">{item.label}</div>
+              <div className="text-[26px] font-bold tracking-tight text-indigo-700">
+                {loading ? "-" : item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Lifecycle Change Report */}
+        <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
+          <h4 className="text-[15px] font-semibold text-gray-800 mb-4">Lifecycle Change Report</h4>
+          <div className="bg-[#f8f9fa] border border-gray-100 rounded-md p-4 text-[13.5px] text-gray-500">
+             Enable date comparison to view lifecycle deltas.
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

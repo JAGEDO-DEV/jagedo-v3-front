@@ -880,16 +880,18 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
 
     const status = uploaded.status || "pending";
+    const isApproved = status === "approved" || status === "VERIFIED";
+    const isDisapproved = status === "rejected" || status === "REJECTED" || status === "reupload_requested" || status === "RESUBMIT";
     const iconBgColor =
-      status === "approved"
+      isApproved
         ? "bg-green-50"
-        : status === "rejected"
+        : status === "rejected" || status === "REJECTED"
           ? "bg-red-50"
           : "bg-amber-50";
     const iconColor =
-      status === "approved"
+      isApproved
         ? "text-green-600"
-        : status === "rejected"
+        : status === "rejected" || status === "REJECTED"
           ? "text-red-600"
           : "text-amber-600";
 
@@ -917,21 +919,21 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         { }
         {uploaded.statusReason && (
           <div
-            className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected"
+            className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected" || status === "REJECTED"
                 ? "bg-red-50 text-red-700"
-                : status === "reupload_requested"
+                : status === "reupload_requested" || status === "RESUBMIT"
                   ? "bg-blue-50 text-blue-700"
-                  : status === "approved"
+                  : isApproved
                     ? "bg-green-50 text-green-700"
                     : "bg-amber-50 text-amber-700"
               }`}
           >
             <span className="font-medium">
-              {status === "pending"
+              {status === "pending" || status === "PENDING"
                 ? "Status: "
-                : status === "rejected"
+                : status === "rejected" || status === "REJECTED"
                   ? "Rejection reason: "
-                  : status === "reupload_requested"
+                  : status === "reupload_requested" || status === "RESUBMIT"
                     ? "Re-upload reason: "
                     : "Note: "}
             </span>
@@ -982,16 +984,18 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             <div className="flex gap-2 w-full mt-2 border-t pt-2">
               <button
                 onClick={() => openActionModal(doc.key, "approve")}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-green-50 text-green-600 rounded-lg text-[10px] font-semibold hover:bg-green-100 transition"
-                title="Approve"
+                disabled={isDisapproved}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-green-50 text-green-600 rounded-lg text-[10px] font-semibold hover:bg-green-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isDisapproved ? "Wait for user to resubmit" : "Approve"}
               >
                 <FiCheck className="w-3 h-3" />
                 Approve
               </button>
               <button
                 onClick={() => openActionModal(doc.key, "resubmit")}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition"
-                title="Return for correction"
+                disabled={isDisapproved}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isDisapproved ? "Wait for user to resubmit" : "Return for correction"}
               >
                 <FiRefreshCw className="w-3 h-3" />
                 Return
@@ -1195,8 +1199,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                               setIsPendingAction(false);
                             }
                           }}
-                          disabled={userData.documentStatus === "VERIFIED"}
+                          disabled={userData.documentStatus === "VERIFIED" || userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT"}
                           className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                          title={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : ""}
                         >
                           <FiCheck className="w-4 h-4" />
                           Approve All
@@ -1210,7 +1215,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                               isGlobal: true,
                             });
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100 font-medium"
+                          disabled={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT"}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                          title={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : ""}
                         >
                           <FiRefreshCw className="w-4 h-4" />
                           Return All
