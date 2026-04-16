@@ -152,9 +152,25 @@ export const adminResubmitExperience = async (axiosInstance: any, userId: string
 };
 
 // Evaluation Questions CRUD
-export const getEvaluationQuestions = async (axiosInstance: any, category?: string): Promise<any> => {
+export const getEvaluationQuestions = async (
+    axiosInstance: any,
+    filters?: {
+        category?: string;
+        userType?: string;
+        skillName?: string;
+        isActive?: boolean;
+        isPreset?: boolean;
+    }
+): Promise<any> => {
     try {
-        const url = category ? `/api/questions?category=${category}` : "/api/questions";
+        const params = new URLSearchParams();
+        if (filters?.category) params.append('category', filters.category);
+        if (filters?.userType) params.append('userType', filters.userType);
+        if (filters?.skillName) params.append('skillName', filters.skillName);
+        if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+        if (filters?.isPreset !== undefined) params.append('isPreset', String(filters.isPreset));
+        
+        const url = params.toString() ? `/api/questions?${params.toString()}` : "/api/questions";
         const response = await axiosInstance.get(url, {
             headers: { Authorization: getAuthHeaders() }
         });

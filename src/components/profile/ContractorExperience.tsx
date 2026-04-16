@@ -430,6 +430,36 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     }
   };
 
+  const isFormComplete = (): boolean => {
+    // Filter to only categories with a category selected (ignore empty rows)
+    const filledCategories = categories.filter(c => c.category);
+
+    // Need at least one filled category
+    if (filledCategories.length === 0) {
+      return false;
+    }
+
+    // Check if all filled categories have all required fields
+    const allFieldsFilled = filledCategories.every(c => c.categoryClass && c.yearsOfExperience && c.specialization);
+    if (!allFieldsFilled) {
+      return false;
+    }
+
+    // Check if we have at least as many projects as filled categories
+    if (projects.length < filledCategories.length) {
+      return false;
+    }
+
+    // Check if all projects (up to the number of filled categories) have both required files
+    const requiredProjects = projects.slice(0, filledCategories.length);
+    const allFilesUploaded = requiredProjects.every(p => p.projectFile && p.referenceLetterFile);
+    if (!allFilesUploaded) {
+      return false;
+    }
+
+    return true;
+  };
+
   const fileInputStyles = "w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors cursor-pointer";
 
   const renderFileState = (file: File | string | null, onRemove: () => void, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void) => {
@@ -620,8 +650,15 @@ const ContractorExperience = ({ data, refreshData }: any) => {
               <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto bg-blue-800 text-white px-10 py-3 rounded-lg hover:bg-blue-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-md shadow-blue-100 flex items-center justify-center gap-2"
+                  disabled={isSubmitting || !isFormComplete() || data?.experienceStatus === 'PENDING'}
+                  title={
+                    data?.experienceStatus === 'PENDING'
+                      ? "This submission is under review and cannot be modified"
+                      : !isFormComplete()
+                      ? "Please fill all required fields: Category, Specialization, Class, Years of Experience, and upload all project files"
+                      : "Submit contractor experience"
+                  }
+                  className="w-full sm:w-auto bg-blue-800 text-white px-10 py-3 rounded-lg hover:bg-blue-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-800 font-bold shadow-md shadow-blue-100 flex items-center justify-center gap-2"
                 >
                   {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                   {isSubmitting ? "Submitting..." : "Submit Experience"}

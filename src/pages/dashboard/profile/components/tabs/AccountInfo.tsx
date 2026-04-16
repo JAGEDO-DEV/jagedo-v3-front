@@ -15,6 +15,7 @@ import {
   updateProfileEmailAdmin,
   updateProfilePhoneNumberAdmin,
   updateProfileNameAdmin,
+  handleVerifyUser,
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
@@ -978,6 +979,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
           </section>
         </div>
       </div>
+
+   
 
       {/* OTP Verification Modal */}
       {showOtpModal && (

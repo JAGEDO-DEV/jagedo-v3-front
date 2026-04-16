@@ -32,7 +32,7 @@ export const useProfileCompletion = (
       address: "incomplete", 
       "account-uploads": "incomplete", 
       experience: "incomplete", 
-      products: "incomplete", 
+      products: "complete", 
     };
 
     if (!userData) {
@@ -400,7 +400,7 @@ export const useProfileCompletion = (
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",
-      products: "incomplete",
+      products: "complete",
       marketing: "complete",
     };
 

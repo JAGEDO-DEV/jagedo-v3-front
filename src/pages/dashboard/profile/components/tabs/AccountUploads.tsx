@@ -1002,9 +1002,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               </button>
                 <button
                   onClick={() => openActionModal(doc.key, "reject")}
-                  disabled={!isApproved}
+                  disabled={!(status === "approved" || status === "VERIFIED")}
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isApproved ? "Only approved documents can be disapproved" : "Disapprove"}
+                  title={!(status === "approved" || status === "VERIFIED") ? "Only approved documents can be disapproved" : "Disapprove"}
                 >
                   <XCircle className="w-3 h-3" />
                   Disapprove
@@ -1498,6 +1498,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {userType === "professional" && (
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-6 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-md disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <>
+                        <FiRefreshCw className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FiCheck className="w-4 h-4" />
+                        Save Documents
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>

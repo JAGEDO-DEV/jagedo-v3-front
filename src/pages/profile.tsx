@@ -9,7 +9,7 @@ import Activity from "@/components/profile/Activity";
 import ProffExperience from "@/components/profile/ProffExperience";
 import ShopAppPage from "@/components/profile/FundiShopApp";
 import ContractorExperience from "@/components/profile/ContractorExperience";
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, XCircle } from "lucide-react";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getProviderProfile } from "@/api/provider.api";
 
@@ -439,6 +439,59 @@ function ProfilePage() {
 
           <main className="flex-1 p-3 sm:p-4 lg:p-6">
             <div className="max-w-6xl mx-auto space-y-6">
+              {/* Account Status Notification */}
+              {(user?.status === "SUSPENDED" || user?.status === "BLACKLISTED" || providerData?.status === "SUSPENDED" || providerData?.status === "BLACKLISTED") && (
+                <div className={`p-4 rounded-xl shadow-sm border flex items-start gap-4 ${
+                  user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                    ? "bg-red-50 border-red-300"
+                    : "bg-yellow-50 border-yellow-300"
+                }`}>
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${
+                    user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                      ? "bg-red-100"
+                      : "bg-yellow-100"
+                  }`}>
+                    {user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED" ? (
+                      <XCircle className={`h-6 w-6 ${user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED" ? "text-red-600" : "text-yellow-600"}`} />
+                    ) : (
+                      <AlertCircle className={`h-6 w-6 ${user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED" ? "text-red-600" : "text-yellow-600"}`} />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`font-bold text-lg mb-1 ${
+                      user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                        ? "text-red-900"
+                        : "text-yellow-900"
+                    }`}>
+                      {user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                        ? "Account Blacklisted"
+                        : "Account Suspended"}
+                    </h3>
+                    <p className={`text-sm mb-3 ${
+                      user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                        ? "text-red-800"
+                        : "text-yellow-800"
+                    }`}>
+                      {user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                        ? "Your account has been permanently blacklisted. You will not be able to access any platform services."
+                        : "Your account has been suspended. Please contact support to resolve this issue."}
+                    </p>
+                    <button
+                      onClick={() => {
+                        window.location.href = "mailto:support@jagedo.com";
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
+                          ? "bg-red-600 hover:bg-red-700 text-white"
+                          : "bg-yellow-600 hover:bg-yellow-700 text-white"
+                      }`}
+                    >
+                      Contact Support
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
