@@ -38,7 +38,7 @@ export default function JobsReports() {
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState("total");
+  const [activeMetric, setActiveMetric] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   useEffect(() => {
@@ -246,6 +246,7 @@ export default function JobsReports() {
             <div 
               key={metric.id}
               className="bg-[#f0f2f9] border border-[#e1e5f2] rounded-xl p-4 cursor-pointer hover:bg-[#e8ebf7] transition-colors"
+              onClick={() => handleMetricClick(metric.id)}
             >
               <div className="text-[13px] text-gray-600 font-medium mb-1">{metric.title}</div>
               <div className="text-[22px] font-bold text-[#30336b] mb-3">{loading ? "-" : metric.value}</div>
@@ -305,12 +306,24 @@ export default function JobsReports() {
         </div>
         
         {/* Helper Footer text matching image */}
-        <div className="border-t border-[#eaf0f6] pt-4 mt-2">
-           <p className="text-[12px] text-indigo-500 font-medium">Select any card to view job register details</p>
-        </div>
+        {!activeMetric && (
+          <div className="border-t border-[#eaf0f6] pt-4 mt-2">
+             <p className="text-[12px] text-indigo-500 font-medium">Select any card to view job register details</p>
+          </div>
+        )}
 
         {/* Existing table that should display jobs when a user wants to view them */}
-        <div className="mt-8 border rounded-xl overflow-hidden">
+        {activeMetric && (
+          <>
+            <div className="flex justify-between items-center pt-2 pb-4 mt-8 border-b border-gray-100">
+              <span className="font-medium text-[15px] text-gray-800">
+                Viewing: {metricsRow1.find(m => m.id === activeMetric)?.title || requestedJobs.find(m => m.id === activeMetric)?.title || 'Selected Category'}
+              </span>
+              <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50" onClick={() => setActiveMetric(null)}>
+                Close Register
+              </Button>
+            </div>
+            <div className="mt-4 border rounded-xl overflow-hidden">
            <Table>
              <TableHeader className="bg-gray-50/50">
                <TableRow>
@@ -365,6 +378,8 @@ export default function JobsReports() {
              </TableBody>
            </Table>
         </div>
+        </>
+        )}
 
       </div>
     </div>
