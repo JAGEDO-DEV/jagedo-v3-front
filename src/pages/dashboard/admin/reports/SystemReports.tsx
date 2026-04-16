@@ -38,6 +38,14 @@ export default function SystemReports() {
   const [compareMode, setCompareMode] = useState(false);
   const [activeMetric, setActiveMetric] = useState<string | null>(null);
 
+  // Customer Filter State
+  const [customerFilter, setCustomerFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [customerTypeFilter, setCustomerTypeFilter] = useState("All Customers");
+  const [locationFilter, setLocationFilter] = useState("All Locations");
+  const [lifecycleFilter, setLifecycleFilter] = useState("All Lifecycle");
+  const [sourceFilter, setSourceFilter] = useState("All Sources");
+
   useEffect(() => {
     fetchReport();
   }, [dateRange, compareMode, activeMetric]);
@@ -69,6 +77,33 @@ export default function SystemReports() {
       filteredData = filteredData.filter((u: any) => ["fundi", "hardware", "contractor", "professional"].includes(u.userType?.toLowerCase()));
     } else if (activeMetric === "customers") {
       filteredData = filteredData.filter((u: any) => ["customer"].includes(u.userType?.toLowerCase()));
+      
+      if (customerFilter === "individual") {
+        filteredData = filteredData.filter((u: any) => u.accountType?.toLowerCase() === "individual");
+      } else if (customerFilter === "organization") {
+        filteredData = filteredData.filter((u: any) => u.accountType?.toLowerCase() === "organization" || u.accountType?.toLowerCase() === "business");
+      }
+
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filteredData = filteredData.filter((u: any) => 
+          u.firstName?.toLowerCase().includes(q) || 
+          u.lastName?.toLowerCase().includes(q) || 
+          u.email?.toLowerCase().includes(q) ||
+          u.phone?.toLowerCase().includes(q)
+        );
+      }
+      
+      if (locationFilter !== "All Locations") {
+         filteredData = filteredData.filter((u: any) => u.location === locationFilter);
+      }
+      if (lifecycleFilter !== "All Lifecycle") {
+         filteredData = filteredData.filter((u: any) => u.lifecycle === lifecycleFilter);
+      }
+      if (sourceFilter !== "All Sources") {
+         filteredData = filteredData.filter((u: any) => u.signupSource === sourceFilter);
+      }
+
     } else if (activeMetric === "admins") {
       filteredData = filteredData.filter((u: any) => ["admin", "superadmin"].includes(u.userType?.toLowerCase()));
     }
@@ -294,6 +329,84 @@ export default function SystemReports() {
               </Button>
             </div>
             
+            {activeMetric === "customers" && (() => {
+              const allCustomers = data?.register?.data?.filter((u: any) => ["customer"].includes(u.userType?.toLowerCase())) || [];
+              const individualCount = allCustomers.filter((u: any) => u.accountType?.toLowerCase() === "individual").length;
+              const orgCount = allCustomers.filter((u: any) => u.accountType?.toLowerCase() === "organization" || u.accountType?.toLowerCase() === "business").length;
+
+              return (
+                <div className="border-t border-gray-100 pt-5 pb-4 mb-2">
+                  <div className="flex gap-3 mb-4 flex-wrap">
+                    <button 
+                      onClick={() => setCustomerFilter("all")}
+                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "all" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
+                    >
+                      All Customers ({allCustomers.length})
+                    </button>
+                    <button 
+                      onClick={() => setCustomerFilter("individual")}
+                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "individual" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
+                    >
+                      Individual Customers ({individualCount})
+                    </button>
+                    <button 
+                      onClick={() => setCustomerFilter("organization")}
+                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "organization" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
+                    >
+                      Organization Customers ({orgCount})
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input 
+                      type="text" 
+                      placeholder="Search customers/builders..." 
+                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <select 
+                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
+                      value={customerTypeFilter}
+                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                    >
+                      <option>All Customers</option>
+                    </select>
+                    <select 
+                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                    >
+                      <option>All Locations</option>
+                      {[...new Set(allCustomers.map((u: any) => u.location).filter(Boolean))].map((loc: any) => (
+                        <option key={loc}>{loc}</option>
+                      ))}
+                    </select>
+                    <select 
+                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
+                      value={lifecycleFilter}
+                      onChange={(e) => setLifecycleFilter(e.target.value)}
+                    >
+                      <option>All Lifecycle</option>
+                      {[...new Set(allCustomers.map((u: any) => u.lifecycle).filter(Boolean))].map((lc: any) => (
+                        <option key={lc}>{lc}</option>
+                      ))}
+                    </select>
+                    <select 
+                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white md:col-start-1"
+                      value={sourceFilter}
+                      onChange={(e) => setSourceFilter(e.target.value)}
+                    >
+                      <option>All Sources</option>
+                      {[...new Set(allCustomers.map((u: any) => u.signupSource).filter(Boolean))].map((src: any) => (
+                        <option key={src}>{src}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Table Content */}
             <div className="overflow-x-auto border rounded-xl rounded-t-none border-t-0 border-gray-100">
           <Table>
