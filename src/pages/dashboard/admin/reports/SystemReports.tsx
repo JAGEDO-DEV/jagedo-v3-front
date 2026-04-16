@@ -78,9 +78,10 @@ export default function SystemReports() {
   const downloadUsersCSV = () => {
     const list = getFilteredUsers();
     if (!list || list.length === 0) return;
-    const headers = ["ID", "Name", "Email", "Phone", "User Type", "Status", "Joined"];
+    const isCustomer = activeMetric === "customers";
+    const headers = [isCustomer ? "#id" : "#", "Name", "Email", "Role", "Location", "Lifecycle", "Signup Source", "Created At"];
     const csvContent = list.map((u: any) => 
-      [u.id, `${u.firstName} ${u.lastName}`, u.email, u.phone, u.userType, u.status, format(new Date(u.createdAt), "MMM dd, yyyy")]
+      [u.id, `${u.firstName || ''} ${u.lastName || ''}`.trim(), u.email, u.userType, u.location, u.lifecycle, u.signupSource, format(new Date(u.createdAt), "MMM dd, yyyy")]
         .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
     );
     const csv = [headers.join(","), ...csvContent].join("\n");
@@ -298,17 +299,20 @@ export default function SystemReports() {
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow>
-                <TableHead className="text-gray-500 font-medium h-10">User</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Type</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Contact</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Account Status</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Joined</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10 w-12">{activeMetric === "customers" ? "#id" : "#"}</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Name</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Email</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Role</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Location</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Lifecycle</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Signup Source</TableHead>
+                <TableHead className="text-gray-500 font-medium h-10">Created At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                  <TableRow>
-                   <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                   <TableCell colSpan={8} className="h-32 text-center text-gray-500">
                      <span className="flex items-center justify-center">Loading Data...</span>
                    </TableCell>
                  </TableRow>
@@ -316,23 +320,29 @@ export default function SystemReports() {
                 const list = getFilteredUsers();
                 return list.map((user: any) => (
                 <TableRow key={user.id} className="hover:bg-gray-50/50">
+                  <TableCell className="text-gray-600 font-medium">{user.id}</TableCell>
                   <TableCell className="font-medium text-gray-900">
                     {user.firstName} {user.lastName}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-800">{user.email}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider text-gray-600 border-gray-200">
                       {user.userType}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium text-gray-800">{user.email}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{user.phone}</div>
+                  <TableCell className="text-sm text-gray-800">
+                    {user.location}
                   </TableCell>
                   <TableCell>
                     {/* @ts-ignore */}
                     <Badge variant={getStatusColor(user.status)}>
-                      {user.status || "UNKNOWN"}
+                      {user.lifecycle}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-800">
+                    {user.signupSource}
                   </TableCell>
                   <TableCell className="text-gray-600 text-sm">
                     {format(new Date(user.createdAt), "MMM dd, yyyy")}
@@ -341,7 +351,7 @@ export default function SystemReports() {
               ))})()}
               {(!loading && (!data?.register?.data || data.register.data.length === 0)) && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-gray-500">
+                  <TableCell colSpan={8} className="h-32 text-center text-gray-500">
                     No registrations found for the selected period.
                   </TableCell>
                 </TableRow>
