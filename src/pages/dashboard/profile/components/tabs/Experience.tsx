@@ -114,27 +114,79 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
-        const response = await getEvaluationQuestions(axiosInstance, "FUNDI");
+        // Determine skill/profession/category based on user type
+        let skillOrProfession = "";
+        let userTypeForQuestions = userType;
+        
+        const sourceData = userData?.userProfile || userData || {};
+        
+        console.log("💾 userData keys:", Object.keys(userData || {}));
+        console.log("💾 userData?.userProfile keys:", Object.keys(userData?.userProfile || {}));
+        console.log("💾 sourceData:", sourceData);
+        
+        switch (userType) {
+          case "FUNDI":
+            // Try multiple field names and locations for FUNDI skill
+            skillOrProfession = 
+              sourceData?.skill || 
+              sourceData?.skills || 
+              userData?.skill || 
+              userData?.skills ||
+              editingFields?.skill || 
+              "";
+            console.log("FUNDI skill sources - sourceData.skill:", sourceData?.skill, "sourceData.skills:", sourceData?.skills, "userData.skill:", userData?.skill, "userData.skills:", userData?.skills);
+            break;
+          case "PROFESSIONAL":
+            skillOrProfession = sourceData?.profession || editingFields?.profession || "";
+            break;
+          case "CONTRACTOR":
+            skillOrProfession = sourceData?.contractorTypes || sourceData?.category || editingFields?.category || "";
+            break;
+          case "HARDWARE":
+            skillOrProfession = sourceData?.hardwareType || editingFields?.hardwareType || "";
+            break;
+        }
+
+        console.log("🔍 Fetching questions with filters:", {
+          userType: userTypeForQuestions,
+          skillName: skillOrProfession,
+          isActive: true,
+        });
+
+        // Fetch both preset and custom questions for this specific skill/profession
+        const response = await getEvaluationQuestions(axiosInstance, {
+          userType: userTypeForQuestions,
+          skillName: skillOrProfession,
+          isActive: true,
+          // Note: not filtering by isPreset so both preset and custom questions are included
+        });
+
+        console.log("📥 API Response:", response);
 
         const extractedData = Array.isArray(response)
           ? response
           : response?.data && Array.isArray(response.data)
             ? response.data
-            : [];
+            : Array.isArray(response?.result)
+              ? response.result
+              : [];
+
+        console.log(`✅ Extracted ${extractedData.length} questions for ${skillOrProfession}`);
 
         setAvailableQuestions(extractedData);
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
-        toast.error("Failed to load evaluation questions");
+        // Don't show error toast for evaluation questions - they're optional
+        setAvailableQuestions([]);
       } finally {
         setIsLoadingQuestions(false);
       }
     };
 
-    if (userType === "FUNDI") {
+    if (isAdmin && ['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       fetchQuestions();
     }
-  }, [userType, userData?.id]);
+  }, [userType, userData?.id, userData?.skill, userData?.profession, userData?.contractorTypes, userData?.hardwareType, editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType]);
 
   useEffect(() => {
     if (availableQuestions.length > 0) {
@@ -143,6 +195,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       if (evaluation) {
         prefillQuestionsFromData();
       } else {
+        // Initialize questions from available preset questions
         const initial = availableQuestions.map((q: any) => ({
           id: q.id,
           text: q.text,
@@ -151,14 +204,20 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           answer: "",
           score: 0,
           isEditing: false,
+          isDraft: false,
+          isPreset: q.isPreset ?? true, // Preserve preset flag, default to true only if undefined
         }));
         setQuestions(initial);
       }
+    } else if (availableQuestions.length === 0 && !isLoadingQuestions) {
+      // No preset questions available, start with empty
+      setQuestions([]);
     }
   }, [
     availableQuestions,
     userData?.fundiEvaluation,
     userData?.userProfile?.fundiEvaluation,
+    isLoadingQuestions,
   ]);
 
   // ── Load skills and specialization mappings on mount for all dynamic types ────────────────
@@ -336,6 +395,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         answer,
         score,
         isEditing: false,
+        isDraft: false,
+        isPreset: q.isPreset ?? true, // Preserve preset flag, default to true only if undefined
       };
     });
     setQuestions(prefilled);
@@ -354,9 +415,43 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       case "FUNDI":
         projectData = userData?.previousJobPhotoUrls || [];
         break;
-      case "PROFESSIONAL":
+      case "PROFESSIONAL": {
         projectData = userData?.professionalProjects || [];
-        break;
+        // Restructure professional projects to have files array like contractor projects
+        return projectData.map((project, index) => {
+          const pName = project.projectName || `Professional Project ${index + 1}`;
+          const files = [];
+          
+          // Handle files array format (new format)
+          if (Array.isArray(project.files) && project.files.length > 0) {
+            project.files.forEach((fileUrl, fileIndex) => {
+              if (fileUrl) {
+                files.push({
+                  name: `${pName}_file_${fileIndex + 1}.jpg`,
+                  url: fileUrl,
+                });
+              }
+            });
+          }
+          // Handle legacy format where files are objects
+          else if (project.files && typeof project.files === 'object') {
+            Object.entries(project.files).forEach(([key, fileUrl]) => {
+              if (fileUrl) {
+                files.push({
+                  name: `${pName}_${key}.jpg`,
+                  url: fileUrl,
+                });
+              }
+            });
+          }
+          
+          return { 
+            id: index + 1, 
+            projectName: pName, 
+            files: files.length > 0 ? files : [] 
+          };
+        });
+      }
       case "CONTRACTOR":
         projectData = userData?.contractorProjects || [];
         return projectData.map((project, index) => {
@@ -594,7 +689,23 @@ useEffect(() => {
   };
 
   const removeCategory = (index: number) => {
+    const categoryToRemove = categories[index];
+    
+    // Remove the category
     setCategories(categories.filter((_, i) => i !== index));
+    
+    // Also remove the corresponding project(s) for this category
+    if (categoryToRemove?.category) {
+      setAttachments((prev) =>
+        prev.filter(
+          (project) =>
+            // Keep projects that don't match the removed category
+            !project.projectName?.toLowerCase().includes(
+              categoryToRemove.category.toLowerCase()
+            )
+        )
+      );
+    }
   };
 
   const getInitialInfo = () => {
@@ -1153,11 +1264,44 @@ useEffect(() => {
 
     setIsLoadingQuestions(true);
     try {
+      // Determine skill/profession/category based on user type
+      let skillName = "";
+      const sourceData = userData?.userProfile || userData || {};
+      
+      switch (userType) {
+        case "FUNDI":
+          skillName = 
+            sourceData?.skill || 
+            sourceData?.skills || 
+            userData?.skill || 
+            userData?.skills ||
+            editingFields?.skill || 
+            "";
+          break;
+        case "PROFESSIONAL":
+          skillName = sourceData?.profession || editingFields?.profession || "";
+          break;
+        case "CONTRACTOR":
+          skillName = sourceData?.contractorTypes || sourceData?.category || editingFields?.category || "";
+          break;
+        case "HARDWARE":
+          skillName = sourceData?.hardwareType || editingFields?.hardwareType || "";
+          break;
+      }
+
       const payload = {
         text: draft.text,
         type: (draft.type || "OPEN").toUpperCase(),
-        category: "FUNDI",
+        options: draft.options
+          ? Array.isArray(draft.options)
+            ? JSON.stringify(draft.options)
+            : draft.options
+          : null,
+        userType: userType,
+        skillName: skillName,
+        category: userType, // For backward compatibility
         isActive: true,
+        isPreset: false, // Custom questions added by admin are not preset
       };
 
       const response = await createEvaluationQuestion(axiosInstance, payload);
@@ -1448,6 +1592,9 @@ useEffect(() => {
                 Evaluation Results
               </h3>
             </div>
+            {userType === "FUNDI" && evaluation.totalScore && (
+              <PerformanceClassificationBadge score={evaluation.totalScore} />
+            )}
             {isAdmin && !isEditingEvaluation && (
               <button
                 type="button"
@@ -1583,6 +1730,77 @@ useEffect(() => {
       </span>
     );
   };
+
+  /* ────────── Grade Classification By Score Component ────────── */
+  const getScoreClassification = (
+    score?: number,
+  ): {
+    label: string;
+    stars: string;
+    bg: string;
+    text: string;
+    border: string;
+  } => {
+    if (score === undefined || score === null) {
+      return {
+        label: "Not Rated",
+        stars: "○",
+        bg: "bg-gray-50",
+        text: "text-gray-700",
+        border: "border-gray-200",
+      };
+    }
+
+    const classifications = {
+      master: {
+        label: "Master Fundi",
+        stars: "⭐⭐⭐⭐",
+        bg: "bg-yellow-50",
+        text: "text-yellow-700",
+        border: "border-yellow-200",
+      },
+      skilled: {
+        label: "Skilled",
+        stars: "⭐⭐⭐",
+        bg: "bg-purple-50",
+        text: "text-purple-700",
+        border: "border-purple-200",
+      },
+      semiSkilled: {
+        label: "Semi-Skilled",
+        stars: "⭐⭐",
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-200",
+      },
+      unskilled: {
+        label: "Unskilled",
+        stars: "⭐",
+        bg: "bg-gray-50",
+        text: "text-gray-700",
+        border: "border-gray-200",
+      },
+    };
+
+    if (score >= 85) return classifications.master;
+    if (score >= 70) return classifications.skilled;
+    if (score >= 50) return classifications.semiSkilled;
+    return classifications.unskilled;
+  };
+
+  const PerformanceClassificationBadge = ({ score }: { score?: number }) => {
+    const classification = getScoreClassification(score);
+
+    return (
+      <div
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border ${classification.bg} ${classification.text} ${classification.border}`}
+      >
+        <span className="text-sm tracking-wide">{classification.stars}</span>
+        <span>{classification.label}</span>
+      </div>
+    );
+  };
+
   const [audioUrl, setAudioUrl] = useState("");
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1768,7 +1986,7 @@ useEffect(() => {
       } else if (userType === "PROFESSIONAL") {
         const professionalProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
-          files: project.files.map((f) => f.url),
+          files: project.files.map((f) => f.url).filter((url) => url), // Filter out empty URLs
         }));
 
         const payload = {
@@ -1781,6 +1999,9 @@ useEffect(() => {
           yearsOfExperience: isEditingFields
             ? editingFields.yearsOfExperience
             : info.yearsOfExperience,
+          specialization: isEditingFields
+            ? editingFields.specialization
+            : info.specialization,
           professionalProjects,
         };
 
@@ -1920,6 +2141,100 @@ useEffect(() => {
   };
 
   const readyToApprove = isExperienceReadyToApprove();
+
+  const canSaveChanges = (): boolean => {
+    const requiredCount = getRequiredProjectCount();
+
+    switch (userType) {
+      case "FUNDI": {
+        const hasGrade = !!(isEditingFields ? editingFields.grade : info.grade);
+        const hasExperience = !!(isEditingFields
+          ? editingFields.experience
+          : info.experience);
+        const hasSkill = !!(isEditingFields ? editingFields.skill : info.skill);
+        const hasSpecialization = !!(isEditingFields
+          ? editingFields.specialization
+          : info.specialization);
+
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return (
+          hasGrade &&
+          hasExperience &&
+          hasSkill &&
+          hasSpecialization &&
+          hasEnoughProjects
+        );
+      }
+      case "PROFESSIONAL": {
+        const hasProfession = !!(isEditingFields
+          ? editingFields.profession
+          : info.profession);
+        const hasLevel = !!(isEditingFields
+          ? editingFields.professionalLevel
+          : info.professionalLevel);
+        const hasYears = !!(isEditingFields
+          ? editingFields.yearsOfExperience
+          : info.yearsOfExperience);
+        const hasSpecialization = !!(isEditingFields
+          ? editingFields.specialization
+          : info.specialization);
+
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return (
+          hasProfession &&
+          hasLevel &&
+          hasYears &&
+          hasSpecialization &&
+          hasEnoughProjects
+        );
+      }
+      case "CONTRACTOR": {
+        const hasValidCategories = categories.some(
+          (c) => c.category && c.class && c.years && c.specialization,
+        );
+
+        const hasEnoughProjects =
+          attachments.length >= 1 &&
+          attachments.every((a) => a.files.length > 0);
+        return hasValidCategories && hasEnoughProjects;
+      }
+      case "HARDWARE": {
+        const hasType = !!(isEditingFields
+          ? editingFields.hardwareType
+          : info.hardwareType);
+        const hasBusinessType = !!(isEditingFields
+          ? editingFields.businessType
+          : info.businessType);
+        const hasExperience = !!(isEditingFields
+          ? editingFields.experience
+          : info.experience);
+        const hasSpecialization = !!(isEditingFields
+          ? editingFields.specialization
+          : info.specialization);
+
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return (
+          hasType &&
+          hasBusinessType &&
+          hasExperience &&
+          hasSpecialization &&
+          hasEnoughProjects
+        );
+      }
+      default:
+        return false;
+    }
+  };
+
   return (
     <div className="flex">
       <Toaster position="top-center" richColors />
@@ -1929,7 +2244,10 @@ useEffect(() => {
           {/* Header with Approve Button */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-800">
-              {userData?.userType} Experience
+              {userType === "PROFESSIONAL" && "Professional Experience"}
+              {userType === "FUNDI" && "Fundi Experience"}
+              {userType === "CONTRACTOR" && "Contractor Experience"}
+              {userType === "HARDWARE" && "Hardware Experience"}
             </h1>
             <div className="flex items-center gap-3">
               <StatusBadge status={userData?.experienceStatus || "pending"} />
@@ -2111,7 +2429,10 @@ useEffect(() => {
             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                 <LucideInfoIcon className="w-5 h-5 text-blue-600" />
-                {userData?.userType} Information
+                {userType === "PROFESSIONAL" && "Professional Experience"}
+                {userType === "FUNDI" && "Fundi Experience"}
+                {userType === "CONTRACTOR" && "Contractor Experience"}
+                {userType === "HARDWARE" && "Hardware Experience"}
               </h2>
 
               {userType.toLowerCase() !== "contractor" && (
@@ -2803,8 +3124,13 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={handleSaveChanges}
-                    disabled={isSavingInfo}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-base shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isSavingInfo || !canSaveChanges()}
+                    title={
+                      !canSaveChanges()
+                        ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
+                        : "Save all changes"
+                    }
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-base shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     {isSavingInfo ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -3051,41 +3377,105 @@ useEffect(() => {
                           className="space-y-2 relative bg-white p-4 rounded-lg border border-gray-200"
                         >
                           {q.isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                value={q.text}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setQuestions((prev) =>
-                                    prev.map((item) =>
-                                      item.id === q.id
-                                        ? { ...item, text: val }
-                                        : item,
-                                    ),
-                                  );
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleEditToggle(q.id);
-                                }}
-                                className="flex-1 text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
-                                placeholder="Type your question here..."
-                                autoFocus
-                              />
+                            <div className="space-y-3">
+                              {/* Question Text */}
+                              <div>
+                                <label className="text-xs font-semibold text-gray-600 block mb-1">
+                                  Question Text
+                                </label>
+                                <input
+                                  value={q.text}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setQuestions((prev) =>
+                                      prev.map((item) =>
+                                        item.id === q.id
+                                          ? { ...item, text: val }
+                                          : item,
+                                      ),
+                                    );
+                                  }}
+                                  className="w-full text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
+                                  placeholder="Type your question here..."
+                                  autoFocus
+                                />
+                              </div>
+
+                              {/* Question Type Dropdown */}
+                              <div>
+                                <label className="text-xs font-semibold text-gray-600 block mb-1">
+                                  Question Type
+                                </label>
+                                <select
+                                  value={q.type || "OPEN"}
+                                  onChange={(e) => {
+                                    setQuestions((prev) =>
+                                      prev.map((item) =>
+                                        item.id === q.id
+                                          ? { ...item, type: e.target.value }
+                                          : item,
+                                      ),
+                                    );
+                                  }}
+                                  className="w-full text-sm p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 cursor-pointer"
+                                >
+                                  <option value="OPEN">OPEN (Free Text)</option>
+                                  <option value="RADIO">RADIO (Single Choice)</option>
+                                  <option value="CHECKBOX">CHECKBOX (Multiple Choice)</option>
+                                </select>
+                              </div>
+
+                              {/* Options Input (for RADIO and CHECKBOX) */}
+                              {(q.type === "RADIO" || q.type === "CHECKBOX") && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 block mb-1">
+                                    Options (comma-separated)
+                                  </label>
+                                  <input
+                                    value={
+                                      Array.isArray(q.options)
+                                        ? q.options.join(", ")
+                                        : typeof q.options === "string"
+                                          ? q.options
+                                          : ""
+                                    }
+                                    onChange={(e) => {
+                                      const optionsArray = e.target.value
+                                        .split(",")
+                                        .map((opt) => opt.trim())
+                                        .filter((opt) => opt);
+                                      setQuestions((prev) =>
+                                        prev.map((item) =>
+                                          item.id === q.id
+                                            ? { ...item, options: optionsArray }
+                                            : item,
+                                        ),
+                                      );
+                                    }}
+                                    className="w-full text-sm p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
+                                    placeholder="e.g., Yes, No, Maybe"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Save Button */}
                               {q.isDraft && (
                                 <button
                                   type="button"
                                   onClick={() => handleSaveNewQuestion(q)}
-                                  className="px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                                  className="w-full px-3 py-2 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition"
                                 >
-                                  Save
+                                  Save Question
                                 </button>
                               )}
                             </div>
                           ) : (
                             <>
-                              <label className="block text-sm font-medium text-gray-700 pr-16">
-                                {q.text}
-                              </label>
+                              <div className="pb-2 border-b border-gray-100">
+                                <label className="block text-sm font-medium text-gray-700">
+                                  {q.text}
+                                </label>
+                              </div>
                               <div className="absolute top-3 right-3 flex items-center gap-1">
                                 <button
                                   type="button"
@@ -3107,18 +3497,56 @@ useEffect(() => {
                             </>
                           )}
 
-                          {/* Question Type — always OPEN */}
+                          {/* Question Type — Display actual type */}
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-[10px] uppercase font-bold text-gray-400">
                               Type:
                             </span>
                             <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">
-                              OPEN
+                              {q.type?.toUpperCase() || "OPEN"}
                             </span>
                           </div>
 
-                          {q.type?.toUpperCase() === "RADIO" ||
-                          q.type?.toUpperCase() === "SELECT" ? (
+                          {/* MULTIPLE_CHOICE and RADIO with Yes/No or custom options */}
+                          {q.type?.toUpperCase() === "MULTIPLE_CHOICE" || q.type?.toUpperCase() === "RADIO" ? (
+                            <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              {(() => {
+                                let options = [];
+                                try {
+                                  // Try to parse if it's a JSON string
+                                  if (typeof q.options === "string") {
+                                    options = JSON.parse(q.options);
+                                  } else if (Array.isArray(q.options)) {
+                                    options = q.options;
+                                  }
+                                } catch (e) {
+                                  options = q.options || [];
+                                }
+                                return options.map((opt: any, i: number) => (
+                                  <label
+                                    key={i}
+                                    className="flex items-center gap-2 cursor-pointer group"
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={`question-${q.id}`}
+                                      checked={q.answer === opt}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          handleTextChange(q.id, opt);
+                                        }
+                                      }}
+                                      className="rounded-full border-gray-300 text-blue-900 focus:ring-blue-900"
+                                    />
+                                    <span className="text-sm text-gray-700 font-medium">
+                                      {opt}
+                                    </span>
+                                  </label>
+                                ));
+                              })()}
+                            </div>
+                          ) : q.type?.toUpperCase() === "RADIO_OLD" ||
+                            q.type?.toUpperCase() === "SELECT" ? (
                             <div className="space-y-2">
                               <select
                                 value={q.answer}
@@ -3130,11 +3558,23 @@ useEffect(() => {
                                 <option value="" disabled>
                                   Select an option
                                 </option>
-                                {q.options?.map((opt, i) => (
-                                  <option key={i} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
+                                {(() => {
+                                  let options = [];
+                                  try {
+                                    if (typeof q.options === "string") {
+                                      options = JSON.parse(q.options);
+                                    } else if (Array.isArray(q.options)) {
+                                      options = q.options;
+                                    }
+                                  } catch (e) {
+                                    options = q.options || [];
+                                  }
+                                  return options.map((opt: any, i: number) => (
+                                    <option key={i} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ));
+                                })()}
                               </select>
                               {isAdmin && (
                                 <div className="flex gap-1 items-center">
@@ -3146,8 +3586,20 @@ useEffect(() => {
                                         const val =
                                           e.currentTarget.value.trim();
                                         if (val) {
+                                          let currentOptions: any = [];
+                                          try {
+                                            if (typeof q.options === "string") {
+                                              currentOptions = JSON.parse(
+                                                q.options,
+                                              );
+                                            } else if (Array.isArray(q.options)) {
+                                              currentOptions = q.options;
+                                            }
+                                          } catch (e) {
+                                            currentOptions = q.options || [];
+                                          }
                                           const newOpts = [
-                                            ...(q.options || []),
+                                            ...currentOptions,
                                             val,
                                           ];
                                           setQuestions((prev) =>
@@ -3176,44 +3628,67 @@ useEffect(() => {
                             </div>
                           ) : q.type?.toUpperCase() === "CHECKBOX" ? (
                             <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
-                              {q.options?.map((opt, i) => (
-                                <label
-                                  key={i}
-                                  className="flex items-center gap-2 cursor-pointer group"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      Array.isArray(q.answer)
-                                        ? q.answer.includes(opt)
-                                        : q.answer === opt
-                                    }
-                                    onChange={(e) => {
-                                      let newAnswer = Array.isArray(q.answer)
-                                        ? [...q.answer]
-                                        : q.answer
-                                          ? [q.answer]
-                                          : [];
-                                      if (e.target.checked) {
-                                        newAnswer.push(opt);
-                                      } else {
-                                        newAnswer = newAnswer.filter(
-                                          (a) => a !== opt,
-                                        );
+                              {(() => {
+                                let options = [];
+                                try {
+                                  if (typeof q.options === "string") {
+                                    options = JSON.parse(q.options);
+                                  } else if (Array.isArray(q.options)) {
+                                    options = q.options;
+                                  }
+                                } catch (e) {
+                                  options = q.options || [];
+                                }
+                                return options.map((opt: any, i: number) => (
+                                  <label
+                                    key={i}
+                                    className="flex items-center gap-2 cursor-pointer group"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        Array.isArray(q.answer)
+                                          ? q.answer.includes(opt)
+                                          : q.answer === opt
                                       }
-                                      handleTextChange(q.id, newAnswer);
-                                    }}
-                                    className="rounded border-gray-300 text-blue-900 focus:ring-blue-900"
-                                  />
-                                  <span className="text-sm text-gray-600 group-hover:text-gray-900">
-                                    {opt}
-                                  </span>
-                                  {isAdmin && (
-                                    <button
-                                      type="button"
+                                      onChange={(e) => {
+                                        let newAnswer = Array.isArray(
+                                          q.answer,
+                                        )
+                                          ? [...q.answer]
+                                          : q.answer
+                                            ? [q.answer]
+                                            : [];
+                                        if (e.target.checked) {
+                                          newAnswer.push(opt);
+                                        } else {
+                                          newAnswer = newAnswer.filter(
+                                            (a) => a !== opt,
+                                          );
+                                        }
+                                        handleTextChange(q.id, newAnswer);
+                                      }}
+                                      className="rounded border-gray-300 text-blue-900 focus:ring-blue-900"
+                                    />
+                                    <span className="text-sm text-gray-600 group-hover:text-gray-900">
+                                      {opt}
+                                    </span>
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
                                       onClick={() => {
-                                        const newOpts = q.options.filter(
-                                          (_, idx) => idx !== i,
+                                        let currentOptions: any = [];
+                                        try {
+                                          if (typeof q.options === "string") {
+                                            currentOptions = JSON.parse(q.options);
+                                          } else if (Array.isArray(q.options)) {
+                                            currentOptions = q.options;
+                                          }
+                                        } catch (e) {
+                                          currentOptions = q.options || [];
+                                        }
+                                        const newOpts = currentOptions.filter(
+                                          (_: any, idx: number) => idx !== i,
                                         );
                                         setQuestions((prev) =>
                                           prev.map((item) =>
@@ -3235,7 +3710,8 @@ useEffect(() => {
                                     </button>
                                   )}
                                 </label>
-                              ))}
+                                ));
+                              })()}
                               {isAdmin && (
                                 <input
                                   placeholder="Add option..."
@@ -3244,8 +3720,18 @@ useEffect(() => {
                                     if (e.key === "Enter") {
                                       const val = e.currentTarget.value.trim();
                                       if (val) {
+                                        let currentOptions: any = [];
+                                        try {
+                                          if (typeof q.options === "string") {
+                                            currentOptions = JSON.parse(q.options);
+                                          } else if (Array.isArray(q.options)) {
+                                            currentOptions = q.options;
+                                          }
+                                        } catch (e) {
+                                          currentOptions = q.options || [];
+                                        }
                                         const newOpts = [
-                                          ...(q.options || []),
+                                          ...currentOptions,
                                           val,
                                         ];
                                         setQuestions((prev) =>

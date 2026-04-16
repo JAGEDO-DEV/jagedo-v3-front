@@ -725,6 +725,23 @@ export const purgeUser = async (axiosInstance: any, userId: string) => {
     }
 };
 
+export const restoreDeletedUser = async (axiosInstance: any, userId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(
+            `${import.meta.env.VITE_SERVER_URL}/api/profiles/deleted/${userId}/restore`,
+            {},
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to restore user");
+    }
+};
+
 export const getUserProfileAdmin = async (axiosInstance: any, userId: string): Promise<any> => {
     try {
         const response = await axiosInstance.get(

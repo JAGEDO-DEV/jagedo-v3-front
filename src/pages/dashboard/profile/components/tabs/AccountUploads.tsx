@@ -1480,6 +1480,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                   </div>
                 </div>
               )}
+
+              {userType === "professional" && (
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-6 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-md disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <>
+                        <FiRefreshCw className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FiCheck className="w-4 h-4" />
+                        Save Documents
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

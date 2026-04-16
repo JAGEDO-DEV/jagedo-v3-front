@@ -345,6 +345,12 @@ export default function Login() {
   const redirectUser = (user, redirectTo = null) => {
     const role = user.userType.toLowerCase();
 
+    // Check if account is suspended or blacklisted - redirect to profile page
+    if (user.status === "SUSPENDED" || user.status === "BLACKLISTED") {
+      navigate("/profile");
+      return;
+    }
+
     let fromPath = location.state?.from;
     
     

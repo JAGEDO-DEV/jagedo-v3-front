@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, Download, File, Filter, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getAllProviders, getDeletedBuilders, purgeUser, updateAccountStatus } from "@/api/provider.api";
+import { getAllProviders, getDeletedBuilders, purgeUser, updateAccountStatus, restoreDeletedUser } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
 import { generatePDF } from "@/utils/pdfExport";
 import { BuilderStatus, STATUS_LABELS } from "@/data/mockBuilders";
@@ -142,6 +142,7 @@ export default function BuildersAdmin() {
   
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [notificationEmail, setNotificationEmail] = useState("");
@@ -263,7 +264,7 @@ export default function BuildersAdmin() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b p-4">
+      <div className="bg-white shadow-sm border-b p-4 rounded-lg">
         {/* Header Section */}
         <div className="flex flex-col gap-4">
           {/* Navigation tabs */}
@@ -519,27 +520,47 @@ export default function BuildersAdmin() {
                         <BuilderStatusCell row={row} />
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedUser(row);
-                            if (activeTab === "TRASH") {
-                              setIsPurgeModalOpen(true);
-                            } else {
+                        {activeTab === "TRASH" ? (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedUser(row);
+                                setIsRestoreModalOpen(true);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-green-50 text-green-600 border-green-300 hover:bg-green-100 transition-colors"
+                            >
+                              ↻ Restore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedUser(row);
+                                setIsPurgeModalOpen(true);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border bg-red-600 text-white border-red-600 hover:bg-red-700 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Purge
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUser(row);
                               setNotificationEmail(row.email || "");
                               setIsTrashModalOpen(true);
-                            }
-                          }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                            activeTab === "TRASH"
-                              ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
-                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                          }`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {activeTab === "TRASH" ? "Purge" : "Trash"}
-                        </button>
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Trash
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -741,6 +762,53 @@ export default function BuildersAdmin() {
                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
               >
                 {isActionLoading ? "Purging..." : "Purge Permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore User Modal */}
+      {isRestoreModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Restore Builder?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This will restore <span className="font-semibold">{selectedUser?.firstName} {selectedUser?.lastName}</span> with status set to <span className="font-semibold">UNVERIFIED</span>. You can re-verify them after.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+              <p className="text-xs text-blue-800">
+                ℹ️ All profile data, documents, and history will be restored. The user will need admin approval to become active again.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsRestoreModalOpen(false)}
+                disabled={isActionLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isActionLoading}
+                onClick={async () => {
+                  setIsActionLoading(true);
+                  try {
+                    await restoreDeletedUser(axiosInstance, selectedUser.id);
+                    toast.success("Builder restored successfully");
+                    setIsRestoreModalOpen(false);
+                    fetchBuilders();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to restore builder");
+                  } finally {
+                    setIsActionLoading(false);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isActionLoading ? "Restoring..." : "Restore Builder"}
               </button>
             </div>
           </div>

@@ -551,6 +551,38 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 
                     if (!showActions) return null;
 
+                    // Check if profile is complete and all statuses are verified
+                    const isAccountSuspendedOrBlacklisted = 
+                      userData?.status === "SUSPENDED" || 
+                      userData?.status === "BLACKLISTED";
+
+                    const isProfileCompleteAndVerified =
+                      completionStatus &&
+                      completionStatus["account-info"] === "complete" &&
+                      completionStatus["address"] === "complete" &&
+                      completionStatus["experience"] === "complete" &&
+                      completionStatus["account-uploads"] === "complete" &&
+                      userData?.experienceStatus === "VERIFIED" &&
+                      userData?.documentStatus === "VERIFIED" &&
+                      !isAccountSuspendedOrBlacklisted;
+
+                    const getDisabledReason = () => {
+                      if (isAccountSuspendedOrBlacklisted) {
+                        return `Account is ${userData?.status === "BLACKLISTED" ? "blacklisted" : "suspended"} — contact support`;
+                      }
+                      if (!completionStatus) return "Profile data loading...";
+                      const missingReason: string[] = [];
+                      if (completionStatus["account-info"] !== "complete") missingReason.push("Account Info");
+                      if (completionStatus["address"] !== "complete") missingReason.push("Address");
+                      if (completionStatus["experience"] !== "complete") missingReason.push("Experience");
+                      if (completionStatus["account-uploads"] !== "complete") missingReason.push("Account Uploads");
+                      if (userData?.experienceStatus !== "VERIFIED") missingReason.push("Experience not verified");
+                      if (userData?.documentStatus !== "VERIFIED") missingReason.push("Documents not verified");
+                      return missingReason.length > 0
+                        ? `Complete missing sections: ${missingReason.join(", ")}`
+                        : "Ready for verification";
+                    };
+
                     return (
                       <>
                         <div className="mt-6">
@@ -574,6 +606,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 {!showVerificationMessage && (
                                   <button
                                     type="button"
+                                    disabled={!isProfileCompleteAndVerified}
+                                    title={!isProfileCompleteAndVerified ? getDisabledReason() : "Verify user account"}
                                     onClick={() => {
                                       const missing =
                                         getMissingRequiredFields();
@@ -588,7 +622,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                       setPendingAction("verify");
                                       setShowActionDropdown(false);
                                     }}
-                                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
+                                    className={`block w-full text-left px-4 py-2 font-medium transition ${
+                                      isProfileCompleteAndVerified
+                                        ? "text-green-700 hover:bg-gray-100 cursor-pointer"
+                                        : "text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                                    }`}
                                   >
                                     Verify
                                   </button>
