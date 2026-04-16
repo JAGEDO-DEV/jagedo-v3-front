@@ -338,7 +338,7 @@ const AccountUploads = ({ data, refreshData }) => {
       .filter((f) => !!documents[f.key] || !!pendingFiles[f.key])
       .every((f) => isSatisfied(f.key));
 
-  const isReadOnly = !["PENDING", "RESUBMIT", "INCOMPLETE"].includes(
+  const isReadOnly = !["PENDING", "RESUBMIT", "INCOMPLETE", "REJECTED"].includes(
     data?.documentStatus,
   );
 

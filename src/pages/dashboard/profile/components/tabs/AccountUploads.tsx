@@ -880,16 +880,17 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
 
     const status = uploaded.status || "pending";
+    const isApproved = status === "approved" || status === "VERIFIED";
     const iconBgColor =
-      status === "approved"
+      isApproved
         ? "bg-green-50"
-        : status === "rejected"
+        : status === "rejected" || status === "REJECTED"
           ? "bg-red-50"
           : "bg-amber-50";
     const iconColor =
-      status === "approved"
+      isApproved
         ? "text-green-600"
-        : status === "rejected"
+        : status === "rejected" || status === "REJECTED"
           ? "text-red-600"
           : "text-amber-600";
 
@@ -917,21 +918,21 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         { }
         {uploaded.statusReason && (
           <div
-            className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected"
+            className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected" || status === "REJECTED"
                 ? "bg-red-50 text-red-700"
-                : status === "reupload_requested"
+                : status === "reupload_requested" || status === "RESUBMIT"
                   ? "bg-blue-50 text-blue-700"
-                  : status === "approved"
+                  : isApproved
                     ? "bg-green-50 text-green-700"
                     : "bg-amber-50 text-amber-700"
               }`}
           >
             <span className="font-medium">
-              {status === "pending"
+              {status === "pending" || status === "PENDING"
                 ? "Status: "
-                : status === "rejected"
+                : status === "rejected" || status === "REJECTED"
                   ? "Rejection reason: "
-                  : status === "reupload_requested"
+                  : status === "reupload_requested" || status === "RESUBMIT"
                     ? "Re-upload reason: "
                     : "Note: "}
             </span>
