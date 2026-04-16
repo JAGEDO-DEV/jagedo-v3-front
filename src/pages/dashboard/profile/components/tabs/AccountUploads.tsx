@@ -1162,8 +1162,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               {isAdmin && (
                   <div className="relative">
                     <button
+                      disabled={isPendingAction}
                       onClick={() => setShowGlobalActions(!showGlobalActions)}
-                      className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm"
+                      className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Actions
                       <FiChevronDown

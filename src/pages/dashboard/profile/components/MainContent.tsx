@@ -20,9 +20,10 @@ interface MainContentProps {
 const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch, completionStatus = {} }) => {
   // Navigation order for locking logic (must match Sidebar.tsx)
   const getNavigationOrder = () => {
-    const base = ['account-info', 'address', 'account-uploads'];
-    if (userType === 'CUSTOMER') return [...base, 'marketing'];
-    return [...base, 'experience', 'products'];
+    if (userType === 'CUSTOMER') {
+      return ['account-info', 'address', 'account-uploads', 'marketing'];
+    }
+    return ['account-info', 'address', 'experience', 'account-uploads', 'products'];
   };
 
   const isTabLocked = () => {
