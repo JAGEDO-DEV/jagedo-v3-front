@@ -444,6 +444,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               }
             });
           }
+          // Handle direct fileUrl (as seen in the provided API response)
+          else if (project.fileUrl) {
+            const url = typeof project.fileUrl === "string" ? project.fileUrl : project.fileUrl.url;
+            if (url) {
+              files.push({
+                name: `${pName}.jpg`,
+                url: url,
+              });
+            }
+          }
           
           return { 
             id: index + 1, 
@@ -569,7 +579,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       }));
     }
 
-    // NEW: Check for contractorTypes as fallback
+    
     if (userData?.contractorTypes) {
       return [{
         category: userData.contractorTypes || "",
@@ -586,7 +596,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   getInitialCategories(),
 );
 
-// ── Load specializations for contractor categories section ──────────────────
+
 useEffect(() => {
   if (userType !== 'CONTRACTOR' || !categories.length) {
     return;
@@ -609,7 +619,7 @@ useEffect(() => {
         return;
       }
 
-      // Find the skill to get its assigned specializations
+      
       const selectedSkill = fundiSkills.find((s: any) => 
         normalizeSkillName(s.skillName) === normalizedField
       );
@@ -619,7 +629,7 @@ useEffect(() => {
         return;
       }
 
-      // Get the specialization codes assigned to this category/skill
+      
       const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
         ? selectedSkill.specializations 
         : [];
@@ -629,7 +639,7 @@ useEffect(() => {
         return;
       }
 
-      // Fetch all available specializations for this type
+      
       const authAxios = axios.create({
         headers: { Authorization: getAuthHeaders() },
       });
@@ -637,7 +647,7 @@ useEffect(() => {
       const specsRes = await getMasterDataValues(authAxios, specTypeCode);
       const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
       
-      // Filter to only show the specializations assigned to this category
+      
       const filteredSpecs = allSpecs.filter((spec: any) => {
         const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
         return assignedSpecCodes.includes(specCode);
@@ -691,15 +701,15 @@ useEffect(() => {
   const removeCategory = (index: number) => {
     const categoryToRemove = categories[index];
     
-    // Remove the category
+    
     setCategories(categories.filter((_, i) => i !== index));
     
-    // Also remove the corresponding project(s) for this category
+    
     if (categoryToRemove?.category) {
       setAttachments((prev) =>
         prev.filter(
           (project) =>
-            // Keep projects that don't match the removed category
+            
             !project.projectName?.toLowerCase().includes(
               categoryToRemove.category.toLowerCase()
             )
@@ -1053,7 +1063,7 @@ useEffect(() => {
         ...a,
         files: [...a.files],
       }));
-      const existingCount = newAttachments[rowIndex].files.length; // ← captured here
+      const existingCount = newAttachments[rowIndex].files.length; 
 
       selectedFiles.forEach((file, i) => {
         const slotIndex = existingCount + i;
@@ -1086,8 +1096,8 @@ useEffect(() => {
         if (currentGrade === "G4: Unskilled") return 0;
         return 0;
       case "PROFESSIONAL":
-        if (currentLevel === "Senior") return 3;
-        if (currentLevel === "Professional") return 2;
+        if (currentLevel === "Senior") return 5;
+        if (currentLevel === "Professional") return 3;
         if (currentLevel === "Graduate") return 1;
         if (currentLevel === "Student") return 0;
         return 0;
@@ -1264,7 +1274,7 @@ useEffect(() => {
 
     setIsLoadingQuestions(true);
     try {
-      // Determine skill/profession/category based on user type
+      
       let skillName = "";
       const sourceData = userData?.userProfile || userData || {};
       
@@ -1299,9 +1309,9 @@ useEffect(() => {
           : null,
         userType: userType,
         skillName: skillName,
-        category: userType, // For backward compatibility
+        category: userType, 
         isActive: true,
-        isPreset: false, // Custom questions added by admin are not preset
+        isPreset: false, 
       };
 
       const response = await createEvaluationQuestion(axiosInstance, payload);
@@ -1986,7 +1996,7 @@ useEffect(() => {
       } else if (userType === "PROFESSIONAL") {
         const professionalProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
-          files: project.files.map((f) => f.url).filter((url) => url), // Filter out empty URLs
+          files: project.files.map((f) => f.url).filter((url) => url), 
         }));
 
         const payload = {
@@ -2034,7 +2044,7 @@ useEffect(() => {
         }));
 
         const payload = {
-          categories: contractorExperiences, // ← backend destructures "categories"
+          categories: contractorExperiences, 
           projects: contractorProjects,
         };
 
@@ -2467,17 +2477,17 @@ useEffect(() => {
                         {isEditingFields ? (
                           <>
                             {userType === "FUNDI" && field.name === "skill" ? (
-                              // FUNDI skill name - read only
+                              
                               <p className="text-blue-900 font-bold text-sm">
                                 {fieldValue || "N/A"}
                               </p>
                             ) : userType === "PROFESSIONAL" && field.name === "profession" ? (
-                              // PROFESSIONAL profession - read only
+                              
                               <p className="text-blue-900 font-bold text-sm">
                                 {fieldValue || "N/A"}
                               </p>
                             ) : userType === "FUNDI" && field.name === "specialization" ? (
-                              // Dynamic FUNDI specialization select
+                              
                               <select
                                 value={editingFields[field.name] ?? fieldValue ?? ""}
                                 onChange={(e) => {
@@ -2503,7 +2513,7 @@ useEffect(() => {
                                 })}
                               </select>
                             ) : (
-                              // Regular select for other fields
+                              
                               <select
                                 value={
                                   editingFields[field.name] ?? fieldValue ?? ""
@@ -2818,7 +2828,7 @@ useEffect(() => {
 
               <div className="p-6">
                 {userType === "CONTRACTOR" ? (
-                  // ── Contractor: card layout matching user-side ──
+                  
                   attachments.length > 0 ? (
                     <div className="space-y-4">
                       {attachments.map((row, index) => {
@@ -2900,7 +2910,7 @@ useEffect(() => {
                                       ...a,
                                       files: [...a.files],
                                     }));
-                                    // Remove any existing file with this role first
+                                    
                                     updated[index].files = updated[
                                       index
                                     ].files.filter((x) => x.role !== role);
@@ -2969,7 +2979,7 @@ useEffect(() => {
                     </div>
                   )
                 ) : (
-                  // ── Non-contractor: existing thumbnail table ──
+                  
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
@@ -3507,7 +3517,7 @@ useEffect(() => {
                               {(() => {
                                 let options = [];
                                 try {
-                                  // Try to parse if it's a JSON string
+                                  
                                   if (typeof q.options === "string") {
                                     options = JSON.parse(q.options);
                                   } else if (Array.isArray(q.options)) {
