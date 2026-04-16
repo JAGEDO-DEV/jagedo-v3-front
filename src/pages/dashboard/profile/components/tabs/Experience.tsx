@@ -2267,86 +2267,80 @@ useEffect(() => {
                   </button>
                   {showGlobalActions && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
-                      {/* CASE 1: Not Verified - Show Approve and Return all */}
-                      {userData?.experienceStatus !== "VERIFIED" && (
-                        <>
-                          <button
-                            type="button"
-                            disabled={!readyToApprove || isPendingAction}
-                            title={
-                              !readyToApprove
-                                ? "All required fields and projects must be filled before approving"
-                                : "Approve experience"
-                            }
-                            onClick={async () => {
-                              setShowGlobalActions(false);
-                              setIsPendingAction(true);
-                              try {
-                                await adminVerifyExperience(
-                                  axiosInstance,
-                                  userData.id,
-                                );
-                                toast.success("Experience approved successfully");
-                                window.location.reload();
-                              } catch (error: any) {
-                                toast.error(
-                                  error.message ||
-                                    "Failed to approve experience",
-                                );
-                              } finally {
-                                setIsPendingAction(false);
-                              }
-                            }}
-                            className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
-                              ${
-                                !readyToApprove
-                                  ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
-                                  : "text-green-700 hover:bg-green-50"
-                              }`}
-                          >
-                            <FiCheck className="w-4 h-4" />
-                            Approve
-                            {!readyToApprove && (
-                              <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                                Incomplete
-                              </span>
-                            )}
-                          </button>
+                      {/* Approve Button */}
+                      <button
+                        type="button"
+                        disabled={userData?.experienceStatus === "VERIFIED" || !readyToApprove || isPendingAction}
+                        title={
+                          userData?.experienceStatus === "VERIFIED"
+                            ? "Experience is already approved"
+                            : !readyToApprove
+                            ? "All required fields and projects must be filled"
+                            : "Approve experience"
+                        }
+                        onClick={async () => {
+                          setShowGlobalActions(false);
+                          setIsPendingAction(true);
+                          try {
+                            await adminVerifyExperience(axiosInstance, userData.id);
+                            toast.success("Experience approved successfully");
+                            window.location.reload();
+                          } catch (error: any) {
+                            toast.error(error.message || "Failed to approve experience");
+                          } finally {
+                            setIsPendingAction(false);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+                          ${userData?.experienceStatus === "VERIFIED" || !readyToApprove
+                            ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                            : "text-green-700 hover:bg-green-50"
+                          }`}
+                      >
+                        <FiCheck className="w-4 h-4" />
+                        Approve
+                        {userData?.experienceStatus !== "VERIFIED" && !readyToApprove && (
+                          <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                            Incomplete
+                          </span>
+                        )}
+                      </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowGlobalActions(false);
-                              setActionModal({
-                                isOpen: true,
-                                action: "resubmit",
-                              });
-                            }}
-                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 transition"
-                          >
-                            <FiRefreshCw className="w-4 h-4" />
-                            Return all
-                          </button>
-                        </>
-                      )}
+                      {/* Return for Correction */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({ isOpen: true, action: "resubmit" });
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 transition border-b border-gray-100"
+                      >
+                        <FiRefreshCw className="w-4 h-4" />
+                        Return all
+                      </button>
 
-                      {/* CASE 2: Verified - Show Disapprove all */}
-                      {userData?.experienceStatus === "VERIFIED" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowGlobalActions(false);
-                            setActionModal({
-                              isOpen: true,
-                              action: "reject",
-                            });
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Disapprove all
-                        </button>
-                      )}
+                      {/* Disapprove Button */}
+                      <button
+                        type="button"
+                        disabled={userData?.experienceStatus !== "VERIFIED" || isPendingAction}
+                        title={
+                          userData?.experienceStatus !== "VERIFIED"
+                            ? "Only verified experience can be disapproved"
+                            : "Disapprove experience"
+                        }
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({ isOpen: true, action: "reject" });
+                        }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition font-medium
+                          ${userData?.experienceStatus !== "VERIFIED"
+                            ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                            : "text-red-700 hover:bg-red-50"
+                          }`}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Disapprove all
+                      </button>
                     </div>
                   )}
                 </div>

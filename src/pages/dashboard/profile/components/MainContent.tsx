@@ -17,7 +17,46 @@ interface MainContentProps {
 
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch , completionStatus}) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch, completionStatus = {} }) => {
+  // Navigation order for locking logic (must match Sidebar.tsx)
+  const getNavigationOrder = () => {
+    const base = ['account-info', 'address', 'account-uploads'];
+    if (userType === 'CUSTOMER') return [...base, 'marketing'];
+    return [...base, 'experience', 'products'];
+  };
+
+  const isTabLocked = () => {
+    const order = getNavigationOrder();
+    const currentIndex = order.indexOf(activeTab);
+    if (currentIndex <= 0) return false;
+
+    const prevTab = order[currentIndex - 1];
+    
+    // Marketing and Products exceptions
+    if (activeTab === 'marketing') return false;
+    if (activeTab === 'products') return userData?.status !== 'VERIFIED';
+    
+    return (completionStatus[prevTab] || 'incomplete') !== 'complete';
+  };
+
+  if (isTabLocked()) {
+    return (
+      <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">Section Locked</h3>
+          <p className="text-sm text-gray-500">
+            This section will become available once the previous profile sections are completed and submitted.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
@@ -25,7 +64,6 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
       case 'address':
         return <Address userData={userData} />;
       case 'marketing':
-        // Only show for customers
         if (userType === 'CUSTOMER') {
           return <Marketing userData={userData} onUpdate={refetch} />;
         }
@@ -33,17 +71,14 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
       case 'account-uploads':
         return <AccountUploads userData={userData} isAdmin={isAdmin} />;
       case 'experience':
-        // Only show for builders, not customers
         if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} isAdmin={isAdmin} />;
         }
         return <Experience userData={userData} isAdmin={isAdmin} refetch={refetch} />;
       case 'products':
-        // Only show for builders, not customers
         if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} isAdmin={isAdmin} />;
         }
-        //@ts-nocheck
         return <Products userData={userData} userType={userType} />;
       default:
         return <AccountInfo userData={userData} completionStatus={completionStatus} isAdmin={isAdmin}/>;

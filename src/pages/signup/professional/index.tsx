@@ -134,7 +134,7 @@ export default function ProfessionalSignup() {
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",
-                townCity: profileData.town || "",
+                townCity: profileData.city || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
                 referralDetail: profileData.referralDetail || "",

@@ -60,14 +60,69 @@ const Address = ({ data, refreshData }) => {
 
   if (loading && !data) return <div className="p-8">Loading address...</div>;
 
+  const isReadOnly = data?.status === "VERIFIED";
+
   return (
     <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Address</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Address</h1>
+        {isReadOnly && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              Verified
+            </span>
+          </div>
+        )}
+      </div>
+
+      {isReadOnly && (
+        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+          <svg
+            className="w-5 h-5 text-blue-600 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-blue-900">
+              Address Verified
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Your registered address has been verified. To update these
+              details, please contact JAGEDO Support.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Country (Read Only) */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Country</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Country
+          </label>
           <input
             type="text"
             value={address.country}
@@ -78,7 +133,9 @@ const Address = ({ data, refreshData }) => {
 
         {/* County */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">County</label>
+          <label className="block text-sm font-medium text-gray-700">
+            County
+          </label>
           {isEditing ? (
             <select
               value={address.county}
@@ -106,11 +163,15 @@ const Address = ({ data, refreshData }) => {
 
         {/* Sub-county */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Sub-county</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Sub-county
+          </label>
           {isEditing ? (
             <select
               value={address.subCounty}
-              onChange={(e) => setAddress({ ...address, subCounty: e.target.value })}
+              onChange={(e) =>
+                setAddress({ ...address, subCounty: e.target.value })
+              }
               className="w-full px-4 py-2 border rounded-md"
               disabled={!address.county}
             >
@@ -133,7 +194,9 @@ const Address = ({ data, refreshData }) => {
 
         {/* City */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Town / City</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Town / City
+          </label>
           {isEditing ? (
             <input
               type="text"
@@ -154,7 +217,9 @@ const Address = ({ data, refreshData }) => {
 
         {/* Estate */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Estate</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Estate
+          </label>
           {isEditing ? (
             <input
               type="text"
@@ -176,12 +241,14 @@ const Address = ({ data, refreshData }) => {
         {/* Action Buttons */}
         <div className="pt-4 flex gap-4">
           {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-800 text-white px-8 py-2 rounded font-semibold transition hover:bg-blue-900"
-            >
-              Edit Address
-            </button>
+            !isReadOnly && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="bg-blue-800 text-white px-8 py-2 rounded font-semibold transition hover:bg-blue-900"
+              >
+                Edit Address
+              </button>
+            )
           ) : (
             <>
               <button

@@ -17,6 +17,7 @@ import {
   FaClock,
   FaBars,
   FaTimes,
+  FaLock
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
@@ -91,9 +92,14 @@ function ProfileSide({
 
   const finalNavItems = [];
 
+  const uploadsItem = filteredBaseNavItems.find(
+    (i) => i.id === "Account Uploads",
+  );
+
   finalNavItems.push(
     filteredBaseNavItems.find((i) => i.id === "Account Info"),
     filteredBaseNavItems.find((i) => i.id === "Address"),
+    uploadsItem
   );
 
   if (
@@ -103,11 +109,6 @@ function ProfileSide({
   ) {
     finalNavItems.push(experienceItem);
   }
-
-  const uploadsItem = filteredBaseNavItems.find(
-    (i) => i.id === "Account Uploads",
-  );
-  if (uploadsItem) finalNavItems.push(uploadsItem);
 
   if (
     (userType === "professional" ||
@@ -184,19 +185,37 @@ function ProfileSide({
         {/* Navigation List */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-6 scrollbar-hide">
           <List className="space-y-1">
-            {finalNavItems.filter(Boolean).map((item) => {
+            {finalNavItems.filter(Boolean).map((item, index) => {
               const isActive = activeComponent === item.id;
               const status = completionStatus?.[item.id] || "incomplete";
               
               const isComplete = status === "complete";
               const showStatus =
                 item.id !== "Activities" && item.id !== "Products";
-              const isDisabled = item.id === "Account Uploads" && isUploadsDisabled;
-              // console.log(`Item: ${item.id}, Status: ${status}, isActive: ${isActive}, isDisabled: ${isDisabled}`);
+
+              // Logic for sequential locking
+              let isDisabled = false;
+              let lockReason = "";
+
+              if (index > 0 && item.id !== "Activities") {
+                const prevItem = finalNavItems[index - 1];
+                const prevStatus = completionStatus?.[prevItem.id];
+                
+                // Special case for Products - depends on verified status primarily
+                if (item.id === "Products") {
+                  isDisabled = !verified;
+                  lockReason = "Account must be verified to access Shop App";
+                } else if (prevStatus !== "complete") {
+                  isDisabled = true;
+                  lockReason = `Complete ${prevItem.label} to unlock`;
+                }
+              }
 
               return (
                 <ListItem
                   key={item.id}
+                  disabled={isDisabled}
+                  title={isDisabled ? lockReason : ""}
                   onClick={() => {
                     if (isDisabled) return;
                     setActiveComponent(item.id);
@@ -206,26 +225,35 @@ function ProfileSide({
                     isActive
                       ? "bg-blue-100 text-blue-700 font-bold"
                       : "text-gray-700"
-                  } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } ${isDisabled ? "opacity-40 cursor-not-allowed grayscale-[0.5]" : ""}`}
                 >
                   <ListItemPrefix>
-                    <div>{item.icon}</div>
+                    <div className="relative">
+                      {item.icon}
+                      {isDisabled && (
+                        <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                          <FaLock className="h-2 w-2 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                   </ListItemPrefix>
 
-                  {/* Show Label if mobile menu is open OR on desktop */}
                   <span
                     className={`text-sm font-medium flex-1 ${isMobileOpen ? "inline" : "hidden"} sm:inline`}
                   >
                     {item.label}
                   </span>
 
-                  {/* Show Status if mobile menu is open OR on desktop */}
                   {showStatus && (
                     <span
-                      className={`ml-auto text-xs font-semibold ${isComplete ? "text-green-600" : "text-red-600"} 
+                      className={`ml-auto text-xs font-semibold ${isComplete ? "text-green-600" : "text-red-500"} 
                       ${isMobileOpen ? "inline" : "hidden"} sm:inline`}
                     >
-                      {isComplete ? "Complete" : "Incomplete"}
+                      {isDisabled ? (
+                         <FaLock className="h-3 w-3" />
+                      ) : (
+                        isComplete ? "Complete" : "Incomplete"
+                      )}
                     </span>
                   )}
                 </ListItem>
