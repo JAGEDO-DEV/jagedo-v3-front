@@ -33,10 +33,11 @@ const requiredProjectsByGrade: { [key: string]: number } = {
 };
 
 const prefilledAttachments: FundiAttachment[] = [
-  { id: 1, projectName: "Project One",   files: [] },
-  { id: 2, projectName: "Project Two",   files: [] },
-  { id: 3, projectName: "Project Three", files: [] },
+  { id: 1, projectName: "", files: [] },
+  { id: 2, projectName: "", files: [] },
+  { id: 3, projectName: "", files: [] },
 ];
+
 
 const FundiExperience = ({ data, refreshData }: any) => {
   const [isSubmitting, setIsSubmitting]     = useState(false);
@@ -156,7 +157,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       if (projectSource.length > 0) {
         const groupedMap = new Map<string, any[]>();
         projectSource.forEach((p: any) => {
-          const name = p.projectName || "Unspecified Project";
+          const name = p.projectName || "";
           if (!groupedMap.has(name)) groupedMap.set(name, []);
           let url = "";
           if (typeof p.fileUrl === 'object' && p.fileUrl !== null) {
@@ -316,11 +317,26 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
   return (
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h1 className="text-4xl font-bold text-gray-900">Fundi Experience</h1>
+
+        {/* Next Steps Section */}
+        <div className="bg-blue-50 border border-blue-100 p-6 rounded-xl shadow-sm">
+          <h2 className="text-blue-700 font-bold mb-3">Next Steps</h2>
+          <ul className="space-y-2">
+            <li className="flex items-start gap-2 text-blue-800 text-sm">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0" />
+              <span>You will attend a <strong className="text-blue-900">15-minute interview</strong> after submission.</span>
+            </li>
+            <li className="flex items-start gap-2 text-blue-800 text-sm">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0" />
+              <span>Verification typically takes between <strong className="text-blue-900">7 to 14 days</strong> based on your work review.</span>
+            </li>
+          </ul>
+        </div>
 
         {data?.experienceStatus === 'REJECTED' && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-start gap-3">
+          <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-start gap-3">
             <div className="bg-red-100 p-2 rounded-lg">
               <InfoIcon className="w-5 h-5 text-red-600" />
             </div>
@@ -332,7 +348,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
         )}
 
         {data?.experienceStatus === 'RESUBMIT' && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm flex items-start gap-3">
+          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm flex items-start gap-3">
             <div className="bg-amber-100 p-2 rounded-lg">
               <InfoIcon className="w-5 h-5 text-amber-600" />
             </div>
@@ -343,53 +359,26 @@ const FundiExperience = ({ data, refreshData }: any) => {
           </div>
         )}
 
-        {!data?.fundiEvaluation && data?.experienceStatus &&
-          data.experienceStatus !== 'INCOMPLETE' && data.experienceStatus !== 'VERIFIED' && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
-            <p className="font-semibold mb-1">Next Steps</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>You will attend a <strong>15-minute interview</strong> after submission.</li>
-              <li>Verification typically takes between <strong>7 to 14 days</strong> based on your work review.</li>
-            </ul>
-          </div>
-        )}
-
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="bg-gray-50 p-6 rounded-xl border">
-            <div className="grid md:grid-cols-4 gap-6">
-
-              {/* Skill — from dynamic backend API */}
+        <form className="space-y-8" onSubmit={handleSubmit}>
+          {/* Main Experience Selection Card */}
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Skill */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
-                <select
-                  value={skill}
-                  onChange={e => { setSkill(e.target.value); setSpecialization(""); }}
-                  disabled={true}
-                  className={inputStyles}
-                >
-                  <option value="">{skillsLoading ? "Loading…" : "Select Skill"}</option>
-                  {fundiSkills.map(s => (
-                    <option key={s.id} value={s.skillName.toLowerCase()}>
-                      {s.skillName}
-                    </option>
-                  ))}
-                  {/* Keep current value visible even if not in list yet */}
-                  {skill && !fundiSkills.find(s => s.skillName.toLowerCase() === skill) && (
-                    <option value={skill}>
-                      {skill.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </option>
-                  )}
-                </select>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Skill</label>
+                <div className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 font-medium">
+                  {skill ? skill.charAt(0).toUpperCase() + skill.slice(1) : "N/A"}
+                </div>
               </div>
 
-              {/* Specialization — from dynamic backend API */}
+              {/* Specialization */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Specialization</label>
                 <select
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
                   disabled={isReadOnly || !skill || specsLoading}
-                  className={inputStyles}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm appearance-none bg-white font-medium"
                 >
                   <option value="">
                     {!skill ? "Select a skill first" : specsLoading ? "Loading…" : "Select Specialization"}
@@ -397,7 +386,6 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   {specializations.map(s => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
-                  {/* Keep saved value visible if not in current list */}
                   {specialization && !specializations.find(s => s.name === specialization) && (
                     <option value={specialization}>{specialization}</option>
                   )}
@@ -406,12 +394,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
               {/* Grade */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
                 <select
                   value={grade}
                   onChange={e => setGrade(e.target.value)}
                   disabled={isReadOnly}
-                  className={inputStyles}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
                 >
                   {Object.keys(requiredProjectsByGrade).map(g => (
                     <option key={g}>{g}</option>
@@ -421,86 +409,112 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
               {/* Experience */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Experience</label>
                 <select
                   value={experience}
                   onChange={e => setExperience(e.target.value)}
                   disabled={isReadOnly}
-                  className={inputStyles}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
                 >
-                  {["10+ years", "5-10 years", "3-5 years", "1-3 years"].map(exp => (
-                    <option key={exp}>{exp}</option>
+                  {["1-3 years", "3-5 years", "5-10 years", "10+ years"].map(exp => (
+                    <option key={exp} value={exp}>{exp}</option>
                   ))}
+                  <option value="">Select Experience</option>
                 </select>
               </div>
-
             </div>
           </div>
 
+          {/* Project Upload Section */}
           {visibleProjectRows > 0 && (
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr className="text-left">
-                    <th className="p-4 font-semibold text-gray-600">No.</th>
-                    <th className="p-4 font-semibold text-gray-600">Project Name</th>
-                    <th className="p-4 font-semibold text-gray-600">Proof of Work (Max 3)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {attachments.slice(0, visibleProjectRows).map(row => (
-                    <tr key={row.id}>
-                      <td className="p-4 font-medium text-gray-500">#{row.id}</td>
-                      <td className="p-4">
+            <div className="bg-blue-50/50 p-8 rounded-2xl border border-blue-50 space-y-6">
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-blue-900">
+                  Add Missing Projects ({visibleProjectRows - attachments.filter(a => a.projectName.trim() && a.files.length > 0).length} remaining)
+                </h2>
+                <p className="text-blue-700 text-sm">Add projects to complete your experience profile:</p>
+              </div>
+
+              <div className="space-y-4">
+                {attachments.slice(0, visibleProjectRows).map(row => (
+                  <div key={row.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                    <h3 className="text-blue-800 font-bold">Project {row.id}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Project Name */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700">Project Name</label>
                         <input
                           value={row.projectName}
                           onChange={e => handleProjectNameChange(row.id, e.target.value)}
                           disabled={isReadOnly || isSubmitting}
-                          placeholder="Project name..."
-                          className="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                          placeholder="Enter project name"
+                          className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                         />
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {row.files.map((fItem, i) => (
-                            <div key={i} className="relative group w-12 h-12">
-                              <img src={fItem.previewUrl} alt="preview" className="w-full h-full object-cover rounded border" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded">
-                                <a href={fItem.previewUrl} target="_blank" rel="noreferrer" className="text-white hover:text-blue-200">
-                                  <EyeIcon className="w-4 h-4" />
-                                </a>
-                                <button type="button" onClick={() => removeFile(row.id, i)} className="text-white hover:text-red-300">
-                                  <XMarkIcon className="w-4 h-4" />
-                                </button>
-                              </div>
+                      </div>
+
+                      {/* Project Files */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700">Project Files</label>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-4">
+                            {!isReadOnly && (
+                              <label className={`cursor-pointer px-6 py-2 rounded-xl text-sm font-bold transition-all ${!row.projectName.trim() ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
+                                Choose File
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={!row.projectName.trim() || isSubmitting}
+                                  onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                            <span className="text-gray-400 text-sm">
+                              {row.files.length > 0 ? `${row.files.length} files selected` : "No file chosen"}
+                            </span>
+                          </div>
+                          
+                          {/* File Previews */}
+                          {row.files.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {row.files.map((fItem, i) => (
+                                <div key={i} className="relative group w-16 h-16">
+                                  <img src={fItem.previewUrl} alt="preview" className="w-full h-full object-cover rounded-xl border border-gray-200" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded-xl">
+                                    <a href={fItem.previewUrl} target="_blank" rel="noreferrer" className="text-white hover:text-blue-200">
+                                      <EyeIcon className="w-5 h-5" />
+                                    </a>
+                                    <button type="button" onClick={() => removeFile(row.id, i)} className="text-white hover:text-red-300">
+                                      <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
+
+                          {!row.projectName.trim() && !isReadOnly && (
+                            <p className="text-orange-500 text-xs font-semibold">
+                              Enter project name first to unlock file upload.
+                            </p>
+                          )}
                         </div>
-                        {row.files.length < 3 && !isReadOnly && (
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
-                            disabled={isSubmitting}
-                            className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {!isReadOnly && (
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-4">
               <button
                 disabled={isSubmitting}
-                className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+                className="bg-blue-800 hover:bg-blue-900 text-white px-10 py-4 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 flex items-center gap-3"
               >
                 {isSubmitting && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
                 )}
                 {isSubmitting ? "Saving..." : "Save Experience"}
               </button>
@@ -508,10 +522,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
           )}
         </form>
 
+
         {renderEvaluationResults()}
       </div>
     </div>
   );
 };
 
-export default FundiExperience;
+export default FundiExperience;

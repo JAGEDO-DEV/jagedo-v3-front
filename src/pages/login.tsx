@@ -66,14 +66,16 @@ export default function Login() {
         country: profileData.country || "Kenya",
         county: profileData.county || "",
         subCounty: profileData.subCounty || "",
-        townCity: profileData.town || "",
-        estateVillage: profileData.estate || "",
+        city: profileData.city,
+        townCity: profileData.townCity || profileData.city,
+        estateVillage: profileData.estateVillage,
         referenceInfo: profileData.howDidYouHearAboutUs || "",
         referralDetail: profileData.referralDetail || "",
         socialMediaOther: profileData.socialMediaOther || "",
         idNumber: profileData.idNumber || "",
         idType: profileData.idType || "NATIONAL_ID",
       };
+
 
       const response = await completeProfile(payload);
       if (response.data?.success) {

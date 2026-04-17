@@ -103,7 +103,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
 
-  // Dynamic skills and specializations
+  
   const [fundiSkills, setFundiSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
@@ -114,7 +114,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
-        // Determine skill/profession/category based on user type
+        
         let skillOrProfession = "";
         let userTypeForQuestions = userType;
         
@@ -126,7 +126,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         
         switch (userType) {
           case "FUNDI":
-            // Try multiple field names and locations for FUNDI skill
+            
             skillOrProfession = 
               sourceData?.skill || 
               sourceData?.skills || 
@@ -153,12 +153,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           isActive: true,
         });
 
-        // Fetch both preset and custom questions for this specific skill/profession
+        
         const response = await getEvaluationQuestions(axiosInstance, {
           userType: userTypeForQuestions,
           skillName: skillOrProfession,
           isActive: true,
-          // Note: not filtering by isPreset so both preset and custom questions are included
+          
         });
 
         console.log("📥 API Response:", response);
@@ -176,7 +176,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         setAvailableQuestions(extractedData);
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
-        // Don't show error toast for evaluation questions - they're optional
+        
         setAvailableQuestions([]);
       } finally {
         setIsLoadingQuestions(false);
@@ -195,7 +195,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       if (evaluation) {
         prefillQuestionsFromData();
       } else {
-        // Initialize questions from available preset questions
+        
         const initial = availableQuestions.map((q: any) => ({
           id: q.id,
           text: q.text,
@@ -205,12 +205,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           score: 0,
           isEditing: false,
           isDraft: false,
-          isPreset: q.isPreset ?? true, // Preserve preset flag, default to true only if undefined
+          isPreset: q.isPreset ?? true, 
         }));
         setQuestions(initial);
       }
     } else if (availableQuestions.length === 0 && !isLoadingQuestions) {
-      // No preset questions available, start with empty
+      
       setQuestions([]);
     }
   }, [
@@ -220,7 +220,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     isLoadingQuestions,
   ]);
 
-  // ── Load skills and specialization mappings on mount for all dynamic types ────────────────
+  
   useEffect(() => {
     if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       const loadSkillsAndMappings = async () => {
@@ -234,7 +234,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
           setFundiSkills(activeSkills);
           
-          // Get specialization mappings directly
+          
           const mappingsRes = await getSpecializationMappings(authAxios, userType);
           setSpecMappings(mappingsRes);
         } catch (error) {
@@ -248,10 +248,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     }
   }, [userType]);
 
-  // ── Load specializations when skill/profession/category/type changes ───────────────────────────────
+  
   useEffect(() => {
-    // Determine which field triggers specialization loading based on user type
-    // Use editingFields if in edit mode, otherwise use userData
+    
+    
     const sourceData = isEditingFields ? editingFields : (userData?.userProfile || userData || {});
     
     let triggerField: string | undefined;
@@ -278,7 +278,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       return;
     }
 
-    // For types not in dynamic list, use static specializations
+    
     if (!['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       setSpecializations([]);
       return;
@@ -296,12 +296,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           return;
         }
 
-        // Find the skill in fundiSkills to get its assigned specializations array
+        
         const selectedSkill = fundiSkills.find((s: any) => 
           normalizeSkillName(s.skillName) === normalizedField
         );
         
-        // If skill not found, show all master data specs (fallback)
+        
         if (!selectedSkill) {
           console.warn(`Skill not found for: ${triggerField}, falling back to all master data`);
           const authAxios = axios.create({
@@ -313,7 +313,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           return;
         }
 
-        // Get the specialization codes assigned to this skill
+        
         const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
           ? selectedSkill.specializations 
           : [];
@@ -324,14 +324,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           return;
         }
 
-        // Fetch all available specializations for this type
+        
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
 
-        // Filter to only show the specializations assigned to this skill
+        
         const filteredSpecs = allSpecs.filter((spec: any) => {
           const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
           return assignedSpecCodes.includes(specCode);
@@ -349,7 +349,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     loadSpecializations();
   }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, userData?.skill, userData?.profession, userData?.category, userData?.hardwareType, userData?.fundiSpecialization, userData?.professionalSpecialization, userData?.contractorTypes, userData?.levelOrClass, specMappings, userType, isEditingFields, fundiSkills]);
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
 
   
   const prefillQuestionsFromData = () => {
@@ -396,7 +396,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         score,
         isEditing: false,
         isDraft: false,
-        isPreset: q.isPreset ?? true, // Preserve preset flag, default to true only if undefined
+        isPreset: q.isPreset ?? true, 
       };
     });
     setQuestions(prefilled);
@@ -417,12 +417,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         break;
       case "PROFESSIONAL": {
         projectData = userData?.professionalProjects || [];
-        // Restructure professional projects to have files array like contractor projects
+        
         return projectData.map((project, index) => {
           const pName = project.projectName || `Professional Project ${index + 1}`;
           const files = [];
           
-          // Handle files array format (new format)
+          
           if (Array.isArray(project.files) && project.files.length > 0) {
             project.files.forEach((fileUrl, fileIndex) => {
               if (fileUrl) {
@@ -433,7 +433,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               }
             });
           }
-          // Handle legacy format where files are objects
+          
           else if (project.files && typeof project.files === 'object') {
             Object.entries(project.files).forEach(([key, fileUrl]) => {
               if (fileUrl) {
@@ -444,7 +444,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               }
             });
           }
-          // Handle direct fileUrl (as seen in the provided API response)
+          
           else if (project.fileUrl) {
             const url = typeof project.fileUrl === "string" ? project.fileUrl : project.fileUrl.url;
             if (url) {
@@ -749,7 +749,7 @@ useEffect(() => {
         };
 
       case "CONTRACTOR": {
-        // Prefer contractorExperiences as the source of truth for categories
+        
         const firstExp = userData?.contractorExperiences?.[0];
         return {
           category: firstExp?.category || userData?.contractorType || userData?.contractorTypes || "",
@@ -2813,457 +2813,219 @@ useEffect(() => {
 
             {/* {userType} Project Attachments */}
             {/* {userType} Project Attachments */}
-            <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-bold text-gray-800">
-                    {getProjectFieldName()}
-                  </h3>
-                </div>
-                {requiredProjectCount > 0 && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                    {attachments.length} / {requiredProjectCount} Required
-                  </span>
-                )}
-              </div>
+            {/* Project Attachments Section */}
+            {userType.toLowerCase() === "fundi" ? (
+              <div className="bg-blue-50 shadow-xl rounded-xl border border-blue-200 overflow-hidden mb-8 transition-all hover:shadow-2xl">
+                <div className="px-6 py-6 font-sans">
+                  <h4 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Projects
+                  </h4>
+                  {requiredProjectCount > 0 && (
+                    <p className="text-sm text-blue-700 mb-6 bg-blue-100/50 p-3 rounded-lg border border-blue-100">
+                      Add missing projects to complete this experience profile (
+                      {missingProjectCount} remaining).
+                    </p>
+                  )}
 
-              <div className="p-6">
-                {userType === "CONTRACTOR" ? (
-                  
-                  attachments.length > 0 ? (
-                    <div className="space-y-4">
-                      {attachments.map((row, index) => {
-                        const projectFile =
-                          row.files.find((f) => f.role === "projectFile") ||
-                          row.files[0];
-                        const referenceFile =
-                          row.files.find(
-                            (f) => f.role === "referenceLetterUrl",
-                          ) || row.files[1];
-
-                        const renderAdminFileSlot = (file, role, label) => {
-                          if (file) {
-                            return (
-                              <div className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-md">
-                                <div className="flex-1 min-w-0">
-                                  <span
-                                    className="block truncate text-gray-700 text-xs"
-                                    title={file.name}
-                                  >
+                  {/* Uploaded Projects Section */}
+                  {attachments.length > 0 && (
+                    <div className="mb-8">
+                      <h5 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">
+                        <FiCheck className="w-4 h-4" />
+                        Uploaded Projects ({attachments.length})
+                      </h5>
+                      <div className="space-y-4">
+                        {attachments.map((project, index) => (
+                          <div
+                            key={project.id || index}
+                            className="p-4 bg-white rounded-lg border border-blue-200 shadow-sm group hover:border-blue-400 transition-all hover:shadow-md"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="text-sm font-bold text-gray-900">
+                                {project.projectName || `Project ${index + 1}`}
+                              </div>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFile(index, 0)}
+                                  className="p-1 px-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                                  title="Remove project"
+                                >
+                                  <XMarkIcon className="w-4 h-4" />
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              {project.files.map((file, fileIndex) => (
+                                <div
+                                  key={fileIndex}
+                                  className="flex items-center justify-between bg-gray-50 p-2 rounded-md border border-gray-100 group/file hover:bg-blue-50/50 transition-colors"
+                                >
+                                  <span className="text-sm text-gray-700 truncate max-w-[80%] font-medium">
                                     {file.name}
                                   </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600"
-                                  >
-                                    <EyeIcon className="w-4 h-4" />
-                                  </a>
-                                  {isAdmin && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setAttachments((prev) => {
-                                          const updated = prev.map((a, i) => ({
-                                            ...a,
-                                            files: [...a.files],
-                                          }));
-                                          updated[index].files = updated[
-                                            index
-                                          ].files.filter(
-                                            (f) =>
-                                              f.role !== role && f !== file,
-                                          );
-                                          return updated;
-                                        });
-                                      }}
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 bg-white border border-gray-200 rounded-lg text-blue-600 hover:text-blue-800 hover:border-blue-300 transition-all shadow-sm"
                                     >
-                                      <XMarkIcon className="w-4 h-4 text-red-500 hover:text-red-700" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
-                          if (!isAdmin)
-                            return (
-                              <span className="text-xs text-gray-500 p-2">
-                                No file provided.
-                              </span>
-                            );
-                          return (
-                            <label className="cursor-pointer">
-                              <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition">
-                                <PlusIcon className="w-3 h-3" /> Upload {label}
-                              </div>
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept="image/*,.pdf"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (!f) return;
-                                  setAttachments((prev) => {
-                                    const updated = prev.map((a, i) => ({
-                                      ...a,
-                                      files: [...a.files],
-                                    }));
-                                    
-                                    updated[index].files = updated[
-                                      index
-                                    ].files.filter((x) => x.role !== role);
-                                    updated[index].files.push({
-                                      name: f.name,
-                                      url: URL.createObjectURL(f),
-                                      rawFile: f,
-                                      role,
-                                    });
-                                    return updated;
-                                  });
-                                }}
-                              />
-                            </label>
-                          );
-                        };
-
-                        return (
-                          <div
-                            key={row.id}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
-                          >
-                            <div>
-                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                                Project Name
-                              </label>
-                              <input
-                                value={row.projectName}
-                                disabled
-                                className="w-full p-2 border rounded-md bg-white text-sm font-medium text-gray-700 shadow-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                                Project / BQ File
-                              </label>
-                              {renderAdminFileSlot(
-                                projectFile,
-                                "projectFile",
-                                "Project File",
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                                Reference Letter
-                              </label>
-                              {renderAdminFileSlot(
-                                referenceFile,
-                                "referenceLetterUrl",
-                                "Reference Letter",
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-gray-500">
-                      <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
-                      <p className="text-sm font-semibold">
-                        No Projects Recorded
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Proof of work projects will appear here.
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
-                        <tr>
-                          <th className="px-6 py-4 text-left">No.</th>
-                          <th className="px-6 py-4 text-left">Project Name</th>
-                          <th className="px-6 py-4 text-left">Proof of Work</th>
-                          <th className="px-6 py-4 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {attachments.length > 0 ? (
-                          attachments.map((row, index) => (
-                            <tr
-                              key={row.id}
-                              className="hover:bg-blue-50/30 transition-colors"
-                            >
-                              <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
-                                #{index + 1}
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className="font-semibold text-gray-900 block truncate max-w-[200px]">
-                                  {row.projectName || "Unnamed Project"}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex flex-wrap gap-2">
-                                  {row.files.length > 0 ? (
-                                    row.files.map((file, fileIndex) => (
-                                      <div
-                                        key={fileIndex}
-                                        className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="2"
+                                        stroke="currentColor"
+                                        className="h-4 w-4"
                                       >
-                                        <img
-                                          src={file.url}
-                                          alt={file.name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src =
-                                              "https://placehold.co/100x100?text=File";
-                                          }}
-                                        />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                                          <a
-                                            href={file.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-1 bg-white/20 rounded-md hover:bg-white/40 text-white"
-                                          >
-                                            <EyeIcon className="w-3.5 h-3.5" />
-                                          </a>
-                                          {isAdmin && (
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                handleRemoveFile(
-                                                  index,
-                                                  fileIndex,
-                                                )
-                                              }
-                                              className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 text-white"
-                                            >
-                                              <XMarkIcon className="w-3.5 h-3.5" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <span className="text-gray-400 italic text-xs">
-                                      No files uploaded
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {isAdmin && (
-                                    <div className="relative inline-block">
-                                      <input
-                                        type="file"
-                                        multiple
-                                        id={`file-upload-${index}`}
-                                        onChange={(e) =>
-                                          handleFileUpload(e, index)
-                                        }
-                                        className="hidden"
-                                        disabled={
-                                          fileActionLoading[`add-${index}`]
-                                        }
-                                      />
-                                      <label
-                                        htmlFor={`file-upload-${index}`}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}
-                                      >
-                                        {fileActionLoading[`add-${index}`] ? (
-                                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        ) : (
-                                          <PlusIcon className="w-3 h-3" />
-                                        )}
-                                        Add
-                                      </label>
-                                    </div>
-                                  )}
-                                  {isAdmin && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveFile(index, 0)}
-                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                      <XMarkIcon className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td
-                              colSpan={4}
-                              className="px-6 py-12 text-center text-gray-500"
-                            >
-                              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
-                              <p className="text-sm font-semibold">
-                                No Projects Recorded
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Proof of work projects will appear here.
-                              </p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {isAdmin && (
-                <div className="px-6 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 italic">
-                    <FiInfo className="w-4 h-4 text-blue-500" />
-                    Saving will update both professional info and projects.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveChanges}
-                    disabled={isSavingInfo || !canSaveChanges()}
-                    title={
-                      !canSaveChanges()
-                        ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
-                        : "Save all changes"
-                    }
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-base shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  >
-                    {isSavingInfo ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <FiCheck className="w-5 h-5" />
-                    )}
-                    {isSavingInfo ? "Saving Changes..." : "Save All Changes"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Add New Projects Section */}
-            {missingProjectCount > 0 && (
-              <div className="border-t border-gray-200 bg-blue-50">
-                <div className="px-6 py-4">
-                  <h4 className="text-md font-semibold text-blue-900 mb-4">
-                    Add Missing Projects ({missingProjectCount} remaining)
-                  </h4>
-                  <p className="text-sm text-blue-700 mb-4">
-                    Add projects on behalf of the user to complete their
-                    experience profile:
-                  </p>
-
-                  {Array.from(
-                    { length: Math.min(missingProjectCount, 3) },
-                    (_, index) => {
-                      const projectId = `new_${index}`;
-                      const project = newProjects[projectId] || {
-                        name: "",
-                        files: [],
-                      };
-                      const isLoading = uploadingProjects[projectId];
-
-                      return (
-                        <div
-                          key={projectId}
-                          className="mb-6 p-4 bg-white rounded-lg border border-blue-200"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Project Name
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="Enter project name"
-                                value={project.name}
-                                onChange={(e) =>
-                                  setNewProjects((prev) => ({
-                                    ...prev,
-                                    [projectId]: {
-                                      ...project,
-                                      name: e.target.value,
-                                    },
-                                  }))
-                                }
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Project Files
-                              </label>
-                              <div className="space-y-2">
-                                {project.files.map(
-                                  (file: File, fileIndex: number) => (
-                                    <div
-                                      key={fileIndex}
-                                      className="flex items-center justify-between bg-gray-100 p-2 rounded-md"
-                                    >
-                                      <span className="text-sm text-gray-700 truncate">
-                                        {file.name}
-                                      </span>
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                                        ></path>
+                                      </svg>
+                                    </a>
+                                    {isAdmin && (
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          const updatedFiles = [
-                                            ...project.files,
-                                          ];
-                                          updatedFiles.splice(fileIndex, 1);
-                                          setNewProjects((prev) => ({
-                                            ...prev,
-                                            [projectId]: {
-                                              ...project,
-                                              files: updatedFiles,
-                                            },
-                                          }));
-                                        }}
-                                        className="text-red-500 hover:text-red-700"
+                                        onClick={() =>
+                                          handleRemoveFile(index, fileIndex)
+                                        }
+                                        className="p-1 text-red-400 hover:text-red-600 transition-colors"
                                       >
                                         <XMarkIcon className="w-4 h-4" />
                                       </button>
-                                    </div>
-                                  ),
-                                )}
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add New Projects Forms */}
+                  {missingProjectCount > 0 &&
+                    Array.from(
+                      { length: Math.min(missingProjectCount, 3) },
+                      (_, index) => {
+                        const projectId = `new_${index}`;
+                        const project = newProjects[projectId] || {
+                          name: "",
+                          files: [],
+                        };
+                        const isLoading = uploadingProjects[projectId];
+
+                        return (
+                          <div
+                            key={projectId}
+                            className="mb-8 p-6 bg-white rounded-xl border border-blue-200 shadow-sm"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                                  Project Name
+                                </label>
                                 <input
-                                  type="file"
-                                  multiple
-                                  onChange={(e) => {
-                                    const files = Array.from(
-                                      e.target.files || [],
-                                    );
+                                  type="text"
+                                  placeholder="Enter project name"
+                                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none bg-gray-50/50 hover:bg-white"
+                                  value={project.name}
+                                  onChange={(e) =>
                                     setNewProjects((prev) => ({
                                       ...prev,
                                       [projectId]: {
                                         ...project,
-                                        files: [...project.files, ...files],
+                                        name: e.target.value,
                                       },
-                                    }));
-                                  }}
-                                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                                    }))
+                                  }
                                 />
                               </div>
-                            </div>
-                          </div>
-                          <div className="mt-4 flex justify-end">
-                            {isLoading ? (
-                              <div className="flex items-center gap-2 text-blue-600">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                <span className="text-sm">
-                                  Adding project...
-                                </span>
+                              <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                                  Project Files
+                                </label>
+                                <div className="space-y-3">
+                                  <div className="relative">
+                                    <input
+                                      type="file"
+                                      multiple
+                                      accept="image/*,application/pdf,.pdf"
+                                      className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all cursor-pointer ${!project.name.trim() ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+                                      disabled={!project.name.trim()}
+                                      onChange={(e) => {
+                                        const files = Array.from(
+                                          e.target.files || [],
+                                        );
+                                        setNewProjects((prev) => ({
+                                          ...prev,
+                                          [projectId]: {
+                                            ...project,
+                                            files: [...project.files, ...files],
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                    {!project.name.trim() && (
+                                      <div className="mt-3 flex items-center gap-2 text-xs text-amber-600 font-bold bg-amber-50 p-2 rounded-lg border border-amber-100 animate-pulse">
+                                        <FiInfo className="w-3.5 h-3.5" />
+                                        Enter project name first to unlock file
+                                        upload.
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {project.files.length > 0 && (
+                                    <div className="space-y-2 mt-4 bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                                      <h6 className="text-[10px] font-bold text-gray-400 uppercase mb-2">Selected Files</h6>
+                                      {project.files.map((f: File, i) => (
+                                        <div
+                                          key={i}
+                                          className="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-100 shadow-sm"
+                                        >
+                                          <span className="text-xs text-gray-700 truncate font-medium max-w-[80%]">
+                                            {f.name}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [
+                                                ...project.files,
+                                              ];
+                                              updated.splice(i, 1);
+                                              setNewProjects((prev) => ({
+                                                ...prev,
+                                                [projectId]: {
+                                                  ...project,
+                                                  files: updated,
+                                                },
+                                              }));
+                                            }}
+                                            className="p-1 px-2 text-red-500 hover:bg-red-50 rounded-md transition-colors text-[10px] font-bold"
+                                          >
+                                            <XMarkIcon className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            ) : (
+                            </div>
+                            <div className="mt-6 flex justify-end">
                               <button
                                 type="button"
+                                disabled={
+                                  !project.name.trim() ||
+                                  project.files.length === 0 ||
+                                  isLoading
+                                }
                                 onClick={() =>
                                   handleAddNewProject(
                                     projectId,
@@ -3271,27 +3033,392 @@ useEffect(() => {
                                     project.files,
                                   )
                                 }
-                                disabled={
-                                  !project.name.trim() ||
-                                  project.files.length === 0 ||
-                                  isLoading
-                                }
-                                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-xs shadow-md transition-all active:scale-95 ${!project.name.trim() || project.files.length === 0 || isLoading ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/20"}`}
                               >
-                                <PlusIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                  Add Project
-                                </span>
+                                {isLoading ? (
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <PlusIcon className="w-5 h-5" />
+                                )}
+                                {isLoading ? "Processing..." : "Add Project"}
                               </button>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    },
+                        );
+                      },
+                    )}
+                </div>
+                {isAdmin && (
+                  <div className="px-6 py-6 border-t border-blue-200 bg-blue-100/30 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-3 text-sm text-blue-800 font-medium">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md">
+                        <FiInfo className="w-4 h-4" />
+                      </div>
+                      <p className="max-w-md italic">
+                        {!canSaveChanges() 
+                          ? "Please fill all required fields and add all required projects before saving."
+                          : "Remember to save your changes to persist the updated project list."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveChanges}
+                      disabled={isSavingInfo || !canSaveChanges()}
+                      title={
+                        !canSaveChanges()
+                          ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
+                          : "Save all changes"
+                      }
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-sm shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                    >
+                      {isSavingInfo ? (
+                        <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <FiCheck className="w-6 h-6" />
+                      )}
+                      {isSavingInfo ? "Syncing..." : "Save All Changes"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden mb-8">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {getProjectFieldName()}
+                    </h3>
+                  </div>
+                  {requiredProjectCount > 0 && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                      {attachments.length} / {requiredProjectCount} Required
+                    </span>
                   )}
                 </div>
+
+                <div className="p-6">
+                  {userType === "CONTRACTOR" ? (
+                    attachments.length > 0 ? (
+                      <div className="space-y-4">
+                        {attachments.map((row, index) => {
+                          const projectFile =
+                            row.files.find((f) => f.role === "projectFile") ||
+                            row.files[0];
+                          const referenceFile =
+                            row.files.find(
+                              (f) => f.role === "referenceLetterUrl",
+                            ) || row.files[1];
+
+                          const renderAdminFileSlot = (file, role, label) => {
+                            if (file) {
+                              return (
+                                <div className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-md">
+                                  <div className="flex-1 min-w-0">
+                                    <span
+                                      className="block truncate text-gray-700 text-xs"
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600"
+                                    >
+                                      <EyeIcon className="w-4 h-4" />
+                                    </a>
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAttachments((prev) => {
+                                            const updated = prev.map((a, i) => ({
+                                              ...a,
+                                              files: [...a.files],
+                                            }));
+                                            updated[index].files = updated[
+                                              index
+                                            ].files.filter(
+                                              (f) =>
+                                                f.role !== role && f !== file,
+                                            );
+                                            return updated;
+                                          });
+                                        }}
+                                      >
+                                        <XMarkIcon className="w-4 h-4 text-red-500 hover:text-red-700" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            if (!isAdmin)
+                              return (
+                                <span className="text-xs text-gray-500 p-2">
+                                  No file provided.
+                                </span>
+                              );
+                            return (
+                              <label className="cursor-pointer">
+                                <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition">
+                                  <PlusIcon className="w-3 h-3" /> Upload {label}
+                                </div>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*,.pdf"
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (!f) return;
+                                    setAttachments((prev) => {
+                                      const updated = prev.map((a, i) => ({
+                                        ...a,
+                                        files: [...a.files],
+                                      }));
+
+                                      updated[index].files = updated[
+                                        index
+                                      ].files.filter((x) => x.role !== role);
+                                      updated[index].files.push({
+                                        name: f.name,
+                                        url: URL.createObjectURL(f),
+                                        rawFile: f,
+                                        role,
+                                      });
+                                      return updated;
+                                    });
+                                  }}
+                                />
+                              </label>
+                            );
+                          };
+
+                          return (
+                            <div
+                              key={row.id}
+                              className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
+                            >
+                              <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                  Project Name
+                                </label>
+                                <input
+                                  value={row.projectName}
+                                  disabled
+                                  className="w-full p-2 border rounded-md bg-white text-sm font-medium text-gray-700 shadow-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                  Project / BQ File
+                                </label>
+                                {renderAdminFileSlot(
+                                  projectFile,
+                                  "projectFile",
+                                  "Project File",
+                                )}
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                                  Reference Letter
+                                </label>
+                                {renderAdminFileSlot(
+                                  referenceFile,
+                                  "referenceLetterUrl",
+                                  "Reference Letter",
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center text-gray-500">
+                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
+                        <p className="text-sm font-semibold">
+                          No Projects Recorded
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Proof of work projects will appear here.
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
+                          <tr>
+                            <th className="px-6 py-4 text-left">No.</th>
+                            <th className="px-6 py-4 text-left">Project Name</th>
+                            <th className="px-6 py-4 text-left">Proof of Work</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {attachments.length > 0 ? (
+                            attachments.map((row, index) => (
+                              <tr
+                                key={row.id}
+                                className="hover:bg-blue-50/30 transition-colors"
+                              >
+                                <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
+                                  #{index + 1}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="font-semibold text-gray-900 block truncate max-w-[200px]">
+                                    {row.projectName || "Unnamed Project"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-2">
+                                    {row.files.length > 0 ? (
+                                      row.files.map((file, fileIndex) => (
+                                        <div
+                                          key={fileIndex}
+                                          className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+                                        >
+                                          <img
+                                            src={file.url}
+                                            alt={file.name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).src =
+                                                "https://placehold.co/100x100?text=File";
+                                            }}
+                                          />
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                            <a
+                                              href={file.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="p-1 bg-white/20 rounded-md hover:bg-white/40 text-white"
+                                            >
+                                              <EyeIcon className="w-3.5 h-3.5" />
+                                            </a>
+                                            {isAdmin && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleRemoveFile(
+                                                    index,
+                                                    fileIndex,
+                                                  )
+                                                }
+                                                className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 text-white"
+                                              >
+                                                <XMarkIcon className="w-3.5 h-3.5" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <span className="text-gray-400 italic text-xs">
+                                        No files uploaded
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {isAdmin && (
+                                      <div className="relative inline-block">
+                                        <input
+                                          type="file"
+                                          multiple
+                                          id={`file-upload-${index}`}
+                                          onChange={(e) =>
+                                            handleFileUpload(e, index)
+                                          }
+                                          className="hidden"
+                                          disabled={
+                                            fileActionLoading[`add-${index}`]
+                                          }
+                                        />
+                                        <label
+                                          htmlFor={`file-upload-${index}`}
+                                          className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        >
+                                          {fileActionLoading[`add-${index}`] ? (
+                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                          ) : (
+                                            <PlusIcon className="w-3 h-3" />
+                                          )}
+                                          Add
+                                        </label>
+                                      </div>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleRemoveFile(index, 0)
+                                        }
+                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      >
+                                        <XMarkIcon className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-6 py-12 text-center text-gray-500"
+                              >
+                                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
+                                <p className="text-sm font-semibold">
+                                  No Projects Recorded
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Proof of work projects will appear here.
+                                </p>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <div className="px-6 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 italic">
+                      <FiInfo className="w-4 h-4 text-blue-500" />
+                      Saving will update both professional info and projects.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveChanges}
+                      disabled={isSavingInfo || !canSaveChanges()}
+                      title={
+                        !canSaveChanges()
+                          ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
+                          : "Save all changes"
+                      }
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-sm shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {isSavingInfo ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <FiCheck className="w-5 h-5" />
+                      )}
+                      {isSavingInfo ? "Saving Changes..." : "Save All Changes"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
+
             {/* Evaluation Results Summary */}
             {userType.toLowerCase() === "fundi" &&
               (userData?.fundiEvaluation ||
@@ -3376,15 +3503,16 @@ useEffect(() => {
 
                   {/* Replacing inner <form> with <div> */}
                   <div className="space-y-6">
+                    {/* Questions Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {questions.map((q) => (
+                      {questions.map((q: any) => (
                         <div
                           key={q.id}
                           className="space-y-2 relative bg-white p-4 rounded-lg border border-gray-200"
                         >
                           {q.isEditing ? (
                             <div className="space-y-3">
-                              {/* Question Text */}
+                              {/* Question Text Editor */}
                               <div>
                                 <label className="text-xs font-semibold text-gray-600 block mb-1">
                                   Question Text
@@ -3397,8 +3525,8 @@ useEffect(() => {
                                       prev.map((item) =>
                                         item.id === q.id
                                           ? { ...item, text: val }
-                                          : item,
-                                      ),
+                                          : item
+                                      )
                                     );
                                   }}
                                   className="w-full text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
@@ -3407,7 +3535,7 @@ useEffect(() => {
                                 />
                               </div>
 
-                              {/* Question Type Dropdown */}
+                              {/* Question Type and Options */}
                               <div>
                                 <label className="text-xs font-semibold text-gray-600 block mb-1">
                                   Question Type
@@ -3419,8 +3547,8 @@ useEffect(() => {
                                       prev.map((item) =>
                                         item.id === q.id
                                           ? { ...item, type: e.target.value }
-                                          : item,
-                                      ),
+                                          : item
+                                      )
                                     );
                                   }}
                                   className="w-full text-sm p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 cursor-pointer"
@@ -3431,7 +3559,6 @@ useEffect(() => {
                                 </select>
                               </div>
 
-                              {/* Options Input (for RADIO and CHECKBOX) */}
                               {(q.type === "RADIO" || q.type === "CHECKBOX") && (
                                 <div>
                                   <label className="text-xs font-semibold text-gray-600 block mb-1">
@@ -3454,8 +3581,8 @@ useEffect(() => {
                                         prev.map((item) =>
                                           item.id === q.id
                                             ? { ...item, options: optionsArray }
-                                            : item,
-                                        ),
+                                            : item
+                                        )
                                       );
                                     }}
                                     className="w-full text-sm p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
@@ -3464,8 +3591,7 @@ useEffect(() => {
                                 </div>
                               )}
 
-                              {/* Save Button */}
-                              {q.isDraft && (
+                              {q.isDraft ? (
                                 <button
                                   type="button"
                                   onClick={() => handleSaveNewQuestion(q)}
@@ -3473,347 +3599,152 @@ useEffect(() => {
                                 >
                                   Save Question
                                 </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditToggle(q.id)}
+                                  className="w-full px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition"
+                                >
+                                  Done Editing
+                                </button>
                               )}
                             </div>
                           ) : (
                             <>
-                              <div className="pb-2 border-b border-gray-100">
-                                <label className="block text-sm font-medium text-gray-700">
-                                  {q.text}
-                                </label>
-                              </div>
-                              <div className="absolute top-3 right-3 flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  className="p-1 text-gray-400 hover:text-blue-600 transition"
-                                  onClick={() => handleEditToggle(q.id)}
-                                  title="Edit question"
-                                >
-                                  <PencilIcon className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="p-1 text-gray-400 hover:text-red-600 transition"
-                                  onClick={() => handleDeleteQuestion(q.id)}
-                                  title="Delete question"
-                                >
-                                  <XMarkIcon className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </>
-                          )}
+                              {/* Question Text */}
+                              <label className="block text-sm font-medium text-gray-700 pr-16">
+                                {q.text}
+                              </label>
 
-                          {/* Question Type — Display actual type */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] uppercase font-bold text-gray-400">
-                              Type:
-                            </span>
-                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">
-                              {q.type?.toUpperCase() || "OPEN"}
-                            </span>
-                          </div>
-
-                          {/* MULTIPLE_CHOICE and RADIO with Yes/No or custom options */}
-                          {q.type?.toUpperCase() === "MULTIPLE_CHOICE" || q.type?.toUpperCase() === "RADIO" ? (
-                            <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                              {(() => {
-                                let options = [];
-                                try {
-                                  
-                                  if (typeof q.options === "string") {
-                                    options = JSON.parse(q.options);
-                                  } else if (Array.isArray(q.options)) {
-                                    options = q.options;
-                                  }
-                                } catch (e) {
-                                  options = q.options || [];
-                                }
-                                return options.map((opt: any, i: number) => (
-                                  <label
-                                    key={i}
-                                    className="flex items-center gap-2 cursor-pointer group"
+                              {/* Action Buttons (Edit & Delete) */}
+                              {isAdmin && (
+                                <div className="absolute top-3 right-3 flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditToggle(q.id)}
+                                    className="p-1 text-gray-400 hover:text-blue-600 transition"
+                                    title="Edit question"
                                   >
-                                    <input
-                                      type="radio"
-                                      name={`question-${q.id}`}
-                                      checked={q.answer === opt}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          handleTextChange(q.id, opt);
-                                        }
-                                      }}
-                                      className="rounded-full border-gray-300 text-blue-900 focus:ring-blue-900"
-                                    />
-                                    <span className="text-sm text-gray-700 font-medium">
-                                      {opt}
-                                    </span>
-                                  </label>
-                                ));
-                              })()}
-                            </div>
-                          ) : q.type?.toUpperCase() === "RADIO_OLD" ||
-                            q.type?.toUpperCase() === "SELECT" ? (
-                            <div className="space-y-2">
-                              <select
-                                value={q.answer}
-                                onChange={(e) =>
-                                  handleTextChange(q.id, e.target.value)
-                                }
-                                className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                              >
-                                <option value="" disabled>
-                                  Select an option
-                                </option>
-                                {(() => {
-                                  let options = [];
-                                  try {
-                                    if (typeof q.options === "string") {
-                                      options = JSON.parse(q.options);
-                                    } else if (Array.isArray(q.options)) {
-                                      options = q.options;
-                                    }
-                                  } catch (e) {
-                                    options = q.options || [];
+                                    <PencilIcon className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteQuestion(q.id)}
+                                    className="p-1 text-gray-400 hover:text-red-600 transition"
+                                    title="Delete question"
+                                  >
+                                    <XMarkIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Input Field (Dynamic based on Question Type) */}
+                              {q.type?.toUpperCase() === "RADIO" ||
+                              q.type?.toUpperCase() === "SELECT" ||
+                              q.type?.toUpperCase() === "MULTIPLE_CHOICE" ? (
+                                <select
+                                  value={q.answer || ""}
+                                  onChange={(e) =>
+                                    handleTextChange(q.id, e.target.value)
                                   }
-                                  return options.map((opt: any, i: number) => (
+                                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                                >
+                                  <option value="" disabled>
+                                    Select an option
+                                  </option>
+                                  {(Array.isArray(q.options)
+                                    ? q.options
+                                    : ["Yes", "No"]
+                                  ).map((opt: string, i: number) => (
                                     <option key={i} value={opt}>
                                       {opt}
                                     </option>
-                                  ));
-                                })()}
-                              </select>
-                              {isAdmin && (
-                                <div className="flex gap-1 items-center">
-                                  <input
-                                    placeholder="Add option..."
-                                    className="text-xs p-1 border rounded flex-1"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        const val =
-                                          e.currentTarget.value.trim();
-                                        if (val) {
-                                          let currentOptions: any = [];
-                                          try {
-                                            if (typeof q.options === "string") {
-                                              currentOptions = JSON.parse(
-                                                q.options,
-                                              );
-                                            } else if (Array.isArray(q.options)) {
-                                              currentOptions = q.options;
-                                            }
-                                          } catch (e) {
-                                            currentOptions = q.options || [];
-                                          }
-                                          const newOpts = [
-                                            ...currentOptions,
-                                            val,
-                                          ];
-                                          setQuestions((prev) =>
-                                            prev.map((item) =>
-                                              item.id === q.id
-                                                ? { ...item, options: newOpts }
-                                                : item,
-                                            ),
-                                          );
-                                          handleUpdateTemplate(
-                                            q.id,
-                                            q.text,
-                                            q.type?.toUpperCase(),
-                                            newOpts,
-                                          );
-                                          e.currentTarget.value = "";
-                                        }
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-[10px] text-gray-400">
-                                    Press Enter
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ) : q.type?.toUpperCase() === "CHECKBOX" ? (
-                            <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
-                              {(() => {
-                                let options = [];
-                                try {
-                                  if (typeof q.options === "string") {
-                                    options = JSON.parse(q.options);
-                                  } else if (Array.isArray(q.options)) {
-                                    options = q.options;
-                                  }
-                                } catch (e) {
-                                  options = q.options || [];
-                                }
-                                return options.map((opt: any, i: number) => (
-                                  <label
-                                    key={i}
-                                    className="flex items-center gap-2 cursor-pointer group"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={
-                                        Array.isArray(q.answer)
-                                          ? q.answer.includes(opt)
-                                          : q.answer === opt
-                                      }
-                                      onChange={(e) => {
-                                        let newAnswer = Array.isArray(
-                                          q.answer,
-                                        )
-                                          ? [...q.answer]
-                                          : q.answer
-                                            ? [q.answer]
-                                            : [];
-                                        if (e.target.checked) {
-                                          newAnswer.push(opt);
-                                        } else {
-                                          newAnswer = newAnswer.filter(
-                                            (a) => a !== opt,
-                                          );
-                                        }
-                                        handleTextChange(q.id, newAnswer);
-                                      }}
-                                      className="rounded border-gray-300 text-blue-900 focus:ring-blue-900"
-                                    />
-                                    <span className="text-sm text-gray-600 group-hover:text-gray-900">
-                                      {opt}
-                                    </span>
-                                    {isAdmin && (
-                                      <button
-                                        type="button"
-                                      onClick={() => {
-                                        let currentOptions: any = [];
-                                        try {
-                                          if (typeof q.options === "string") {
-                                            currentOptions = JSON.parse(q.options);
-                                          } else if (Array.isArray(q.options)) {
-                                            currentOptions = q.options;
-                                          }
-                                        } catch (e) {
-                                          currentOptions = q.options || [];
-                                        }
-                                        const newOpts = currentOptions.filter(
-                                          (_: any, idx: number) => idx !== i,
-                                        );
-                                        setQuestions((prev) =>
-                                          prev.map((item) =>
-                                            item.id === q.id
-                                              ? { ...item, options: newOpts }
-                                              : item,
-                                          ),
-                                        );
-                                        handleUpdateTemplate(
-                                          q.id,
-                                          q.text,
-                                          q.type?.toUpperCase(),
-                                          newOpts,
-                                        );
-                                      }}
-                                      className="hidden group-hover:block text-red-400 hover:text-red-600"
+                                  ))}
+                                </select>
+                              ) : q.type?.toUpperCase() === "CHECKBOX" ? (
+                                <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
+                                  {(Array.isArray(q.options)
+                                    ? q.options
+                                    : ["Yes", "No"]
+                                  ).map((opt: any, i: number) => (
+                                    <label
+                                      key={i}
+                                      className="flex items-center gap-2 cursor-pointer group"
                                     >
-                                      <XMarkIcon className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </label>
-                                ));
-                              })()}
-                              {isAdmin && (
-                                <input
-                                  placeholder="Add option..."
-                                  className="text-xs p-1 border rounded w-full bg-white"
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      const val = e.currentTarget.value.trim();
-                                      if (val) {
-                                        let currentOptions: any = [];
-                                        try {
-                                          if (typeof q.options === "string") {
-                                            currentOptions = JSON.parse(q.options);
-                                          } else if (Array.isArray(q.options)) {
-                                            currentOptions = q.options;
-                                          }
-                                        } catch (e) {
-                                          currentOptions = q.options || [];
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          Array.isArray(q.answer)
+                                            ? q.answer.includes(opt)
+                                            : q.answer === opt
                                         }
-                                        const newOpts = [
-                                          ...currentOptions,
-                                          val,
-                                        ];
-                                        setQuestions((prev) =>
-                                          prev.map((item) =>
-                                            item.id === q.id
-                                              ? { ...item, options: newOpts }
-                                              : item,
-                                          ),
-                                        );
-                                        handleUpdateTemplate(
-                                          q.id,
-                                          q.text,
-                                          q.type?.toUpperCase(),
-                                          newOpts,
-                                        );
-                                        e.currentTarget.value = "";
-                                      }
-                                    }
-                                  }}
+                                        onChange={(e) => {
+                                          let newAnswer = Array.isArray(q.answer)
+                                            ? [...q.answer]
+                                            : q.answer
+                                              ? [q.answer]
+                                              : [];
+                                          if (e.target.checked) {
+                                            newAnswer.push(opt);
+                                          } else {
+                                            newAnswer = newAnswer.filter(
+                                              (a) => a !== opt
+                                            );
+                                          }
+                                          handleTextChange(q.id, newAnswer);
+                                        }}
+                                        className="rounded border-gray-300 text-blue-900 focus:ring-blue-900"
+                                      />
+                                      <span className="text-sm text-gray-600 group-hover:text-gray-900">
+                                        {opt}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={q.answer || ""}
+                                  onChange={(e) =>
+                                    handleTextChange(q.id, e.target.value)
+                                  }
+                                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                                  placeholder="Enter your response..."
                                 />
                               )}
-                            </div>
-                          ) : (
-                            <textarea
-                              value={q.answer}
-                              onChange={(e) =>
-                                handleTextChange(q.id, e.target.value)
-                              }
-                              onKeyDown={(e) => e.stopPropagation()}
-                              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm"
-                              placeholder="Enter your response..."
-                              rows={3}
-                            />
-                          )}
 
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-600">
-                              Score:
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              max={100}
-                              value={q.score}
-                              onChange={(e) =>
-                                handleScoreChange(q.id, e.target.value)
-                              }
-                              className="w-20 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                            />
-                          </div>
+                              {/* Score Input */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <label className="text-sm text-gray-600">
+                                  Score:
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={q.score || 0}
+                                  onChange={(e) =>
+                                    handleScoreChange(q.id, e.target.value)
+                                  }
+                                  className="w-20 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                                />
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
 
-                    {/* Total Score Section */}
+                    {/* Total Score Calculator */}
                     <div className="mt-8 border-t pt-4 text-right">
                       <label className="text-lg font-semibold text-gray-700 mr-2">
                         Total Score:
                       </label>
                       <input
                         type="number"
-                        value={totalScore}
-                        onChange={(e) =>
-                          setQuestions((prev) => {
-                            const newTotal = parseFloat(e.target.value) || 0;
-                            const updated = [...prev];
-                            const diff =
-                              newTotal -
-                              prev.reduce((sum, q) => sum + q.score, 0);
-                            if (updated.length > 0) {
-                              updated[updated.length - 1].score += diff;
-                            }
-                            return [...updated];
-                          })
-                        }
-                        className="w-24 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-blue-700"
+                        disabled
+                        value={Math.round(totalScore)}
+                        className="w-24 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-blue-700 bg-gray-50 font-bold"
                       />
                     </div>
 
@@ -3828,71 +3759,67 @@ useEffect(() => {
                       <input
                         type="file"
                         accept="audio/*"
-                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
                         onChange={handleAudioUpload}
                         disabled={isUploadingAudio}
+                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 bg-white"
                       />
                       {isUploadingAudio && (
                         <p className="mt-2 text-blue-600 text-sm">
                           Uploading audio...
                         </p>
                       )}
+                      {!audioUrl && !isUploadingAudio && (
+                        <p className="mt-2 text-gray-500 text-sm">
+                          You can save the evaluation now and upload audio later.
+                        </p>
+                      )}
                       {audioUrl && (
-                        <div className="mt-4">
-                          <p className="text-green-600 text-sm mb-2">
-                            Audio uploaded successfully!
-                          </p>
-                          <audio
-                            key={audioUrl}
-                            src={audioUrl}
-                            controls
-                            className="w-full h-10 shadow-sm rounded-lg overflow-hidden"
-                          >
-                            Your browser does not support the audio element.
-                          </audio>
-                        </div>
+                        <audio
+                          src={audioUrl}
+                          controls
+                          className="mt-4 w-full h-10 shadow-sm rounded-lg"
+                        />
                       )}
                     </div>
 
+                    {/* Submit Button */}
                     <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-2">
                       {isEditingEvaluation && (
                         <button
                           type="button"
-                          onClick={() => {
-                            prefillQuestionsFromData();
-                            setIsEditingEvaluation(false);
-                          }}
-                          className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium"
+                          onClick={() => setIsEditingEvaluation(false)}
+                          className="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
                         >
-                          Cancel Edit
+                          Cancel
                         </button>
                       )}
-                      {
-                        <button
-                          type="submit"
-                          className="w-full sm:w-auto bg-blue-800 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-medium"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting
-                            ? "Submitting..."
-                            : isEditingEvaluation
-                              ? "Update Evaluation"
-                              : "Submit Evaluation"}
-                        </button>
-                      }
-                      {submitMessage && (
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || isUploadingAudio}
+                        className="w-full sm:w-auto bg-blue-800 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-medium"
+                      >
+                        {isSubmitting
+                          ? "Saving Evaluation..."
+                          : isEditingEvaluation
+                            ? "Update Evaluation"
+                            : "Save Evaluation"}
+                      </button>
+                    </div>
+                    {submitMessage && (
+                      <div className="mt-2 text-right">
                         <span
                           className={
                             submitMessage.includes("success")
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-green-600 text-sm"
+                              : "text-red-600 text-sm"
                           }
                         >
                           {submitMessage}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
+
                 </div>
               )}
           </form>

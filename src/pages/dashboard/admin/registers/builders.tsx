@@ -24,7 +24,7 @@ const navItems = [
 ];
 
 
-const exportToExcel = (data: any[], filename: string) => {
+const exportToExcel = (data: any[], filename: string, activeTab?: string) => {
   if (!data || data.length === 0) {
     alert("No data to export");
     return;
@@ -44,7 +44,7 @@ const exportToExcel = (data: any[], filename: string) => {
       item.contractorTypes ||
       item.hardwareTypes ||
       "N/A",
-    Specialization: item.specialization || "N/A",
+    ...(activeTab !== "HARDWARE" ? { Specialization: item.specialization || "N/A" } : {}),
     Email: item.email || item.Email || "N/A",
     Phone: item.phoneNo || item.phone || item.phoneNumber || "N/A",
     County: item.county || "N/A",
@@ -60,15 +60,16 @@ const exportToExcel = (data: any[], filename: string) => {
 
   
   worksheet["!cols"] = [
-    { wch: 5 },
-    { wch: 25 },
-    { wch: 20 },
-    { wch: 25 },
-    { wch: 15 },
-    { wch: 15 },
-    { wch: 15 },
-    { wch: 12 },
-    { wch: 12 },
+    { wch: 5 },   // #
+    { wch: 25 },  // Name
+    { wch: 20 },  // Type
+    ...(activeTab !== "HARDWARE" ? [{ wch: 25 }] : []), // Specialization
+    { wch: 15 },  // Email
+    { wch: 15 },  // Phone
+    { wch: 15 },  // County
+    { wch: 12 },  // subCounty
+    { wch: 12 },  // Created
+    { wch: 12 },  // Status
   ];
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Builders");
@@ -101,7 +102,7 @@ const exportToPDF = async (
       item.contractorTypes ||
       item.hardwareTypes ||
       "N/A",
-    item.specialization || "N/A",
+    ...(builderType !== "HARDWARE" ? [item.specialization || "N/A"] : []),
     item.email || item.Email || "N/A",
     item.phoneNo || item.phone || item.phoneNumber || "N/A",
     item.county || "N/A",
@@ -113,7 +114,7 @@ const exportToPDF = async (
       tableData,
       filename,
       "BUILDERS REPORT",
-      ["#", "Name", "Type", "Specialization", "Email", "Phone", "County", "Status"],
+      ["#", "Name", "Type", ...(builderType !== "HARDWARE" ? ["Specialization"] : []), "Email", "Phone", "County", "Status"],
       builderType,
     );
   } catch (error) {
@@ -352,7 +353,7 @@ export default function BuildersAdmin() {
                   <button
                     type="button"
                     onClick={() => {
-                      exportToExcel(filteredBuilders, "builders");
+                      exportToExcel(filteredBuilders, "builders", activeTab);
                       setIsExportDropdownOpen(false);
                     }}
                     disabled={filteredBuilders.length === 0}
@@ -444,9 +445,11 @@ export default function BuildersAdmin() {
                             ? "Contractor Type"
                             : "Hardware Type"}
                     </th>
-                    <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
-                      Specialization
-                    </th>
+                    {activeTab !== "HARDWARE" && (
+                      <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
+                        Specialization
+                      </th>
+                    )}
                     <th className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                       Email
                     </th>
@@ -509,9 +512,11 @@ export default function BuildersAdmin() {
                           row.hardwareTypes ||
                           "N/A"}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {row.specialization || "N/A"}
-                      </td>
+                      {activeTab !== "HARDWARE" && (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {row.specialization || "N/A"}
+                        </td>
+                      )}
                       <td className="px-3 py-4 whitespace-nowrap">
                         {row.email || row.Email || "N/A"}
                       </td>
@@ -690,6 +695,8 @@ export default function BuildersAdmin() {
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
         updateFilter={updateFilter}
+        activeTab={activeTab}
+        axiosInstance={axiosInstance}
       />
 
       {/* Move to Trash Modal */}
