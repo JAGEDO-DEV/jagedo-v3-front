@@ -119,10 +119,15 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
 
-        const contractorCategories =
+        let contractorCategories =
           userData?.contractorCategories ||
           userData?.contractorExperiences ||
           [];
+
+        if ((!contractorCategories || contractorCategories.length === 0) && userData?.contractorTypes) {
+          contractorCategories = userData.contractorTypes.split(",").map(t => ({ category: t.trim() })).filter(c => c.category);
+        }
+
         if (Array.isArray(contractorCategories)) {
           contractorCategories.forEach((cat: any) => {
             const categoryName = cat.category || "";
@@ -317,7 +322,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      const contractorCategories = profile.contractorExperiences || [];
+      let contractorCategories = profile.contractorExperiences || [];
+      if ((!contractorCategories || contractorCategories.length === 0) && profile.contractorTypes) {
+        contractorCategories = profile.contractorTypes.split(",").map(t => ({ category: t.trim() })).filter(c => c.category);
+      }
+
       if (Array.isArray(contractorCategories)) {
         contractorCategories.forEach((cat: any, index: number) => {
           const categoryName = cat.category || "";
@@ -437,8 +446,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         },
       ];
 
-      const contractorCategories =
+      let contractorCategories =
         userData?.contractorCategories || userData?.contractorExperiences;
+
+      if ((!contractorCategories || contractorCategories.length === 0) && userData?.contractorTypes) {
+        contractorCategories = userData.contractorTypes.split(",").map(t => ({ category: t.trim() })).filter(c => c.category);
+      }
+
       if (
         Array.isArray(contractorCategories) &&
         contractorCategories.length > 0

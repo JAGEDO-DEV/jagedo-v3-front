@@ -429,7 +429,7 @@ export default function ShopAttributes() {
                         disabled={importing}
                         className="gap-1.5 text-gray-700 border-gray-300"
                     >
-                        <Upload className="h-3.5 w-3.5" />
+                        <Upload className="h-4 w-4" />
                         {importing ? "Importing..." : "Import"}
                     </Button>
                     <Button
@@ -438,15 +438,15 @@ export default function ShopAttributes() {
                         onClick={handleExport}
                         className="gap-1.5 text-gray-700 border-gray-300"
                     >
-                        <Download className="h-3.5 w-3.5" />
+                        <Download className="h-4 w-4" />
                         Export
                     </Button>
                     <Button
                         size="sm"
                         onClick={() => setShowAddModal(true)}
-                        className="gap-1.5 bg-[#00007A] hover:bg-[#00007A]/90 text-white"
+                        className="gap-1.5 bg-[#00007A] hover:bg-[#00007A]/90 text-white font-semibold"
                     >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-4 w-4" />
                         Add Attribute
                     </Button>
                 </div>
@@ -484,7 +484,7 @@ export default function ShopAttributes() {
                                         <TableHead className="w-[100px] text-center">REQUIRED</TableHead>
                                         <TableHead className="w-[100px] text-center">FILTERABLE</TableHead>
                                         <TableHead className="w-[150px] text-center">SHOW TO CUSTOMER</TableHead>
-                                        <TableHead className="w-[100px] text-center">ACTIONS</TableHead>
+                                        <TableHead className="w-[120px] text-center">ACTIONS</TableHead>
                                         <TableHead className="w-[80px] text-center">TOGGLE</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -516,18 +516,18 @@ export default function ShopAttributes() {
                                                     <TableCell className="text-gray-400 text-center">-</TableCell>
                                                     <TableCell className="text-gray-400 text-center">-</TableCell>
                                                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                                        <div className="flex items-center justify-center gap-2">
+                                                        <div className="flex items-center justify-center gap-3">
                                                             <button 
                                                                 onClick={() => handleEditGroupClick(gName)}
-                                                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                                                className="p-1 rounded-lg bg-gray-50 text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
                                                             >
-                                                                <Edit className="h-4 w-4" />
+                                                                <Edit className="h-5 w-5" />
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleDeleteGroupClick(gName)}
-                                                                className="text-red-300 hover:text-red-500 transition-colors"
+                                                                className="p-1 rounded-lg bg-gray-50 text-red-300 hover:bg-red-50 hover:text-red-500 transition-all border border-transparent hover:border-red-100"
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
+                                                                <Trash2 className="h-5 w-5" />
                                                             </button>
                                                         </div>
                                                     </TableCell>
@@ -609,21 +609,21 @@ export default function ShopAttributes() {
                                                                             {attr.customerView ? "yes" : "no"}
                                                                         </span>
                                                                     </TableCell>
-                                                                    <TableCell className="text-center">
-                                                                        <div className="flex items-center justify-center gap-2">
+                                                                    <TableCell className="text-center px-4">
+                                                                        <div className="flex items-center justify-center gap-3">
                                                                             <button
                                                                                 onClick={() => handleEditAttribute(attr)}
-                                                                                className="text-gray-400 hover:text-gray-700 transition-colors"
+                                                                                className="p-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100 hover:border-blue-200"
                                                                                 title="Edit"
                                                                             >
-                                                                                <Edit className="h-4 w-4" />
+                                                                                <Edit className="h-5 w-5" />
                                                                             </button>
                                                                             <button
                                                                                 onClick={() => handleDeleteAttribute(attr)}
-                                                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                                className="p-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-100 hover:border-red-200"
                                                                                 title="Delete"
                                                                             >
-                                                                                <Trash2 className="h-4 w-4" />
+                                                                                <Trash2 className="h-5 w-5" />
                                                                             </button>
                                                                         </div>
                                                                     </TableCell>

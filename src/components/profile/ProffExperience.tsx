@@ -49,7 +49,9 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [skillsLoading, setSkillsLoading] = useState(false);
     const [specsLoading, setSpecsLoading] = useState(false);
 
-    const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+    const isReadOnly = 
+        !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || 
+        data?.status === 'VERIFIED';
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {

@@ -99,7 +99,6 @@ function ProfileSide({
   finalNavItems.push(
     filteredBaseNavItems.find((i) => i.id === "Account Info"),
     filteredBaseNavItems.find((i) => i.id === "Address"),
-    uploadsItem
   );
 
   if (
@@ -108,6 +107,10 @@ function ProfileSide({
     userType !== "admin"
   ) {
     finalNavItems.push(experienceItem);
+  }
+
+  if (uploadsItem) {
+    finalNavItems.push(uploadsItem);
   }
 
   if (

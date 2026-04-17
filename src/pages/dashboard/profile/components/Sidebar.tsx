@@ -21,7 +21,7 @@ interface SidebarProps {
   userData?: any;
 }
 
-// Base navigation items
+
 const baseNavigationItems = [
   {
     id: "account-info",
@@ -86,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const email = userData?.email || "No email provided";
 
-  // Navigation items
+  
   const getNavigationItems = () => {
     if (userType === "CUSTOMER") {
       return [...baseNavigationItems, uploadsItem, marketingItem];
@@ -96,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
     }
 
+    
     return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
   };
 
@@ -118,18 +119,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Core rule {Eugine Here PLEASE Don't Change This!!!}
+  
   const isTabDisabled = (itemId: string): boolean => {
     const items = getNavigationItems();
     const currentIndex = items.findIndex(i => i.id === itemId);
     
-    // First tab is always enabled
+    
     if (currentIndex <= 0) return false;
     
-    // Check previous tab completion
+    
     const prevItem = items[currentIndex - 1];
     
-    // Marketing and Products are special - usually don't lock or have specific rules
+    
     if (itemId === "marketing") return false;
     if (itemId === "products") {
        return userData?.status !== "VERIFIED";

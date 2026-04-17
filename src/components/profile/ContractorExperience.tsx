@@ -148,18 +148,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         }));
         setCategories(mappedCategories);
       } else if (contractorTypes) {
-        const slugs = contractorTypes.split(',').map((s: string) => s.trim());
-        const prePopulated = slugs
-          .map(name => {
-            // Check if it's already a full name (e.g., "Electrical Works")
-            if (CATEGORIES.includes(name)) {
-              return name;
-            }
-            // Otherwise try to map from slug format
-            return SLUG_MAP[name.toLowerCase().replace(/\s+/g, '-')] || null;
-          })
-          .filter(Boolean)
-          .map(name => ({
+        const slugs = contractorTypes.split(',').map((s: string) => s.trim()).filter(Boolean);
+        const prePopulated = slugs.map(name => ({
             id: crypto.randomUUID(),
             category: name,
             specialization: "",
@@ -536,7 +526,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                     <select
                       value={cat.category}
                       onChange={e => handleCategoryChange(cat.id, e.target.value)}
-                      disabled={isReadOnly || index === 0}
+                      disabled={isReadOnly}
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Select Category</option>
@@ -633,7 +623,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                         )}
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Completion Letter</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Reference Letter</label>
                         {renderFileState(
                           proj.referenceLetterFile,
                           () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: null } : x)),
