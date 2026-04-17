@@ -150,6 +150,30 @@ export function ProfileCompletion({
 
     }, [secondaryContact.otp, currentStep, secondaryContact.isVerified, isVerifying, totalSteps]);
 
+    // Sync user prop to state when it arrives
+    useEffect(() => {
+        if (!user) return;
+
+        setPersonalInfo(prev => ({
+            ...prev,
+            firstName: prev.firstName || user?.firstName || "",
+            lastName: prev.lastName || user?.lastName || "",
+            idNumber: prev.idNumber || user?.idNumber || "",
+            idType: prev.idType || user?.idType || "NATIONAL_ID",
+            organizationName: prev.organizationName || user?.organizationName || "",
+            contactFullName: prev.contactFullName || user?.contactFullName || "",
+        }));
+
+        setLocation(prev => ({
+            ...prev,
+            country: prev.country || user?.country || "Kenya",
+            county: prev.county || user?.county || "",
+            subCounty: prev.subCounty || user?.subCounty || "",
+            city: prev.city || user?.city || user?.townCity || user?.town || "",
+            estate: prev.estate || user?.estateVillage || user?.estate || "",
+        }));
+    }, [user]);
+
     useEffect(() => {
         if (!secondaryContact.isOtpSent || secondaryContact.canResend) return;
 
@@ -369,6 +393,7 @@ export function ProfileCompletion({
                 ...nameFields,
                 ...location,
                 townCity: location.city,
+                city: location.city,
                 estateVillage: location.estate,
                 ...reference,
                 redirectTo: "/profile"
@@ -572,7 +597,7 @@ export function ProfileCompletion({
                                     <Label>County *</Label>
                                     <Select
                                         value={location.county}
-                                        onValueChange={(value) => setLocation({ ...location, county: value, subCounty: "" })}
+                                        onValueChange={(value) => setLocation(prev => ({ ...prev, county: value, subCounty: "" }))}
                                     >
                                         <SelectTrigger className="w-full border-gray-300 h-auto py-3">
                                             <SelectValue placeholder="Select County" />
@@ -590,7 +615,7 @@ export function ProfileCompletion({
                                     <Label>Sub-County *</Label>
                                     <Select
                                         value={location.subCounty}
-                                        onValueChange={(value) => setLocation({ ...location, subCounty: value })}
+                                        onValueChange={(value) => setLocation(prev => ({ ...prev, subCounty: value }))}
                                     >
                                         <SelectTrigger className="w-full border-gray-300 h-auto py-3">
                                             <SelectValue placeholder="Select Sub-County" />
@@ -604,11 +629,11 @@ export function ProfileCompletion({
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label>City/Town *</Label>
+                                <Label>City *</Label>
                                 <Input
                                     value={location.city}
-                                    onChange={(e) => setLocation({ ...location, city: e.target.value })}
-                                    placeholder="Enter City or Town"
+                                    onChange={(e) => setLocation(prev => ({ ...prev, city: e.target.value }))}
+                                    placeholder="Enter City"
                                     className="w-full border-gray-300 py-3"
                                 />
                             </div>
@@ -616,7 +641,7 @@ export function ProfileCompletion({
                                 <Label>Estate/Village *</Label>
                                 <Input
                                     value={location.estate}
-                                    onChange={(e) => setLocation({ ...location, estate: e.target.value })}
+                                    onChange={(e) => setLocation(prev => ({ ...prev, estate: e.target.value }))}
                                     placeholder="Enter Estate or Village"
                                     className="w-full border-gray-300 py-3"
                                 />

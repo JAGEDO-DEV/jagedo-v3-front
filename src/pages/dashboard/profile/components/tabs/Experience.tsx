@@ -581,12 +581,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
 
     
     if (userData?.contractorTypes) {
-      return [{
-        category: userData.contractorTypes || "",
-        specialization: userData.specialization || "",
-        class: userData.levelOrClass || "",
-        years: userData.yearsOfExperience || "",
-      }];
+      const types = userData.contractorTypes.split(",").map(t => t.trim()).filter(Boolean);
+      if (types.length > 0) {
+        return types.map(t => ({
+          category: t,
+          specialization: userData.specialization || "",
+          class: userData.levelOrClass || "",
+          years: userData.yearsOfExperience || "",
+        }));
+      }
     }
 
     return [{ category: "", specialization: "", class: "", years: "" }];
@@ -745,16 +748,16 @@ useEffect(() => {
           yearsOfExperience: userData.yearsOfExperience || "",
         };
 
-      case "CONTRACTOR":
+      case "CONTRACTOR": {
+        // Prefer contractorExperiences as the source of truth for categories
+        const firstExp = userData?.contractorExperiences?.[0];
         return {
-          category: userData.contractorType || userData.contractorTypes || "",
-          specialization:
-            userData.specialization ||
-            userData.contractorSpecialization || "",
-          class: userData.licenseLevel || "",
-          yearsOfExperience:
-            userData.contractorExperiences?.[0]?.yearsOfExperience || "",
+          category: firstExp?.category || userData?.contractorType || userData?.contractorTypes || "",
+          specialization: firstExp?.specialization || userData?.specialization || userData?.contractorSpecialization || "",
+          class: firstExp?.categoryClass || firstExp?.class || userData?.licenseLevel || "",
+          yearsOfExperience: firstExp?.yearsOfExperience || userData?.contractorExperiences?.[0]?.yearsOfExperience || "",
         };
+      }
 
       case "HARDWARE":
         const hardwareType =
@@ -2650,7 +2653,6 @@ useEffect(() => {
                                 }
                               }
                             }}
-                            disabled={index === 0}
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select category</option>
@@ -2955,12 +2957,12 @@ useEffect(() => {
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
-                                Completion Letter
+                                Reference Letter
                               </label>
                               {renderAdminFileSlot(
                                 referenceFile,
                                 "referenceLetterUrl",
-                                "Completion Letter",
+                                "Reference Letter",
                               )}
                             </div>
                           </div>

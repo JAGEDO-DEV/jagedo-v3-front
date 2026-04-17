@@ -60,7 +60,8 @@ import AddProductForm from "./AddProductForm";
 import {
     getAllProducts,
     approveProduct,
-    deleteProduct as deleteProductAPI
+    deleteProduct as deleteProductAPI,
+    bulkCreateProducts
 } from "@/api/products.api";
 import { logProductView } from "@/api/analytics.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -116,6 +117,76 @@ export default function ShopProducts() {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        const reader = new FileReader();
+
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: "binary" });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+                if (data.length === 0) {
+                    toast.error("The file is empty");
+                    setImporting(false);
+                    return;
+                }
+
+                const loadingToast = toast.loading(`Importing ${data.length} products...`);
+
+                // Map spreadsheet columns to product fields
+                const formattedProducts = data.map((row) => ({
+                    name: row["Name"] || row["name"],
+                    description: row["Description"] || row["description"] || "",
+                    type: row["Type"] || row["type"] || selectedGroupType,
+                    group: row["Category"] || row["Category Name"] || row["group"] || "",
+                    subGroup: row["Sub Category"] || row["Sub Category Name"] || row["subGroup"] || null,
+                    sku: row["SKU"] || row["sku"] || null,
+                    productCode: row["Product Code"] || row["productCode"] || null,
+                    basePrice: Number(row["Base Price"] || row["basePrice"] || 0),
+                    pricingReference: row["Pricing Reference"] || row["pricingReference"] || "",
+                    active: String(row["Status"]).toLowerCase() === "active" || row["active"] === true,
+                    // If there are specs, they might be in a JSON string or as individual columns
+                    specs: row["Specs"] ? JSON.parse(row["Specs"]) : {}
+                }));
+
+                try {
+                    const response = await bulkCreateProducts(axiosInstance, formattedProducts);
+                    toast.dismiss(loadingToast);
+                    if (response.success) {
+                        toast.success(`Successfully imported ${formattedProducts.length} products`);
+                        fetchProducts();
+                    } else {
+                        toast.error(response.message || "Failed to import products");
+                    }
+                } catch (error: any) {
+                    toast.dismiss(loadingToast);
+                    toast.error(error.message || "Bulk upload failed");
+                }
+            } catch (error) {
+                console.error("Import error:", error);
+                toast.error("Failed to parse file. Ensure it's a valid Excel or CSV.");
+            } finally {
+                setImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+            }
+        };
+
+        reader.readAsBinaryString(file);
+    };
 
     const groups = [
         { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
@@ -358,7 +429,7 @@ export default function ShopProducts() {
                         <div className="flex justify-between items-start mb-6">
                             <div className="space-y-1">
                                 <DialogTitle className="text-4xl font-black text-[#111827] tracking-tight">
-                                    {product.name.toUpperCase()}
+                                    {product?.name?.toUpperCase() || ""}
                                 </DialogTitle>
                                 <p className="text-[11px] font-medium text-gray-400 uppercase tracking-widest flex items-center gap-2">
                                     <span>SKU: <span className="text-gray-600 font-bold">{product.sku || 'N/A'}</span></span>
@@ -652,8 +723,25 @@ export default function ShopProducts() {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                    <Button variant="outline" className="h-10 bg-white border-gray-200 text-gray-700 rounded-lg">
-                        <Upload className="mr-2 h-4 w-4" /> Import
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImport}
+                        accept=".xlsx, .xls, .csv"
+                        className="hidden"
+                    />
+                    <Button
+                        variant="outline"
+                        onClick={handleImportClick}
+                        disabled={importing}
+                        className="h-10 bg-white border-gray-200 text-gray-700 rounded-lg"
+                    >
+                        {importing ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        {importing ? "Importing..." : "Import"}
                     </Button>
                     <Button
                         variant="outline"

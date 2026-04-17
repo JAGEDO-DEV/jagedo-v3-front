@@ -195,7 +195,7 @@ const Address = ({ data, refreshData }) => {
         {/* City */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
-            Town / City
+            City
           </label>
           {isEditing ? (
             <input
@@ -203,7 +203,7 @@ const Address = ({ data, refreshData }) => {
               value={address.city}
               onChange={(e) => setAddress({ ...address, city: e.target.value })}
               className="w-full px-4 py-2 border rounded-md"
-              placeholder="Enter town or city"
+              placeholder="Enter city"
             />
           ) : (
             <input

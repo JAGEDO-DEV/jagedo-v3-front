@@ -52,7 +52,6 @@ interface ProductFormData {
   subGroup: string;
   sku: string;
   productCode: string;
-  price: string;
   region: string;
   images: string[];
   [key: string]: any;
@@ -465,7 +464,6 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
     subGroup: "",
     sku: "",
     productCode: generateProductCode(),
-    price: "",
     region: "",
     images: [],
   });
@@ -582,11 +580,6 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
               productCode: (
                 existingProduct.productCode ||
                 existingProduct.bId ||
-                ""
-              ).toString(),
-              price: (
-                existingProduct.customPrice ||
-                existingProduct.basePrice ||
                 ""
               ).toString(),
               region: (
@@ -736,7 +729,6 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
       { key: "description", label: "Description" },
       { key: "region", label: "Region" },
       { key: "sku", label: "SKU" },
-      { key: "price", label: "Price" },
     ];
 
     const missingField = requiredFields.find(
@@ -779,7 +771,6 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
         sku: formData.sku,
         productCode: formData.productCode,
         images: imageUrls,
-        customPrice: parseFloat(formData.price) || 0,
         regionId: formData.region,
         sellerId: targetUser?.id || user.id,
         status: statusType === "Drafts" ? "DRAFT" : "PENDING",
@@ -974,23 +965,6 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
                 disabled
                 placeholder="Auto-generating..."
                 className="h-12 bg-gray-50 text-gray-500 cursor-not-allowed border-gray-100"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="price"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Price (KES) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => handleInputChange("price", e.target.value)}
-                placeholder="0.00"
-                className="h-12 border-gray-200"
               />
             </div>
           </div>

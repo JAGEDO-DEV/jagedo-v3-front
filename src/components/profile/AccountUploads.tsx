@@ -193,7 +193,7 @@ const DocumentCard = ({
             </a>
           </>
         )}
-        {!disabled && (
+        {!disabled && status !== "rejected" && status !== "REJECTED" && (
           <label
             className={`flex-1 cursor-pointer ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
           >
@@ -454,15 +454,8 @@ console.log("Approval Status Map:", totalApproved, totalPending);
           if (!docsMap[licenseKey] && data[licenseKey]) docsMap[licenseKey] = data[licenseKey];
         });
       } else if (data.contractorTypes) {
-        const SLUG_MAP = {
-          "building-works": "Building Works",
-          "electrical-works": "Electrical Works",
-          "mechanical-works": "Mechanical Works",
-          "road-works": "Road Works",
-          "water-works": "Water Works",
-        };
-        data.contractorTypes.split(",").forEach((slug) => {
-          const name = SLUG_MAP[slug.trim()];
+        data.contractorTypes.split(",").forEach((t) => {
+          const name = t.trim();
           if (name) catNames.push(name);
         });
       }
