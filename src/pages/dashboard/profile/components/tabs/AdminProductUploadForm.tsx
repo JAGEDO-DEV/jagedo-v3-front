@@ -459,7 +459,7 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     description: "",
-    type: initialType ? initialType.toUpperCase() : (user?.userType || "HARDWARE"),
+    type: (initialType || targetUser?.userType || user?.userType || "HARDWARE").toUpperCase(),
     group: "",
     subGroup: "",
     sku: "",
@@ -591,8 +591,7 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
               description: existingProduct.description || "",
               type:
                 existingProduct.type ||
-                (initialType ? initialType.toUpperCase() : user?.userType) ||
-                "HARDWARE",
+                (initialType || targetUser?.userType || user?.userType || "HARDWARE").toUpperCase(),
               group: existingProduct.group || "",
               subGroup: existingProduct.subGroup || "",
               sku: (existingProduct.sku || "").toString(),

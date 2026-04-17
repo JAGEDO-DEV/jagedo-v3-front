@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     if (userType === "HARDWARE") {
-      return [...baseNavigationItems, experienceItem, uploadsItem, productsItem];
+      return [...baseNavigationItems, uploadsItem, productsItem];
     }
 
     

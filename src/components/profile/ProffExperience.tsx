@@ -42,7 +42,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Dynamic professional skills and specializations
+    
     const [professionalSkills, setProfessionalSkills] = useState<any[]>([]);
     const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
     const [specializations, setSpecializations] = useState<any[]>([]);
@@ -51,7 +51,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
 
     const isReadOnly = 
         !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || 
-        data?.status === 'VERIFIED';
+        data?.status === 'VERIFIED' || data?.accountStatus === 'VERIFIED';
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
@@ -78,7 +78,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                         }
                     };
 
-                    // Handle various backend response structures
+                    
                     if (Array.isArray(p.files)) {
                         p.files.forEach((f: any) => {
                             if (typeof f === 'string') addFile(f);
@@ -121,7 +121,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
         }
     }, [data]);
 
-    // ── Load professional skills and specialization mappings on mount ────────────────
+    
     useEffect(() => {
         const loadSkillsAndMappings = async () => {
             try {
@@ -130,12 +130,12 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     headers: { Authorization: getAuthHeaders() },
                 });
                 
-                // Get all professional skills
+                
                 const skillsRes = await getBuilderSkillsByType(authAxios, 'PROFESSIONAL');
                 const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
                 setProfessionalSkills(activeSkills);
                 
-                // Get specialization mappings for Professional
+                
                 const mappingsRes = await getSpecializationMappings(authAxios, 'PROFESSIONAL');
                 setSpecMappings(mappingsRes);
             } catch (error) {
@@ -149,7 +149,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
         loadSkillsAndMappings();
     }, []);
 
-    // ── Load specializations when category changes ───────────────────────────────
+    
     useEffect(() => {
         const loadSpecializations = async () => {
             if (!category) {
@@ -169,7 +169,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     headers: { Authorization: getAuthHeaders() },
                 });
                 
-                // Find the profession in professionalSkills to get its assigned specializations array
+                
                 const selectedProfession = professionalSkills.find((s: any) => 
                     normalizeSkillName(s.skillName) === normalizedCategory
                 );
@@ -177,16 +177,16 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 const specTypeCode = specMappings[normalizedCategory];
                 const specsRes = await getMasterDataValues(authAxios, specTypeCode);
                 
-                // Handle both array and wrapped responses
+                
                 const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
                 
-                // If profession found, filter to only assigned specializations; otherwise show all
+                
                 if (selectedProfession) {
                     const assignedSpecCodes = Array.isArray(selectedProfession.specializations) 
                         ? selectedProfession.specializations 
                         : [];
                     
-                    // Filter to only show the specializations assigned to this profession
+                    
                     const filteredSpecs = allSpecs.filter((spec: any) => {
                         const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
                         return assignedSpecCodes.includes(specCode);
@@ -194,7 +194,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     
                     setSpecializations(filteredSpecs);
                 } else {
-                    // Fallback: show all specs if profession not found
+                    
                     setSpecializations(allSpecs);
                 }
             } catch (error) {
@@ -298,7 +298,29 @@ const ProffExperience = ({ data, refreshData }: any) => {
     return (
         <div className="bg-gray-50 min-h-screen w-full p-2 sm:p-4 md:p-8">
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
-                <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Professional Experience</h1>
+                    {isReadOnly && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            <span className="text-xs font-bold uppercase tracking-wider">Verified</span>
+                        </div>
+                    )}
+                </div>
+
+                {isReadOnly && (
+                    <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <p className="text-sm font-semibold text-blue-900">Experience Verified</p>
+                            <p className="text-xs text-blue-700 mt-0.5">Your professional experience has been verified. To update these details, please contact JAGEDO Support.</p>
+                        </div>
+                    </div>
+                )}
                 
                 {data?.experienceStatus === 'REJECTED' && (
                   <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
@@ -326,24 +348,27 @@ const ProffExperience = ({ data, refreshData }: any) => {
 
                 {!submitted ? (
                     <form className="space-y-8" onSubmit={handleSubmit}>
-                        <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200 space-y-4 shadow-inner">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <div className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 text-sm flex items-center">
-                                        {category || "Not Selected"}
-                                    </div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        className="w-full p-3 bg-gray-200 border rounded-lg"
+                                        value={category || ""}
+                                        title={category || "Not Selected"}
+                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Specialization</label>
                                     <select
                                         value={specialization}
                                         onChange={(e) => setSpecialization(e.target.value)}
                                         disabled={isReadOnly || !category || specsLoading}
-                                        className={inputStyles}
+                                        className="w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                                     >
                                         <option value="">Select Specialty</option>
-                                        {/* Use dynamic specializations if available, otherwise fall back to guidelines */}
                                         {(specializations.length > 0
                                             ? specializations.map((spec: any) => {
                                                 const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.name || spec);
@@ -360,15 +385,13 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                         )}
                                     </select>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
                                     <select
                                         value={level}
                                         onChange={(e) => setLevel(e.target.value)}
                                         disabled={isReadOnly}
-                                        className={inputStyles}
+                                        className="w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                                     >
                                         <option value="">Select Level</option>
                                         {GUIDELINES.levels.map(lvl => (
@@ -377,12 +400,12 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
                                     <select
                                         value={experience}
                                         onChange={(e) => setExperience(e.target.value)}
                                         disabled={isReadOnly}
-                                        className={inputStyles}
+                                        className="w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                                     >
                                         <option value="">Select Years</option>
                                         {GUIDELINES.yearsOfExperience.map(yr => (
@@ -394,85 +417,55 @@ const ProffExperience = ({ data, refreshData }: any) => {
                         </div>
 
                         {rowsToShow > 0 && (
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
-                                <div className="hidden md:block overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="bg-gray-100 border-b border-gray-200">
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-1/12">No.</th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-4/12">Project Name</th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-7/12">Project Files</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {attachments.slice(0, rowsToShow).map((row) => (
-                                                <tr key={row.id} className="hover:bg-gray-100/50 transition-colors">
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-500">#{row.id}</td>
-                                                    <td className="px-6 py-4">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Enter project name"
-                                                            value={row.projectName}
-                                                            onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
-                                                            className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500"
-                                                            disabled={isSubmitting || isReadOnly}
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="space-y-2">
-                                                            {row.files.map((fItem, index) => (
-                                                                <div key={index} className="flex items-center justify-between gap-2 bg-white p-2 rounded border shadow-sm">
-                                                                    <span className="text-xs text-gray-700 truncate font-medium" title={fItem.fileName}>{fItem.fileName}</span>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <a href={fItem.previewUrl} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-blue-50 rounded text-blue-600 transition-colors"><EyeIcon className="w-4 h-4" /></a>
-                                                                        {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="p-1 hover:bg-red-50 rounded text-red-500 transition-colors" disabled={isSubmitting}><XMarkIcon className="w-4 h-4" /></button>}
-                                                                    </div>
+                            <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
+                                <div className="bg-blue-50 px-6 py-4">
+                                    <h4 className="text-md font-semibold text-blue-900 mb-2">Add Missing Projects ({rowsToShow} remaining)</h4>
+                                    <p className="text-sm text-blue-700">Add projects to complete your experience profile:</p>
+                                </div>
+                                <div className="px-6 py-4 bg-blue-50">
+                                    {attachments.slice(0, rowsToShow).map((row) => (
+                                        <div key={row.id} className="mb-6 p-4 bg-white rounded-lg border border-blue-200">
+                                            <div className="mb-3 text-sm font-medium text-blue-900">Project {row.id}</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter project name"
+                                                        value={row.projectName}
+                                                        onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
+                                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                        disabled={isSubmitting || isReadOnly}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Project Files</label>
+                                                    <div className="space-y-2">
+                                                        {row.files.map((fItem, index) => (
+                                                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border text-xs">
+                                                                <span className="truncate flex-1 font-medium">{fItem.fileName}</span>
+                                                                <div className="flex gap-2">
+                                                                    <a href={fItem.previewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600"><EyeIcon className="w-4 h-4" /></a>
+                                                                    {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="text-red-500"><XMarkIcon className="w-4 h-4" /></button>}
                                                                 </div>
-                                                            ))}
-                                                            {row.files.length < 3 && !isReadOnly && (
+                                                            </div>
+                                                        ))}
+                                                        {row.files.length < 3 && !isReadOnly && (
+                                                            <>
                                                                 <input
                                                                     type="file"
                                                                     accept="image/*,application/pdf"
                                                                     onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)}
-                                                                    className="text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                                                    disabled={!row.projectName.trim() || isSubmitting}
+                                                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                                                 />
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Mobile View for Projects */}
-                                <div className="md:hidden space-y-4">
-                                    {attachments.slice(0, rowsToShow).map((row) => (
-                                        <div key={row.id} className="bg-white p-4 rounded-lg border shadow-sm space-y-3">
-                                            <div className="flex justify-between items-center border-b pb-2">
-                                                <span className="font-bold text-gray-500 text-sm">Project #{row.id}</span>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                placeholder="Project Name"
-                                                value={row.projectName}
-                                                onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
-                                                className="w-full p-2 border rounded text-sm"
-                                                disabled={isSubmitting || isReadOnly}
-                                            />
-                                            <div className="space-y-2">
-                                                {row.files.map((fItem, index) => (
-                                                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border text-xs">
-                                                        <span className="truncate flex-1">{fItem.fileName}</span>
-                                                        <div className="flex gap-2">
-                                                            <a href={fItem.previewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600"><EyeIcon className="w-4 h-4" /></a>
-                                                            {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="text-red-500"><XMarkIcon className="w-4 h-4" /></button>}
-                                                        </div>
+                                                                {!row.projectName.trim() && (
+                                                                    <p className="text-xs text-amber-700">Enter project name first to unlock file upload.</p>
+                                                                )}
+                                                            </>
+                                                        )}
                                                     </div>
-                                                ))}
-                                                {row.files.length < 3 && !isReadOnly && (
-                                                    <input type="file" onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)} className="text-[10px] w-full" />
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -481,11 +474,11 @@ const ProffExperience = ({ data, refreshData }: any) => {
                         )}
 
                         {!isReadOnly && (
-                            <div className="flex justify-end pt-4">
+                            <div className="mt-6 text-center md:text-right">
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full sm:w-auto bg-blue-800 text-white px-10 py-3 rounded-lg hover:bg-blue-900 transition-all shadow-md shadow-blue-100 disabled:opacity-50 font-bold flex items-center justify-center gap-2"
+                                    className="w-full md:w-auto bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                                     {isSubmitting ? "Submitting..." : "Submit Experience"}
