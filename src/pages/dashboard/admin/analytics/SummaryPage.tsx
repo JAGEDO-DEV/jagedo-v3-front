@@ -66,12 +66,43 @@ export default function SummaryPage() {
     error: null,
     data: null,
   });
-  const [lifecycleEvent, setLifecycleEvent] =
-    useState<LifecycleEvent>("signup");
+  const [selectedLifecycleEvents, setSelectedLifecycleEvents] = useState<LifecycleEvent[]>([
+    "signup",
+    "login",
+    "otp_success",
+    "otp_fail",
+    "suspension",
+    "deletion",
+    "verification",
+  ]);
+  const [multipleLifecycleData, setMultipleLifecycleData] = useState<Record<string, LifecycleState>>({
+    signup: { loading: false, error: null, data: null },
+    login: { loading: false, error: null, data: null },
+    otp_success: { loading: false, error: null, data: null },
+    otp_fail: { loading: false, error: null, data: null },
+    suspension: { loading: false, error: null, data: null },
+    deletion: { loading: false, error: null, data: null },
+    verification: { loading: false, error: null, data: null },
+  });
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
   const [cumulative, setCumulative] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<string>("all");
   const [compareEvents, setCompareEvents] = useState(false);
+  const [selectedUserCategories, setSelectedUserCategories] = useState<string[]>([
+    "total",
+    "customerIndividual",
+    "customerOrg",
+    "fundi",
+    "professional",
+    "contractor",
+    "hardware",
+  ]);
+  const [comparisonLifecycle, setComparisonLifecycle] = useState<LifecycleState>({
+    loading: false,
+    error: null,
+    data: null,
+  });
+  const [enableTwoDayGapComparison, setEnableTwoDayGapComparison] = useState(false);
 
   const fetchAnalytics = async () => {
     try {
@@ -107,18 +138,56 @@ export default function SummaryPage() {
 
   const fetchLifecycleTrends = async () => {
     try {
-      setLifecycle({ loading: true, error: null, data: null });
-      const result = await getLifecycleTrends(
-        axiosInstance,
-        lifecycleEvent,
-        groupBy,
-        cumulative,
-        undefined,
-        period,
-        from,
-        to,
-      );
-      setLifecycle({ loading: false, error: null, data: result.data });
+      const newMultipleData: Record<string, LifecycleState> = {};
+
+      // Fetch data for each selected event
+      for (const event of selectedLifecycleEvents) {
+        try {
+          newMultipleData[event] = { loading: true, error: null, data: null };
+          const result = await getLifecycleTrends(
+            axiosInstance,
+            event,
+            groupBy,
+            cumulative,
+            undefined,
+            period,
+            from,
+            to,
+          );
+          newMultipleData[event] = { loading: false, error: null, data: result.data };
+        } catch (err: any) {
+          newMultipleData[event] = { loading: false, error: err.message, data: null };
+        }
+      }
+
+      setMultipleLifecycleData(newMultipleData);
+
+      // Set primary lifecycle to first selected event for backward compatibility
+      if (selectedLifecycleEvents.length > 0) {
+        setLifecycle(newMultipleData[selectedLifecycleEvents[0]]);
+      }
+
+      // Fetch comparison data if 2-day gap comparison is enabled
+      if (enableTwoDayGapComparison && from && to && selectedLifecycleEvents.length > 0) {
+        try {
+          const { compFrom, compTo } = calculateTwoDayGapComparison(from, to);
+          const compResult = await getLifecycleTrends(
+            axiosInstance,
+            selectedLifecycleEvents[0],
+            groupBy,
+            cumulative,
+            undefined,
+            undefined,
+            compFrom,
+            compTo,
+          );
+          setComparisonLifecycle({ loading: false, error: null, data: compResult.data });
+        } catch (err: any) {
+          setComparisonLifecycle({ loading: false, error: err.message, data: null });
+        }
+      } else {
+        setComparisonLifecycle({ loading: false, error: null, data: null });
+      }
     } catch (err: any) {
       setLifecycle({ loading: false, error: err.message, data: null });
     }
@@ -146,9 +215,29 @@ export default function SummaryPage() {
     fetchAnalytics();
   }, [period, from, to]);
 
+  const toggleLifecycleEvent = (event: LifecycleEvent) => {
+    setSelectedLifecycleEvents((prev) => {
+      if (prev.includes(event)) {
+        return prev.length > 1 ? prev.filter((e) => e !== event) : prev;
+      } else {
+        return [...prev, event];
+      }
+    });
+  };
+
+  const toggleUserCategory = (category: string) => {
+    setSelectedUserCategories((prev) => {
+      if (prev.includes(category)) {
+        return prev.length > 1 ? prev.filter((c) => c !== category) : prev;
+      } else {
+        return [...prev, category];
+      }
+    });
+  };
+
   useEffect(() => {
     fetchLifecycleTrends();
-  }, [lifecycleEvent, groupBy, cumulative, from, to]);
+  }, [selectedLifecycleEvents, groupBy, cumulative, from, to, enableTwoDayGapComparison]);
 
   useEffect(() => {
     trackPageView("Analytics - Summary", axiosInstance);
@@ -181,12 +270,59 @@ export default function SummaryPage() {
       color: getColorForLocation(index),
     })) || [];
 
-  // Transform lifecycle data for chart
-  const lifecycleChartData =
-    lifecycle.data?.map((item) => ({
-      date: item.period,
-      count: item.count,
-    })) || [];
+  // Color palette for lifecycle events
+  const getColorForLifecycleEvent = (index: number): string => {
+    const colors = [
+      "hsl(234, 89%, 74%)", // Blue
+      "hsl(199, 89%, 48%)", // Cyan
+      "hsl(160, 84%, 39%)", // Green
+      "hsl(48, 96%, 53%)", // Yellow
+      "hsl(25, 95%, 53%)", // Orange
+      "hsl(345, 100%, 67%)", // Pink
+      "hsl(271, 90%, 65%)", // Purple
+      "hsl(0, 0%, 50%)", // Gray
+      "hsl(12, 97%, 53%)", // Red
+    ];
+    return colors[index % colors.length];
+  };
+
+  // Transform lifecycle data for chart with optional comparison and multiple events
+  const lifecycleChartData = (() => {
+    if (selectedLifecycleEvents.length === 0) return [];
+
+    // Get the first event's data as baseline for dates
+    const baselineData = multipleLifecycleData[selectedLifecycleEvents[0]]?.data || [];
+    if (baselineData.length === 0) return [];
+
+    return baselineData.map((item, index) => {
+      const baseRow: Record<string, any> = {
+        date: item.period,
+      };
+
+      let totalCount = 0;
+
+      // Add data for each selected event
+      selectedLifecycleEvents.forEach((event) => {
+        const eventData = multipleLifecycleData[event]?.data?.[index];
+        const count = eventData?.count || 0;
+        baseRow[event] = count;
+        totalCount += count;
+      });
+
+      // Add total if there are multiple selected events
+      if (selectedLifecycleEvents.length > 1) {
+        baseRow["total"] = totalCount;
+      }
+
+      // Add comparison data if enabled
+      if (enableTwoDayGapComparison) {
+        const compData = comparisonLifecycle.data?.[index];
+        baseRow[`${selectedLifecycleEvents[0]}_comparison`] = compData?.count || 0;
+      }
+
+      return baseRow;
+    });
+  })();
 
   return (
     <div>
@@ -338,10 +474,11 @@ export default function SummaryPage() {
       )}
 
       {charts?.userCategoryTrend && charts.userCategoryTrend.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 bg-card border border-border rounded-lg p-6">
+          
           <LineChartCard
-            title="User Category Trend"
-            description="User signup progression over time by category."
+            title="User Category Trend Cycle"
+            description="Trend by total users and each category: individual customers, organization customers, fundi, professional, contractor, and hardware."
             data={charts.userCategoryTrend.map((item) => ({
               date: item.month,
               total: item.total,
@@ -352,7 +489,22 @@ export default function SummaryPage() {
               contractor: item.contractor,
               hardware: item.hardware,
             }))}
-            lines={[{ key: "total", color: "hsl(215, 16%, 47%)" }]}
+            lines={selectedUserCategories.map((category, index) => {
+              const categoryLabels: Record<string, string> = {
+                total: "Total Users",
+                customerIndividual: "Customer Individual",
+                customerOrg: "Customer Organization",
+                fundi: "Fundi",
+                professional: "Professional",
+                contractor: "Contractor",
+                hardware: "Hardware",
+              };
+              return {
+                key: category,
+                color: getColorForUserType(categoryLabels[category] || category),
+                name: categoryLabels[category] || category,
+              };
+            })}
           />
         </div>
       )}
@@ -443,6 +595,21 @@ export default function SummaryPage() {
                   </span>
                 </label>
               </div>
+
+              {/* 2-Day Gap Comparison Checkbox */}
+              {/* <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableTwoDayGapComparison}
+                    onChange={(e) => setEnableTwoDayGapComparison(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    Compare 2-Day Gap
+                  </span>
+                </label>
+              </div> */}
             </div>
             {/* Event Buttons */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -457,9 +624,9 @@ export default function SummaryPage() {
               ].map((event) => (
                 <button
                   key={event}
-                  onClick={() => setLifecycleEvent(event as LifecycleEvent)}
+                  onClick={() => toggleLifecycleEvent(event as LifecycleEvent)}
                   className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    lifecycleEvent === event
+                    selectedLifecycleEvents.includes(event as LifecycleEvent)
                       ? "bg-blue-50 text-blue-600 border border-blue-600"
                       : "bg-white text-gray-800 border border-gray-300"
                   }`}
@@ -467,25 +634,37 @@ export default function SummaryPage() {
                   {formatEventName(event)}
                 </button>
               ))}
+              
             </div>
           </div>
         </div>
 
         {/* Chart Display */}
-        {lifecycle.loading ? (
+        {Object.values(multipleLifecycleData).some(d => d.loading) ? (
           <div className="flex items-center justify-center h-72">
             <p className="text-muted-foreground">Loading lifecycle data...</p>
           </div>
-        ) : lifecycle.error ? (
+        ) : Object.values(multipleLifecycleData).some(d => d.error) ? (
           <div className="flex items-center justify-center h-72">
-            <p className="text-red-500">Error: {lifecycle.error}</p>
+            <p className="text-red-500">Error: {Object.values(multipleLifecycleData).find(d => d.error)?.error}</p>
           </div>
         ) : lifecycleChartData.length > 0 ? (
           <LineChartCard
-            title={`${formatEventName(lifecycleEvent)} Trend ${cumulative ? "(Cumulative)" : ""}`}
-            description={`${formatEventName(lifecycleEvent)} events grouped by ${groupBy}.`}
+            title={`${selectedLifecycleEvents.map(e => formatEventName(e)).join(", ")}${selectedLifecycleEvents.length > 1 ? " + Total" : ""} Trend ${cumulative ? "(Cumulative)" : ""} ${enableTwoDayGapComparison ? "(with 2-day gap comparison)" : ""}`}
+            description={`${selectedLifecycleEvents.length > 1 ? "Events" : formatEventName(selectedLifecycleEvents[0])} grouped by ${groupBy}.${selectedLifecycleEvents.length > 1 ? " Bold gray line shows total of all selected events." : ""}${enableTwoDayGapComparison ? ` Dashed yellow line shows comparison with 2-day gap.` : ""}`}
             data={lifecycleChartData}
-            lines={[{ key: "count", color: "hsl(234, 89%, 74%)" }]}
+            lines={[
+              ...selectedLifecycleEvents.map((event, index) => ({
+                key: event,
+                color: getColorForLifecycleEvent(index),
+              })),
+              ...(selectedLifecycleEvents.length > 1
+                ? [{ key: "total", color: "hsl(0, 0%, 20%)", name: "Total Life Cycles" }]
+                : []),
+              ...(enableTwoDayGapComparison && comparisonLifecycle.data
+                ? [{ key: `${selectedLifecycleEvents[0]}_comparison`, color: "hsl(45, 93%, 51%)", dashed: true }]
+                : []),
+            ]}
           />
         ) : (
           <div className="flex items-center justify-center h-72">
@@ -544,6 +723,31 @@ function calculatePreviousPeriod(
   return {
     prevFrom: prevFrom.toISOString().split("T")[0],
     prevTo: prevTo.toISOString().split("T")[0],
+  };
+}
+
+function calculateTwoDayGapComparison(
+  from: string | undefined,
+  to: string | undefined,
+): { compFrom: string; compTo: string } {
+  if (!from || !to) return { compFrom: "", compTo: "" };
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const periodDays = Math.ceil(
+    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  // Go back 2 days from the start date
+  const compTo = new Date(fromDate);
+  compTo.setDate(compTo.getDate() - 2);
+
+  const compFrom = new Date(compTo);
+  compFrom.setDate(compFrom.getDate() - periodDays);
+
+  return {
+    compFrom: compFrom.toISOString().split("T")[0],
+    compTo: compTo.toISOString().split("T")[0],
   };
 }
 
