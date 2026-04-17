@@ -3157,44 +3157,10 @@ useEffect(() => {
                                 </div>
                               );
                             }
-                            if (!isAdmin)
-                              return (
-                                <span className="text-xs text-gray-500 p-2">
-                                  No file provided.
-                                </span>
-                              );
                             return (
-                              <label className="cursor-pointer">
-                                <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition">
-                                  <PlusIcon className="w-3 h-3" /> Upload {label}
-                                </div>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="image/*,.pdf"
-                                  onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    if (!f) return;
-                                    setAttachments((prev) => {
-                                      const updated = prev.map((a, i) => ({
-                                        ...a,
-                                        files: [...a.files],
-                                      }));
-
-                                      updated[index].files = updated[
-                                        index
-                                      ].files.filter((x) => x.role !== role);
-                                      updated[index].files.push({
-                                        name: f.name,
-                                        url: URL.createObjectURL(f),
-                                        rawFile: f,
-                                        role,
-                                      });
-                                      return updated;
-                                    });
-                                  }}
-                                />
-                              </label>
+                              <span className="text-xs text-gray-500 p-2">
+                                No file provided.
+                              </span>
                             );
                           };
 
@@ -3249,143 +3215,147 @@ useEffect(() => {
                       </div>
                     )
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold tracking-wider border-b border-gray-200">
-                          <tr>
-                            <th className="px-6 py-4 text-left">No.</th>
-                            <th className="px-6 py-4 text-left">Project Name</th>
-                            <th className="px-6 py-4 text-left">Proof of Work</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {attachments.length > 0 ? (
-                            attachments.map((row, index) => (
-                              <tr
-                                key={row.id}
-                                className="hover:bg-blue-50/30 transition-colors"
-                              >
-                                <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
-                                  #{index + 1}
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="font-semibold text-gray-900 block truncate max-w-[200px]">
-                                    {row.projectName || "Unnamed Project"}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="flex flex-wrap gap-2">
-                                    {row.files.length > 0 ? (
-                                      row.files.map((file, fileIndex) => (
-                                        <div
-                                          key={fileIndex}
-                                          className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
-                                        >
-                                          <img
-                                            src={file.url}
-                                            alt={file.name}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (e.target as HTMLImageElement).src =
-                                                "https://placehold.co/100x100?text=File";
-                                            }}
-                                          />
-                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                                            <a
-                                              href={file.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="p-1 bg-white/20 rounded-md hover:bg-white/40 text-white"
-                                            >
-                                              <EyeIcon className="w-3.5 h-3.5" />
-                                            </a>
-                                            {isAdmin && (
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  handleRemoveFile(
-                                                    index,
-                                                    fileIndex,
-                                                  )
-                                                }
-                                                className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 text-white"
-                                              >
-                                                <XMarkIcon className="w-3.5 h-3.5" />
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <span className="text-gray-400 italic text-xs">
-                                        No files uploaded
-                                      </span>
-                                    )}
+                    /* PROFESSIONAL / HARDWARE - Blue card style matching FUNDI */
+                    <div className="bg-blue-50 -mx-6 -mb-6 px-6 py-4">
+                      <h4 className="text-md font-semibold text-blue-900 mb-4">{getProjectFieldName()}</h4>
+
+                      {missingProjectCount > 0 && (
+                        <p className="text-sm text-blue-700 mb-4">
+                          Add missing projects to complete this experience profile ({missingProjectCount} remaining).
+                        </p>
+                      )}
+
+                      {attachments.length > 0 && (
+                        <div className="mb-6">
+                          <h5 className="text-sm font-semibold text-blue-900 mb-3">
+                            Uploaded Projects ({attachments.length})
+                          </h5>
+                          <div className="space-y-4">
+                            {attachments.map((project, index) => (
+                              <div key={project.id || index} className="p-4 bg-white rounded-lg border border-blue-200">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {project.projectName || `Project ${index + 1}`}
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    {isAdmin && (
-                                      <div className="relative inline-block">
-                                        <input
-                                          type="file"
-                                          multiple
-                                          id={`file-upload-${index}`}
-                                          onChange={(e) =>
-                                            handleFileUpload(e, index)
-                                          }
-                                          className="hidden"
-                                          disabled={
-                                            fileActionLoading[`add-${index}`]
-                                          }
-                                        />
-                                        <label
-                                          htmlFor={`file-upload-${index}`}
-                                          className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}
-                                        >
-                                          {fileActionLoading[`add-${index}`] ? (
-                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                          ) : (
-                                            <PlusIcon className="w-3 h-3" />
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFile(index, 0)}
+                                      className="p-1 px-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                                    >
+                                      <XMarkIcon className="w-4 h-4" />
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="space-y-2">
+                                  {project.files.length > 0 ? (
+                                    project.files.map((file, fileIndex) => (
+                                      <div key={fileIndex} className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                                        <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                                        <div className="flex items-center gap-2">
+                                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                            <ArrowDownTrayIcon className="h-4 w-4" />
+                                          </a>
+                                          {isAdmin && (
+                                            <button type="button" onClick={() => handleRemoveFile(index, fileIndex)} className="p-1 text-red-400 hover:text-red-600 transition-colors">
+                                              <XMarkIcon className="w-4 h-4" />
+                                            </button>
                                           )}
-                                          Add
-                                        </label>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs text-gray-400 italic">No files uploaded</span>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <div className="mt-3 flex justify-end">
+                                    <div className="relative inline-block">
+                                      <input type="file" multiple id={`file-upload-${index}`} onChange={(e) => handleFileUpload(e, index)} className="hidden" disabled={fileActionLoading[`add-${index}`]} />
+                                      <label htmlFor={`file-upload-${index}`} className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}>
+                                        {fileActionLoading[`add-${index}`] ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <PlusIcon className="w-3 h-3" />}
+                                        Add File
+                                      </label>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {isAdmin && missingProjectCount > 0 &&
+                        Array.from({ length: Math.min(missingProjectCount, 3) }, (_, index) => {
+                          const projectId = `new_${index}`;
+                          const project = newProjects[projectId] || { name: "", files: [] };
+                          const isLoading = uploadingProjects[projectId];
+                          return (
+                            <div key={projectId} className="mb-6 p-4 bg-white rounded-lg border border-blue-200">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter project name"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    value={project.name}
+                                    onChange={(e) => setNewProjects((prev) => ({ ...prev, [projectId]: { ...project, name: e.target.value } }))}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Project Files</label>
+                                  <div className="space-y-2">
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf,.pdf"
+                                      multiple
+                                      className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 ${!project.name.trim() ? "opacity-60 cursor-not-allowed" : ""}`}
+                                      disabled={!project.name.trim()}
+                                      onChange={(e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        setNewProjects((prev) => ({ ...prev, [projectId]: { ...project, files: [...project.files, ...files] } }));
+                                      }}
+                                    />
+                                    {!project.name.trim() && <p className="text-xs text-amber-700">Enter project name first to unlock file upload.</p>}
+                                    {project.files.length > 0 && (
+                                      <div className="space-y-1 mt-2">
+                                        {project.files.map((f: File, i) => (
+                                          <div key={i} className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                                            <span className="text-sm text-gray-700 truncate">{f.name}</span>
+                                            <button type="button" onClick={() => { const updated = [...project.files]; updated.splice(i, 1); setNewProjects((prev) => ({ ...prev, [projectId]: { ...project, files: updated } })); }} className="p-1 text-red-500 hover:text-red-700 transition-colors">
+                                              <XMarkIcon className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        ))}
                                       </div>
                                     )}
-                                    {isAdmin && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleRemoveFile(index, 0)
-                                        }
-                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                      >
-                                        <XMarkIcon className="w-4 h-4" />
-                                      </button>
-                                    )}
                                   </div>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                colSpan={4}
-                                className="px-6 py-12 text-center text-gray-500"
-                              >
-                                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
-                                <p className="text-sm font-semibold">
-                                  No Projects Recorded
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  Proof of work projects will appear here.
-                                </p>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                                </div>
+                              </div>
+                              <div className="mt-4 flex justify-end">
+                                <button
+                                  type="button"
+                                  disabled={!project.name.trim() || project.files.length === 0 || isLoading}
+                                  onClick={() => handleAddNewProject(projectId, project.name, project.files)}
+                                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <PlusIcon className="w-4 h-4" />}
+                                  <span className="text-sm font-medium">{isLoading ? "Processing..." : "Add Project"}</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                      {attachments.length === 0 && (!isAdmin || missingProjectCount === 0) && (
+                        <div className="py-12 text-center text-gray-500">
+                          <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
+                          <p className="text-sm font-semibold">No Projects Recorded</p>
+                          <p className="text-xs text-gray-400 mt-1">Proof of work projects will appear here.</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -3394,24 +3364,15 @@ useEffect(() => {
                   <div className="px-6 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-500 italic">
                       <FiInfo className="w-4 h-4 text-blue-500" />
-                      Saving will update both professional info and projects.
+                      {!canSaveChanges() ? "Please fill all required fields and add all required projects before saving." : "Remember to save your changes to persist the updated project list."}
                     </div>
                     <button
                       type="button"
                       onClick={handleSaveChanges}
                       disabled={isSavingInfo || !canSaveChanges()}
-                      title={
-                        !canSaveChanges()
-                          ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
-                          : "Save all changes"
-                      }
                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-sm shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
-                      {isSavingInfo ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <FiCheck className="w-5 h-5" />
-                      )}
+                      {isSavingInfo ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <FiCheck className="w-5 h-5" />}
                       {isSavingInfo ? "Saving Changes..." : "Save All Changes"}
                     </button>
                   </div>
