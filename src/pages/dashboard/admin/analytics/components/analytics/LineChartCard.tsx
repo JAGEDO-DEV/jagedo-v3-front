@@ -19,7 +19,7 @@ export default function LineChartCard({ title, description, data, lines, xAxisKe
         </div>
         {children}
       </div>
-      <div className="h-64">
+      <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -27,9 +27,13 @@ export default function LineChartCard({ title, description, data, lines, xAxisKe
             <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
+                backgroundColor: "white",
                 border: "1px solid hsl(var(--border))",
-                borderRadius: 8,
+                borderRadius: 16,
+                padding: "8px 12px",
+              }}
+              wrapperStyle={{
+                outline: "none",
               }}
             />
             <Legend />
