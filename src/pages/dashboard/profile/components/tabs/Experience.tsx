@@ -110,6 +110,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [specsLoading, setSpecsLoading] = useState(false);
 
+  const totalScore =
+    questions.length > 0
+      ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
+      : 0;
+
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
@@ -701,25 +706,7 @@ useEffect(() => {
     ]);
   };
 
-  const removeCategory = (index: number) => {
-    const categoryToRemove = categories[index];
-    
-    
-    setCategories(categories.filter((_, i) => i !== index));
-    
-    
-    if (categoryToRemove?.category) {
-      setAttachments((prev) =>
-        prev.filter(
-          (project) =>
-            
-            !project.projectName?.toLowerCase().includes(
-              categoryToRemove.category.toLowerCase()
-            )
-        )
-      );
-    }
-  };
+
 
   const getInitialInfo = () => {
     if (!userData) {
@@ -788,9 +775,75 @@ useEffect(() => {
 
   useEffect(() => {
     setInfo(getInitialInfo());
-    setAttachments(getInitialAttachments());
-    setCategories(getInitialCategories());
-  }, [userData]);
+    const initialCategories = getInitialCategories();
+    setCategories(initialCategories);
+    
+    let initialAttachments = getInitialAttachments();
+    
+    if (userType === "CONTRACTOR") {
+      const existingProjectNames = initialAttachments.map(a => a.projectName?.toLowerCase());
+      
+      initialCategories.forEach(cat => {
+        if (cat.category) {
+          const expectedCategoryNameTokens = cat.category.toLowerCase().split(' ');
+          
+          // Match loosely (e.g. "Building Works Project" vs "Building Works")
+          const projectExists = existingProjectNames.some(name => 
+            expectedCategoryNameTokens.every(token => name?.includes(token))
+          );
+          
+          if (!projectExists) {
+            initialAttachments.push({
+              id: initialAttachments.length + 1,
+              projectName: `${cat.category} Project`,
+              files: [],
+              category: cat.category,
+            });
+            existingProjectNames.push(`${cat.category} Project`.toLowerCase());
+          }
+        }
+      });
+    }
+    
+    setAttachments(initialAttachments);
+  }, [userData, userType]);
+
+  const getGradeFromScore = (score: number) => {
+    if (score >= 90) return "G1: Master Fundi";
+    if (score >= 80) return "G2: Skilled";
+    if (score >= 70) return "G3: Semi-skilled";
+    return "G4: Unskilled";
+  };
+
+  const getValidGradesForScore = (score: number) => {
+    const grades = [
+      "G1: Master Fundi",
+      "G2: Skilled",
+      "G3: Semi-skilled",
+      "G4: Unskilled",
+    ];
+    if (score >= 90) return grades;
+    if (score >= 80) return grades.slice(1);
+    if (score >= 70) return grades.slice(2);
+    return grades.slice(3);
+  };
+
+  useEffect(() => {
+    if (userType === "FUNDI" && isAdmin && totalScore > 0) {
+      const autoGrade = getGradeFromScore(totalScore);
+      
+      const currentGrade = isEditingFields ? editingFields.grade : info.grade;
+      
+      if (currentGrade !== autoGrade) {
+        if (isEditingFields) {
+          setEditingFields(prev => ({ ...prev, grade: autoGrade }));
+        } else {
+          setInfo(prev => ({ ...prev, grade: autoGrade }));
+        }
+      }
+    }
+  }, [totalScore, userType, isAdmin, isEditingFields, info.grade, editingFields.grade]);
+
   const getFieldsConfig = () => {
     const currentData = isEditingFields ? editingFields : info;
 
@@ -824,12 +877,14 @@ useEffect(() => {
           {
             name: "grade",
             label: "Grade",
-            options: [
-              "G1: Master Fundi",
-              "G2: Skilled",
-              "G3: Semi-skilled",
-              "G4: Unskilled",
-            ],
+            options: totalScore > 0 
+              ? getValidGradesForScore(totalScore)
+              : [
+                  "G1: Master Fundi",
+                  "G2: Skilled",
+                  "G3: Semi-skilled",
+                  "G4: Unskilled",
+                ],
           },
           {
             name: "experience",
@@ -1473,10 +1528,6 @@ useEffect(() => {
     }
   };
 
-  const totalScore =
-    questions.length > 0
-      ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
-      : 0;
 
   const closeActionModal = () => {
     setActionModal({ isOpen: false, action: null });
@@ -1766,28 +1817,28 @@ useEffect(() => {
 
     const classifications = {
       master: {
-        label: "Master Fundi",
+        label: "G1: Master Fundi",
         stars: "⭐⭐⭐⭐",
         bg: "bg-yellow-50",
         text: "text-yellow-700",
         border: "border-yellow-200",
       },
       skilled: {
-        label: "Skilled",
+        label: "G2: Skilled",
         stars: "⭐⭐⭐",
         bg: "bg-purple-50",
         text: "text-purple-700",
         border: "border-purple-200",
       },
       semiSkilled: {
-        label: "Semi-Skilled",
+        label: "G3: Semi-skilled",
         stars: "⭐⭐",
         bg: "bg-blue-50",
         text: "text-blue-700",
         border: "border-blue-200",
       },
       unskilled: {
-        label: "Unskilled",
+        label: "G4: Unskilled",
         stars: "⭐",
         bg: "bg-gray-50",
         text: "text-gray-700",
@@ -1795,9 +1846,9 @@ useEffect(() => {
       },
     };
 
-    if (score >= 85) return classifications.master;
-    if (score >= 70) return classifications.skilled;
-    if (score >= 50) return classifications.semiSkilled;
+    if (score >= 90) return classifications.master;
+    if (score >= 80) return classifications.skilled;
+    if (score >= 70) return classifications.semiSkilled;
     return classifications.unskilled;
   };
 
@@ -1958,9 +2009,9 @@ useEffect(() => {
             project.files.map(async (f) => {
               if (f.rawFile) {
                 const uploaded = await uploadFile(f.rawFile);
-                return { name: f.name, url: uploaded.url };
+                return { name: f.name, url: uploaded.url, role: f.role };
               }
-              return { name: f.name, url: f.url };
+              return { name: f.name, url: f.url, role: f.role };
             }),
           );
           return { ...project, files: updatedFiles };
@@ -2036,9 +2087,7 @@ useEffect(() => {
             "",
         }));
 
-        const validCategories = categories.filter(
-          (c) => c.category && c.class && c.years,
-        );
+        const validCategories = categories.filter((c) => c.category);
         const contractorExperiences = validCategories.map((c) => ({
           category: c.category,
           specialization: c.specialization,
@@ -2047,8 +2096,8 @@ useEffect(() => {
         }));
 
         const payload = {
-          categories: contractorExperiences, 
           projects: contractorProjects,
+          contractorExperiences: contractorExperiences,
         };
 
         response = await adminUpdateContractorExperience(
@@ -2591,14 +2640,6 @@ useEffect(() => {
                   <h2 className="text-xl font-semibold text-gray-800">
                     Work Categories
                   </h2>
-                  <button
-                    type="button"
-                    onClick={addCategory}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    Add Category
-                  </button>
                 </div>
 
                 <div className="space-y-6">
@@ -2607,16 +2648,7 @@ useEffect(() => {
                       key={index}
                       className="bg-white p-4 rounded-lg border border-gray-200 relative"
                     >
-                      {categories.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeCategory(index)}
-                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                          title="Remove category"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
-                      )}
+                  
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Category */}
@@ -2626,6 +2658,7 @@ useEffect(() => {
                           </label>
                           <select
                             value={cat.category}
+                            disabled
                             onChange={(e) => {
                               const newCategory = e.target.value;
                               const updated = [...categories];
@@ -2653,7 +2686,7 @@ useEffect(() => {
                                 }
                               }
                             }}
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                            className="w-full p-2 border border-gray-200 rounded-md text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                           >
                             <option value="">Select category</option>
                             {fundiSkills.length > 0
@@ -2808,6 +2841,16 @@ useEffect(() => {
                 </div>
 
                 {/* Save Categories Button */}
+                <div className="mt-4 flex justify-end">
+                  <button 
+                    type="button" 
+                    onClick={handleSaveChanges}
+                    disabled={isSavingInfo}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold"
+                  >
+                    {isSavingInfo ? "Saving..." : "Save Categories"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -3111,6 +3154,7 @@ useEffect(() => {
                             ) || row.files[1];
 
                           const renderAdminFileSlot = (file, role, label) => {
+                            const loadingKey = `add-${index}-${role}`;
                             if (file) {
                               return (
                                 <div className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-md">
@@ -3131,36 +3175,69 @@ useEffect(() => {
                                     >
                                       <EyeIcon className="w-4 h-4" />
                                     </a>
-                                    {isAdmin && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setAttachments((prev) => {
-                                            const updated = prev.map((a, i) => ({
-                                              ...a,
-                                              files: [...a.files],
-                                            }));
-                                            updated[index].files = updated[
-                                              index
-                                            ].files.filter(
-                                              (f) =>
-                                                f.role !== role && f !== file,
-                                            );
-                                            return updated;
-                                          });
-                                        }}
-                                      >
-                                        <XMarkIcon className="w-4 h-4 text-red-500 hover:text-red-700" />
-                                      </button>
-                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAttachments((prev) => {
+                                          const updated = prev.map((a, i) => ({
+                                            ...a,
+                                            files: [...a.files],
+                                          }));
+                                          updated[index].files = updated[
+                                            index
+                                          ].files.filter(
+                                            (f) =>
+                                              f.role !== role && f !== file,
+                                          );
+                                          return updated;
+                                        });
+                                      }}
+                                    >
+                                      <XMarkIcon className="w-4 h-4 text-red-500 hover:text-red-700" />
+                                    </button>
                                   </div>
                                 </div>
                               );
                             }
                             return (
-                              <span className="text-xs text-gray-500 p-2">
-                                No file provided.
-                              </span>
+                              <div className="relative inline-block w-full">
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf,.pdf"
+                                  id={`file-upload-slot-${index}-${role}`}
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const newFile = e.target.files?.[0];
+                                    if (!newFile) return;
+                                    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
+                                    setAttachments((prev) => {
+                                      const newAttachments = prev.map((a) => ({ ...a, files: [...a.files] }));
+                                      if (!newAttachments[index].files) newAttachments[index].files = [];
+                                      newAttachments[index].files.push({
+                                        name: newFile.name,
+                                        url: URL.createObjectURL(newFile),
+                                        rawFile: newFile,
+                                        role: role,
+                                      });
+                                      return newAttachments;
+                                    });
+                                    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
+                                    e.target.value = "";
+                                  }}
+                                  disabled={fileActionLoading[loadingKey] || !row.projectName}
+                                />
+                                <label
+                                  htmlFor={`file-upload-slot-${index}-${role}`}
+                                  className={`flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 hover:border-blue-500 bg-white hover:bg-blue-50 text-gray-600 rounded-lg text-xs font-medium cursor-pointer transition-colors w-full ${(!row.projectName || fileActionLoading[loadingKey]) ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+                                >
+                                  {fileActionLoading[loadingKey] ? (
+                                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <UploadCloud className="w-4 h-4 text-gray-400" />
+                                  )}
+                                  <span>Upload</span>
+                                </label>
+                              </div>
                             );
                           };
 

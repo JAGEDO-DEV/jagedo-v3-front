@@ -56,7 +56,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [specsLoading, setSpecsLoading]     = useState(false);
 
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
   
   useEffect(() => {
@@ -319,6 +319,23 @@ const FundiExperience = ({ data, refreshData }: any) => {
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-4xl font-bold text-gray-900">Fundi Experience</h1>
+        
+        {isReadOnly && (data?.status === 'BLACKLISTED' || data?.status === 'SUSPENDED') && (
+          <div className={`p-4 border rounded-xl flex items-start gap-4 ${data?.status === 'BLACKLISTED' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+            <div className={`p-2 rounded-lg flex-shrink-0 ${data?.status === 'BLACKLISTED' ? 'bg-red-100' : 'bg-yellow-100'}`}>
+               <InfoIcon className={`w-5 h-5 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
+            </div>
+            <div>
+              <p className={`font-bold mb-1 uppercase text-xs tracking-wider ${data?.status === 'BLACKLISTED' ? 'text-red-900' : 'text-yellow-900'}`}>
+                {data?.status === 'BLACKLISTED' ? 'Account Blacklisted' : 'Account Suspended'}
+              </p>
+              <p className={data?.status === 'BLACKLISTED' ? 'text-red-700 text-sm' : 'text-yellow-700 text-sm'}>
+                Your account has been restricted. Profile updates are disabled.
+              </p>
+            </div>
+          </div>
+        )}
+
 
         {/* Next Steps Section */}
         <div className="bg-blue-50 border border-blue-100 p-6 rounded-xl shadow-sm">

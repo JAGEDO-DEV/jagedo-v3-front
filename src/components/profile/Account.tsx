@@ -52,7 +52,7 @@ function AccountInfo({ data, refreshData }) {
   const [otpMethod, setOtpMethod] = useState<"email" | "phone" | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  const isReadOnly = data?.status === "VERIFIED";
+  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
@@ -236,9 +236,11 @@ function AccountInfo({ data, refreshData }) {
         <h1 className="text-3xl font-bold">Account Info</h1>
         <div className="flex items-center gap-3">
           {isReadOnly && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-green-50 text-green-700 border-green-100"}`}>
               <Shield className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Verified Profile</span>
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified Profile"}
+              </span>
             </div>
           )}
           {!isReadOnly && !isEditingName && (
@@ -253,12 +255,14 @@ function AccountInfo({ data, refreshData }) {
       </div>
 
       {isReadOnly && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-          <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
+        <div className={`mb-6 p-4 border rounded-xl flex items-start gap-3 ${data?.status === "BLACKLISTED" ? "bg-red-50 border-red-200" : data?.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}`}>
+          <Clock className={`w-5 h-5 mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-600" : data?.status === "SUSPENDED" ? "text-yellow-600" : "text-blue-600"}`} />
           <div>
-            <p className="text-sm font-semibold text-blue-900">Profile Verified</p>
-            <p className="text-xs text-blue-700 mt-0.5">
-              Your profile information has been verified. To update these details, please contact JAGEDO Support.
+            <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
+              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Profile Verified"}
+            </p>
+            <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
+              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. To update these details, please contact JAGEDO Support." : "Your profile information has been verified. To update these details, please contact JAGEDO Support."}
             </p>
           </div>
         </div>

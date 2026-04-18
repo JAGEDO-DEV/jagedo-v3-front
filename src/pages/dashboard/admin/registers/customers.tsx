@@ -197,7 +197,7 @@ export default function CustomersAdmin() {
       customer?.lastName?.toLowerCase().includes(filters.name.toLowerCase()) ||
       customer?.organizationName?.toLowerCase().includes(filters.name.toLowerCase());
     const matchesPhone =
-      !filters.phone || customer?.phone === filters.phone;
+      !filters.phone || customer?.phone?.toLowerCase().includes(filters.phone.toLowerCase());
     const matchesCounty =
       !filters.county ||
       customer?.county?.toLowerCase() === filters.county.toLowerCase();
@@ -645,7 +645,7 @@ export default function CustomersAdmin() {
                       type="text"
                       className="w-full border rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
                       value={filters.phone}
-                      onChange={(e) => updateFilter("phone", e.target.value)}
+                      onChange={(e) => updateFilter("phone", e.target.value.replace(/\D/g, ""))}
                     />
                   </div>
                   <div>
