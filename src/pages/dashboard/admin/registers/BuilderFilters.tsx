@@ -146,7 +146,7 @@ export function BuilderFilters({
               id="filter-phone"
               type="text"
               value={filters.phone}
-              onChange={(e) => updateFilter("phone", e.target.value)}
+              onChange={(e) => updateFilter("phone", e.target.value.replace(/\D/g, ""))}
               placeholder="Search by phone..."
             />
           </div>

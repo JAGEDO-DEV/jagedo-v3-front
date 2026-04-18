@@ -50,8 +50,9 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [specsLoading, setSpecsLoading] = useState(false);
 
     const isReadOnly = 
-        !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || 
-        data?.status === 'VERIFIED' || data?.accountStatus === 'VERIFIED';
+        !['RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || 
+        data?.status === 'VERIFIED' || data?.accountStatus === 'VERIFIED' ||
+        data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
@@ -301,23 +302,37 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Professional Experience</h1>
                     {isReadOnly && (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                            <span className="text-xs font-bold uppercase tracking-wider">Verified</span>
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-green-50 text-green-700 border-green-100"}`}>
+                            {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
+                                <XMarkIcon className="w-4 h-4" />
+                            ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            )}
+                            <span className="text-xs font-bold uppercase tracking-wider">
+                                {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified"}
+                            </span>
                         </div>
                     )}
                 </div>
 
                 {isReadOnly && (
-                    <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <div className={`mb-8 p-4 border rounded-xl flex items-start gap-3 ${data?.status === "BLACKLISTED" ? "bg-red-50 border-red-200" : data?.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}`}>
+                        {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
+                            <XMarkIcon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${data?.status === "BLACKLISTED" ? "text-red-600" : "text-yellow-600"}`} />
+                        ) : (
+                            <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        )}
                         <div>
-                            <p className="text-sm font-semibold text-blue-900">Experience Verified</p>
-                            <p className="text-xs text-blue-700 mt-0.5">Your professional experience has been verified. To update these details, please contact JAGEDO Support.</p>
+                            <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
+                                {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Experience Verified"}
+                            </p>
+                            <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
+                                {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. Profile updates are disabled." : "Your professional experience has been verified. To update these details, please contact JAGEDO Support."}
+                            </p>
                         </div>
                     </div>
                 )}
@@ -342,6 +357,18 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     <div>
                       <p className="font-bold mb-1 uppercase text-xs tracking-widest text-amber-900">Resubmission Required</p>
                       <p className="text-amber-700 leading-relaxed">{data.experienceStatusReason || "Admin has requested more details. Please update your portfolio as requested."}</p>
+                    </div>
+                  </div>
+                )}
+
+                {data?.experienceStatus === 'PENDING' && (
+                  <div className="mb-8 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm flex items-start gap-4">
+                     <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+                        <EyeIcon className="w-6 h-6 text-blue-600" />
+                     </div>
+                    <div>
+                      <p className="font-bold mb-1 uppercase text-xs tracking-widest text-blue-900">Under Review</p>
+                      <p className="text-blue-700 leading-relaxed">Your professional experience has been submitted and is currently under review. You will be notified once the verification process is complete.</p>
                     </div>
                   </div>
                 )}
@@ -477,7 +504,8 @@ const ProffExperience = ({ data, refreshData }: any) => {
                             <div className="mt-6 text-center md:text-right">
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || data?.experienceStatus === 'PENDING'}
+                                    title={data?.experienceStatus === 'PENDING' ? "Your submission is currently under review" : ""}
                                     className="w-full md:w-auto bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}

@@ -1426,10 +1426,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                 Category Specific Documents
               </h3>
               <div className="space-y-6">
-                {(
-                  userData?.contractorCategories ||
-                  userData?.contractorExperiences ||
-                  []
+                {(userData?.contractorTypes
+                  ? userData.contractorTypes
+                      .split(",")
+                      .map((t: string) => ({ category: t.trim() }))
+                  : userData?.contractorCategories ||
+                    userData?.contractorExperiences ||
+                    []
                 ).map((cat: any, idx: number) => {
                   const categoryName = cat.category || "";
                   if (!categoryName) return null;

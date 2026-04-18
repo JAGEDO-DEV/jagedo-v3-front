@@ -28,6 +28,14 @@ import { InfoIcon } from "lucide-react";
 import { uploadFile } from "@/utils/fileUpload";
 
 const StatusBadge = ({ status }) => {
+  if (status === "SUSPENDED" || status === "BLACKLISTED") {
+    return (
+      <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${status === "BLACKLISTED" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"} text-xs font-semibold`}>
+        <AlertCircle className="w-3.5 h-3.5" />
+        {status === "BLACKLISTED" ? "Blacklisted" : "Suspended"}
+      </div>
+    );
+  }
   if (status === "approved") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
@@ -339,9 +347,9 @@ const AccountUploads = ({ data, refreshData }) => {
       .filter((f) => !!documents[f.key] || !!pendingFiles[f.key])
       .every((f) => isSatisfied(f.key));
 
-  const isReadOnly = !["PENDING", "RESUBMIT", "INCOMPLETE", "REJECTED"].includes(
+  const isReadOnly = !["RESUBMIT", "INCOMPLETE", "REJECTED"].includes(
     data?.documentStatus,
-  );
+  ) || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
   const totalUploaded = fields.filter((f) => !!documents[f.key]).length;
   const totalApproved = fields.filter(
@@ -375,7 +383,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
     const catNames = [];
     const statusMap = {};
 
-    // Direct map: backend documentDetails key → frontend field key
+    
     const backendToFrontendKey = {
       idFront: "idFrontUrl",
       idBack: "idBackUrl",
@@ -668,7 +676,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                     {totalApproved > 0 && ` • ${totalApproved} approved`}
                   </p>
                 </div>
-                <StatusBadge status={data?.documentStatus} />
+                <StatusBadge status={data?.status === "SUSPENDED" || data?.status === "BLACKLISTED" ? data?.status : (data?.documentStatus === "VERIFIED" ? "approved" : data?.documentStatus)} />
               </div>
 
               {/* Progress bar */}
@@ -815,8 +823,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
                       ).length
                     } approved`}
                 </p>
-              </div>
-              <StatusBadge status={data?.documentStatus} />
+              <StatusBadge status={data?.status === "SUSPENDED" || data?.status === "BLACKLISTED" ? data?.status : (data?.documentStatus === "VERIFIED" ? "approved" : data?.documentStatus)} />
             </div>
 
             {/* Progress bar */}
@@ -963,6 +970,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };
