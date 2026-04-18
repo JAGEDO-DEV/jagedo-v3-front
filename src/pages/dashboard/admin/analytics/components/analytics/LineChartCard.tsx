@@ -1,4 +1,13 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 interface LineChartCardProps {
   title: string;
@@ -9,44 +18,64 @@ interface LineChartCardProps {
   children?: React.ReactNode;
 }
 
-export default function LineChartCard({ title, description, data, lines, xAxisKey = "date", children }: LineChartCardProps) {
+export default function LineChartCard({
+  title,
+  description,
+  data,
+  lines,
+  xAxisKey = "date",
+  children,
+}: LineChartCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
         <div>
           <h4 className="font-semibold text-foreground">{title}</h4>
-          {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
+          {description && (
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          )}
         </div>
         {children}
       </div>
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+          <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis
+              dataKey={xAxisKey}
+              tick={{ fontSize: 12 }}
+              stroke="var(--muted-foreground)"
+            />
+            <YAxis
+              tick={{ fontSize: 12 }}
+              stroke="var(--muted-foreground)"
+              allowDecimals={false}
+              domain={[0, "auto"]}
+            />
             <Tooltip
               contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: 16,
                 padding: "8px 12px",
               }}
-              wrapperStyle={{
-                outline: "none",
-              }}
+              wrapperStyle={{ outline: "none" }}
+              formatter={(value: any, _rawKey: any, props: any) => [value, props.name]}
             />
-            <Legend />
+            <Legend formatter={(_value, entry) => (entry as any).value} />
             {lines.map((line) => (
               <Line
                 key={line.key}
                 type="monotone"
                 dataKey={line.key}
-                name={line.name || line.key}
+                name={line.name ?? line.key}
                 stroke={line.color}
-                strokeWidth={2}
+                strokeWidth={line.key === "total" ? 2.5 : 2}
                 strokeDasharray={line.dashed ? "5 5" : undefined}
                 dot={false}
+                activeDot={{ r: 4 }}
+                connectNulls={false}
+                isAnimationActive={false}
               />
             ))}
           </LineChart>

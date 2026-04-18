@@ -52,8 +52,8 @@ export default function UserSegmentPage({
     try {
       setAnalytics({ loading: true, error: null, data: null });
       const result = isBuilders
-        ? await getBuilderAnalytics(axiosInstance, period, from, to)
-        : await getCustomerAnalytics(axiosInstance, period, from, to);
+        ? await getBuilderAnalytics(axiosInstance, period, from, to, "day")
+        : await getCustomerAnalytics(axiosInstance, period, from, to, "day");
       setAnalytics({ loading: false, error: null, data: result.data });
     } catch (err: any) {
       setAnalytics({ loading: false, error: err.message, data: null });
@@ -289,15 +289,69 @@ export default function UserSegmentPage({
 
       {/* Signup Trend Chart */}
       <div className="mt-6">
-        {charts.signupTrend && charts.signupTrend.length > 0 ? (
+        {charts.segmentPerformance && charts.segmentPerformance.length > 0 ? (
           <LineChartCard
             title={`${titlePart} Signup Trend`}
-            description={`Signup progression over the selected period`}
-            data={charts.signupTrend.map((item: any) => ({
-              date: item.period || item.date,
-              signups: item.count,
-            }))}
-            lines={[{ key: "signups", color: "hsl(217, 91%, 60%)" }]}
+            description={`Daily signup progression over the selected period`}
+            data={(() => {
+              // Transform segment performance data for multi-line chart
+              const firstDataPoint = charts.segmentPerformance[0];
+              const dateObj = new Date(firstDataPoint.period);
+              const prevDate = new Date(dateObj);
+              prevDate.setDate(prevDate.getDate() - 1);
+              const prevDateStr = prevDate.toISOString().split('T')[0];
+
+              // Create zero-baseline point
+              const zeroPoint: any = { date: prevDateStr };
+              
+              if (isBuilders) {
+                zeroPoint.fundi = 0;
+                zeroPoint.contractor = 0;
+                zeroPoint.professional = 0;
+                zeroPoint.hardware = 0;
+                zeroPoint.total = 0;
+              } else {
+                zeroPoint.individual = 0;
+                zeroPoint.organization = 0;
+                zeroPoint.total = 0;
+              }
+
+              // Transform data points
+              const transformedData = charts.segmentPerformance.map((item: any) => {
+                const dataPoint: any = { date: item.period };
+                
+                if (isBuilders) {
+                  dataPoint.fundi = item.fundi?.count || 0;
+                  dataPoint.contractor = item.contractor?.count || 0;
+                  dataPoint.professional = item.professional?.count || 0;
+                  dataPoint.hardware = item.hardware?.count || 0;
+                  dataPoint.total = item.total || 0;
+                } else {
+                  dataPoint.individual = item.individual?.count || 0;
+                  dataPoint.organization = item.organization?.count || 0;
+                  dataPoint.total = item.total || 0;
+                }
+                
+                return dataPoint;
+              });
+
+              return [zeroPoint, ...transformedData];
+            })()}
+            lines={
+              isBuilders
+                ? [
+                    { key: "fundi", name: "Fundis", color: "hsl(234, 89%, 74%)" },
+                    { key: "contractor", name: "Contractors", color: "hsl(160, 84%, 39%)" },
+                    { key: "professional", name: "Professionals", color: "hsl(45, 93%, 51%)" },
+                    { key: "hardware", name: "Hardware", color: "hsl(199, 89%, 48%)" },
+                    { key: "total", name: "Total Signups", color: "hsl(0, 0%, 20%)", dashed: true },
+                  ]
+                : [
+                    { key: "individual", name: "Individual", color: "hsl(217, 91%, 60%)" },
+                    { key: "organization", name: "Organization", color: "hsl(160, 84%, 39%)" },
+                    { key: "total", name: "Total Signups", color: "hsl(0, 0%, 20%)", dashed: true },
+                  ]
+            }
           />
         ) : metrics.signupStats ? (
           <div className="rounded-xl border border-border bg-card p-5">

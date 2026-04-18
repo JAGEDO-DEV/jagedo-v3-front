@@ -174,7 +174,7 @@ export default function WebPage() {
           />
         )}
         {deviceData.length > 0 && (
-          <PieChartCard title="Device Usage" data={deviceData} />
+          <PieChartCard title="Device Usage" data={deviceData} showLegend={false} />
         )}
       </div>
 
