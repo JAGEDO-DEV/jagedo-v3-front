@@ -1,61 +1,73 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
-import reportsApi, { ReportFilters } from "@/api/reports.api";
 import { 
-  ShoppingCart, FileText, Truck, CheckCircle, XCircle,
-  Download, Calendar as CalendarIcon
+  ShoppingCart, FileText, Truck, CheckCircle2, XCircle, 
+  Download, Calendar as CalendarIcon, ChevronLeft, ChevronRight 
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import reportsApi, { ReportFilters } from "@/api/reports.api";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function OrdersReports() {
+  const navigate = useNavigate();
   const axiosInstance = axios;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
-  // Filters state
-  const [period, setPeriod] = useState("30d");
+  // Date Filters state
+  const [period, setPeriod] = useState("90d");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30),
+    from: subDays(new Date(), 90),
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState("total");
-  const [statusFilter, setStatusFilter] = useState("All Statuses");
-  const [serviceFilter, setServiceFilter] = useState("All Services");
+
+  // Navigation states
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  // Sub-filters for active register
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   useEffect(() => {
     fetchReport();
-  }, [dateRange, compareMode]);
+    // eslint-disable-next-line
+  }, [dateRange, compareMode, activeCard, statusFilter, page, searchQuery]);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const filters: ReportFilters = {};
-      if (dateRange?.from) filters.startDate = dateRange.from.toISOString();
-      if (dateRange?.to) filters.endDate = dateRange.to.toISOString();
-      if (compareMode) filters.compare = true;
+      const filters: any = {
+        page,
+        limit,
+      };
 
-      const res = await reportsApi.getOrdersReport(axiosInstance, filters);
+      if (dateRange?.from) filters.startDate = startOfDay(dateRange.from).toISOString();
+      if (dateRange?.to) filters.endDate = endOfDay(dateRange.to).toISOString();
+      if (compareMode) filters.compare = 'true';
+      if (searchQuery.trim()) filters.search = searchQuery.trim();
+
+      // Setup active card logic for API
+      if (activeCard) {
+        if (activeCard === "ORDERS_PLACED") filters.lifecycleFilter = "placed";
+        if (activeCard === "ORDERS_PROCESSING") filters.lifecycleFilter = "processing";
+        if (activeCard === "ORDERS_COMPLETE") filters.lifecycleFilter = "complete";
+        if (activeCard === "ORDERS_CANCELLED") filters.lifecycleFilter = "cancelled";
+      }
+
+      if (statusFilter !== "ALL") filters.lifecycleFilter = statusFilter.toLowerCase(); // override if explicit dropdown used
+
+      const res = await reportsApi.getOrdersReport(axiosInstance, filters as ReportFilters);
       setData(res.data);
     } catch (error) {
       console.error("Failed to fetch orders report:", error);
@@ -72,61 +84,97 @@ export default function OrdersReports() {
       case 'Today': from = new Date(); break;
       case '7d': from = subDays(to, 7); break;
       case '30d': from = subDays(to, 30); break;
+      case '60d': from = subDays(to, 60); break;
       case '90d': from = subDays(to, 90); break;
-      case 'Custom': return; // Let the picker handle it
+      case 'Year': from = subDays(to, 365); break;
+      case 'Custom': return; 
     }
     setDateRange({ from, to });
+    setPage(1);
   };
 
-  // Top metrics row
-  const topMetrics = [
-    { id: "total", title: "Total Orders", icon: <ShoppingCart className="h-5 w-5" />, value: data?.summary?.totalOrders || 0 },
-    { id: "placed", title: "Placed", icon: <FileText className="h-5 w-5" />, value: data?.summary?.placed || 0 },
-    { id: "processing", title: "Processing", icon: <Truck className="h-5 w-5" />, value: data?.summary?.processing || 0 },
-    { id: "complete", title: "Complete", icon: <CheckCircle className="h-5 w-5" />, value: data?.summary?.complete || 0 },
-    { id: "cancelled", title: "Cancelled", icon: <XCircle className="h-5 w-5" />, value: data?.summary?.cancelled || 0 },
-  ];
-
-  // Categories metrics row
-  const categoryMetrics = [
-    { id: "custom", title: "Custom Products", value: data?.summary?.customProducts || 0 },
-    { id: "machinery", title: "Machinery & Equipment", value: data?.summary?.machinery || 0 },
-    { id: "hardware", title: "Hardware", value: data?.summary?.hardware || 0 },
-    { id: "designs", title: "Designs", value: data?.summary?.designs || 0 },
-  ];
-
-  // Revenue format helper
-  const formatKsh = (num: number) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const formatKes = (num: number) => {
+    return Number(num || 0).toLocaleString();
   };
+
+  const onExport = () => {
+    if (!data?.register?.data || data.register.data.length === 0) return;
+    const headers = ["#", "Order #", "Customer", "Customer Email", "Status", "Items", "Total (Ksh)", "Delivery Address", "Created At"];
+    const csvContent = data.register.data.map((row: any, idx: number) => 
+      [
+        idx + 1, 
+        row.orderNumber || row.orderId || row.id, 
+        row.customerName || "N/A", 
+        row.customerEmail || row.customer?.email || "N/A",
+        row.status || "N/A", 
+        row.itemsCount || "0", 
+        row.totalAmount || row.total || "0", 
+        row.deliveryAddress || "N/A", 
+        format(new Date(row.createdAt || new Date()), "MMM dd, yyyy HH:mm")
+      ]
+      .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
+    );
+    const csv = [headers.join(","), ...csvContent].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `orders_report_${activeCard || 'total'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+  };
+
+  const onRowClick = (row: any) => {
+    const id = row?.id;
+    if (!id) return;
+    navigate(`/dashboard/admin/orders/${id}`, {
+      state: {
+        returnTo: "/dashboard/admin/reports?section=orders",
+        returnLabel: "Back to Orders Snapshot Register",
+      },
+    });
+  };
+
+  const cards = [
+    { key: "ORDERS_TOTAL", title: "Total Orders", value: data?.summary?.totalOrders || 0, icon: ShoppingCart },
+    { key: "ORDERS_PLACED", title: "Placed", value: data?.summary?.placed || 0, icon: FileText },
+    { key: "ORDERS_PROCESSING", title: "Processing", value: data?.summary?.processing || 0, icon: Truck },
+    { key: "ORDERS_COMPLETE", title: "Complete", value: data?.summary?.complete || 0, icon: CheckCircle2 },
+    { key: "ORDERS_CANCELLED", title: "Cancelled", value: data?.summary?.cancelled || 0, icon: XCircle },
+  ];
+
+  // Pagination meta
+  const totalPages = data?.register?.pagination?.totalPages || 1;
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="mb-2">
-        <h2 className="text-2xl font-bold tracking-tight text-[#30336b]">System Reports</h2>
-        <p className="text-sm text-gray-500 mt-1">Operational + lifecycle reports (auto-refresh every 30 seconds)</p>
-      </div>
-
-      {/* Tab Header Indicator */}
-      <div className="flex items-center space-x-3 bg-white px-5 py-4 border border-gray-100 rounded-xl shadow-sm w-full relative">
-        <ShoppingCart className="text-indigo-600 h-5 w-5" />
-        <span className="font-semibold text-gray-800 text-[15px]">Orders Register Snapshot</span>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-indigo-800">Orders Reports</h1>
+        <p className="text-sm text-gray-500">Cart order placements, tracking, and revenue lifecycle.</p>
       </div>
 
       {/* Date Range Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <h3 className="text-indigo-600 font-medium mb-4 text-sm tracking-wide">Date Range</h3>
+      <div className="bg-white rounded-xl border border-indigo-100 p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <h2 className="text-[16px] font-semibold text-indigo-700">Date Range</h2>
+          {compareMode && (
+            <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+              Comparison enabled
+            </span>
+          )}
+        </div>
+        
         <div className="flex flex-wrap md:flex-nowrap items-center gap-4">
           <div className="flex items-center space-x-2">
-            {['Today', '7d', '30d', '90d', 'Custom'].map(p => (
+            {['Today', '7d', '30d', '60d', '90d', 'Year', 'Custom'].map(p => (
               <Button
                 key={p}
                 variant="outline"
                 size="sm"
                 className={`h-9 px-4 text-sm font-normal rounded-md transition-colors ${
                   period === p 
-                  ? "border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50/80 hover:text-indigo-800" 
+                  ? "border-indigo-400 text-indigo-700 bg-indigo-50/70" 
                   : "text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
                 onClick={() => handlePeriodChange(p)}
@@ -139,37 +187,27 @@ export default function OrdersReports() {
           <div className="flex items-center space-x-3 ml-2">
             <Popover>
               <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
+                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
                   <span className="text-sm text-gray-600">{dateRange?.from ? format(dateRange.from, "MM/dd/yyyy") : "Start Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.from} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
+                <Calendar mode="single" selected={dateRange?.from} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} initialFocus />
               </PopoverContent>
             </Popover>
 
-            <span className="text-sm text-gray-400 font-medium">to</span>
+            <span className="text-sm text-gray-400">to</span>
 
             <Popover>
               <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
+                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
                   <span className="text-sm text-gray-600">{dateRange?.to ? format(dateRange.to, "MM/dd/yyyy") : "End Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.to} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
+                <Calendar mode="single" selected={dateRange?.to} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
@@ -181,203 +219,184 @@ export default function OrdersReports() {
               onCheckedChange={(e) => setCompareMode(e as boolean)} 
               className="border-gray-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
             />
-            <label htmlFor="compare" className="text-sm text-gray-600 font-normal cursor-pointer select-none">
+            <label htmlFor="compare" className="text-[13px] text-gray-600 font-normal cursor-pointer">
               Compare to previous period
             </label>
           </div>
         </div>
       </div>
 
-      {/* Snapshot Cards & Data Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-indigo-600 font-medium text-[15px]">Orders Register Snapshot</h3>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
-            <Download className="mr-2 h-4 w-4" /> 
-            Export Register CSV
-          </Button>
-        </div>
-
-        {/* Row 1: Key Status Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-          {topMetrics.map((metric) => {
-            const isActive = activeMetric === metric.id;
-            return (
-              <div 
-                key={metric.id}
-                className={`border rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 min-h-[100px] ${
-                  isActive 
-                  ? 'border-indigo-500 ring-1 ring-indigo-500 bg-white shadow-sm' 
-                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
-                }`}
-                onClick={() => setActiveMetric(metric.id)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <span className={`text-[14px] ${isActive ? 'text-gray-800 font-medium' : 'text-gray-500 font-medium'}`}>
-                    {metric.title}
-                  </span>
-                  <div className={isActive ? "text-indigo-600 flex-shrink-0 ml-2" : "text-indigo-500 flex-shrink-0 ml-2"}>
-                    {metric.icon}
-                  </div>
-                </div>
-                <div className={`text-2xl font-bold tracking-tight ${isActive ? 'text-indigo-700' : 'text-[#30336b]'}`}>
-                  {loading ? "-" : metric.value}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Row 2: Categorical Orders Requested */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {categoryMetrics.map((metric) => (
-            <div 
-              key={metric.id}
-              className="bg-[#f5f7fc] border border-[#e8ecf8] rounded-xl p-4 cursor-pointer hover:bg-[#edf1fb] transition-colors"
+      {/* Snapshot Cards block */}
+      <div className="bg-white rounded-xl border border-indigo-100 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[16px] font-semibold text-indigo-700">Orders Register Snapshot</h2>
+          {activeCard && (
+            <button
+              onClick={onExport}
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-indigo-700 transition"
             >
-              <div className="text-[13px] text-gray-600 font-medium mb-1">{metric.title}</div>
-              <div className="text-[22px] font-bold text-[#30336b] mb-3">{loading ? "-" : metric.value}</div>
-              <div className="text-[12px] text-indigo-500 font-medium hover:underline">Click to view register details</div>
-            </div>
+              <Download size={16} />
+              Export Register CSV
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+          {cards.map((card) => (
+            <button
+              type="button"
+              key={card.key}
+              onClick={() => { setActiveCard(card.key); setStatusFilter("ALL"); setPage(1); }}
+              className={`bg-white border rounded-xl shadow-sm p-4 text-left transition ${
+                activeCard === card.key ? "border-indigo-600 ring-2 ring-indigo-200" : "hover:border-gray-300"
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <p className="text-[12.5px] text-gray-500 font-medium">{card.title}</p>
+                <card.icon className={`${card.key === "ORDERS_COMPLETE" ? "text-green-600" : card.key === "ORDERS_CANCELLED" ? "text-red-600" : "text-indigo-600"} h-[18px] w-[18px]`} />
+              </div>
+              <p className="text-[22px] font-bold text-indigo-700 mt-1">
+                {loading ? "..." : card.value}
+              </p>
+            </button>
           ))}
         </div>
 
-        {/* Action / View Control Bar */}
-        <div className="flex justify-between items-center pt-2 pb-4 mt-8 border-b border-gray-100">
-          <span className="font-medium text-[15px] text-gray-800">
-            Viewing: {topMetrics.find(m=>m.id === activeMetric)?.title || 'Total Orders'}
-          </span>
-          <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50">
-            Close Register
-          </Button>
-        </div>
+        {!activeCard ? (
+          <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-4 text-[13.5px] text-indigo-700 font-medium mt-6">
+            Select any card to view orders register details.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mt-6 border-t border-gray-100 pt-5">
+              <p className="text-[14px] font-medium text-gray-800">
+                Viewing: {cards.find((card) => card.key === activeCard)?.title || "Register"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveCard(null)}
+                className="px-4 py-[6px] rounded border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Close Register
+              </button>
+            </div>
 
-        {/* Filter Controls Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-4 place-items-start">
-           
-           {/* Revenue Field */}
-           <div className="w-full">
-             <label className="text-[11px] text-gray-500 font-medium mb-1.5 block">Revenue (in range)</label>
-             <div className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-[12px] text-gray-700 w-full min-h-[38px] flex items-center">
-                Subtotal: Ksh {formatKsh(data?.breakdowns?.revenue?.subtotal || 15882361)} | 
-                Delivery: Ksh {formatKsh(data?.breakdowns?.revenue?.deliveryFees || 15148)} | 
-                Total: Ksh {formatKsh(data?.breakdowns?.revenue?.total || 15903608)}
-             </div>
-           </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500 mb-1">Revenue (in range)</p>
+                <p className="text-[13px] text-gray-700">
+                  Subtotal: <span className="font-semibold">{formatKes(data?.breakdowns?.revenue?.subtotal || 0)}</span> | Delivery:{" "}
+                  <span className="font-semibold">{formatKes(data?.breakdowns?.revenue?.deliveryFees || 0)}</span> | Total:{" "}
+                  <span className="font-semibold">{formatKes(data?.breakdowns?.revenue?.total || 0)}</span>
+                </p>
+              </div>
 
-           {/* Status Dropdown */}
-           <div className="w-full">
-             <label className="text-[11px] text-gray-500 font-medium mb-1.5 block">Status Filter</label>
-             <select 
-                className="w-full h-[38px] border border-gray-200 rounded-md px-3 text-[13px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-             >
-               <option>All Statuses</option>
-               <option>Placed</option>
-               <option>Processing</option>
-               <option>Complete</option>
-               <option>Cancelled</option>
-             </select>
-           </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                 <p className="text-xs text-gray-500 mb-1">Status Filter</p>
+                 <select
+                   value={statusFilter}
+                   onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                   className="w-full border border-gray-200 rounded px-3 h-[28px] text-[13px] bg-white focus:outline-none focus:border-indigo-400"
+                 >
+                   <option value="ALL">All Statuses</option>
+                   <option value="PLACED">Placed</option>
+                   <option value="PROCESSING">Processing</option>
+                   <option value="COMPLETE">Complete</option>
+                   <option value="CANCELLED">Cancelled</option>
+                 </select>
+              </div>
 
-           {/* Service Dropdown */}
-           <div className="w-full">
-             <label className="text-[11px] text-gray-500 font-medium mb-1.5 block">Service Filter</label>
-             <select 
-                className="w-full h-[38px] border border-gray-200 rounded-md px-3 text-[13px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-             >
-               <option>All Services</option>
-               <option>Hardware</option>
-               <option>Custom Products</option>
-               <option>Machinery & Equipment</option>
-               <option>Designs</option>
-             </select>
-           </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                 <p className="text-xs text-gray-500 mb-1">Search</p>
+                 <input
+                   value={searchQuery}
+                   onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
+                   placeholder="Search order #, customer, address..."
+                   className="w-full border border-gray-200 rounded px-3 h-[28px] text-[13px] bg-white focus:outline-none focus:border-indigo-400"
+                 />
+              </div>
+            </div>
 
-           {/* Search Input */}
-           <div className="w-full">
-             <label className="text-[11px] text-gray-500 font-medium mb-1.5 block">Search</label>
-             <input 
-                type="text" 
-                placeholder="Search order #, customer, address..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-[38px] border border-gray-200 rounded-md px-3 text-[13px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-             />
-           </div>
+            {/* Register Table */}
+            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-3">
+              <table className="min-w-full bg-white text-sm">
+                <thead className="bg-[#f8f9fa] border-b text-gray-600">
+                   <tr>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">#</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Order #</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Customer</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Status</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Items</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Total Rate</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Delivery Address</th>
+                     <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Created At</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-10 text-gray-400 font-medium">Loading Records...</td>
+                    </tr>
+                  ) : !data?.register?.data || data.register.data.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-10 text-gray-400 font-medium">No records found.</td>
+                    </tr>
+                  ) : (
+                    data.register.data.map((row: any, idx: number) => {
+                       return (
+                         <tr key={`${row.id}-${idx}`} className="hover:bg-indigo-50/40 cursor-pointer transition-colors" onClick={() => onRowClick(row)}>
+                           <td className="px-4 py-2.5 text-gray-500">{((page - 1) * limit) + idx + 1}</td>
+                           <td className="px-4 py-2.5 text-gray-900 font-medium font-mono text-[12.5px]">{row.orderNumber || row.orderId || row.id}</td>
+                           <td className="px-4 py-2.5 text-gray-600">
+                             <div className="line-clamp-1 font-medium text-gray-800">{row.customerName || "N/A"}</div>
+                             <div className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{row.customerEmail || row.customer?.email}</div>
+                           </td>
+                           <td className="px-4 py-2.5 text-gray-800 font-medium tracking-wide capitalize">{row.status || "N/A"}</td>
+                           <td className="px-4 py-2.5 text-gray-600">{row.itemsCount || "0"}</td>
+                           <td className="px-4 py-2.5 text-indigo-700 font-medium">Ksh {formatKes(row.totalAmount || row.total || 0)}</td>
+                           <td className="px-4 py-2.5 text-gray-600"><span className="line-clamp-1">{row.deliveryAddress || "N/A"}</span></td>
+                           <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{format(new Date(row.updatedAt || row.createdAt || new Date()), "MMM dd, yyyy HH:mm")}</td>
+                         </tr>
+                       );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-        </div>
-
-        {/* Existing table for displaying the register */}
-        <div className="mt-4 border rounded-xl overflow-hidden">
-           <Table>
-             <TableHeader className="bg-gray-50/50">
-               <TableRow>
-                 <TableHead className="text-gray-500 font-medium h-10 w-12 text-center">#</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Order #</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10 w-[200px]">Customer</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Service</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Status</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Items</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Total</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10 min-w-[200px]">Delivery Address</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10 min-w-[120px]">Created At</TableHead>
-               </TableRow>
-             </TableHeader>
-             <TableBody>
-               {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-gray-500">
-                      <span className="flex items-center justify-center">Loading Data...</span>
-                    </TableCell>
-                  </TableRow>
-               ) : data?.register?.data?.map((order: any, idx: number) => (
-                 <TableRow key={order.orderId || idx} className="hover:bg-gray-50/50">
-                   <TableCell className="text-center text-gray-500 text-sm">{idx + 1}</TableCell>
-                   <TableCell className="font-medium text-gray-900 text-sm">
-                     {order.orderNumber || `ORD-${order.orderId || "720DECE1"}`}
-                   </TableCell>
-                   <TableCell className="text-sm">
-                     <div className="font-medium text-gray-800 line-clamp-1">{order.customerName || "eng.jack"}</div>
-                     <div className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{order.customerEmail || "customer@jagedo.co.ke"}</div>
-                   </TableCell>
-                   <TableCell className="text-sm text-gray-600">
-                     {order.service || "Hardware"}
-                   </TableCell>
-                   <TableCell>
-                     <span className="text-sm font-medium text-gray-800 tracking-wide capitalize">
-                       {order.status || "Placed"}
-                     </span>
-                   </TableCell>
-                   <TableCell className="text-sm text-gray-600">
-                     {order.itemsCount || "3"}
-                   </TableCell>
-                   <TableCell className="text-sm font-medium text-gray-800">
-                     Ksh {parseFloat(order.totalAmount || "10500").toLocaleString()}
-                   </TableCell>
-                   <TableCell className="text-xs text-gray-600 leading-snug">
-                     {order.deliveryAddress || "Embakasi, Embakasi Central, Nairobi, undefined"}
-                   </TableCell>
-                   <TableCell className="text-[13px] text-gray-600 leading-snug">
-                     {format(order.createdAt ? new Date(order.createdAt) : new Date("2026-04-09T15:31:00"), "dd/MM/yyyy, HH:mm")}
-                   </TableCell>
-                 </TableRow>
-               ))}
-               {(!loading && (!data?.register?.data || data.register.data.length === 0)) && (
-                 <TableRow>
-                   <TableCell colSpan={9} className="h-32 text-center text-gray-500">
-                     No orders found for the selected period.
-                   </TableCell>
-                 </TableRow>
-               )}
-             </TableBody>
-           </Table>
-        </div>
-
+            {/* Pagination Wrapper */}
+            {data?.register?.pagination && data.register.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-100 mt-4 pt-4">
+                <p className="text-[13px] text-gray-500">
+                  Showing <span className="font-medium text-gray-800">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-gray-800">{Math.min(page * limit, data.register.pagination.total)}</span> of <span className="font-medium text-gray-800">{data.register.pagination.total}</span> records
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isFirstPage || loading}
+                    onClick={() => setPage(page - 1)}
+                    className="h-8 px-3 text-[13px]"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                  </Button>
+                  <span className="text-[13px] text-gray-600 px-2 font-medium">Page {page} of {totalPages}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isLastPage || loading}
+                    onClick={() => setPage(page + 1)}
+                    className="h-8 px-3 text-[13px]"
+                  >
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
+
     </div>
   );
 }

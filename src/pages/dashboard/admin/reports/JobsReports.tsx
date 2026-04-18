@@ -1,60 +1,75 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
-import reportsApi, { ReportFilters } from "@/api/reports.api";
 import { 
-  Briefcase, FileText, CheckCircle2, Gavel, PlayCircle, Clock,
-  Calendar as CalendarIcon, Download 
+  Briefcase, FileText, ShieldCheck, Gavel, PlayCircle, Download, Calendar as CalendarIcon, ChevronLeft, ChevronRight 
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import reportsApi, { ReportFilters } from "@/api/reports.api";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function JobsReports() {
+  const navigate = useNavigate();
   const axiosInstance = axios;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
-  // Filters state
-  const [period, setPeriod] = useState("30d");
+  // Date Filters state
+  const [period, setPeriod] = useState("90d");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30),
+    from: subDays(new Date(), 90),
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  // Navigation states
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  // Register Filters state
+  const [jobTypeFilter, setJobTypeFilter] = useState("ALL");
+  const [managedByFilter, setManagedByFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   useEffect(() => {
     fetchReport();
-  }, [dateRange, compareMode, statusFilter]);
+    // eslint-disable-next-line
+  }, [dateRange, compareMode, activeCard, jobTypeFilter, managedByFilter, page, searchQuery]);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const filters: ReportFilters = {};
-      if (dateRange?.from) filters.startDate = dateRange.from.toISOString();
-      if (dateRange?.to) filters.endDate = dateRange.to.toISOString();
-      if (compareMode) filters.compare = true;
-      if (statusFilter) filters.status = statusFilter;
+      const filters: any = {
+        page,
+        limit,
+      };
 
-      const res = await reportsApi.getJobsReport(axiosInstance, filters);
+      if (dateRange?.from) filters.startDate = startOfDay(dateRange.from).toISOString();
+      if (dateRange?.to) filters.endDate = endOfDay(dateRange.to).toISOString();
+      if (compareMode) filters.compare = 'true';
+      if (searchQuery.trim()) filters.search = searchQuery.trim();
+
+      // Bind dynamic filters based on active card and dropdowns
+      if (activeCard) {
+        if (activeCard === "JOBS_NEW") filters.lifecycleFilter = "new";
+        if (activeCard === "JOBS_DRAFT") filters.lifecycleFilter = "draft";
+        if (activeCard === "JOBS_BID") filters.lifecycleFilter = "bid";
+        if (activeCard === "JOBS_ACTIVE") filters.lifecycleFilter = "active";
+        if (activeCard === "JOBS_PAST") filters.lifecycleFilter = "past";
+      }
+
+      if (jobTypeFilter !== "ALL") filters.jobTypeFilter = jobTypeFilter;
+      if (managedByFilter !== "ALL") filters.managedByFilter = managedByFilter;
+
+      const res = await reportsApi.getJobsReport(axiosInstance, filters as ReportFilters);
       setData(res.data);
     } catch (error) {
       console.error("Failed to fetch jobs report:", error);
@@ -71,80 +86,108 @@ export default function JobsReports() {
       case 'Today': from = new Date(); break;
       case '7d': from = subDays(to, 7); break;
       case '30d': from = subDays(to, 30); break;
+      case '60d': from = subDays(to, 60); break;
       case '90d': from = subDays(to, 90); break;
-      case 'Custom': return; // Let the picker handle it
+      case 'Year': from = subDays(to, 365); break;
+      case 'Custom': return; 
     }
     setDateRange({ from, to });
+    setPage(1);
   };
 
-  const handleMetricClick = (metricId: string) => {
-    setActiveMetric(metricId);
-    if (metricId === "total") setStatusFilter(null);
-    else setStatusFilter(metricId.toUpperCase());
+  const onExportJobs = () => {
+    if (!data?.register?.data || data.register.data.length === 0) return;
+    const headers = ["#", "Job ID", "Job Type", "Skill", "Location", "Managed By", "Status", "Stage", "Created At"];
+    const csvContent = data.register.data.map((row: any, idx: number) => 
+      [
+        idx + 1, 
+        row.jobId || row.id, 
+        row.jobType || row.category || "N/A", 
+        row.skill || "N/A", 
+        row.location || "N/A", 
+        row.managedBy || row.orderType || row.type || "N/A", 
+        row.status || "N/A", 
+        row.stage || "N/A", 
+        format(new Date(row.createdAt || new Date()), "MMM dd, yyyy")
+      ]
+      .map((v: any) => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
+    );
+    const csv = [headers.join(","), ...csvContent].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `jobs_report_${activeCard || 'total'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
   };
 
-  // Top metrics row
-  const metricsRow1 = [
-    { id: "total", title: "Total Jobs", icon: <Briefcase className="h-5 w-5" />, value: data?.summary?.totalJobs || 0 },
-    { id: "new", title: "New", icon: <FileText className="h-5 w-5" />, value: data?.summary?.new || 0 },
-    { id: "drafts", title: "Drafts", icon: <CheckCircle2 className="h-5 w-5" />, value: data?.summary?.drafts || 0 },
-    { id: "bids", title: "Bids", icon: <Gavel className="h-5 w-5" />, value: data?.summary?.bids || 0 },
-    { id: "active", title: "Active", icon: <PlayCircle className="h-5 w-5" />, value: data?.summary?.active || 0 },
-    { id: "past", title: "Past", icon: <Briefcase className="h-5 w-5" />, value: data?.summary?.past || 0 },
+  const onRowClick = (row: any) => {
+    const id = row?.id;
+    if (!id) return;
+    navigate(`/dashboard/admin/jobs/${id}`, {
+      state: {
+        returnTo: "/dashboard/admin/reports?section=jobs",
+        returnLabel: "Back to Reports Register",
+      },
+    });
+  };
+
+  const cards = [
+    { key: "JOBS_TOTAL", title: "Total Jobs", value: data?.summary?.totalJobs || 0, icon: Briefcase },
+    { key: "JOBS_NEW", title: "New", value: data?.summary?.new || 0, icon: FileText },
+    { key: "JOBS_DRAFT", title: "Drafts", value: data?.summary?.drafts || 0, icon: ShieldCheck },
+    { key: "JOBS_BID", title: "Bids", value: data?.summary?.bids || 0, icon: Gavel },
+    { key: "JOBS_ACTIVE", title: "Active", value: data?.summary?.active || 0, icon: PlayCircle },
+    { key: "JOBS_PAST", title: "Past", value: data?.summary?.past || 0, icon: Briefcase },
   ];
 
-  // Requested Jobs row
-  const requestedJobs = [
-    { id: "fundi", title: "Fundi Jobs Requested", value: data?.summary?.fundi || 0 },
-    { id: "professional", title: "Professional Jobs Requested", value: data?.summary?.professional || 0 },
-    { id: "contractor", title: "Contractor Jobs Requested", value: data?.summary?.contractor || 0 },
-  ];
+  // We rely on backend summary maps if present, else fallback to 0/empty
+  const byJobType = {
+    FUNDI: data?.summary?.fundi || 0,
+    PROFESSIONAL: data?.summary?.professional || 0,
+    CONTRACTOR: data?.summary?.contractor || 0,
+    HARDWARE: data?.summary?.hardware || 0,
+  };
 
-  // Most requested services mock
-  const servicesFundi = data?.summary?.servicesFundi || [
-    { name: "electrician", count: 3 },
-    { name: "mason", count: 3 },
-    { name: "painter", count: 3 },
-    { name: "fitter", count: 1 },
-    { name: "foreman", count: 1 }
-  ];
-  
-  const servicesProfessional = data?.summary?.servicesProfessional || [
-    { name: "Architect", count: 4 },
-    { name: "Electrical Engineer", count: 1 }
-  ];
+  const byManagedBy = {
+    JAGEDO: data?.summary?.managedByJagedo || 0,
+    SELF: data?.summary?.managedBySelf || 0,
+    BUILDER: data?.summary?.managedByBuilder || 0,
+  };
 
-  const servicesContractor = data?.summary?.servicesContractor || [
-    { name: "road-works", count: 2 }
-  ];
+  // Pagination meta
+  const totalPages = data?.register?.pagination?.totalPages || 1;
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="mb-2">
-        <h2 className="text-2xl font-bold tracking-tight text-[#30336b]">System Reports</h2>
-        <p className="text-sm text-gray-500 mt-1">Operational + lifecycle reports (auto-refresh every 30 seconds)</p>
-      </div>
-
-      {/* Tab Header Indicator */}
-      <div className="flex items-center space-x-3 bg-white px-5 py-4 border border-gray-100 rounded-xl shadow-sm w-full relative">
-        <Briefcase className="text-indigo-600 h-5 w-5" />
-        <span className="font-semibold text-gray-800 text-[15px]">Jobs Register Snapshot</span>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-indigo-800">Jobs Reports</h1>
+        <p className="text-sm text-gray-500">Service requests, professional jobs, and project reports</p>
       </div>
 
       {/* Date Range Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <h3 className="text-indigo-600 font-medium mb-4 text-sm tracking-wide">Date Range</h3>
+      <div className="bg-white rounded-xl border border-indigo-100 p-6">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <h2 className="text-[16px] font-semibold text-indigo-700">Date Range</h2>
+          {compareMode && (
+            <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+              Comparison enabled
+            </span>
+          )}
+        </div>
+        
         <div className="flex flex-wrap md:flex-nowrap items-center gap-4">
           <div className="flex items-center space-x-2">
-            {['Today', '7d', '30d', '90d', 'Custom'].map(p => (
+            {['Today', '7d', '30d', '60d', '90d', 'Year', 'Custom'].map(p => (
               <Button
                 key={p}
                 variant="outline"
                 size="sm"
                 className={`h-9 px-4 text-sm font-normal rounded-md transition-colors ${
                   period === p 
-                  ? "border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50/80 hover:text-indigo-800" 
+                  ? "border-indigo-400 text-indigo-700 bg-indigo-50/70" 
                   : "text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
                 onClick={() => handlePeriodChange(p)}
@@ -157,37 +200,27 @@ export default function JobsReports() {
           <div className="flex items-center space-x-3 ml-2">
             <Popover>
               <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
+                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
                   <span className="text-sm text-gray-600">{dateRange?.from ? format(dateRange.from, "MM/dd/yyyy") : "Start Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.from} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
+                <Calendar mode="single" selected={dateRange?.from} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} initialFocus />
               </PopoverContent>
             </Popover>
 
-            <span className="text-sm text-gray-400 font-medium">to</span>
+            <span className="text-sm text-gray-400">to</span>
 
             <Popover>
               <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
+                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
                   <span className="text-sm text-gray-600">{dateRange?.to ? format(dateRange.to, "MM/dd/yyyy") : "End Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.to} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
+                <Calendar mode="single" selected={dateRange?.to} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
@@ -199,188 +232,216 @@ export default function JobsReports() {
               onCheckedChange={(e) => setCompareMode(e as boolean)} 
               className="border-gray-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
             />
-            <label htmlFor="compare" className="text-sm text-gray-600 font-normal cursor-pointer select-none">
+            <label htmlFor="compare" className="text-[13px] text-gray-600 font-normal cursor-pointer">
               Compare to previous period
             </label>
           </div>
         </div>
       </div>
 
-      {/* Snapshot Cards & Data Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <h3 className="text-indigo-600 font-medium text-[15px] mb-6">Jobs Register Snapshot</h3>
-
-        {/* Row 1: Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
-          {metricsRow1.map((metric) => {
-            const isActive = activeMetric === metric.id;
-            return (
-              <div 
-                key={metric.id}
-                className={`border rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-200 ${
-                  isActive 
-                  ? 'border-indigo-500 ring-1 ring-indigo-500 bg-white shadow-sm' 
-                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
-                }`}
-                onClick={() => handleMetricClick(metric.id)}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <span className={`text-[13px] ${isActive ? 'text-gray-800 font-medium' : 'text-gray-500 font-medium'}`}>
-                    {metric.title}
-                  </span>
-                  <div className={isActive ? "text-indigo-600 flex-shrink-0 ml-1" : "text-indigo-500 flex-shrink-0 ml-1"}>
-                    {metric.icon}
-                  </div>
-                </div>
-                <div className={`text-2xl font-bold tracking-tight ${isActive ? 'text-indigo-700' : 'text-[#30336b]'}`}>
-                  {loading ? "-" : metric.value}
-                </div>
-              </div>
-            );
-          })}
+      {/* Jobs Register Snapshot */}
+      <div className="bg-white rounded-xl border border-indigo-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[16px] font-semibold text-indigo-700">Jobs Register Snapshot</h2>
+          {activeCard && (
+            <button
+              onClick={onExportJobs}
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-indigo-700 transition"
+            >
+              <Download size={16} />
+              Export Register CSV
+            </button>
+          )}
         </div>
 
-        {/* Row 2: Jobs Requested */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          {requestedJobs.map((metric) => (
-            <div 
-              key={metric.id}
-              className="bg-[#f0f2f9] border border-[#e1e5f2] rounded-xl p-4 cursor-pointer hover:bg-[#e8ebf7] transition-colors"
-              onClick={() => handleMetricClick(metric.id)}
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-5">
+          {cards.map((card) => (
+            <button
+              type="button"
+              key={card.key}
+              onClick={() => {
+                setActiveCard(card.key);
+                setJobTypeFilter("ALL"); // Reset inner filters
+                setManagedByFilter("ALL");
+                setPage(1);
+              }}
+              className={`bg-white border rounded-xl shadow-sm p-4 text-left transition ${
+                activeCard === card.key ? "border-indigo-600 ring-2 ring-indigo-200" : "hover:border-gray-300"
+              }`}
             >
-              <div className="text-[13px] text-gray-600 font-medium mb-1">{metric.title}</div>
-              <div className="text-[22px] font-bold text-[#30336b] mb-3">{loading ? "-" : metric.value}</div>
-              <div className="text-[12px] text-indigo-500 font-medium hover:underline">Click to view register details</div>
-            </div>
+              <div className="flex justify-between items-start mb-2">
+                <p className="text-[12.5px] text-gray-500 font-medium">{card.title}</p>
+                <card.icon className="text-indigo-600 h-[18px] w-[18px]" />
+              </div>
+              <p className="text-[22px] font-bold text-indigo-700 mt-1">
+                {loading ? "..." : card.value}
+              </p>
+            </button>
           ))}
         </div>
 
-        {/* Row 3: Most Requested Services */}
-        <div className="border border-gray-100 rounded-xl p-5 mb-8">
-          <h4 className="text-[14px] font-medium text-gray-800 mb-4">Most Requested Services by Job Type</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Top Fundi */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
-              <h5 className="text-[13px] font-medium text-gray-800 mb-3">Top Fundi Services</h5>
-              <div className="space-y-2 mb-4">
-                {servicesFundi.map((s: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50/50 px-2.5 py-1.5 rounded-md">
-                    <span className="text-[13px] text-gray-600 capitalize">{s.name}</span>
-                    <span className="text-[13px] font-medium text-gray-800">{s.count}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[12px] text-indigo-500 font-medium cursor-pointer hover:underline">Click to view full register details</div>
-            </div>
-
-            {/* Top Professional */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
-              <h5 className="text-[13px] font-medium text-gray-800 mb-3">Top Professional Services</h5>
-              <div className="space-y-2 mb-4">
-                {servicesProfessional.map((s: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50/50 px-2.5 py-1.5 rounded-md">
-                    <span className="text-[13px] text-gray-600 capitalize">{s.name}</span>
-                    <span className="text-[13px] font-medium text-gray-800">{s.count}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[12px] text-indigo-500 font-medium cursor-pointer hover:underline mt-auto">Click to view full register details</div>
-            </div>
-
-            {/* Top Contractor */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
-              <h5 className="text-[13px] font-medium text-gray-800 mb-3">Top Contractor Services</h5>
-              <div className="space-y-2 mb-4">
-                {servicesContractor.map((s: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50/50 px-2.5 py-1.5 rounded-md">
-                    <span className="text-[13px] text-gray-600 capitalize">{s.name}</span>
-                    <span className="text-[13px] font-medium text-gray-800">{s.count}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[12px] text-indigo-500 font-medium cursor-pointer hover:underline mt-auto">Click to view full register details</div>
-            </div>
-
+        {!activeCard ? (
+          <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-4 text-sm text-indigo-700 font-medium mt-6">
+            Select any card to view job register details.
           </div>
-        </div>
-        
-        {/* Helper Footer text matching image */}
-        {!activeMetric && (
-          <div className="border-t border-[#eaf0f6] pt-4 mt-2">
-             <p className="text-[12px] text-indigo-500 font-medium">Select any card to view job register details</p>
-          </div>
-        )}
-
-        {/* Existing table that should display jobs when a user wants to view them */}
-        {activeMetric && (
+        ) : (
           <>
-            <div className="flex justify-between items-center pt-2 pb-4 mt-8 border-b border-gray-100">
-              <span className="font-medium text-[15px] text-gray-800">
-                Viewing: {metricsRow1.find(m => m.id === activeMetric)?.title || requestedJobs.find(m => m.id === activeMetric)?.title || 'Selected Category'}
-              </span>
-              <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50" onClick={() => setActiveMetric(null)}>
+            <div className="flex items-center justify-between gap-3 mb-4 mt-6 border-t border-gray-100 pt-5">
+              <p className="text-sm font-medium text-gray-700">
+                Viewing: {cards.find((item) => item.key === activeCard)?.title || "Register"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveCard(null)}
+                className="px-3 py-[6px] rounded border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
                 Close Register
-              </Button>
+              </button>
             </div>
-            <div className="mt-4 border rounded-xl overflow-hidden">
-           <Table>
-             <TableHeader className="bg-gray-50/50">
-               <TableRow>
-                 <TableHead className="text-gray-500 font-medium h-10 w-24">Job ID</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Customer</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Provider</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Type</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Sub-Type</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Status</TableHead>
-                 <TableHead className="text-gray-500 font-medium h-10">Created</TableHead>
-               </TableRow>
-             </TableHeader>
-             <TableBody>
-               {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-gray-500">
-                      <span className="flex items-center justify-center">Loading Data...</span>
-                    </TableCell>
-                  </TableRow>
-               ) : data?.register?.data?.map((job: any) => (
-                 <TableRow key={job.id} className="hover:bg-gray-50/50">
-                   <TableCell className="font-mono text-xs text-gray-600">{job.jobId}</TableCell>
-                   <TableCell className="text-sm font-medium text-gray-900">
-                     {job.usersCustomer ? `${job.usersCustomer.firstName} ${job.usersCustomer.lastName}` : "--"}
-                   </TableCell>
-                   <TableCell className="text-sm text-gray-700">
-                     {job.usersServiceProvider ? (job.usersServiceProvider.organizationName || job.usersServiceProvider.firstName) : <span className="text-gray-400 italic">Unassigned</span>}
-                   </TableCell>
-                   <TableCell className="text-sm text-gray-600 capitalize">
-                     {job.jobType?.toLowerCase()}
-                   </TableCell>
-                   <TableCell className="text-sm text-gray-600 capitalize">
-                     {job.skill?.toLowerCase()}
-                   </TableCell>
-                   <TableCell>
-                     <Badge variant={job.status === "ACTIVE" ? "success" : "secondary"}>
-                       {job.status}
-                     </Badge>
-                   </TableCell>
-                   <TableCell className="text-xs text-gray-500">
-                     {format(new Date(job.createdAt), "MMM dd, yyyy")}
-                   </TableCell>
-                 </TableRow>
-               ))}
-               {(!loading && (!data?.register?.data || data.register.data.length === 0)) && (
-                 <TableRow>
-                   <TableCell colSpan={7} className="h-32 text-center text-gray-500">
-                     No jobs found for the selected period.
-                   </TableCell>
-                 </TableRow>
-               )}
-             </TableBody>
-           </Table>
-        </div>
-        </>
-        )}
 
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500 mb-1">Job Types (in range)</p>
+                <p className="text-[13px] text-gray-700">
+                  Fundi: <span className="font-semibold">{loading ? "-" : byJobType.FUNDI}</span> | Professional:{" "}
+                  <span className="font-semibold">{loading ? "-" : byJobType.PROFESSIONAL}</span> | Contractor:{" "}
+                  <span className="font-semibold">{loading ? "-" : byJobType.CONTRACTOR}</span> | Hardware:{" "}
+                  <span className="font-semibold">{loading ? "-" : byJobType.HARDWARE}</span>
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500 mb-1">Managed By (in range)</p>
+                <p className="text-[13px] text-gray-700">
+                  JaGedo: <span className="font-semibold">{loading ? "-" : byManagedBy.JAGEDO}</span> | Self:{" "}
+                  <span className="font-semibold">{loading ? "-" : byManagedBy.SELF}</span> | Builder:{" "}
+                  <span className="font-semibold">{loading ? "-" : byManagedBy.BUILDER}</span>
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500 mb-1">Search</p>
+                <input
+                  value={searchQuery}
+                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
+                  placeholder="Search jobId, skill, location..."
+                  className="w-full border border-gray-200 rounded px-3 h-[28px] text-[13px] bg-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-5">
+              <select
+                value={jobTypeFilter}
+                onChange={(event) => { setJobTypeFilter(event.target.value); setPage(1); }}
+                className="border border-gray-200 rounded px-3 h-[36px] text-[13px] bg-white text-gray-700 focus:outline-none focus:border-indigo-400"
+              >
+                <option value="ALL">All Job Types</option>
+                <option value="FUNDI">Fundi</option>
+                <option value="PROFESSIONAL">Professional</option>
+                <option value="CONTRACTOR">Contractor</option>
+                <option value="HARDWARE">Hardware</option>
+              </select>
+
+              <select
+                value={managedByFilter}
+                onChange={(event) => { setManagedByFilter(event.target.value); setPage(1); }}
+                className="border border-gray-200 rounded px-3 h-[36px] text-[13px] bg-white text-gray-700 focus:outline-none focus:border-indigo-400"
+              >
+                <option value="ALL">All Managed By</option>
+                <option value="JAGEDO">JaGedo</option>
+                <option value="SELF">Self</option>
+                <option value="BUILDER">Builder</option>
+              </select>
+            </div>
+
+            {/* Register Table */}
+            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+              <table className="min-w-full bg-white text-sm">
+                <thead className="bg-[#f8f9fa] border-b text-gray-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">#</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Job ID</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Job Type</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Skill</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Location</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Managed By</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Stage</th>
+                    <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Created At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10 text-gray-400 font-medium">
+                        Loading Records...
+                      </td>
+                    </tr>
+                  ) : data?.register?.data?.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10 text-gray-400 font-medium">
+                        No jobs match current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    data?.register?.data?.map((row: any, idx: number) => (
+                      <tr
+                        key={`${row.id}-${idx}`}
+                        className="hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                        onClick={() => onRowClick(row)}
+                      >
+                        <td className="px-4 py-2.5 text-gray-500">{((page - 1) * limit) + idx + 1}</td>
+                        <td className="px-4 py-2.5 text-gray-900 font-medium font-mono text-[12.5px]">{row.jobId || row.id}</td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{row.jobType || row.category || "N/A"}</td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{row.skill || "N/A"}</td>
+                        <td className="px-4 py-2.5 text-gray-600">{row.location || "N/A"}</td>
+                        <td className="px-4 py-2.5">
+                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                             {row.managedBy || row.orderType || row.type || "N/A"}
+                           </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{row.status || "N/A"}</td>
+                        <td className="px-4 py-2.5 text-gray-600 capitalize">{row.stage || "N/A"}</td>
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{format(new Date(row.createdAt || new Date()), "MMM dd, yyyy")}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Wrapper */}
+            {data?.register?.pagination && data.register.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-100 mt-4 pt-4">
+                <p className="text-[13px] text-gray-500">
+                  Showing <span className="font-medium text-gray-800">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-gray-800">{Math.min(page * limit, data.register.pagination.total)}</span> of <span className="font-medium text-gray-800">{data.register.pagination.total}</span> records
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isFirstPage || loading}
+                    onClick={() => setPage(page - 1)}
+                    className="h-8 px-3 text-[13px]"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                  </Button>
+                  <span className="text-[13px] text-gray-600 px-2 font-medium">Page {page} of {totalPages}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isLastPage || loading}
+                    onClick={() => setPage(page + 1)}
+                    className="h-8 px-3 text-[13px]"
+                  >
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

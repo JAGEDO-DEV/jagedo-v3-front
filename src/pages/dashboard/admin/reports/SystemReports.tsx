@@ -1,68 +1,102 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
-import reportsApi, { ReportFilters } from "@/api/reports.api";
-import { Users, HardHat, Shield, Download, Calendar as CalendarIcon, FileText } from "lucide-react";
-import { User } from "lucide-react";
+import { 
+  Users, UserCheck, Shield, FileText, Download, Calendar as CalendarIcon, ChevronLeft, ChevronRight 
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import reportsApi, { ReportFilters } from "@/api/reports.api";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const lifecycleLabel = (key: string) => {
+  const map: Record<string, string> = {
+    signed_up: "Signed Up",
+    incomplete: "Incomplete",
+    complete: "Complete",
+    pending_verification: "Pending Verification",
+    verified: "Verified",
+    suspended: "Suspended",
+    returned: "Returned",
+    deleted: "Deleted",
+  };
+  return map[key] || key;
+};
+
+const sourceLabel: Record<string, string> = {
+  SOCIAL_MEDIA: "Social Media",
+  ADVERTISEMENT: "Advertisement",
+  DIRECT_REFERRAL: "Direct Referral",
+  WORD_OF_MOUTH: "Word of Mouth",
+  UNKNOWN: "Not Specified",
+};
 
 export default function SystemReports() {
+  const navigate = useNavigate();
   const axiosInstance = axios;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
-  // Filters state
+  // Date Filters state
   const [period, setPeriod] = useState("90d");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 90),
     to: new Date()
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [activeMetric, setActiveMetric] = useState<string | null>(null);
 
-  // Customer Filter State
-  const [customerFilter, setCustomerFilter] = useState("all");
+  // Navigation states
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  // Register Filters state
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [lifecycleFilter, setLifecycleFilter] = useState("ALL");
+  const [sourceFilter, setSourceFilter] = useState("ALL");
+  const [locationFilter, setLocationFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [customerTypeFilter, setCustomerTypeFilter] = useState("All Customers");
-  const [locationFilter, setLocationFilter] = useState("All Locations");
-  const [lifecycleFilter, setLifecycleFilter] = useState("All Lifecycle");
-  const [sourceFilter, setSourceFilter] = useState("All Sources");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   useEffect(() => {
     fetchReport();
-  }, [dateRange, compareMode, activeMetric]);
+    // eslint-disable-next-line
+  }, [dateRange, compareMode, activeCard, roleFilter, lifecycleFilter, sourceFilter, locationFilter, page, searchQuery]);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const filters: ReportFilters = {};
-      if (dateRange?.from) filters.startDate = dateRange.from.toISOString();
-      if (dateRange?.to) filters.endDate = dateRange.to.toISOString();
-      if (compareMode) filters.compare = true;
+      const filters: any = {
+        page,
+        limit,
+      };
 
-      // Note: backend may not filter users list by "activeMetric" directly if it's summary based, 
-      // but in UI "Viewing: Total Users" implies we can filter what is shown below. 
-      // Assuming for now the backend gives `data.register.data`.
+      if (dateRange?.from) filters.startDate = startOfDay(dateRange.from).toISOString();
+      if (dateRange?.to) filters.endDate = endOfDay(dateRange.to).toISOString();
+      if (compareMode) filters.compare = 'true';
+      if (searchQuery.trim()) filters.search = searchQuery.trim();
 
-      const res = await reportsApi.getSystemReport(axiosInstance, filters);
+      // Bind dynamic filters based on active card and dropdowns
+      if (activeCard === "TOTAL_ADMINS") {
+        filters.roleFilter = "ADMIN";
+      } else if (activeCard === "BUILDERS") {
+        filters.roleFilter = roleFilter === "ALL" ? "ALL_BUILDERS" : roleFilter;
+      } else if (activeCard === "CUSTOMERS") {
+        filters.roleFilter = roleFilter === "ALL" ? "ALL_CUSTOMERS" : roleFilter;
+      } else {
+        if (roleFilter !== "ALL") filters.roleFilter = roleFilter;
+      }
+
+      if (lifecycleFilter !== "ALL") filters.lifecycleFilter = lifecycleFilter;
+      if (sourceFilter !== "ALL") filters.sourceFilter = sourceFilter;
+      if (locationFilter !== "ALL") filters.locationFilter = locationFilter;
+
+      const res = await reportsApi.getSystemReport(axiosInstance, filters as ReportFilters);
       setData(res.data);
     } catch (error) {
       console.error("Failed to fetch system report:", error);
@@ -71,63 +105,41 @@ export default function SystemReports() {
     }
   };
 
-  const getFilteredUsers = () => {
-    let filteredData = data?.register?.data || [];
-    if (activeMetric === "builders") {
-      filteredData = filteredData.filter((u: any) => ["fundi", "hardware", "contractor", "professional"].includes(u.userType?.toLowerCase()));
-    } else if (activeMetric === "customers") {
-      filteredData = filteredData.filter((u: any) => ["customer"].includes(u.userType?.toLowerCase()));
-      
-      if (customerFilter === "individual") {
-        filteredData = filteredData.filter((u: any) => u.accountType?.toLowerCase() === "individual");
-      } else if (customerFilter === "organization") {
-        filteredData = filteredData.filter((u: any) => u.accountType?.toLowerCase() === "organization" || u.accountType?.toLowerCase() === "business");
-      }
-
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        filteredData = filteredData.filter((u: any) => 
-          u.firstName?.toLowerCase().includes(q) || 
-          u.lastName?.toLowerCase().includes(q) || 
-          u.email?.toLowerCase().includes(q) ||
-          u.phone?.toLowerCase().includes(q)
-        );
-      }
-      
-      if (locationFilter !== "All Locations") {
-         filteredData = filteredData.filter((u: any) => u.location === locationFilter);
-      }
-      if (lifecycleFilter !== "All Lifecycle") {
-         filteredData = filteredData.filter((u: any) => u.lifecycle === lifecycleFilter);
-      }
-      if (sourceFilter !== "All Sources") {
-         filteredData = filteredData.filter((u: any) => u.signupSource === sourceFilter);
-      }
-
-    } else if (activeMetric === "admins") {
-      filteredData = filteredData.filter((u: any) => ["admin", "superadmin"].includes(u.userType?.toLowerCase()));
+  const handlePeriodChange = (p: string) => {
+    setPeriod(p);
+    const to = new Date();
+    let from = new Date();
+    switch (p) {
+      case 'Today': from = new Date(); break;
+      case '7d': from = subDays(to, 7); break;
+      case '30d': from = subDays(to, 30); break;
+      case '60d': from = subDays(to, 60); break;
+      case '90d': from = subDays(to, 90); break;
+      case 'Year': from = subDays(to, 365); break;
+      case 'Custom': return; 
     }
-    return filteredData;
+    setDateRange({ from, to });
+    setPage(1);
   };
 
-  const downloadUsersCSV = () => {
-    const list = getFilteredUsers();
-    if (!list || list.length === 0) return;
-    const isCustomer = activeMetric === "customers";
+  const onExportUsers = () => {
+    // Only exports the current register page
+    if (!data?.register?.data || data.register.data.length === 0) return;
+    const isCustomer = activeCard === "CUSTOMERS";
     const headers = [isCustomer ? "#id" : "#", "Name", "Email", "Role", "Location", "Lifecycle", "Signup Source", "Created At"];
-    const csvContent = list.map((u: any) => 
+    const csvContent = data.register.data.map((u: any) => 
       [u.id, `${u.firstName || ''} ${u.lastName || ''}`.trim(), u.email, u.userType, u.location, u.lifecycle, u.signupSource, format(new Date(u.createdAt), "MMM dd, yyyy")]
-        .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
+        .map((v: any) => `"${String(v || "").replace(/"/g, '""')}"`).join(",")
     );
     const csv = [headers.join(","), ...csvContent].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `users_report_${activeMetric || 'total'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `users_report_${activeCard || 'total'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
   };
 
-  const downloadLifecycleCSV = () => {
+  const onExportLifecycle = () => {
     if (!data?.breakdowns?.byLifecycle) return;
     const lc = data.breakdowns.byLifecycle;
     const headers = ["Metric", "Count"];
@@ -150,375 +162,479 @@ export default function SystemReports() {
     link.click();
   };
 
-  const handlePeriodChange = (p: string) => {
-    setPeriod(p);
-    const to = new Date();
-    let from = new Date();
-    switch (p) {
-      case 'Today': from = new Date(); break;
-      case '7d': from = subDays(to, 7); break;
-      case '30d': from = subDays(to, 30); break;
-      case '90d': from = subDays(to, 90); break;
-      case 'Custom': return; // Let the picker handle it
-    }
-    setDateRange({ from, to });
+  const onRowClick = (row: any) => {
+    navigate(`/dashboard/profile/${row.id}/${row.userType || "CUSTOMER"}`, {
+      state: {
+        userData: row,
+        returnTo: `/dashboard/admin/reports`,
+        returnLabel: "Back to Reports Register",
+      },
+    });
   };
 
-  const metrics = [
-    { id: "total", title: "Total Users", icon: <Users className="h-5 w-5" />, value: data?.summary?.totalUsers || 0 },
-    { id: "customers", title: "Customers", icon: <User className="h-5 w-5" />, value: data?.summary?.customers || 0 },
-    { id: "builders", title: "Builders", icon: <Shield className="h-5 w-5" />, value: data?.summary?.builders || 0 },
-    { id: "admins", title: "Total Admins", icon: <FileText className="h-5 w-5" />, value: data?.summary?.admins || 0 },
+  const cards = [
+    { key: "TOTAL_USERS", title: "Total Users", value: data?.summary?.totalUsers || 0, icon: Users },
+    { key: "CUSTOMERS", title: "Customers", value: data?.summary?.customers || 0, icon: UserCheck },
+    { key: "BUILDERS", title: "Builders", value: data?.summary?.builders || 0, icon: Shield },
+    { key: "TOTAL_ADMINS", title: "Total Admins", value: data?.summary?.admins || 0, icon: FileText },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "VERIFIED":
-      case "COMPLETE":
-        return "success";
-      case "SUSPENDED":
-      case "BLACKLISTED":
-      case "DELETED":
-        return "destructive";
-      case "PENDING":
-        return "warning";
-      default:
-        return "secondary";
-    }
+  const buildersByType = {
+    FUNDI: data?.summary?.fundi || 0,
+    PROFESSIONAL: data?.summary?.professional || 0,
+    CONTRACTOR: data?.summary?.contractor || 0,
+    HARDWARE: data?.summary?.hardware || 0,
   };
 
-  const currentMetric = metrics.find(m => m.id === activeMetric);
+  // We rely on backend for exact counts; if unavailable we show "Filter" instead
+  const customersByType = {
+    INDIVIDUAL: "?",
+    ORGANIZATION: "?",
+  };
+
+  // Pagination meta
+  const totalPages = data?.register?.pagination?.totalPages || 1;
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
 
   return (
-    <div className="w-full space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="mb-2">
-        <h2 className="text-2xl font-bold tracking-tight text-[#30336b]">System Reports</h2>
-        <p className="text-sm text-gray-500 mt-1">Operational + lifecycle reports (auto-refresh every 30 seconds)</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-indigo-800">System Reports</h1>
+        <p className="text-sm text-gray-500">Operational + lifecycle reports (auto-refresh every 30 seconds)</p>
       </div>
 
-      {/* Tab Header Indicator */}
-      <div className="flex items-center space-x-3 bg-white px-5 py-4 border border-gray-100 rounded-xl shadow-sm w-full relative">
-        <Users className="text-indigo-600 h-5 w-5" />
-        <span className="font-semibold text-gray-800 text-[15px]">System Register Snapshot</span>
-      </div>
-
-      {/* Date Range Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <h3 className="text-indigo-600 font-medium mb-4 text-sm tracking-wide">Date Range</h3>
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-4">
-          <div className="flex items-center space-x-2">
-            {['Today', '7d', '30d', '90d', 'Custom'].map(p => (
-              <Button
-                key={p}
-                variant="outline"
-                size="sm"
-                className={`h-9 px-4 text-sm font-normal rounded-md transition-colors ${
-                  period === p 
-                  ? "border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50/80 hover:text-indigo-800" 
-                  : "text-gray-600 border-gray-200 hover:bg-gray-50"
-                }`}
-                onClick={() => handlePeriodChange(p)}
-              >
-                {p}
-              </Button>
-            ))}
+      <div className="space-y-6">
+        {/* Date Range Control (Prototype Match) */}
+        <div className="bg-white rounded-xl border border-indigo-100 p-6">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <h2 className="text-[16px] font-semibold text-indigo-700">Date Range</h2>
+            {compareMode && (
+              <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+                Comparison enabled
+              </span>
+            )}
           </div>
           
-          <div className="flex items-center space-x-3 ml-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
-                  <span className="text-sm text-gray-600">{dateRange?.from ? format(dateRange.from, "MM/dd/yyyy") : "Start Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.from} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-sm text-gray-400 font-medium">to</span>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[150px] cursor-pointer bg-white hover:border-gray-300 transition-colors">
-                  <span className="text-sm text-gray-600">{dateRange?.to ? format(dateRange.to, "MM/dd/yyyy") : "End Date"}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-900" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="single" 
-                  selected={dateRange?.to} 
-                  onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} 
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="flex items-center space-x-2 ml-4">
-            <Checkbox 
-              id="compare" 
-              checked={compareMode} 
-              onCheckedChange={(e) => setCompareMode(e as boolean)} 
-              className="border-gray-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
-            />
-            <label htmlFor="compare" className="text-sm text-gray-600 font-normal cursor-pointer select-none">
-              Compare to previous period
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Snapshot Cards & Data Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-indigo-600 font-medium text-sm tracking-wide">System Register Snapshot</h3>
-          <Button onClick={downloadUsersCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-9 px-4">
-            <Download className="mr-2 h-4 w-4" /> 
-            Export Users CSV
-          </Button>
-        </div>
-
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {metrics.map((metric) => {
-            const isActive = activeMetric === metric.id;
-            return (
-              <div 
-                key={metric.id}
-                className={`border rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 ${
-                  isActive 
-                  ? 'border-indigo-500 ring-1 ring-indigo-500 bg-white shadow-sm' 
-                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
-                }`}
-                onClick={() => setActiveMetric(metric.id)}
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <span className={`text-[15px] ${isActive ? 'text-gray-800 font-medium' : 'text-gray-500 font-medium'}`}>
-                    {metric.title}
-                  </span>
-                  <div className={isActive ? "text-indigo-600" : "text-indigo-500"}>
-                    {metric.icon}
-                  </div>
-                </div>
-                <div className={`text-3xl font-bold tracking-tight ${isActive ? 'text-indigo-700' : 'text-[#30336b]'}`}>
-                  {loading ? "-" : metric.value}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Sub-header above table */}
-        {activeMetric && (
-          <>
-            <div className="flex justify-between items-center pt-2 pb-4">
-              <span className="font-medium text-[15px] text-gray-800">
-                Viewing: {currentMetric?.title || 'Users'}
-              </span>
-              <Button variant="outline" size="sm" className="text-gray-600 h-8 px-4 font-normal hover:bg-gray-50" onClick={() => setActiveMetric(null)}>
-                Close Register
-              </Button>
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              {['Today', '7d', '30d', '60d', '90d', 'Year', 'Custom'].map(p => (
+                <Button
+                  key={p}
+                  variant="outline"
+                  size="sm"
+                  className={`h-9 px-4 text-sm font-normal rounded-md transition-colors ${
+                    period === p 
+                    ? "border-indigo-400 text-indigo-700 bg-indigo-50/70" 
+                    : "text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}
+                  onClick={() => handlePeriodChange(p)}
+                >
+                  {p}
+                </Button>
+              ))}
             </div>
             
-            {activeMetric === "customers" && (() => {
-              const allCustomers = data?.register?.data?.filter((u: any) => ["customer"].includes(u.userType?.toLowerCase())) || [];
-              const individualCount = allCustomers.filter((u: any) => u.accountType?.toLowerCase() === "individual").length;
-              const orgCount = allCustomers.filter((u: any) => u.accountType?.toLowerCase() === "organization" || u.accountType?.toLowerCase() === "business").length;
-
-              return (
-                <div className="border-t border-gray-100 pt-5 pb-4 mb-2">
-                  <div className="flex gap-3 mb-4 flex-wrap">
-                    <button 
-                      onClick={() => setCustomerFilter("all")}
-                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "all" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
-                    >
-                      All Customers ({allCustomers.length})
-                    </button>
-                    <button 
-                      onClick={() => setCustomerFilter("individual")}
-                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "individual" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
-                    >
-                      Individual Customers ({individualCount})
-                    </button>
-                    <button 
-                      onClick={() => setCustomerFilter("organization")}
-                      className={`px-4 py-2 text-[13px] font-medium rounded-[5px] border transition-colors ${customerFilter === "organization" ? "border-indigo-400 text-indigo-600 bg-indigo-50/70" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
-                    >
-                      Organization Customers ({orgCount})
-                    </button>
+            <div className="flex items-center space-x-3 ml-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
+                    <span className="text-sm text-gray-600">{dateRange?.from ? format(dateRange.from, "MM/dd/yyyy") : "Start Date"}</span>
+                    <CalendarIcon className="h-4 w-4 text-gray-400" />
                   </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateRange?.from} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, from: d})); setPeriod('Custom'); } }} initialFocus />
+                </PopoverContent>
+              </Popover>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <input 
-                      type="text" 
-                      placeholder="Search customers/builders..." 
-                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <select 
-                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
-                      value={customerTypeFilter}
-                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    >
-                      <option>All Customers</option>
-                    </select>
-                    <select 
-                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
-                      value={locationFilter}
-                      onChange={(e) => setLocationFilter(e.target.value)}
-                    >
-                      <option>All Locations</option>
-                      {[...new Set(allCustomers.map((u: any) => u.location).filter(Boolean))].map((loc: any) => (
-                        <option key={loc}>{loc}</option>
-                      ))}
-                    </select>
-                    <select 
-                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white"
-                      value={lifecycleFilter}
-                      onChange={(e) => setLifecycleFilter(e.target.value)}
-                    >
-                      <option>All Lifecycle</option>
-                      {[...new Set(allCustomers.map((u: any) => u.lifecycle).filter(Boolean))].map((lc: any) => (
-                        <option key={lc}>{lc}</option>
-                      ))}
-                    </select>
-                    <select 
-                      className="border border-gray-200 rounded-[5px] px-3 h-[38px] text-[13px] text-gray-700 focus:outline-none focus:border-indigo-400 bg-white md:col-start-1"
-                      value={sourceFilter}
-                      onChange={(e) => setSourceFilter(e.target.value)}
-                    >
-                      <option>All Sources</option>
-                      {[...new Set(allCustomers.map((u: any) => u.signupSource).filter(Boolean))].map((src: any) => (
-                        <option key={src}>{src}</option>
-                      ))}
-                    </select>
+              <span className="text-sm text-gray-400">to</span>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-between border border-gray-200 rounded-md px-3 h-9 w-[130px] cursor-pointer bg-white hover:border-gray-300">
+                    <span className="text-sm text-gray-600">{dateRange?.to ? format(dateRange.to, "MM/dd/yyyy") : "End Date"}</span>
+                    <CalendarIcon className="h-4 w-4 text-gray-400" />
                   </div>
-                </div>
-              );
-            })()}
-
-            {/* Table Content */}
-            <div className="overflow-x-auto border rounded-xl rounded-t-none border-t-0 border-gray-100">
-          <Table>
-            <TableHeader className="bg-gray-50/50">
-              <TableRow>
-                <TableHead className="text-gray-500 font-medium h-10 w-12">{activeMetric === "customers" ? "#id" : "#"}</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Name</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Email</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Role</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Location</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Lifecycle</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Signup Source</TableHead>
-                <TableHead className="text-gray-500 font-medium h-10">Created At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                 <TableRow>
-                   <TableCell colSpan={8} className="h-32 text-center text-gray-500">
-                     <span className="flex items-center justify-center">Loading Data...</span>
-                   </TableCell>
-                 </TableRow>
-              ) : (() => {
-                const list = getFilteredUsers();
-                return list.map((user: any) => (
-                <TableRow key={user.id} className="hover:bg-gray-50/50">
-                  <TableCell className="text-gray-600 font-medium">{user.id}</TableCell>
-                  <TableCell className="font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-gray-800">{user.email}</div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider text-gray-600 border-gray-200">
-                      {user.userType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-800">
-                    {user.location}
-                  </TableCell>
-                  <TableCell>
-                    {/* @ts-ignore */}
-                    <Badge variant={getStatusColor(user.status)}>
-                      {user.lifecycle}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-800">
-                    {user.signupSource}
-                  </TableCell>
-                  <TableCell className="text-gray-600 text-sm">
-                    {format(new Date(user.createdAt), "MMM dd, yyyy")}
-                  </TableCell>
-                </TableRow>
-              ))})()}
-              {(!loading && (!data?.register?.data || data.register.data.length === 0)) && (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-gray-500">
-                    No registrations found for the selected period.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        </>
-        )}
-      </div>
-
-      {/* Lifecycle Dashboard Block */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 w-full">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h3 className="text-indigo-700 text-[18px] font-semibold tracking-wide">Lifecycle Dashboard</h3>
-            <p className="text-gray-500 text-sm mt-1">Date-filtered lifecycle counts, lifecycle status reports, aging, and verification performance.</p>
-          </div>
-          <Button onClick={downloadLifecycleCSV} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-10 px-5">
-            <Download className="mr-2 h-4 w-4" /> 
-            Export Lifecycle CSV
-          </Button>
-        </div>
-
-        {/* Lifecycle Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Signed Up", value: data?.breakdowns?.byLifecycle?.signedUp || 0 },
-            { label: "Incomplete", value: data?.breakdowns?.byLifecycle?.incomplete || 0 },
-            { label: "Complete", value: data?.breakdowns?.byLifecycle?.complete || 0 },
-            { label: "Pending Verification", value: data?.breakdowns?.byLifecycle?.pendingVerification || 0 },
-            { label: "Verified", value: data?.breakdowns?.byLifecycle?.verified || 0 },
-            { label: "Suspended", value: data?.breakdowns?.byLifecycle?.suspended || 0 },
-            { label: "Returned", value: data?.breakdowns?.byLifecycle?.returned || 0 },
-            { label: "Deleted", value: data?.breakdowns?.byLifecycle?.deleted || 0 },
-          ].map((item, idx) => (
-            <div key={idx} className="border border-gray-100 bg-[#fefeff] rounded-xl p-5 shadow-sm hover:border-indigo-100 transition-colors">
-              <div className="text-[13.5px] text-gray-500 mb-2">{item.label}</div>
-              <div className="text-[26px] font-bold tracking-tight text-indigo-700">
-                {loading ? "-" : item.value}
-              </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateRange?.to} onSelect={(d) => { if(d) { setDateRange(prev => ({...prev, to: d})); setPeriod('Custom'); } }} initialFocus />
+                </PopoverContent>
+              </Popover>
             </div>
-          ))}
+
+            <div className="flex items-center space-x-2 ml-4">
+              <Checkbox 
+                id="compare" 
+                checked={compareMode} 
+                onCheckedChange={(e) => setCompareMode(e as boolean)} 
+                className="border-gray-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+              />
+              <label htmlFor="compare" className="text-[13px] text-gray-600 font-normal cursor-pointer">
+                Compare to previous period
+              </label>
+            </div>
+          </div>
         </div>
 
-        {/* Lifecycle Change Report */}
-        <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-          <h4 className="text-[15px] font-semibold text-gray-800 mb-4">Lifecycle Change Report</h4>
-          <div className="bg-[#f8f9fa] border border-gray-100 rounded-md p-4 text-[13.5px] text-gray-500">
-             Enable date comparison to view lifecycle deltas.
+        {/* System Register Snapshot */}
+        <div className="bg-white rounded-xl border border-indigo-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[16px] font-semibold text-indigo-700">System Register Snapshot</h2>
+            {activeCard && (
+              <button
+                onClick={onExportUsers}
+                className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-indigo-700 transition"
+              >
+                <Download size={16} />
+                Export Users CSV
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            {cards.map((card) => (
+              <button
+                type="button"
+                key={card.key}
+                onClick={() => {
+                  setActiveCard(card.key);
+                  setRoleFilter("ALL"); // Reset filters when changing cards
+                  setLifecycleFilter("ALL");
+                  setPage(1);
+                }}
+                className={`bg-white border rounded-xl shadow-sm p-5 text-left transition ${
+                  activeCard === card.key ? "border-indigo-600 ring-2 ring-indigo-200" : "hover:border-gray-300"
+                }`}
+              >
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-[13px] text-gray-500 font-medium">{card.title}</p>
+                    <p className="text-2xl font-bold text-indigo-700">
+                      {loading ? "..." : card.value}
+                    </p>
+                  </div>
+                  <card.icon className="text-indigo-600 h-5 w-5" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {!activeCard ? (
+            <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 p-4 text-sm text-indigo-700 font-medium mt-6">
+              Select any card to view the register details.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 mb-4 mt-6">
+                <p className="text-sm font-medium text-gray-700">
+                  Viewing: {cards.find((item) => item.key === activeCard)?.title || "Register"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveCard(null)}
+                  className="px-3 py-[6px] rounded border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Close Register
+                </button>
+              </div>
+
+              {activeCard === "TOTAL_ADMINS" ? (
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4">
+                  <p className="text-sm text-indigo-800">
+                    Total admins in selected date range: <span className="font-semibold">{data?.summary?.admins || 0}</span>
+                  </p>
+                  <p className="text-sm text-indigo-700 mt-1">
+                    Open User Management to view and manage admin accounts.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard/admin/user-management")}
+                    className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-indigo-700"
+                  >
+                    Go to User Management
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Category Pills */}
+                  {activeCard === "BUILDERS" && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {[
+                        { key: "ALL", label: "All Builders", count: data?.summary?.builders || 0 },
+                        { key: "FUNDI", label: "Fundis", count: buildersByType.FUNDI },
+                        { key: "PROFESSIONAL", label: "Professionals", count: buildersByType.PROFESSIONAL },
+                        { key: "CONTRACTOR", label: "Contractors", count: buildersByType.CONTRACTOR },
+                        { key: "HARDWARE", label: "Hardware", count: buildersByType.HARDWARE },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => { setRoleFilter(item.key); setPage(1); }}
+                          className={`px-3 py-1.5 rounded-[5px] border text-[13px] transition-colors ${
+                            roleFilter === item.key
+                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 font-semibold"
+                              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {item.label} ({loading ? "-" : item.count})
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeCard === "CUSTOMERS" && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {[
+                        { key: "ALL", label: "All Customers", count: data?.summary?.customers || 0 },
+                        { key: "CUSTOMER_INDIVIDUAL", label: "Individual Customers", count: "?" },
+                        { key: "CUSTOMER_ORGANIZATION", label: "Organization Customers", count: "?" },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => { setRoleFilter(item.key); setPage(1); }}
+                          className={`px-3 py-1.5 rounded-[5px] border text-[13px] transition-colors ${
+                            roleFilter === item.key
+                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 font-semibold"
+                              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dropdown Filters */}
+                  <div className="flex flex-wrap gap-3 mb-5">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
+                      placeholder="Search customers/builders..."
+                      className="border border-gray-200 focus:border-indigo-400 focus:outline-none rounded-[5px] px-3 h-[36px] text-[13px] bg-white min-w-[220px]"
+                    />
+
+                    {activeCard === "TOTAL_USERS" && (
+                      <select
+                        value={roleFilter}
+                        onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }}
+                        className="border border-gray-200 focus:border-indigo-400 focus:outline-none rounded-[5px] px-3 h-[36px] text-[13px] bg-white text-gray-700"
+                      >
+                        <option value="ALL">All Categories</option>
+                        <option value="ALL_CUSTOMERS">All Customers</option>
+                        <option value="ALL_BUILDERS">All Builders</option>
+                        <option value="FUNDI">Fundi</option>
+                        <option value="PROFESSIONAL">Professional</option>
+                        <option value="CONTRACTOR">Contractor</option>
+                        <option value="HARDWARE">Hardware</option>
+                      </select>
+                    )}
+
+                    <select
+                      value={locationFilter}
+                      onChange={(event) => { setLocationFilter(event.target.value); setPage(1); }}
+                      className="border border-gray-200 focus:border-indigo-400 focus:outline-none rounded-[5px] px-3 h-[36px] text-[13px] bg-white text-gray-700"
+                    >
+                      <option value="ALL">All Locations</option>
+                      {/* Derived from backend data locally for demo purposes, backend filter usually superior */}
+                      {[...new Set((data?.register?.data || []).map((u: any) => u.location).filter(Boolean))].map((loc: any) => (
+                         <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={lifecycleFilter}
+                      onChange={(event) => { setLifecycleFilter(event.target.value); setPage(1); }}
+                      className="border border-gray-200 focus:border-indigo-400 focus:outline-none rounded-[5px] px-3 h-[36px] text-[13px] bg-white text-gray-700"
+                    >
+                      <option value="ALL">All Lifecycle</option>
+                      <option value="SIGNED_UP">Signed Up</option>
+                      <option value="INCOMPLETE">Incomplete</option>
+                      <option value="COMPLETE">Complete</option>
+                      <option value="PENDING">Pending Verification</option>
+                      <option value="VERIFIED">Verified</option>
+                      <option value="SUSPENDED">Suspended</option>
+                      <option value="RETURNED">Returned</option>
+                      <option value="DELETED">Deleted</option>
+                    </select>
+
+                    <select
+                      value={sourceFilter}
+                      onChange={(event) => { setSourceFilter(event.target.value); setPage(1); }}
+                      className="border border-gray-200 focus:border-indigo-400 focus:outline-none rounded-[5px] px-3 h-[36px] text-[13px] bg-white text-gray-700"
+                    >
+                      <option value="ALL">All Sources</option>
+                      {/* Typically backend provided, we can map what we have */}
+                      {[...new Set((data?.register?.data || []).map((u: any) => u.signupSource).filter(Boolean))].map((src: any) => (
+                        <option key={src} value={src}>{src}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Register Table */}
+                  <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                    <table className="min-w-full bg-white text-sm">
+                      <thead className="bg-[#f8f9fa] border-b text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">#</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Name</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Email</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Role</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Location</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Lifecycle</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Signup Source</th>
+                          <th className="px-4 py-3 text-left text-[13px] font-semibold whitespace-nowrap">Created At</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {loading ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-10 text-gray-400 font-medium">
+                              Loading Records...
+                            </td>
+                          </tr>
+                        ) : data?.register?.data?.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-10 text-gray-400 font-medium">
+                              No users match current filters.
+                            </td>
+                          </tr>
+                        ) : (
+                          data?.register?.data?.map((row: any, idx: number) => (
+                            <tr
+                              key={`${row.id}-${idx}`}
+                              className="hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                              onClick={() => onRowClick(row)}
+                            >
+                              <td className="px-4 py-2.5 text-gray-500">{((page - 1) * limit) + idx + 1}</td>
+                              <td className="px-4 py-2.5 text-gray-900 font-medium">{[row.firstName, row.lastName].filter(Boolean).join(" ")}</td>
+                              <td className="px-4 py-2.5 text-gray-600">{row.email}</td>
+                              <td className="px-4 py-2.5 text-gray-600">{row.userType || "N/A"}</td>
+                              <td className="px-4 py-2.5 text-gray-600">{row.location || "N/A"}</td>
+                              <td className="px-4 py-2.5">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                  {lifecycleLabel(row.lifecycle)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-600">{sourceLabel[row.signupSource] || row.signupSource || sourceLabel.UNKNOWN}</td>
+                              <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{format(new Date(row.createdAt), "MMM dd, yyyy")}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Wrapper */}
+                  {data?.register?.pagination && data.register.pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-gray-100 mt-4 pt-4">
+                      <p className="text-[13px] text-gray-500">
+                        Showing <span className="font-medium text-gray-800">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-gray-800">{Math.min(page * limit, data.register.pagination.total)}</span> of <span className="font-medium text-gray-800">{data.register.pagination.total}</span> records
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isFirstPage || loading}
+                          onClick={() => setPage(page - 1)}
+                          className="h-8 px-3 text-[13px]"
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                        </Button>
+                        <span className="text-[13px] text-gray-600 px-2 font-medium">Page {page} of {totalPages}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isLastPage || loading}
+                          onClick={() => setPage(page + 1)}
+                          className="h-8 px-3 text-[13px]"
+                        >
+                          Next <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Lifecycle Dashboard Block */}
+        <div className="bg-white rounded-xl border border-indigo-100 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+            <div>
+              <h2 className="text-[16px] font-semibold text-indigo-700">Lifecycle Dashboard</h2>
+              <p className="text-[13px] text-gray-500 mt-1">
+                Date-filtered lifecycle counts, lifecycle status reports, aging, and verification performance.
+              </p>
+            </div>
+            <button
+              onClick={onExportLifecycle}
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 inline-flex items-center gap-2 text-[13px] font-medium transition"
+            >
+              <Download size={16} />
+              Export Lifecycle CSV
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "Signed Up", value: data?.breakdowns?.byLifecycle?.signedUp || 0 },
+              { label: "Incomplete", value: data?.breakdowns?.byLifecycle?.incomplete || 0 },
+              { label: "Complete", value: data?.breakdowns?.byLifecycle?.complete || 0 },
+              { label: "Pending Verification", value: data?.breakdowns?.byLifecycle?.pendingVerification || 0 },
+              { label: "Verified", value: data?.breakdowns?.byLifecycle?.verified || 0 },
+              { label: "Suspended", value: data?.breakdowns?.byLifecycle?.suspended || 0 },
+              { label: "Returned", value: data?.breakdowns?.byLifecycle?.returned || 0 },
+              { label: "Deleted", value: data?.breakdowns?.byLifecycle?.deleted || 0 },
+            ].map((item, idx) => (
+              <div key={idx} className="border border-gray-100 rounded-xl p-4 bg-[#fefeff] shadow-sm">
+                <p className="text-[12.5px] text-gray-500 font-medium mb-1">{item.label}</p>
+                <p className="text-2xl font-bold text-indigo-700">{loading ? "-" : item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div className="border border-gray-100 shadow-sm rounded-xl p-5">
+              <h3 className="font-semibold text-gray-800 mb-4 text-[14px]">Lifecycle Change Report</h3>
+              {data?.comparison ? (
+                 <div className="space-y-2 text-[13px]">
+                   <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">Vs Previous Period (Totals)</p>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     <div className="flex items-center justify-between border border-gray-100 rounded-lg p-3 bg-gray-50/50">
+                       <span className="text-gray-700 font-medium">Total Users</span>
+                       <span className={`${data.comparison.totalUsers?.change >= 0 ? "text-green-600" : "text-red-500"} font-bold`}>
+                         {data.comparison.totalUsers?.change >= 0 ? "+" : ""}{data.comparison.totalUsers?.change}%
+                       </span>
+                     </div>
+                     <div className="flex items-center justify-between border border-gray-100 rounded-lg p-3 bg-gray-50/50">
+                       <span className="text-gray-700 font-medium">Customers</span>
+                       <span className={`${data.comparison.customers?.change >= 0 ? "text-green-600" : "text-red-500"} font-bold`}>
+                         {data.comparison.customers?.change >= 0 ? "+" : ""}{data.comparison.customers?.change}%
+                       </span>
+                     </div>
+                     <div className="flex items-center justify-between border border-gray-100 rounded-lg p-3 bg-gray-50/50">
+                       <span className="text-gray-700 font-medium">Builders</span>
+                       <span className={`${data.comparison.builders?.change >= 0 ? "text-green-600" : "text-red-500"} font-bold`}>
+                         {data.comparison.builders?.change >= 0 ? "+" : ""}{data.comparison.builders?.change}%
+                       </span>
+                     </div>
+                   </div>
+                 </div>
+              ) : (
+                <div className="rounded-lg border border-gray-200 p-3 bg-gray-50 text-[13px] text-gray-600 font-medium">
+                  Enable date comparison to view lifecycle deltas.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 }
