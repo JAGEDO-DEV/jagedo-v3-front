@@ -639,6 +639,7 @@ export default function SummaryPage() {
                   categoryLabels[category] || category,
                 ),
                 name: categoryLabels[category] || category,
+                ...(category === "total" && { dashed: true }),
               };
             })}
           />
