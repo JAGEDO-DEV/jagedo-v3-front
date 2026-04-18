@@ -110,13 +110,23 @@ export default function ProductsPage() {
     // Create zero-baseline point
     const zeroPoint = {
       date: prevDateStr,
-      "Total Products": 0,
+      hardware: 0,
+      customProducts: 0,
+      machinery: 0,
+      designs: 0,
+      other: 0,
+      total: 0,
     };
 
     // Transform data points
     const transformedData = charts.productProgression.map((item: any) => ({
       date: item.date,
-      "Total Products": item.productCount,
+      hardware: item.hardware || 0,
+      customProducts: item.customProducts || 0,
+      machinery: item.machinery || 0,
+      designs: item.designs || 0,
+      other: item.other || 0,
+      total: item.total || 0,
     }));
 
     return [zeroPoint, ...transformedData];
@@ -185,9 +195,16 @@ export default function ProductsPage() {
       <div className="mt-6">
         <LineChartCard
           title="Product Progression Over Time"
-          description="Cumulative trend of total products uploaded in the selected range."
+          description="Trend by total products and each product category in the selected range."
           data={progressionData}
-          lines={[{ key: "Total Products", color: "hsl(220, 20%, 20%)" }]}
+          lines={[
+            { key: "customProducts", name: "Custom Products", color: "hsl(234, 89%, 74%)" },
+            { key: "designs", name: "Designs", color: "hsl(160, 84%, 39%)" },
+            { key: "hardware", name: "Hardware", color: "hsl(25, 95%, 53%)" },
+            { key: "machinery", name: "Machinery", color: "hsl(45, 93%, 51%)" },
+            { key: "other", name: "Other", color: "hsl(210, 14%, 60%)" },
+            { key: "total", name: "Total Products", color: "hsl(0, 0%, 20%)", dashed: true },
+          ]}
         />
       </div>
 
