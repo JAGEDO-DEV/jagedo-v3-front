@@ -117,8 +117,7 @@ function ProfileSide({
     (userType === "professional" ||
       userType === "fundi" ||
       userType === "hardware" ||
-      userType === "contractor") &&
-    verified
+      userType === "contractor")
   ) {
     finalNavItems.push(productsItem);
   }
@@ -206,8 +205,13 @@ function ProfileSide({
                 
                 // Special case for Products - depends on verified status primarily
                 if (item.id === "Products") {
-                  isDisabled = !verified;
-                  lockReason = "Account must be verified to access Shop App";
+                  if (user?.status === "SUSPENDED" || user?.status === "BLACKLISTED") {
+                    isDisabled = true;
+                    lockReason = "Account is suspended or blacklisted";
+                  } else {
+                    isDisabled = !verified;
+                    lockReason = "Account must be verified to access Shop App";
+                  }
                 } else if (prevStatus !== "complete") {
                   isDisabled = true;
                   lockReason = `Complete ${prevItem.label} to unlock`;

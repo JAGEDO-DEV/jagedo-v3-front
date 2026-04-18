@@ -7,6 +7,7 @@ import {
   PlusIcon,
   TrashIcon,
   XMarkIcon,
+  InformationCircleIcon,
   EyeIcon
 } from "@heroicons/react/24/outline";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -101,7 +102,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [categorySpecsMap, setCategorySpecsMap] = useState<{ [key: string]: any[] }>({});
   const [skillsLoading, setSkillsLoading] = useState(false);
 
-  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
+  const isReadOnly = !['RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || data?.status === 'VERIFIED' || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
   // ── Load contractor skills and specialization mappings on mount ──────────────────
   useEffect(() => {
@@ -480,6 +481,23 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         {!submitted ? (
           <form className="space-y-8" onSubmit={handleSubmit}>
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">Contractor Experience</h1>
+            
+            {isReadOnly && (data?.status === 'BLACKLISTED' || data?.status === 'SUSPENDED') && (
+              <div className={`mb-6 p-4 border rounded-xl flex items-start gap-4 ${data?.status === 'BLACKLISTED' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                <div className={`p-2 rounded-lg shrink-0 ${data?.status === 'BLACKLISTED' ? 'bg-red-100' : 'bg-yellow-100'}`}>
+                   <InformationCircleIcon className={`w-6 h-6 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
+                </div>
+                <div>
+                  <p className={`font-bold mb-1 uppercase text-xs tracking-widest ${data?.status === 'BLACKLISTED' ? 'text-red-900' : 'text-yellow-900'}`}>
+                    {data?.status === 'BLACKLISTED' ? 'Account Blacklisted' : 'Account Suspended'}
+                  </p>
+                  <p className={`leading-relaxed text-sm ${data?.status === 'BLACKLISTED' ? 'text-red-700' : 'text-yellow-700'}`}>
+                    Your account has been restricted. Profile updates are disabled.
+                  </p>
+                </div>
+              </div>
+            )}
+
 
             {data?.experienceStatus === 'REJECTED' && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
@@ -526,8 +544,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                     <select
                       value={cat.category}
                       onChange={e => handleCategoryChange(cat.id, e.target.value)}
-                      disabled={isReadOnly}
-                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={true}
+                      className="w-full p-2 border rounded-md text-sm outline-none bg-gray-100 text-gray-500 cursor-not-allowed"
                     >
                       <option value="">Select Category</option>
                       {contractorSkills.length > 0

@@ -774,15 +774,29 @@ export function ProviderSignupForm({
           const selectedHardwareTypes = formData.hardwareTypes
             ? formData.hardwareTypes.split(",").filter(Boolean)
             : [];
+          
+          const isGeneralSelected = selectedHardwareTypes.some(t => t.toLowerCase().includes("general"));
+
           const handleHardwareTypeToggle = (value: string) => {
-            const currentTypes = formData.hardwareTypes
-              ? formData.hardwareTypes.split(",").filter(Boolean)
-              : [];
+            const isValueGeneral = value.toLowerCase().includes("general");
+            
             let updatedTypes;
-            if (currentTypes.includes(value)) {
-              updatedTypes = currentTypes.filter((type) => type !== value);
+            if (isValueGeneral) {
+              // If clicking General, it toggles and clears everything else
+              if (selectedHardwareTypes.includes(value)) {
+                updatedTypes = [];
+              } else {
+                updatedTypes = [value];
+              }
             } else {
-              updatedTypes = [...currentTypes, value];
+              // If general is already selected, don't allow selecting others
+              if (isGeneralSelected) return;
+
+              if (selectedHardwareTypes.includes(value)) {
+                updatedTypes = selectedHardwareTypes.filter((type) => type !== value);
+              } else {
+                updatedTypes = [...selectedHardwareTypes, value];
+              }
             }
             updateFormData({ hardwareTypes: updatedTypes.join(",") });
           };
@@ -809,30 +823,43 @@ export function ProviderSignupForm({
                     ) : otherSkillsError ? (
                       <div className="text-red-600 text-sm p-4">{otherSkillsError}</div>
                     ) : hardwareSkills.length > 0 ? (
-                      hardwareSkills.map((skill: any) => (
-                        <div
-                          key={skill.id}
-                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                            selectedHardwareTypes.includes(skill.skillName)
-                              ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                          onClick={() => handleHardwareTypeToggle(skill.skillName)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`font-medium ${selectedHardwareTypes.includes(skill.skillName) ? "text-[rgb(0,0,122)]" : "text-gray-700"}`}
-                            >
-                              {skill.skillName}
-                            </span>
-                            {selectedHardwareTypes.includes(skill.skillName) && (
-                              <span className="text-[rgb(0,0,122)] font-bold">
-                                ✓
+                      hardwareSkills.map((skill: any) => {
+                        const isSkillGeneral = skill.skillName.toLowerCase().includes("general");
+                        const isOptionDisabled = isGeneralSelected && !isSkillGeneral;
+
+                        return (
+                          <div
+                            key={skill.id}
+                            className={`border rounded-lg p-3 transition-all ${
+                              selectedHardwareTypes.includes(skill.skillName)
+                                ? "border-[rgb(0,0,122)] bg-[rgb(0,0,122)]/5 shadow-md cursor-pointer"
+                                : isOptionDisabled
+                                  ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                                  : "border-gray-200 hover:border-gray-300 cursor-pointer"
+                            }`}
+                            onClick={() => !isOptionDisabled && handleHardwareTypeToggle(skill.skillName)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`font-medium ${
+                                  selectedHardwareTypes.includes(skill.skillName) 
+                                    ? "text-[rgb(0,0,122)]" 
+                                    : isOptionDisabled 
+                                      ? "text-gray-400" 
+                                      : "text-gray-700"
+                                }`}
+                              >
+                                {skill.skillName}
                               </span>
-                            )}
+                              {selectedHardwareTypes.includes(skill.skillName) && (
+                                <span className="text-[rgb(0,0,122)] font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="text-gray-600 text-sm p-4">No active hardware types available</div>
                     )}

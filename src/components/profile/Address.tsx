@@ -60,58 +60,47 @@ const Address = ({ data, refreshData }) => {
 
   if (loading && !data) return <div className="p-8">Loading address...</div>;
 
-  const isReadOnly = data?.status === "VERIFIED";
+  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
   return (
     <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Address</h1>
         {isReadOnly && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shadow-sm">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-green-50 text-green-700 border-green-100"}`}>
+            {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            )}
             <span className="text-xs font-bold uppercase tracking-wider">
-              Verified
+              {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified"}
             </span>
           </div>
         )}
       </div>
 
       {isReadOnly && (
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-          <svg
-            className="w-5 h-5 text-blue-600 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+        <div className={`mb-8 p-4 border rounded-xl flex items-start gap-3 ${data?.status === "BLACKLISTED" ? "bg-red-50 border-red-200" : data?.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}`}>
+          {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
+            <svg className={`w-5 h-5 mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-600" : "text-yellow-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
           <div>
-            <p className="text-sm font-semibold text-blue-900">
-              Address Verified
+            <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
+              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Address Verified"}
             </p>
-            <p className="text-xs text-blue-700 mt-0.5">
-              Your registered address has been verified. To update these
-              details, please contact JAGEDO Support.
+            <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
+              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. Profile updates are disabled." : "Your registered address has been verified. To update these details, please contact JAGEDO Support."}
             </p>
           </div>
         </div>

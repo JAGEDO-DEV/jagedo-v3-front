@@ -198,7 +198,10 @@ export default function BuildersAdmin() {
       builder?.lastName?.toLowerCase().includes(filters.name.toLowerCase()) ||
       builder?.organizationName?.toLowerCase().includes(filters.name.toLowerCase());
     const matchesPhone =
-      !filters.phone || builder?.phoneNumber === filters.phone;
+      !filters.phone || 
+      (builder?.phoneNumber?.toLowerCase().includes(filters.phone.toLowerCase()) || 
+       builder?.phone?.toLowerCase().includes(filters.phone.toLowerCase()) || 
+       builder?.phoneNo?.toLowerCase().includes(filters.phone.toLowerCase()));
     const matchesCounty =
       !filters.county ||
       builder?.county?.toLowerCase() === filters.county.toLowerCase();
@@ -222,6 +225,8 @@ export default function BuildersAdmin() {
       builder?.firstName?.toLowerCase().includes(searchValue) ||
       builder?.lastName?.toLowerCase().includes(searchValue) ||
       builder?.phoneNumber?.toLowerCase().includes(searchValue) ||
+      builder?.phone?.toLowerCase().includes(searchValue) ||
+      builder?.phoneNo?.toLowerCase().includes(searchValue) ||
       builder?.email?.toLowerCase().includes(searchValue) ||
       builder?.organizationName?.toLowerCase().includes(searchValue) ||
       builder?.skills?.toLowerCase().includes(searchValue) ||

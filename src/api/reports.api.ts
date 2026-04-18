@@ -85,22 +85,43 @@ export const getLifecycleReportExportUrl = (query: LifecycleQuery = {}) => {
 export interface ReportFilters {
     startDate?: string | null;
     endDate?: string | null;
-    compare?: boolean;
+    compare?: boolean | string;
     page?: number;
     limit?: number;
     search?: string;
     status?: string | null;
+    
+    // Dynamic New Filters
+    roleFilter?: string | null;
+    lifecycleFilter?: string | null;
+    sourceFilter?: string | null;
+    locationFilter?: string | null;
+    jobTypeFilter?: string | null;
+    managedByFilter?: string | null;
+    registerTypeFilter?: string | null;
+    productTypeFilter?: string | null;
+    [key: string]: any;
 }
 
 const buildQueryString = (filters: ReportFilters): string => {
     const params = new URLSearchParams();
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);
-    if (filters.compare) params.append("compare", filters.compare.toString());
+    if (filters.compare !== undefined) params.append("compare", filters.compare.toString());
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.limit) params.append("limit", filters.limit.toString());
     if (filters.search) params.append("search", filters.search);
     if (filters.status) params.append("status", filters.status);
+    
+    // Appending dynamic UI Filters
+    if (filters.roleFilter) params.append("roleFilter", filters.roleFilter);
+    if (filters.lifecycleFilter) params.append("lifecycleFilter", filters.lifecycleFilter);
+    if (filters.sourceFilter) params.append("sourceFilter", filters.sourceFilter);
+    if (filters.locationFilter) params.append("locationFilter", filters.locationFilter);
+    if (filters.jobTypeFilter) params.append("jobTypeFilter", filters.jobTypeFilter);
+    if (filters.managedByFilter) params.append("managedByFilter", filters.managedByFilter);
+    if (filters.registerTypeFilter) params.append("registerTypeFilter", filters.registerTypeFilter);
+    if (filters.productTypeFilter) params.append("productTypeFilter", filters.productTypeFilter);
     
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
