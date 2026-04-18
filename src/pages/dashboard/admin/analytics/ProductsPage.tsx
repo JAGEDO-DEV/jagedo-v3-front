@@ -95,11 +95,32 @@ export default function ProductsPage() {
     color: `hsl(${idx * 60}, 80%, 60%)`,
   })) || [];
 
-  // Format progression data for line chart
-  const progressionData = charts.productProgression?.map((item: any) => ({
-    date: item.date,
-    "Total Products": item.productCount,
-  })) || [];
+  // Format progression data for line chart with baseline
+  const progressionData = (() => {
+    if (!charts.productProgression || charts.productProgression.length === 0) {
+      return [];
+    }
+
+    const firstDataPoint = charts.productProgression[0];
+    const dateObj = new Date(firstDataPoint.date);
+    const prevDate = new Date(dateObj);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const prevDateStr = prevDate.toISOString().split('T')[0];
+
+    // Create zero-baseline point
+    const zeroPoint = {
+      date: prevDateStr,
+      "Total Products": 0,
+    };
+
+    // Transform data points
+    const transformedData = charts.productProgression.map((item: any) => ({
+      date: item.date,
+      "Total Products": item.productCount,
+    }));
+
+    return [zeroPoint, ...transformedData];
+  })() || [];
 
   return (
     <div>

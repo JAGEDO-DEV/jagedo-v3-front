@@ -274,13 +274,15 @@ export const getCustomerAnalytics = async (
   axiosInstance: any,
   period: string = "today",
   from?: string,
-  to?: string
+  to?: string,
+  groupBy: string = "month"
 ): Promise<ApiResponse<CustomerAnalytics>> => {
   try {
     const params = new URLSearchParams();
     params.append("period", period);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
+    params.append("groupBy", groupBy);
 
     const response = await axiosInstance.get(`${API_BASE_URL}/customers?${params.toString()}`, {
       headers: {
@@ -301,13 +303,15 @@ export const getBuilderAnalytics = async (
   axiosInstance: any,
   period: string = "today",
   from?: string,
-  to?: string
+  to?: string,
+  groupBy: string = "month"
 ): Promise<ApiResponse<BuilderAnalytics>> => {
   try {
     const params = new URLSearchParams();
     params.append("period", period);
     if (from) params.append("from", from);
     if (to) params.append("to", to);
+    params.append("groupBy", groupBy);
 
     const response = await axiosInstance.get(`${API_BASE_URL}/builders?${params.toString()}`, {
       headers: {
@@ -421,18 +425,6 @@ export interface UserCompositionItem {
   value: number;
 }
 
-export interface UserCategoryTrendItem {
-  month: string;
-  total: number;
-  customerIndividual: number;
-  customerOrg: number;
-  fundi: number;
-  professional: number;
-  contractor: number;
-  hardware: number;
-  other: number;
-}
-
 export interface TopLocationItem {
   county: string;
   count: number;
@@ -518,6 +510,50 @@ export const getLifecycleTrends = async (
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch lifecycle trends");
+  }
+};
+
+// ============================================================================
+// USER CATEGORY TREND API
+// ============================================================================
+
+export interface UserCategoryTrendItem {
+  period: string;
+  total: number;
+  customerIndividual: number;
+  customerOrg: number;
+  fundi: number;
+  professional: number;
+  contractor: number;
+  hardware: number;
+  other?: number;
+}
+
+export const getUserCategoryTrend = async (
+  axiosInstance: any,
+  groupBy: GroupBy = "month",
+  period?: string,
+  from?: string,
+  to?: string
+): Promise<ApiResponse<UserCategoryTrendItem[]>> => {
+  try {
+    const params = new URLSearchParams();
+    params.append("groupBy", groupBy);
+    if (period) params.append("period", period);
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const response = await axiosInstance.get(
+      `${import.meta.env.VITE_SERVER_URL}/api/dashboard/summary/user-category-trend?${params.toString()}`,
+      {
+        headers: {
+          Authorization: getAuthHeaders(),
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch user category trend");
   }
 };
 
