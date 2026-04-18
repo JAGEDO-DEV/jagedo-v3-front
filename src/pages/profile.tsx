@@ -473,21 +473,10 @@ function ProfilePage() {
                         : "text-yellow-800"
                     }`}>
                       {user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
-                        ? "Your account has been permanently blacklisted. You will not be able to access any platform services."
+                        ? "Your account has been blacklisted. You will not be able to access any platform services."
                         : "Your account has been suspended. Please contact support to resolve this issue."}
                     </p>
-                    <button
-                      onClick={() => {
-                        window.location.href = "mailto:support@jagedo.com";
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        user?.status === "BLACKLISTED" || providerData?.status === "BLACKLISTED"
-                          ? "bg-red-600 hover:bg-red-700 text-white"
-                          : "bg-yellow-600 hover:bg-yellow-700 text-white"
-                      }`}
-                    >
-                      Contact Support
-                    </button>
+                    
                   </div>
                 </div>
               )}

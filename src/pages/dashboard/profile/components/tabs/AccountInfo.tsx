@@ -17,8 +17,20 @@ import {
   updateProfilePhoneNumberAdmin,
   updateProfileNameAdmin,
   handleVerifyUser,
+  updateAccountStatus,
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { 
+  Star as StarIcon, 
+  Shield as ShieldIcon, 
+  ShieldAlert as ShieldAlertIcon, 
+  ShieldOff as ShieldOffIcon, 
+  Trash2 as Trash2Icon, 
+  Clock as ClockIcon,
+  TriangleAlert,
+  Ban,
+  ChevronDown
+} from "lucide-react";
 
 interface AccountInfoProps {
   userData: any;
@@ -53,6 +65,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
         .every(([, val]) => val === "complete")
     : false;
 
+  const docsVerified = userData?.documentStatus === "VERIFIED";
+  const experienceVerified = userData?.experienceStatus === "VERIFIED";
+  const uType = userData?.userType?.toUpperCase();
+  const isBuilder = ["PROFESSIONAL", "CONTRACTOR", "FUNDI", "HARDWARE"].includes(uType);
+  const needsExperience = ["PROFESSIONAL", "CONTRACTOR", "FUNDI"].includes(uType);
+  const prerequisitesMet = !isBuilder || (docsVerified && (!needsExperience || experienceVerified));
+
   const displayStatus = userData.status || "N/A";
 
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -83,6 +102,21 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   
   const [displayEmail, setDisplayEmail] = useState(userData?.email ?? "");
   const [displayPhone, setDisplayPhone] = useState(userData?.phone ?? "");
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+  const handleStatusAction = async (action: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE") => {
+    if (isAdmin && (action === "VERIFY" || action === "UNVERIFY") && !prerequisitesMet) {
+      toast.error(`Please ensure that ${needsExperience ? "Account Uploads and Experience" : "Account Uploads"} are verified first.`);
+      return;
+    }
+    try {
+      await updateAccountStatus(axiosInstance, userData.id, action);
+      toast.success(`${action.charAt(0) + action.slice(1).toLowerCase()}${action.endsWith('Y') ? 'ied' : 'ed'} successfully`);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${action.toLowerCase()} user`);
+    }
+  };
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -318,94 +352,89 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
-      {/* <ProfileNavBarVerification /> */}
       <div className="flex-1 overflow-y-auto bg-white">
         <div className="w-full px-4">
           <section className="w-full max-w-3xl mx-auto py-6">
             <div className="bg-white rounded-xl p-6">
-              <div className="flex flex-row justify-between">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold mb-6">
-                    Account Info
-                  </h1>
-                  <div className="flex flex-col gap-3 mb-6">
-                    <div
-                      className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium border ${
-                        userData.status === "VERIFIED"
-                          ? "bg-green-50 border-green-200 text-green-700"
-                          : userData.status === "SUSPENDED"
-                            ? "bg-yellow-50 border-yellow-200 text-yellow-700"
-                            : userData.status === "BLACKLISTED"
-                              ? "bg-orange-50 border-orange-200 text-orange-700"
-                              : userData.status === "DELETED"
-                                ? "bg-red-50 border-red-200 text-red-700"
-                                : "bg-sky-50 border-sky-200 text-sky-700"
+              <h1 className="text-2xl md:text-3xl font-bold mb-6">Account Info</h1>
+              
+              <div className={`mb-4 p-3 rounded-lg border ${
+                userData.status === "VERIFIED" ? "bg-green-50 border-green-300" :
+                userData.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-300" :
+                userData.status === "BLACKLISTED" ? "bg-orange-50 border-orange-300" :
+                userData.status === "DELETED" ? "bg-red-50 border-red-300" :
+                "bg-sky-50 border-sky-300"
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, index) => (
+                      <StarIcon
+                        key={index}
+                        className={`${userData.status === "VERIFIED" ? "text-yellow-400" : "text-gray-300"} w-4 h-4`}
+                        fill="currentColor"
+                      />
+                    ))}
+                  </div>
+                  <span className={`text-sm font-semibold ${
+                    userData.status === "VERIFIED" ? "text-green-800" :
+                    userData.status === "SUSPENDED" ? "text-yellow-800" :
+                    userData.status === "BLACKLISTED" ? "text-orange-800" :
+                    userData.status === "DELETED" ? "text-red-800" :
+                    "text-sky-800"
+                  }`}>
+                    Status: {displayStatus.replace(/_/g, " ").toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                  </span>
+                  
+                  {isAdmin && (
+                    <button 
+                      type="button" 
+                      onClick={() => handleStatusAction(userData.status === "VERIFIED" ? "UNVERIFY" : "VERIFY")}
+                      disabled={!prerequisitesMet}
+                      title={!prerequisitesMet ? `Prerequisite sections (Account Uploads${needsExperience ? " or Experience" : ""}) must be verified first` : ""}
+                      className={`ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium bg-white border transition ${
+                        !prerequisitesMet 
+                          ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-400" 
+                          : userData.status === "VERIFIED" 
+                            ? "border-red-300 text-red-700 hover:bg-red-50" 
+                            : "border-green-300 text-green-700 hover:bg-green-50"
                       }`}
                     >
-                      {userData.status === "VERIFIED" && (
-                        <Shield className="w-4 h-4" />
+                      {userData.status === "VERIFIED" ? (
+                        <>
+                          <ShieldOffIcon className="w-4 h-4" />
+                          Unverify
+                        </>
+                      ) : (
+                        <>
+                          <ShieldIcon className="w-4 h-4" />
+                          Verify
+                        </>
                       )}
-                      {userData.status === "SUSPENDED" && (
-                        <ShieldAlert className="w-4 h-4" />
-                      )}
-                      {userData.status === "BLACKLISTED" && (
-                        <ShieldOff className="w-4 h-4" />
-                      )}
-                      {userData.status === "DELETED" && (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                      {(userData.status === "SIGNED_UP" ||
-                        userData.status === "PENDING" ||
-                        !userData.status) && (
-                        <Clock className="w-4 h-4" />
-                      )}
-                      <span>
-                        Status:{" "}
-                        {displayStatus
-                          .toLowerCase()
-                          .split("_")
-                          .map(
-                            (word: string) =>
-                              word.charAt(0).toUpperCase() + word.slice(1),
-                          )
-                          .join(" ")}
-                      </span>
-                    </div>
-
-                    {userData.status === "VERIFIED" && (
-                      <div className="flex items-center space-x-1 px-1">
-                        {[...Array(5)].map((_, index) => (
-                          <Star
-                            key={index}
-                            className="text-yellow-400 w-4 h-4"
-                            fill="currentColor"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start mb-6">
-                    <img
-                      alt="avatar"
-                      src={avatarSrc || "/profile.jpg"}
-                      className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleButtonClick}
-                      className="mt-4 text-blue-900 hover:text-blue-700 text-sm font-medium"
-                    >
-                      Changed Photo
                     </button>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={fileInputRef}
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex flex-col items-start mb-6">
+                <img
+                  alt="avatar"
+                  src={avatarSrc || "/profile.jpg"}
+                  className="inline-block relative object-cover object-center !rounded-full w-16 h-16 shadow-md"
+                />
+                <button
+                  type="button"
+                  onClick={handleButtonClick}
+                  className="mt-4 text-blue-900 hover:text-blue-700 text-sm font-medium"
+                >
+                  Changed Photo
+                </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
               </div>
 
               <div className="space-y-6">
@@ -976,6 +1005,95 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                     </form>
                   )}
               </div>
+              
+              {isAdmin && (
+                <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
+                  <div className="relative">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsActionsOpen(!isActionsOpen)}
+                      className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                    >
+                      Actions
+                      <ChevronDown className={`w-4 h-4 transition-transform ${isActionsOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    
+                    {isActionsOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsActionsOpen(false)}
+                        ></div>
+                        <div className="absolute left-0 mt-2 mb-4 w-48 bg-white border rounded shadow-lg z-50 overflow-hidden">
+                          {userData.status !== "VERIFIED" && (
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                handleStatusAction("VERIFY");
+                                setIsActionsOpen(false);
+                              }}
+                              disabled={!prerequisitesMet}
+                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${!prerequisitesMet ? "text-gray-400 cursor-not-allowed" : "text-green-700"}`}
+                            >
+                              <ShieldIcon className="w-4 h-4" />
+                              Verify
+                            </button>
+                          )}
+                          {userData.status === "VERIFIED" && (
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                handleStatusAction("UNVERIFY");
+                                setIsActionsOpen(false);
+                              }}
+                              disabled={!prerequisitesMet}
+                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${!prerequisitesMet ? "text-gray-400 cursor-not-allowed" : "text-gray-700"}`}
+                            >
+                              <ShieldOffIcon className="w-4 h-4" />
+                              Unverify
+                            </button>
+                          )}
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              handleStatusAction("SUSPEND");
+                              setIsActionsOpen(false);
+                            }}
+                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600 transition"
+                          >
+                            <TriangleAlert className="w-4 h-4" />
+                            Suspend
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              handleStatusAction("BLACKLIST");
+                              setIsActionsOpen(false);
+                            }}
+                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition"
+                          >
+                            <Ban className="w-4 h-4" />
+                            Blacklist
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to delete this user? This action is permanent (though they will be archived).")) {
+                        handleStatusAction("DELETE");
+                      }
+                    }}
+                    className="flex items-center gap-2 bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
+                  >
+                    <Trash2Icon className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -989,7 +1107,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
             <div className="p-8 text-center">
               <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="w-8 h-8" />
+                <ClockIcon className="w-8 h-8" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Verify Update</h3>
               <p className="text-gray-500 mb-8">
