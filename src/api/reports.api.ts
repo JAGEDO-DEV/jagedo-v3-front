@@ -100,6 +100,7 @@ export interface ReportFilters {
     managedByFilter?: string | null;
     registerTypeFilter?: string | null;
     productTypeFilter?: string | null;
+    accountTypeFilter?: string | null;
     [key: string]: any;
 }
 
@@ -122,6 +123,7 @@ const buildQueryString = (filters: ReportFilters): string => {
     if (filters.managedByFilter) params.append("managedByFilter", filters.managedByFilter);
     if (filters.registerTypeFilter) params.append("registerTypeFilter", filters.registerTypeFilter);
     if (filters.productTypeFilter) params.append("productTypeFilter", filters.productTypeFilter);
+    if (filters.accountTypeFilter) params.append("accountTypeFilter", filters.accountTypeFilter);
     
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
