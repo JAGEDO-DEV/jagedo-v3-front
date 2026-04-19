@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, LogOut, Menu, UserCircle, Lock } from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getNotifications } from "@/api/notifications.api";
+import { getNotifications, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } from "@/api/notifications.api";
 import { NotificationsModal } from "@/components/NotificationsModal";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
@@ -93,15 +93,45 @@ export default function AdminRootLayout() {
     fetchProfileImage();
   }, [axiosInstance, user?.id]);
 
-  const handleMarkAsRead = (notificationId: string | number) => {
+  const handleMarkAsRead = async (notificationId: string | number) => {
     setNotifications(prev =>
       prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
     );
+    try {
+      await markAsRead(axiosInstance, notificationId);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     toast.success("All notifications marked as read.");
+    try {
+      await markAllAsRead(axiosInstance);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string | number) => {
+    try {
+      await deleteNotification(axiosInstance, notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      toast.success("Notification deleted.");
+    } catch (error) {
+      toast.error("Failed to delete notification.");
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await deleteAllNotifications(axiosInstance);
+      setNotifications([]);
+      toast.success("All notifications deleted.");
+    } catch (error) {
+      toast.error("Failed to clear notifications.");
+    }
   };
 
   const handleNotificationClick = (notification: any) => {
@@ -310,6 +340,8 @@ export default function AdminRootLayout() {
           onNotificationClick={handleNotificationClick} 
           onMarkAsRead={handleMarkAsRead} 
           onMarkAllAsRead={handleMarkAllAsRead} 
+          onDeleteNotification={handleDeleteNotification}
+          onClearAll={handleClearAll}
         />
 
         <ChangePasswordDialog
