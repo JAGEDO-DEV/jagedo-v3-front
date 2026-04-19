@@ -773,6 +773,7 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
 
         const draft = {
           id: isDraftMode ? productId : `draft_${Date.now()}`,
+          sellerId: targetUser?.id || user?.id,
           formData,
           uploadedImages,
           savedAt: new Date().toISOString(),

@@ -38,19 +38,48 @@ interface AddAttributeFormProps {
 const normalizeText = (value?: string | null) =>
   (value || '').trim().toLowerCase();
 
+const parseSubGroupEntry = (sub: any) => {
+  if (typeof sub === 'string') {
+    const trimmed = sub.trim();
+    if (!trimmed) return null;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          name: (parsed.name || '').trim(),
+          active: parsed.active ?? true,
+        };
+      }
+    } catch {
+      return { name: trimmed, active: true };
+    }
+  }
+
+  if (sub && typeof sub === 'object') {
+    return {
+      name: (sub.name || '').trim(),
+      active: sub.active ?? true,
+    };
+  }
+
+  return null;
+};
+
 const getSubGroupNames = (group: any): string[] => {
   if (!group) return [];
   const subGroup = group.subGroup;
   if (Array.isArray(subGroup)) {
     return subGroup
-      .map((sub: any) => {
-        if (typeof sub === 'string') return sub.trim();
-        return (sub?.name || '').trim();
-      })
-      .filter(Boolean);
+      .map(parseSubGroupEntry)
+      .filter((entry) => entry && entry.name && entry.active)
+      .map((entry) => entry!.name);
   }
   if (typeof subGroup === 'string' && subGroup.trim() !== '') {
-    return subGroup.split(',').map((s: string) => s.trim()).filter(Boolean);
+    return subGroup
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean);
   }
   return [];
 };

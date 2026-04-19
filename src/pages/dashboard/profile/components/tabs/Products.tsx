@@ -57,7 +57,7 @@ const ShopAppPage = ({ userData, userType }) => {
         localStorage.getItem("jagedo_product_drafts") || "[]",
       );
       console.log("Local Drafts:", savedDrafts);
-      setLocalDrafts(Array.isArray(savedDrafts) ? savedDrafts : []);
+      setLocalDrafts(Array.isArray(savedDrafts) ? savedDrafts.filter((d: any) => d.sellerId === targetId) : []);
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
