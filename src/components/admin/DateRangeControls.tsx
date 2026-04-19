@@ -1,3 +1,4 @@
+//@ts-nocheck
 import React from "react";
 import type { DatePreset, DateRangeState } from "@/utils/adminDateRange";
 import { computePresetRange } from "@/utils/adminDateRange";

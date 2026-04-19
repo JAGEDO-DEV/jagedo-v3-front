@@ -45,7 +45,11 @@ export const GlobalProvider = ({ children }) => {
   }, []);
 
   const logout = () => {
+    const drafts = localStorage.getItem("jagedo_product_drafts");
     localStorage.clear();
+    if (drafts) {
+      localStorage.setItem("jagedo_product_drafts", drafts);
+    }
     setUser(null);
     setIsLoggedIn(false);
     navigate("/login");
