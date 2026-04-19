@@ -2650,10 +2650,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           onClick={() => {
                             const categoryToDelete = cat.category;
 
-                            // 1. Remove the category
+                            
                             setCategories(categories.filter((_, i) => i !== index));
 
-                            // 2. Remove the EXACT corresponding project
+                            
                             if (categoryToDelete) {
                               setAttachments(prev => prev.filter(att =>
                                 att.category !== categoryToDelete &&
@@ -2680,38 +2680,38 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               const newCategory = e.target.value;
                               const oldCategory = cat.category;
 
-                              // Prevent duplicate categories
+                              
                               if (newCategory && categories.some((c, i) => i !== index && c.category === newCategory)) {
                                 toast.error("You cannot select the same category twice.");
                                 return;
                               }
 
-                              // 1. Update category state
+                              
                               const updatedCategories = [...categories];
                               updatedCategories[index].category = newCategory;
                               updatedCategories[index].specialization = "";
                               setCategories(updatedCategories);
 
-                              // 2. Sync the project attachment
+                              
                               setAttachments((prev) => {
                                 const updatedAttachments = [...prev];
 
-                                // Find the project that matches the old category
+                                
                                 const existingProjectIndex = updatedAttachments.findIndex(
                                   (att) => att.category === oldCategory || att.projectName === `${oldCategory} Project`
                                 );
 
                                 if (existingProjectIndex !== -1) {
                                   if (newCategory) {
-                                    // Rename existing project to match the new category
+                                    
                                     updatedAttachments[existingProjectIndex].category = newCategory;
                                     updatedAttachments[existingProjectIndex].projectName = `${newCategory} Project`;
                                   } else {
-                                    // If they changed the dropdown back to "Select category", remove the project
+                                    
                                     updatedAttachments.splice(existingProjectIndex, 1);
                                   }
                                 } else if (newCategory) {
-                                  // If no project existed and a new category is selected, create it
+                                  
                                   updatedAttachments.push({
                                     id: updatedAttachments.length + 1,
                                     projectName: `${newCategory} Project`,
@@ -2724,7 +2724,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 return updatedAttachments;
                               });
                             }}
-                            // Removed the greyed-out cursor-not-allowed classes
+                            
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                           >
                             <option value="">Select category</option>
@@ -3293,9 +3293,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           return (
                             <div
                               key={row.id}
-                              className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
+                              className="relative grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
                             >
-                              <div>
+                              {/* --- NEW REMOVE PROJECT BUTTON --- */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  
+                                  setAttachments((prev) => prev.filter((_, i) => i !== index));
+                                }}
+                                className="absolute top-2 right-2 p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors z-10"
+                                title="Remove Project"
+                              >
+                                <XMarkIcon className="w-5 h-5 pb-1" />
+                              </button>
+
+                              <div className="pr-8"> {/* Added padding to prevent overlap with button */}
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
                                   Project Name
                                 </label>
