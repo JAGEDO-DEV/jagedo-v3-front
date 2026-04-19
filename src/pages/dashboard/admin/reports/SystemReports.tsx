@@ -87,7 +87,10 @@ export default function SystemReports() {
       } else if (activeCard === "BUILDERS") {
         filters.roleFilter = roleFilter === "ALL" ? "ALL_BUILDERS" : roleFilter;
       } else if (activeCard === "CUSTOMERS") {
-        filters.roleFilter = roleFilter === "ALL" ? "ALL_CUSTOMERS" : roleFilter;
+        filters.roleFilter = "ALL_CUSTOMERS";
+        if (roleFilter !== "ALL") {
+          filters.accountTypeFilter = roleFilter;
+        }
       } else {
         if (roleFilter !== "ALL") filters.roleFilter = roleFilter;
       }
@@ -188,8 +191,8 @@ export default function SystemReports() {
 
   // We rely on backend for exact counts; if unavailable we show "Filter" instead
   const customersByType = {
-    INDIVIDUAL: "?",
-    ORGANIZATION: "?",
+    INDIVIDUAL: data?.summary?.individual || 0,
+    ORGANIZATION: data?.summary?.organization || 0,
   };
 
   // Pagination meta
@@ -388,8 +391,8 @@ export default function SystemReports() {
                     <div className="flex flex-wrap gap-2 mb-4">
                       {[
                         { key: "ALL", label: "All Customers", count: data?.summary?.customers || 0 },
-                        { key: "CUSTOMER_INDIVIDUAL", label: "Individual Customers", count: "?" },
-                        { key: "CUSTOMER_ORGANIZATION", label: "Organization Customers", count: "?" },
+                        { key: "INDIVIDUAL", label: "Individual Customers", count: customersByType.INDIVIDUAL },
+                        { key: "ORGANIZATION", label: "Organization Customers", count: customersByType.ORGANIZATION },
                       ].map((item) => (
                         <button
                           key={item.key}
