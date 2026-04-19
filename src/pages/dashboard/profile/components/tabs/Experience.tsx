@@ -3293,9 +3293,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           return (
                             <div
                               key={row.id}
-                              className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
+                              className="relative grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100"
                             >
-                              <div>
+                              {/* --- NEW REMOVE PROJECT BUTTON --- */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Remove this specific project row
+                                  setAttachments((prev) => prev.filter((_, i) => i !== index));
+                                }}
+                                className="absolute top-2 right-2 p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors z-10"
+                                title="Remove Project"
+                              >
+                                <XMarkIcon className="w-5 h-5 pb-1" />
+                              </button>
+
+                              <div className="pr-8"> {/* Added padding to prevent overlap with button */}
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
                                   Project Name
                                 </label>
