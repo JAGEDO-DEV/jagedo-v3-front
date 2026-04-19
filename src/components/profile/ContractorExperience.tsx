@@ -26,6 +26,8 @@ interface ContractorCategory {
   yearsOfExperience: string;
   certificate?: string;
   license?: string;
+  isPersisted?: boolean; // Fully locked (already saved experience)
+  isPrePopulated?: boolean; // Category name locked, but rest is editable
 }
 
 interface ContractorProject {
@@ -34,6 +36,7 @@ interface ContractorProject {
   projectName: string;
   projectFile: File | string | null;
   referenceLetterFile: File | string | null;
+  isPersisted?: boolean;
 }
 
 const CATEGORIES = [
@@ -76,7 +79,7 @@ const SPECIALIZATIONS: { [key: string]: string[] } = {
   ],
 };
 
-const NCA_CLASSES = ["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5" , "NCA 6", "NCA 7", "NCA 8"];
+const NCA_CLASSES = ["NCA 1", "NCA 2", "NCA 3", "NCA 4", "NCA 5", "NCA 6", "NCA 7", "NCA 8"];
 const YEARS_OF_EXPERIENCE = ["10+ years", "5-10 years", "3-5 years", "1-3 years"];
 
 const SLUG_MAP: { [key: string]: string } = {
@@ -94,15 +97,18 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [submitted, setSubmitted] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  
+
   // Dynamic skills and specializations
   const [contractorSkills, setContractorSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
-  const [specializations, setSpecializations] = useState<any[]>([]);
   const [categorySpecsMap, setCategorySpecsMap] = useState<{ [key: string]: any[] }>({});
   const [skillsLoading, setSkillsLoading] = useState(false);
 
-  const isReadOnly = !['RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || data?.status === 'VERIFIED' || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isReadOnly =
+    ['PENDING', 'VERIFIED', 'APPROVED', 'DISAPPROVED', 'REJECTED'].includes(data?.experienceStatus) ||
+    data?.status === "SUSPENDED" ||
+    data?.status === "BLACKLISTED" ||
+    data?.status === "REJECTED";
 
   // ── Load contractor skills and specialization mappings on mount ──────────────────
   useEffect(() => {
@@ -112,11 +118,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
-        
+
         const skillsRes = await getBuilderSkillsByType(authAxios, 'CONTRACTOR');
         const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
         setContractorSkills(activeSkills);
-        
+
         const mappingsRes = await getSpecializationMappings(authAxios, 'CONTRACTOR');
         setSpecMappings(mappingsRes);
       } catch (error) {
@@ -125,7 +131,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         setSkillsLoading(false);
       }
     };
-    
+
     loadSkillsAndMappings();
   }, []);
 
@@ -135,9 +141,10 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const up = data;
 
       const exps = up.contractorExperiences || [];
-      const contractorTypes = up.contractorTypes || ""; 
+      const contractorTypes = up.contractorTypes || "";
 
       if (exps.length > 0) {
+        // MAP EXISTING EXPERIENCES & LOCK THEM ENTIRELY
         const mappedCategories = exps.map((exp: any) => ({
           id: exp.id || crypto.randomUUID(),
           category: exp.category || "",
@@ -146,39 +153,45 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           yearsOfExperience: exp.yearsOfExperience || exp.years || "",
           certificate: exp.certificate || "",
           license: exp.license || "",
+          isPersisted: true,
+          isPrePopulated: false,
         }));
         setCategories(mappedCategories);
       } else if (contractorTypes) {
+        // PRE-POPULATED DEFAULTS FROM SIGN-UP (Category locked, fields open)
         const slugs = contractorTypes.split(',').map((s: string) => s.trim()).filter(Boolean);
         const prePopulated = slugs.map(name => ({
-            id: crypto.randomUUID(),
-            category: name,
-            specialization: "",
-            categoryClass: "",
-            yearsOfExperience: "",
-          }));
+          id: crypto.randomUUID(),
+          category: name,
+          specialization: "",
+          categoryClass: "",
+          yearsOfExperience: "",
+          isPersisted: false,
+          isPrePopulated: true, // Prevents editing the Category dropdown
+        }));
 
         if (prePopulated.length > 0) {
           setCategories(prePopulated);
-          
+
           const prePopProjects = prePopulated.map(cat => ({
             id: crypto.randomUUID(),
             categoryId: cat.id,
             projectName: `${cat.category} Project`,
             projectFile: null,
             referenceLetterFile: null,
+            isPersisted: false,
           }));
           setProjects(prePopProjects);
         } else {
-          setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "" }]);
+          setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "", isPersisted: false, isPrePopulated: false }]);
         }
       } else {
-        setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "" }]);
+        setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "", isPersisted: false, isPrePopulated: false }]);
       }
 
       const projs = up.contractorProjects || [];
       if (projs.length > 0) {
-        setProjects(projs.map((proj: any, index: number) => {
+        setProjects(projs.map((proj: any) => {
           let projectURL = proj.projectFile || null;
           let referenceURL = proj.referenceLetterUrl || proj.referenceLetterFile || null;
 
@@ -193,6 +206,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
             projectName: proj.projectName || "",
             projectFile: projectURL,
             referenceLetterFile: referenceURL,
+            isPersisted: true, // Mark API loaded files as read-only
           };
         }));
       }
@@ -200,11 +214,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     }
   }, [data]);
 
-  // ── Load specializations when categories or skills change (like ProffExperience) ─────────
+  // ── Load specializations when categories or skills change ─────────
   useEffect(() => {
     const loadAllCategorySpecializations = async () => {
       const categorySpecs: { [key: string]: any[] } = {};
-      
+
       for (const cat of categories) {
         if (!cat.category || !specMappings || !contractorSkills.length) {
           continue;
@@ -212,37 +226,35 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
         const normalizedCategory = normalizeSkillName(cat.category);
         const specTypeCode = specMappings[normalizedCategory];
-        
+
         if (!specTypeCode) {
           continue;
         }
 
         try {
-          const selectedSkill = contractorSkills.find((s: any) => 
+          const selectedSkill = contractorSkills.find((s: any) =>
             normalizeSkillName(s.skillName) === normalizedCategory
           );
-          
+
           if (!selectedSkill) {
             continue;
           }
 
-          const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
-            ? selectedSkill.specializations 
+          const assignedSpecCodes = Array.isArray(selectedSkill.specializations)
+            ? selectedSkill.specializations
             : [];
 
           if (assignedSpecCodes.length === 0) {
             continue;
           }
 
-          // Fetch all available specializations
           const authAxios = axios.create({
             headers: { Authorization: getAuthHeaders() },
           });
-          
+
           const specsRes = await getMasterDataValues(authAxios, specTypeCode);
           const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-          
-          // Filter to only assigned ones
+
           const filteredSpecs = allSpecs.filter((spec: any) => {
             const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
             return assignedSpecCodes.includes(specCode);
@@ -255,50 +267,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         }
       }
 
-      // Store the mapping for use in the dropdown
       setCategorySpecsMap(categorySpecs);
     };
 
     loadAllCategorySpecializations();
   }, [categories, specMappings, contractorSkills]);
-
-  // ── Helper function to get specializations for a specific contractor category ────────────
-  const getCategorySpecializations = (category: string): any[] => {
-    if (!category || !specMappings || !contractorSkills.length) {
-      return [];
-    }
-
-    const normalizedCategory = normalizeSkillName(category);
-    const specTypeCode = specMappings[normalizedCategory];
-    
-    if (!specTypeCode) {
-      return [];
-    }
-
-    const selectedSkill = contractorSkills.find((s: any) => 
-      normalizeSkillName(s.skillName) === normalizedCategory
-    );
-    
-    if (!selectedSkill) {
-      return [];
-    }
-
-    // Get the specialization codes assigned to this category/skill
-    const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
-      ? selectedSkill.specializations 
-      : [];
-
-    if (assignedSpecCodes.length === 0) {
-      return [];
-    }
-
-    // Return the assigned codes (they will be fetched from master data if needed)
-    return assignedSpecCodes.map(code => ({
-      code,
-      name: code,
-      label: code,
-    }));
-  };
 
   const handleCategoryChange = (id: string, value: string) => {
     if (categories.some(c => c.category === value && c.id !== id)) {
@@ -312,7 +285,6 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       )
     );
 
-    
     if (!projects.find(p => p.categoryId === id)) {
       setProjects(prev => [
         ...prev,
@@ -322,6 +294,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           projectName: value ? `${value} Project` : "",
           projectFile: null,
           referenceLetterFile: null,
+          isPersisted: false,
         },
       ]);
     }
@@ -337,12 +310,20 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         specialization: "",
         categoryClass: "",
         yearsOfExperience: "",
+        isPersisted: false,
+        isPrePopulated: false, // Totally new row, everything is unlocked
       },
     ]);
   };
 
   const removeCategoryRow = (id: string) => {
+    const target = categories.find(c => c.id === id);
+    if (target?.isPersisted || target?.isPrePopulated) {
+      return toast.error("You cannot remove an initial category.");
+    }
+
     if (categories.length <= 1) return toast.error("You must have at least one category.");
+
     setCategories(prev => prev.filter(cat => cat.id !== id));
     setProjects(prev => prev.filter(p => p.categoryId !== id));
   };
@@ -351,7 +332,6 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     e.preventDefault();
     if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
 
-    
     if (categories.some(c => !c.category || !c.categoryClass || !c.yearsOfExperience)) {
       return toast.error("Please fill in all required fields for categories.");
     }
@@ -364,13 +344,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     const toastId = toast.loading("Uploading files and saving...");
 
     try {
-      
       const uploadedProjects = await Promise.all(
         projects.map(async (proj) => {
           let projectFileUrl = "";
           let referenceLetterUrl = "";
 
-          
           if (proj.projectFile instanceof File) {
             const uploaded = await uploadFile(proj.projectFile);
             projectFileUrl = uploaded.url;
@@ -378,7 +356,6 @@ const ContractorExperience = ({ data, refreshData }: any) => {
             projectFileUrl = proj.projectFile;
           }
 
-          
           if (proj.referenceLetterFile instanceof File) {
             const uploaded = await uploadFile(proj.referenceLetterFile);
             referenceLetterUrl = uploaded.url;
@@ -389,12 +366,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           return {
             projectName: proj.projectName,
             projectFile: projectFileUrl,
-            referenceLetterUrl: referenceLetterUrl 
+            referenceLetterUrl: referenceLetterUrl
           };
         })
       );
 
-      
       const payload = {
         categories: categories.map(c => ({
           category: c.category,
@@ -407,7 +383,6 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         projects: uploadedProjects
       };
 
-      
       await updateContractorExperience(axiosInstance, payload);
 
       toast.success("Experience updated successfully!", { id: toastId });
@@ -422,38 +397,29 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   };
 
   const isFormComplete = (): boolean => {
-    // Filter to only categories with a category selected (ignore empty rows)
     const filledCategories = categories.filter(c => c.category);
+    if (filledCategories.length === 0) return false;
 
-    // Need at least one filled category
-    if (filledCategories.length === 0) {
-      return false;
-    }
-
-    // Check if all filled categories have all required fields
     const allFieldsFilled = filledCategories.every(c => c.categoryClass && c.yearsOfExperience && c.specialization);
-    if (!allFieldsFilled) {
-      return false;
-    }
+    if (!allFieldsFilled) return false;
 
-    // Check if we have at least as many projects as filled categories
-    if (projects.length < filledCategories.length) {
-      return false;
-    }
+    if (projects.length < filledCategories.length) return false;
 
-    // Check if all projects (up to the number of filled categories) have both required files
     const requiredProjects = projects.slice(0, filledCategories.length);
     const allFilesUploaded = requiredProjects.every(p => p.projectFile && p.referenceLetterFile);
-    if (!allFilesUploaded) {
-      return false;
-    }
+    if (!allFilesUploaded) return false;
 
     return true;
   };
 
   const fileInputStyles = "w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors cursor-pointer";
 
-  const renderFileState = (file: File | string | null, onRemove: () => void, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void) => {
+  const renderFileState = (
+    file: File | string | null,
+    onRemove: () => void,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    disabled: boolean
+  ) => {
     if (file) {
       const isUrl = typeof file === 'string';
       const fileName = isUrl ? (file.split('/').pop()?.split('?')[0] || 'View File') : file.name;
@@ -464,12 +430,12 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           </div>
           <div className="flex items-center gap-2">
             {isUrl && <a href={file} target="_blank" rel="noopener noreferrer" className="text-blue-600"><EyeIcon className="w-5 h-5" /></a>}
-            {!isReadOnly && <button type="button" onClick={onRemove}><XMarkIcon className="w-5 h-5 text-red-500 hover:text-red-700" /></button>}
+            {!disabled && <button type="button" onClick={onRemove}><XMarkIcon className="w-5 h-5 text-red-500 hover:text-red-700" /></button>}
           </div>
         </div>
       );
     }
-    if (isReadOnly) return <span className="text-xs text-gray-500 p-2">No file provided.</span>;
+    if (disabled) return <span className="text-xs text-gray-500 p-2">No file provided.</span>;
     return <input type="file" onChange={onChange} className={fileInputStyles} />;
   };
 
@@ -481,11 +447,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         {!submitted ? (
           <form className="space-y-8" onSubmit={handleSubmit}>
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">Contractor Experience</h1>
-            
+
             {isReadOnly && (data?.status === 'BLACKLISTED' || data?.status === 'SUSPENDED') && (
               <div className={`mb-6 p-4 border rounded-xl flex items-start gap-4 ${data?.status === 'BLACKLISTED' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
                 <div className={`p-2 rounded-lg shrink-0 ${data?.status === 'BLACKLISTED' ? 'bg-red-100' : 'bg-yellow-100'}`}>
-                   <InformationCircleIcon className={`w-6 h-6 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
+                  <InformationCircleIcon className={`w-6 h-6 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
                 </div>
                 <div>
                   <p className={`font-bold mb-1 uppercase text-xs tracking-widest ${data?.status === 'BLACKLISTED' ? 'text-red-900' : 'text-yellow-900'}`}>
@@ -498,12 +464,11 @@ const ContractorExperience = ({ data, refreshData }: any) => {
               </div>
             )}
 
-
             {data?.experienceStatus === 'REJECTED' && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-red-100 p-2 rounded-lg shrink-0">
-                    <XMarkIcon className="w-6 h-6 text-red-600" />
-                 </div>
+                <div className="bg-red-100 p-2 rounded-lg shrink-0">
+                  <XMarkIcon className="w-6 h-6 text-red-600" />
+                </div>
                 <div>
                   <p className="font-bold mb-1 uppercase text-xs tracking-widest text-red-900">Experience Rejected</p>
                   <p className="text-red-700 leading-relaxed">{data.experienceStatusReason || "Your submission was rejected. Please review your details and re-submit."}</p>
@@ -513,9 +478,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
             {data?.experienceStatus === 'RESUBMIT' && (
               <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-amber-100 p-2 rounded-lg shrink-0">
-                    <EyeIcon className="w-6 h-6 text-amber-600" />
-                 </div>
+                <div className="bg-amber-100 p-2 rounded-lg shrink-0">
+                  <EyeIcon className="w-6 h-6 text-amber-600" />
+                </div>
                 <div>
                   <p className="font-bold mb-1 uppercase text-xs tracking-widest text-amber-900">Resubmission Requested</p>
                   <p className="text-amber-700 leading-relaxed">{data.experienceStatusReason || "Admin has requested corrections or more details for your submission."}</p>
@@ -525,9 +490,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
             {data?.experienceStatus === 'PENDING' && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm flex items-start gap-4">
-                 <div className="bg-blue-100 p-2 rounded-lg shrink-0">
-                    <EyeIcon className="w-6 h-6 text-blue-600" />
-                 </div>
+                <div className="bg-blue-100 p-2 rounded-lg shrink-0">
+                  <EyeIcon className="w-6 h-6 text-blue-600" />
+                </div>
                 <div>
                   <p className="font-bold mb-1 uppercase text-xs tracking-widest text-blue-900">Under Review</p>
                   <p className="text-blue-700 leading-relaxed">Your experience details have been submitted and are under review. Our team will contact you once verified.</p>
@@ -544,16 +509,17 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                     <select
                       value={cat.category}
                       onChange={e => handleCategoryChange(cat.id, e.target.value)}
-                      disabled={true}
-                      className="w-full p-2 border rounded-md text-sm outline-none bg-gray-100 text-gray-500 cursor-not-allowed"
+                      // If it's fully persisted OR pre-populated from sign-up, lock the category dropdown
+                      disabled={isReadOnly || cat.isPersisted || cat.isPrePopulated}
+                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       <option value="">Select Category</option>
                       {contractorSkills.length > 0
                         ? contractorSkills.map(skill => (
-                            <option key={skill.skillName} value={skill.skillName}>
-                              {skill.skillName}
-                            </option>
-                          ))
+                          <option key={skill.skillName} value={skill.skillName}>
+                            {skill.skillName}
+                          </option>
+                        ))
                         : CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)
                       }
                     </select>
@@ -565,8 +531,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, specialization: e.target.value } : x)
                         )
                       }
-                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
-                      disabled={isReadOnly || !cat.category}
+                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
+                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                      disabled={isReadOnly || cat.isPersisted || !cat.category}
                     >
                       <option value="">Specialization</option>
                       {(categorySpecsMap[cat.category] || []).map((s: any) => {
@@ -582,8 +549,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, categoryClass: e.target.value } : x)
                         )
                       }
-                      disabled={isReadOnly}
-                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
+                      disabled={isReadOnly || cat.isPersisted}
+                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       <option value="">Class</option>
                       {Array.from(new Set([...NCA_CLASSES, cat.categoryClass].filter(Boolean))).map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
@@ -596,15 +564,17 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, yearsOfExperience: e.target.value } : x)
                         )
                       }
-                      disabled={isReadOnly}
-                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
+                      disabled={isReadOnly || cat.isPersisted}
+                      className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       <option value="">Years</option>
                       {Array.from(new Set([...YEARS_OF_EXPERIENCE, cat.yearsOfExperience].filter(Boolean))).map(y => <option key={y as string} value={y as string}>{y as string}</option>)}
                     </select>
 
                     <div className="flex justify-end pr-2">
-                      {!isReadOnly && (
+                      {/* Hide trash icon if it's persisted OR pre-populated from sign-up */}
+                      {!isReadOnly && !cat.isPersisted && !cat.isPrePopulated && (
                         <button type="button" onClick={() => removeCategoryRow(cat.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors">
                           <TrashIcon className="w-5 h-5" />
                         </button>
@@ -637,7 +607,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                         {renderFileState(
                           proj.projectFile,
                           () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: null } : x)),
-                          e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: e.target.files?.[0] || null } : x))
+                          e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: e.target.files?.[0] || null } : x)),
+                          isReadOnly || !!proj.isPersisted
                         )}
                       </div>
                       <div>
@@ -645,7 +616,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                         {renderFileState(
                           proj.referenceLetterFile,
                           () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: null } : x)),
-                          e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: e.target.files?.[0] || null } : x))
+                          e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: e.target.files?.[0] || null } : x)),
+                          isReadOnly || !!proj.isPersisted
                         )}
                       </div>
                     </div>
@@ -663,8 +635,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                     data?.experienceStatus === 'PENDING'
                       ? "This submission is under review and cannot be modified"
                       : !isFormComplete()
-                      ? "Please fill all required fields: Category, Specialization, Class, Years of Experience, and upload all project files"
-                      : "Submit contractor experience"
+                        ? "Please fill all required fields: Category, Specialization, Class, Years of Experience, and upload all project files"
+                        : "Submit contractor experience"
                   }
                   className="w-full sm:w-auto bg-blue-800 text-white px-10 py-3 rounded-lg hover:bg-blue-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-800 font-bold shadow-md shadow-blue-100 flex items-center justify-center gap-2"
                 >
