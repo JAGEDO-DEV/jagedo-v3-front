@@ -66,38 +66,19 @@ export default function SystemReports() {
   useEffect(() => {
     fetchReport();
     // eslint-disable-next-line
-  }, [dateRange, compareMode, activeCard, roleFilter, lifecycleFilter, sourceFilter, locationFilter, page, searchQuery]);
+  }, [dateRange, compareMode]);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
       const filters: any = {
-        page,
-        limit,
+        page: 1,
+        limit: 10000,
       };
 
       if (dateRange?.from) filters.startDate = startOfDay(dateRange.from).toISOString();
       if (dateRange?.to) filters.endDate = endOfDay(dateRange.to).toISOString();
       if (compareMode) filters.compare = 'true';
-      if (searchQuery.trim()) filters.search = searchQuery.trim();
-
-      // Bind dynamic filters based on active card and dropdowns
-      if (activeCard === "TOTAL_ADMINS") {
-        filters.roleFilter = "ADMIN";
-      } else if (activeCard === "BUILDERS") {
-        filters.roleFilter = roleFilter === "ALL" ? "ALL_BUILDERS" : roleFilter;
-      } else if (activeCard === "CUSTOMERS") {
-        filters.roleFilter = "ALL_CUSTOMERS";
-        if (roleFilter !== "ALL") {
-          filters.accountTypeFilter = roleFilter;
-        }
-      } else {
-        if (roleFilter !== "ALL") filters.roleFilter = roleFilter;
-      }
-
-      if (lifecycleFilter !== "ALL") filters.lifecycleFilter = lifecycleFilter;
-      if (sourceFilter !== "ALL") filters.sourceFilter = sourceFilter;
-      if (locationFilter !== "ALL") filters.locationFilter = locationFilter;
 
       const res = await reportsApi.getSystemReport(axiosInstance, filters as ReportFilters);
       setData(res.data);
@@ -195,10 +176,85 @@ export default function SystemReports() {
     ORGANIZATION: data?.summary?.organization || 0,
   };
 
-  // Pagination meta
-  const totalPages = data?.register?.pagination?.totalPages || 1;
+  // Pagination meta and local filtering
+  const filteredRegister = useMemo(() => {
+    let result = [...(data?.register?.data || [])];
+
+    // Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((u: any) => 
+        (u.firstName || '').toLowerCase().includes(q) ||
+        (u.lastName || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Role filtering & Active Card
+    if (activeCard === "TOTAL_ADMINS") {
+      result = result.filter((u: any) => u.userType === "ADMIN");
+    } else if (activeCard === "BUILDERS") {
+      if (roleFilter === "ALL") {
+         result = result.filter((u: any) => ["FUNDI", "PROFESSIONAL", "CONTRACTOR", "HARDWARE"].includes(u.userType));
+      } else {
+         result = result.filter((u: any) => u.userType === roleFilter);
+      }
+    } else if (activeCard === "CUSTOMERS") {
+      result = result.filter((u: any) => u.userType === "CUSTOMER" || !u.userType);
+      if (roleFilter === "INDIVIDUAL") {
+         result = result.filter((u: any) => u.accountType === "INDIVIDUAL");
+      } else if (roleFilter === "ORGANIZATION") {
+         result = result.filter((u: any) => u.accountType === "ORGANIZATION");
+      }
+    } else if (!activeCard) {
+      result = []; // none active
+    } else {
+      if (roleFilter !== "ALL") result = result.filter((u: any) => u.userType === roleFilter);
+    }
+
+    // Lifecycle
+    if (lifecycleFilter !== "ALL") {
+      const lf = lifecycleFilter.replace('_', ' ').toLowerCase();
+      result = result.filter((u: any) => {
+        const uLf = String(u.lifecycle).toLowerCase();
+        return uLf === lf || 
+               (lifecycleFilter === "PENDING" && uLf === "pending verification") ||
+               (lifecycleFilter === "SIGNED_UP" && uLf === "signed up");
+      });
+    }
+
+    // Source
+    if (sourceFilter !== "ALL") {
+      result = result.filter((u: any) => u.signupSource === sourceFilter);
+    }
+
+    // Location
+    if (locationFilter !== "ALL") {
+      result = result.filter((u: any) => u.location === locationFilter);
+    }
+
+    return result;
+  }, [data?.register?.data, searchQuery, activeCard, roleFilter, lifecycleFilter, sourceFilter, locationFilter]);
+
+  const totalFiltered = filteredRegister.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / limit));
   const isFirstPage = page <= 1;
   const isLastPage = page >= totalPages;
+
+  const currentRegisterPage = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredRegister.slice(start, start + limit);
+  }, [filteredRegister, page, limit]);
+
+  const availableLocations = useMemo(() => {
+    const arr = data?.register?.data || [];
+    return [...new Set(arr.map((u: any) => u.location).filter(Boolean))] as string[];
+  }, [data?.register?.data]);
+
+  const availableSources = useMemo(() => {
+    const arr = data?.register?.data || [];
+    return [...new Set(arr.map((u: any) => u.signupSource).filter(Boolean))] as string[];
+  }, [data?.register?.data]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -443,7 +499,7 @@ export default function SystemReports() {
                     >
                       <option value="ALL">All Locations</option>
                       {/* Derived from backend data locally for demo purposes, backend filter usually superior */}
-                      {[...new Set((data?.register?.data || []).map((u: any) => u.location).filter(Boolean))].map((loc: any) => (
+                      {availableLocations.map((loc: string) => (
                          <option key={loc} value={loc}>{loc}</option>
                       ))}
                     </select>
@@ -471,7 +527,7 @@ export default function SystemReports() {
                     >
                       <option value="ALL">All Sources</option>
                       {/* Typically backend provided, we can map what we have */}
-                      {[...new Set((data?.register?.data || []).map((u: any) => u.signupSource).filter(Boolean))].map((src: any) => (
+                      {availableSources.map((src: string) => (
                         <option key={src} value={src}>{src}</option>
                       ))}
                     </select>
@@ -499,14 +555,14 @@ export default function SystemReports() {
                               Loading Records...
                             </td>
                           </tr>
-                        ) : data?.register?.data?.length === 0 ? (
+                        ) : currentRegisterPage.length === 0 ? (
                           <tr>
                             <td colSpan={8} className="text-center py-10 text-gray-400 font-medium">
                               No users match current filters.
                             </td>
                           </tr>
                         ) : (
-                          data?.register?.data?.map((row: any, idx: number) => (
+                          currentRegisterPage.map((row: any, idx: number) => (
                             <tr
                               key={`${row.id}-${idx}`}
                               className="hover:bg-indigo-50/40 cursor-pointer transition-colors"
@@ -531,11 +587,10 @@ export default function SystemReports() {
                     </table>
                   </div>
 
-                  {/* Pagination Wrapper */}
-                  {data?.register?.pagination && data.register.pagination.totalPages > 1 && (
+                  {totalPages > 1 && (
                     <div className="flex items-center justify-between border-t border-gray-100 mt-4 pt-4">
                       <p className="text-[13px] text-gray-500">
-                        Showing <span className="font-medium text-gray-800">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-gray-800">{Math.min(page * limit, data.register.pagination.total)}</span> of <span className="font-medium text-gray-800">{data.register.pagination.total}</span> records
+                        Showing <span className="font-medium text-gray-800">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-gray-800">{Math.min(page * limit, totalFiltered)}</span> of <span className="font-medium text-gray-800">{totalFiltered}</span> records
                       </p>
                       <div className="flex items-center gap-2">
                         <Button
