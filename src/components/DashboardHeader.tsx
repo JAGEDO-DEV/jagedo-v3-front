@@ -19,7 +19,7 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { getProviderProfile } from "@/api/provider.api";
 import { useCart } from "@/context/CartContext";
-import { getNotifications } from "@/api/notifications.api";
+import { getNotifications, markAsRead as apiMarkAsRead, markAllAsRead as apiMarkAllAsRead, deleteNotification as apiDeleteNotification, deleteAllNotifications as apiDeleteAllNotifications } from "@/api/notifications.api";
 import { toast } from "react-hot-toast";
 import { NotificationsModal } from "@/components/NotificationsModal";
 
@@ -194,12 +194,17 @@ export function DashboardHeader() {
   const serviceProviderTypes = ['contractor', 'fundi', 'professional', 'hardware'];
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  const markAsRead = (notificationId: string | number) => {
+  const markAsRead = async (notificationId: string | number) => {
     setNotifications(prevNotifications =>
       prevNotifications.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       )
     );
+    try {
+      await apiMarkAsRead(axiosInstance, notificationId);
+    } catch(e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -334,10 +339,35 @@ export function DashboardHeader() {
     markAsRead(notificationId);
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     );
+    try {
+      await apiMarkAllAsRead(axiosInstance);
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string | number) => {
+    try {
+      await apiDeleteNotification(axiosInstance, notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      toast.success("Notification deleted.");
+    } catch (error) {
+      toast.error("Failed to delete notification.");
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await apiDeleteAllNotifications(axiosInstance);
+      setNotifications([]);
+      toast.success("All notifications deleted.");
+    } catch (error) {
+      toast.error("Failed to clear notifications.");
+    }
   };
 
   const handleOpenHelp = () => {
@@ -565,6 +595,8 @@ export function DashboardHeader() {
         onNotificationClick={handleNotificationClick}
         onMarkAsRead={handleMarkAsRead}
         onMarkAllAsRead={handleMarkAllAsRead}
+        onDeleteNotification={handleDeleteNotification}
+        onClearAll={handleClearAll}
       />
     </header>
   );
