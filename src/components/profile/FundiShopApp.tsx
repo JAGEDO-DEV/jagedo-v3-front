@@ -52,7 +52,7 @@ const ShopAppPage = ({ data: profileData }) => {
         localStorage.getItem("jagedo_product_drafts") || "[]",
       );
       console.log("Local Drafts:", savedDrafts);
-      setLocalDrafts(Array.isArray(savedDrafts) ? savedDrafts : []);
+      setLocalDrafts(Array.isArray(savedDrafts) ? savedDrafts.filter((d: any) => d.sellerId === user.id) : []);
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
@@ -278,7 +278,6 @@ const ShopAppPage = ({ data: profileData }) => {
     document.body.removeChild(link);
     toast.success("Exporting CSV file...");
   };
-  console.log("Filtered Items:", filteredItems);
 
   const renderCurrentView = () => {
     switch (currentView) {

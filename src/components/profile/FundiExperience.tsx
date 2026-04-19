@@ -26,10 +26,10 @@ interface FundiAttachment {
 }
 
 const requiredProjectsByGrade: { [key: string]: number } = {
-  "G1: Master Fundi":    3,
-  "G2: Skilled":         2,
-  "G3: Semi-skilled":    1,
-  "G4: Unskilled":       0,
+  "G1: Master Fundi": 3,
+  "G2: Skilled": 2,
+  "G3: Semi-skilled": 1,
+  "G4: Unskilled": 0,
 };
 
 const prefilledAttachments: FundiAttachment[] = [
@@ -40,25 +40,30 @@ const prefilledAttachments: FundiAttachment[] = [
 
 
 const FundiExperience = ({ data, refreshData }: any) => {
-  const [isSubmitting, setIsSubmitting]     = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [attachments, setAttachments]       = useState<FundiAttachment[]>(prefilledAttachments);
-  const [grade, setGrade]                   = useState("G1: Master Fundi");
-  const [experience, setExperience]         = useState("10+ years");
+  const [attachments, setAttachments] = useState<FundiAttachment[]>(prefilledAttachments);
+  const [grade, setGrade] = useState("G1: Master Fundi");
+  const [experience, setExperience] = useState("10+ years");
   const [specialization, setSpecialization] = useState("");
-  const [skill, setSkill]                   = useState((data?.skills || "plumber").toLowerCase());
-  
-  
-  const [fundiSkills, setFundiSkills]       = useState<any[]>([]);
-  const [specMappings, setSpecMappings]     = useState<Record<string, string>>({});
+  const [skill, setSkill] = useState((data?.skills || "plumber").toLowerCase());
+
+
+  const [fundiSkills, setFundiSkills] = useState<any[]>([]);
+  const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
-  const [skillsLoading, setSkillsLoading]   = useState(false);
-  const [specsLoading, setSpecsLoading]     = useState(false);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [specsLoading, setSpecsLoading] = useState(false);
 
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isReadOnly =
+    ['PENDING', 'VERIFIED', 'APPROVED', 'DISAPPROVED', 'REJECTED'].includes(data?.experienceStatus) ||
+    data?.status === "SUSPENDED" ||
+    data?.status === "BLACKLISTED" ||
+    data?.status === "REJECTED";
 
-  
+
+
   useEffect(() => {
     const loadSkillsAndMappings = async () => {
       try {
@@ -66,13 +71,13 @@ const FundiExperience = ({ data, refreshData }: any) => {
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
-        
-        
+
+
         const skillsRes = await getBuilderSkillsByType(authAxios, 'FUNDI');
         const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
         setFundiSkills(activeSkills);
-        
-        
+
+
         const mappingsRes = await getSpecializationMappings(authAxios, 'FUNDI');
         setSpecMappings(mappingsRes);
       } catch (error) {
@@ -82,39 +87,39 @@ const FundiExperience = ({ data, refreshData }: any) => {
         setSkillsLoading(false);
       }
     };
-    
+
     loadSkillsAndMappings();
   }, []);
 
-  
+
   useEffect(() => {
     const loadSpecializations = async () => {
       if (!skill) {
         setSpecializations([]);
         return;
       }
-      
+
       const normalizedSkill = normalizeSkillName(skill);
       if (!specMappings[normalizedSkill]) {
         setSpecializations([]);
         return;
       }
-      
+
       try {
         setSpecsLoading(true);
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
-        
+
         // Find the skill in fundiSkills to get its assigned specializations array
-        const selectedSkill = fundiSkills.find((s: any) => 
+        const selectedSkill = fundiSkills.find((s: any) =>
           normalizeSkillName(s.skillName) === normalizedSkill
         );
-        
+
         const specTypeCode = specMappings[normalizedSkill];
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-        
-        
+
+
         const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
         setSpecializations(specs);
       } catch (error) {
@@ -124,21 +129,21 @@ const FundiExperience = ({ data, refreshData }: any) => {
         setSpecsLoading(false);
       }
     };
-    
+
     loadSpecializations();
   }, [skill, specMappings, fundiSkills]);
 
-  
+
 
   const getStatusMessage = (status: string): string => {
     const statusMap: { [key: string]: string } = {
-      REJECTED:  'Your submission was rejected. Please review the feedback and resubmit.',
-      RJCT:      'Your submission was rejected. Please review the feedback and resubmit.',
-      VERIFIED:  'Your submission has been approved.',
-      APRVD:     'Your submission has been approved.',
-      PENDING:   'Your submission is pending review.',
-      PEND:      'Your submission is pending review.',
-      RESUBMIT:  'Please resubmit your experience for review.',
+      REJECTED: 'Your submission was rejected. Please review the feedback and resubmit.',
+      RJCT: 'Your submission was rejected. Please review the feedback and resubmit.',
+      VERIFIED: 'Your submission has been approved.',
+      APRVD: 'Your submission has been approved.',
+      PENDING: 'Your submission is pending review.',
+      PEND: 'Your submission is pending review.',
+      RESUBMIT: 'Please resubmit your experience for review.',
     };
     return statusMap[status] || status;
   };
@@ -239,10 +244,10 @@ const FundiExperience = ({ data, refreshData }: any) => {
       }
 
       await updateFundiExperience(axiosInstance, {
-        skills:               skill,
-        specialization:       specialization,
-        grade:                grade,
-        experience:           experience,
+        skills: skill,
+        specialization: specialization,
+        grade: grade,
+        experience: experience,
         previousJobPhotoUrls: flattenedProjectFiles,
       });
 
@@ -319,11 +324,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-4xl font-bold text-gray-900">Fundi Experience</h1>
-        
+
         {isReadOnly && (data?.status === 'BLACKLISTED' || data?.status === 'SUSPENDED') && (
           <div className={`p-4 border rounded-xl flex items-start gap-4 ${data?.status === 'BLACKLISTED' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
             <div className={`p-2 rounded-lg flex-shrink-0 ${data?.status === 'BLACKLISTED' ? 'bg-red-100' : 'bg-yellow-100'}`}>
-               <InfoIcon className={`w-5 h-5 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
+              <InfoIcon className={`w-5 h-5 ${data?.status === 'BLACKLISTED' ? 'text-red-600' : 'text-yellow-600'}`} />
             </div>
             <div>
               <p className={`font-bold mb-1 uppercase text-xs tracking-wider ${data?.status === 'BLACKLISTED' ? 'text-red-900' : 'text-yellow-900'}`}>
@@ -490,7 +495,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                               {row.files.length > 0 ? `${row.files.length} files selected` : "No file chosen"}
                             </span>
                           </div>
-                          
+
                           {/* File Previews */}
                           {row.files.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -546,4 +551,4 @@ const FundiExperience = ({ data, refreshData }: any) => {
   );
 };
 
-export default FundiExperience;
+export default FundiExperience;

@@ -1,3 +1,4 @@
+//@ts-nocheck
 export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED" | "REJECTED" | "RESUBMIT"  | "DELETED" | "BLACKLISTED" | "SUSPENDED" |"INCOMPLETE_PROFILE" | "UNVERIFIED";
 
 export interface FundiEvaluation {
