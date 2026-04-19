@@ -2320,12 +2320,21 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                     type="button"
                     onClick={() => setShowGlobalActions(!showGlobalActions)}
                     disabled={isPendingAction}
-                    className="flex items-center gap-2 py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex items-center gap-2 py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60 min-w-[100px] justify-center"
                   >
-                    Actions
-                    <FiChevronDown
-                      className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
-                    />
+                    {isPendingAction ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Actions
+                        <FiChevronDown
+                          className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
+                        />
+                      </>
+                    )}
                   </button>
                   {showGlobalActions && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
@@ -2650,10 +2659,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           onClick={() => {
                             const categoryToDelete = cat.category;
 
-                            
+
                             setCategories(categories.filter((_, i) => i !== index));
 
-                            
+
                             if (categoryToDelete) {
                               setAttachments(prev => prev.filter(att =>
                                 att.category !== categoryToDelete &&
@@ -2680,38 +2689,38 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               const newCategory = e.target.value;
                               const oldCategory = cat.category;
 
-                              
+
                               if (newCategory && categories.some((c, i) => i !== index && c.category === newCategory)) {
                                 toast.error("You cannot select the same category twice.");
                                 return;
                               }
 
-                              
+
                               const updatedCategories = [...categories];
                               updatedCategories[index].category = newCategory;
                               updatedCategories[index].specialization = "";
                               setCategories(updatedCategories);
 
-                              
+
                               setAttachments((prev) => {
                                 const updatedAttachments = [...prev];
 
-                                
+
                                 const existingProjectIndex = updatedAttachments.findIndex(
                                   (att) => att.category === oldCategory || att.projectName === `${oldCategory} Project`
                                 );
 
                                 if (existingProjectIndex !== -1) {
                                   if (newCategory) {
-                                    
+
                                     updatedAttachments[existingProjectIndex].category = newCategory;
                                     updatedAttachments[existingProjectIndex].projectName = `${newCategory} Project`;
                                   } else {
-                                    
+
                                     updatedAttachments.splice(existingProjectIndex, 1);
                                   }
                                 } else if (newCategory) {
-                                  
+
                                   updatedAttachments.push({
                                     id: updatedAttachments.length + 1,
                                     projectName: `${newCategory} Project`,
@@ -2724,7 +2733,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 return updatedAttachments;
                               });
                             }}
-                            
+
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                           >
                             <option value="">Select category</option>
@@ -3299,7 +3308,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  
+
                                   setAttachments((prev) => prev.filter((_, i) => i !== index));
                                 }}
                                 className="absolute top-2 right-2 p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors z-10"

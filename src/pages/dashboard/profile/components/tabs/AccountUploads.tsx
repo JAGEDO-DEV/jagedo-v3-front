@@ -527,15 +527,15 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
   const approvedCount = allDocuments.filter(
     (d) =>
-      (documents[d.key]?.status === "approved" ||
-        documents[d.key]?.status === "VERIFIED"),
+    (documents[d.key]?.status === "approved" ||
+      documents[d.key]?.status === "VERIFIED"),
   ).length;
 
   const rejectedCount = allDocuments.filter(
     (d) =>
-      (documents[d.key]?.status === "rejected" ||
-        documents[d.key]?.status === "REJECTED" ||
-        documents[d.key]?.status === "RESUBMIT"),
+    (documents[d.key]?.status === "rejected" ||
+      documents[d.key]?.status === "REJECTED" ||
+      documents[d.key]?.status === "RESUBMIT"),
   ).length;
 
   const overallStatus =
@@ -721,7 +721,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
         // If user is currently VERIFIED, change overall status to PENDING (UNVERIFY)
         if (userData.status === "VERIFIED" && (action === "reject" || action === "resubmit")) {
-            await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
+          await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
         }
         window.location.reload();
       } catch (error: any) {
@@ -755,7 +755,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
 
         // If user is currently VERIFIED and a document is rejected or returned, change overall status to PENDING (UNVERIFY)
         if (userData.status === "VERIFIED" && (action === "reject" || action === "resubmit")) {
-            await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
+          await updateAccountStatus(axiosInstance, userData.id, "UNVERIFY", actionReason);
         }
         window.location.reload();
       } catch (error: any) {
@@ -934,12 +934,12 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         {uploaded.statusReason && (
           <div
             className={`mb-3 p-2 rounded-lg text-xs ${status === "rejected" || status === "REJECTED"
-                ? "bg-red-50 text-red-700"
-                : status === "reupload_requested" || status === "RESUBMIT"
-                  ? "bg-blue-50 text-blue-700"
-                  : isApproved
-                    ? "bg-green-50 text-green-700"
-                    : "bg-amber-50 text-amber-700"
+              ? "bg-red-50 text-red-700"
+              : status === "reupload_requested" || status === "RESUBMIT"
+                ? "bg-blue-50 text-blue-700"
+                : isApproved
+                  ? "bg-green-50 text-green-700"
+                  : "bg-amber-50 text-amber-700"
               }`}
           >
             <span className="font-medium">
@@ -998,31 +998,31 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             <div className="flex gap-2 w-full mt-2 border-t pt-2">
               <button
                 onClick={() => openActionModal(doc.key, "approve")}
-                disabled={isDisapproved}
+                disabled={isDisapproved || hasChanges}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-green-50 text-green-600 rounded-lg text-[10px] font-semibold hover:bg-green-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isDisapproved ? "Wait for user to resubmit" : "Approve"}
+                title={hasChanges ? "Save changes first" : isDisapproved ? "Wait for user to resubmit" : "Approve"}
               >
                 <FiCheck className="w-3 h-3" />
                 Approve
               </button>
               <button
                 onClick={() => openActionModal(doc.key, "resubmit")}
-                disabled={isDisapproved}
+                disabled={isDisapproved || hasChanges}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isDisapproved ? "Wait for user to resubmit" : "Return for correction"}
+                title={hasChanges ? "Save changes first" : isDisapproved ? "Wait for user to resubmit" : "Return for correction"}
               >
                 <FiRefreshCw className="w-3 h-3" />
                 Return
               </button>
-                <button
-                  onClick={() => openActionModal(doc.key, "reject")}
-                  disabled={!(status === "approved" || status === "VERIFIED")}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!(status === "approved" || status === "VERIFIED") ? "Only approved documents can be disapproved" : "Disapprove"}
-                >
-                  <XCircle className="w-3 h-3" />
-                  Disapprove
-                </button>
+              <button
+                onClick={() => openActionModal(doc.key, "reject")}
+                disabled={!(status === "approved" || status === "VERIFIED") || hasChanges}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={hasChanges ? "Save changes first" : !(status === "approved" || status === "VERIFIED") ? "Only approved documents can be disapproved" : "Disapprove"}
+              >
+                <XCircle className="w-3 h-3" />
+                Disapprove
+              </button>
             </div>
           )}
         </div>
@@ -1173,90 +1173,103 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               />
 
               { }
+
+              {/* Global Actions Dropdown - Admin Only */}
               {isAdmin && (
-                  <div className="relative">
-                    <button
-                      disabled={isPendingAction}
-                      onClick={() => setShowGlobalActions(!showGlobalActions)}
-                      className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Actions
-                      <FiChevronDown
-                        className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {showGlobalActions && (
-                      <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-xl z-[90] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <button
-                          onClick={async () => {
-                            setShowGlobalActions(false);
-                            const missing = getIncompleteRequiredDocs();
-                            if (missing.length > 0) {
-                              toast.error(
-                                `Cannot approve: ${missing.length} required document(s) missing: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}`,
-                                { duration: 5000 },
-                              );
-                              return;
-                            }
-                            setIsPendingAction(true);
-                            try {
-                              await adminVerifyDocuments(
-                                axiosInstance,
-                                userData.id,
-                              );
-                              toast.success("Documents approved successfully");
-                              window.location.reload();
-                            } catch (error: any) {
-                              toast.error(
-                                error.message || "Failed to approve documents",
-                              );
-                            } finally {
-                              setIsPendingAction(false);
-                            }
-                          }}
-                          disabled={userData.documentStatus === "VERIFIED" || userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT"}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                          title={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : ""}
-                        >
-                          <FiCheck className="w-4 h-4" />
-                          Approve All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowGlobalActions(false);
-                            setActionModal({
-                              isOpen: true,
-                              action: "resubmit",
-                              isGlobal: true,
-                            });
-                          }}
-                          disabled={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT"}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                          title={userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : ""}
-                        >
-                          <FiRefreshCw className="w-4 h-4" />
-                          Return All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowGlobalActions(false);
-                            setActionModal({
-                              isOpen: true,
-                              action: "reject",
-                              isGlobal: true,
-                            });
-                          }}
-                          disabled={userData.documentStatus !== "VERIFIED"}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={userData.documentStatus !== "VERIFIED" ? "Only verified status can be disapproved" : "Disapprove All"}
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Disapprove All
-                        </button>
-                      </div>
+                <div className="relative">
+                  <button
+                    disabled={isPendingAction || hasChanges}
+                    onClick={() => setShowGlobalActions(!showGlobalActions)}
+                    className="flex items-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={hasChanges ? "Save changes first" : ""}
+                  >
+                    {isPendingAction ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Actions
+                        <FiChevronDown
+                          className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
+                        />
+                      </>
                     )}
-                  </div>
-                )}
+                  </button>
+                  {showGlobalActions && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-xl z-[90] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                      <button
+                        onClick={async () => {
+                          setShowGlobalActions(false);
+                          const missing = getIncompleteRequiredDocs();
+                          if (missing.length > 0) {
+                            toast.error(
+                              `Cannot approve: ${missing.length} required document(s) missing: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}`,
+                              { duration: 5000 },
+                            );
+                            return;
+                          }
+                          setIsPendingAction(true);
+                          try {
+                            await adminVerifyDocuments(
+                              axiosInstance,
+                              userData.id,
+                            );
+                            toast.success("Documents approved successfully");
+                            window.location.reload();
+                          } catch (error: any) {
+                            toast.error(
+                              error.message || "Failed to approve documents",
+                            );
+                          } finally {
+                            setIsPendingAction(false);
+                          }
+                        }}
+                        disabled={uploadedCount === 0 || userData.documentStatus === "VERIFIED" || userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" || hasChanges}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-green-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        title={hasChanges ? "Save changes first" : uploadedCount === 0 ? "No documents uploaded" : (userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : "")}
+                      >
+                        <FiCheck className="w-4 h-4" />
+                        Approve All
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({
+                            isOpen: true,
+                            action: "resubmit",
+                            isGlobal: true,
+                          });
+                        }}
+                        disabled={uploadedCount === 0 || userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" || hasChanges}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        title={hasChanges ? "Save changes first" : uploadedCount === 0 ? "No documents uploaded" : (userData.documentStatus === "REJECTED" || userData.documentStatus === "RESUBMIT" ? "Wait for user to resubmit" : "")}
+                      >
+                        <FiRefreshCw className="w-4 h-4" />
+                        Return All
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowGlobalActions(false);
+                          setActionModal({
+                            isOpen: true,
+                            action: "reject",
+                            isGlobal: true,
+                          });
+                        }}
+                        disabled={uploadedCount === 0 || userData.documentStatus !== "VERIFIED" || hasChanges}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={hasChanges ? "Save changes first" : uploadedCount === 0 ? "No documents uploaded" : (userData.documentStatus !== "VERIFIED" ? "Only verified status can be disapproved" : "Disapprove All")}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Disapprove All
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           </div>
 
@@ -1265,28 +1278,28 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             userData?.documentStatusReason && (
               <div
                 className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${userData.documentStatus === "REJECTED"
-                    ? "bg-red-50 border-red-200"
-                    : "bg-blue-50 border-blue-200"
+                  ? "bg-red-50 border-red-200"
+                  : "bg-blue-50 border-blue-200"
                   }`}
               >
                 <div
                   className={`p-2 rounded-lg ${userData.documentStatus === "REJECTED"
-                      ? "bg-red-100"
-                      : "bg-blue-100"
+                    ? "bg-red-100"
+                    : "bg-blue-100"
                     }`}
                 >
                   <FiAlertCircle
                     className={`w-5 h-5 ${userData.documentStatus === "REJECTED"
-                        ? "text-red-600"
-                        : "text-blue-600"
+                      ? "text-red-600"
+                      : "text-blue-600"
                       }`}
                   />
                 </div>
                 <div className="flex-1">
                   <h3
                     className={`font-semibold text-sm ${userData.documentStatus === "REJECTED"
-                        ? "text-red-900"
-                        : "text-blue-900"
+                      ? "text-red-900"
+                      : "text-blue-900"
                       }`}
                   >
                     {userData.documentStatus === "REJECTED"
@@ -1295,29 +1308,29 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                   </h3>
                   <p
                     className={`text-sm mt-1 mb-3 ${userData.documentStatus === "REJECTED"
-                        ? "text-red-700"
-                        : "text-blue-700"
+                      ? "text-red-700"
+                      : "text-blue-700"
                       }`}
                   >
                     {userData.documentStatusReason}
                   </p>
                   {allDocuments.filter(
                     (d) =>
-                      (documents[d.key]?.status === "rejected" ||
-                        documents[d.key]?.status === "REJECTED" ||
-                        documents[d.key]?.status === "resubmit" ||
-                        documents[d.key]?.status === "RESUBMIT"),
+                    (documents[d.key]?.status === "rejected" ||
+                      documents[d.key]?.status === "REJECTED" ||
+                      documents[d.key]?.status === "resubmit" ||
+                      documents[d.key]?.status === "RESUBMIT"),
                   ).length > 0 && (
                       <div
                         className={`p-3 rounded-lg border ${userData.documentStatus === "REJECTED"
-                            ? "bg-red-100/50 border-red-200"
-                            : "bg-blue-100/50 border-blue-200"
+                          ? "bg-red-100/50 border-red-200"
+                          : "bg-blue-100/50 border-blue-200"
                           }`}
                       >
                         <p
                           className={`text-[10px] font-bold uppercase mb-2 ${userData.documentStatus === "REJECTED"
-                              ? "text-red-800"
-                              : "text-blue-800"
+                            ? "text-red-800"
+                            : "text-blue-800"
                             }`}
                         >
                           Action Required for:
@@ -1326,17 +1339,17 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                           {allDocuments
                             .filter(
                               (d) =>
-                                (documents[d.key]?.status === "rejected" ||
-                                  documents[d.key]?.status === "REJECTED" ||
-                                  documents[d.key]?.status === "resubmit" ||
-                                  documents[d.key]?.status === "RESUBMIT"),
+                              (documents[d.key]?.status === "rejected" ||
+                                documents[d.key]?.status === "REJECTED" ||
+                                documents[d.key]?.status === "resubmit" ||
+                                documents[d.key]?.status === "RESUBMIT"),
                             )
                             .map((doc, idx) => (
                               <li
                                 key={idx}
                                 className={`text-sm font-medium ${userData.documentStatus === "REJECTED"
-                                    ? "text-red-700"
-                                    : "text-blue-700"
+                                  ? "text-red-700"
+                                  : "text-blue-700"
                                   }`}
                               >
                                 {doc.name}
@@ -1428,11 +1441,11 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               <div className="space-y-6">
                 {(userData?.contractorTypes
                   ? userData.contractorTypes
-                      .split(",")
-                      .map((t: string) => ({ category: t.trim() }))
+                    .split(",")
+                    .map((t: string) => ({ category: t.trim() }))
                   : userData?.contractorCategories ||
-                    userData?.contractorExperiences ||
-                    []
+                  userData?.contractorExperiences ||
+                  []
                 ).map((cat: any, idx: number) => {
                   const categoryName = cat.category || "";
                   if (!categoryName) return null;
