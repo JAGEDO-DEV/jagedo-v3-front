@@ -26,8 +26,8 @@ interface ContractorCategory {
   yearsOfExperience: string;
   certificate?: string;
   license?: string;
-  isPersisted?: boolean; // Fully locked (already saved experience)
-  isPrePopulated?: boolean; // Category name locked, but rest is editable
+  isPersisted?: boolean; 
+  isPrePopulated?: boolean; 
 }
 
 interface ContractorProject {
@@ -98,19 +98,22 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  // Dynamic skills and specializations
+  
   const [contractorSkills, setContractorSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [categorySpecsMap, setCategorySpecsMap] = useState<{ [key: string]: any[] }>({});
   const [skillsLoading, setSkillsLoading] = useState(false);
 
   const isReadOnly =
-    ['PENDING', 'VERIFIED', 'APPROVED', 'DISAPPROVED', 'REJECTED'].includes(data?.experienceStatus) ||
+    ['PENDING', 'VERIFIED', 'APPROVED', 'REJECTED'].includes(data?.experienceStatus) ||
     data?.status === "SUSPENDED" ||
     data?.status === "BLACKLISTED" ||
     data?.status === "REJECTED";
 
-  // ── Load contractor skills and specialization mappings on mount ──────────────────
+  
+  const isResubmit = data?.experienceStatus === 'RESUBMIT';
+
+  
   useEffect(() => {
     const loadSkillsAndMappings = async () => {
       try {
@@ -144,7 +147,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
       const contractorTypes = up.contractorTypes || "";
 
       if (exps.length > 0) {
-        // MAP EXISTING EXPERIENCES & LOCK THEM ENTIRELY
+        
         const mappedCategories = exps.map((exp: any) => ({
           id: exp.id || crypto.randomUUID(),
           category: exp.category || "",
@@ -158,7 +161,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         }));
         setCategories(mappedCategories);
       } else if (contractorTypes) {
-        // PRE-POPULATED DEFAULTS FROM SIGN-UP (Category locked, fields open)
+        
         const slugs = contractorTypes.split(',').map((s: string) => s.trim()).filter(Boolean);
         const prePopulated = slugs.map(name => ({
           id: crypto.randomUUID(),
@@ -167,7 +170,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           categoryClass: "",
           yearsOfExperience: "",
           isPersisted: false,
-          isPrePopulated: true, // Prevents editing the Category dropdown
+          isPrePopulated: true, 
         }));
 
         if (prePopulated.length > 0) {
@@ -206,7 +209,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
             projectName: proj.projectName || "",
             projectFile: projectURL,
             referenceLetterFile: referenceURL,
-            isPersisted: true, // Mark API loaded files as read-only
+            isPersisted: true, 
           };
         }));
       }
@@ -214,7 +217,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     }
   }, [data]);
 
-  // ── Load specializations when categories or skills change ─────────
+  
   useEffect(() => {
     const loadAllCategorySpecializations = async () => {
       const categorySpecs: { [key: string]: any[] } = {};
@@ -311,7 +314,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
         categoryClass: "",
         yearsOfExperience: "",
         isPersisted: false,
-        isPrePopulated: false, // Totally new row, everything is unlocked
+        isPrePopulated: false, 
       },
     ]);
   };
@@ -509,7 +512,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                     <select
                       value={cat.category}
                       onChange={e => handleCategoryChange(cat.id, e.target.value)}
-                      // If it's fully persisted OR pre-populated from sign-up, lock the category dropdown
+                      
                       disabled={isReadOnly || cat.isPersisted || cat.isPrePopulated}
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
@@ -531,9 +534,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, specialization: e.target.value } : x)
                         )
                       }
-                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
+                      
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                      disabled={isReadOnly || cat.isPersisted || !cat.category}
+                      disabled={isReadOnly || (cat.isPersisted && !isResubmit) || !cat.category}
                     >
                       <option value="">Specialization</option>
                       {(categorySpecsMap[cat.category] || []).map((s: any) => {
@@ -549,8 +552,8 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, categoryClass: e.target.value } : x)
                         )
                       }
-                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
-                      disabled={isReadOnly || cat.isPersisted}
+                      
+                      disabled={isReadOnly || (cat.isPersisted && !isResubmit)}
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       <option value="">Class</option>
@@ -564,13 +567,15 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           prev.map(x => x.id === cat.id ? { ...x, yearsOfExperience: e.target.value } : x)
                         )
                       }
-                      // Disable ONLY if fully persisted (isPrePopulated leaves this editable)
-                      disabled={isReadOnly || cat.isPersisted}
+                      
+                      disabled={isReadOnly || (cat.isPersisted && !isResubmit)}
                       className="w-full p-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                     >
                       <option value="">Years</option>
                       {Array.from(new Set([...YEARS_OF_EXPERIENCE, cat.yearsOfExperience].filter(Boolean))).map(y => <option key={y as string} value={y as string}>{y as string}</option>)}
                     </select>
+
+
 
                     <div className="flex justify-end pr-2">
                       {/* Hide trash icon if it's persisted OR pre-populated from sign-up */}
@@ -608,7 +613,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           proj.projectFile,
                           () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: null } : x)),
                           e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, projectFile: e.target.files?.[0] || null } : x)),
-                          isReadOnly || !!proj.isPersisted
+                          isReadOnly || (!!proj.isPersisted && !isResubmit) 
                         )}
                       </div>
                       <div>
@@ -617,7 +622,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                           proj.referenceLetterFile,
                           () => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: null } : x)),
                           e => setProjects(p => p.map(x => x.id === proj.id ? { ...x, referenceLetterFile: e.target.files?.[0] || null } : x)),
-                          isReadOnly || !!proj.isPersisted
+                          isReadOnly || (!!proj.isPersisted && !isResubmit) 
                         )}
                       </div>
                     </div>
