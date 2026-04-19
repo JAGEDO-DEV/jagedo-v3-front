@@ -71,17 +71,44 @@ export default function SystemReports() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const filters: any = {
+      const baseFilters: any = {
+        limit: 100, // Maximum allowed by backend
         page: 1,
-        limit: 10000,
       };
 
-      if (dateRange?.from) filters.startDate = startOfDay(dateRange.from).toISOString();
-      if (dateRange?.to) filters.endDate = endOfDay(dateRange.to).toISOString();
-      if (compareMode) filters.compare = 'true';
+      if (dateRange?.from) baseFilters.startDate = startOfDay(dateRange.from).toISOString();
+      if (dateRange?.to) baseFilters.endDate = endOfDay(dateRange.to).toISOString();
+      if (compareMode) baseFilters.compare = 'true';
 
-      const res = await reportsApi.getSystemReport(axiosInstance, filters as ReportFilters);
-      setData(res.data);
+      const res = await reportsApi.getSystemReport(axiosInstance, baseFilters as ReportFilters);
+      const initialData = res.data;
+      let allUsers = [...(initialData.register?.data || [])];
+      
+      const totalPagesServer = initialData.register?.pagination?.totalPages || 1;
+      
+      // If there are more pages, fetch them concurrently
+      if (totalPagesServer > 1) {
+        const promises = [];
+        for (let p = 2; p <= totalPagesServer; p++) {
+           promises.push(reportsApi.getSystemReport(axiosInstance, { ...baseFilters, page: p } as ReportFilters));
+        }
+        
+        const results = await Promise.all(promises);
+        for (const r of results) {
+           if (r.data?.register?.data) {
+               allUsers = [...allUsers, ...r.data.register.data];
+           }
+        }
+      }
+      
+      // Override the register data with the combined array
+      if (initialData.register) {
+         initialData.register.data = allUsers;
+         initialData.register.pagination.total = allUsers.length;
+         initialData.register.pagination.totalPages = 1;
+      }
+
+      setData(initialData);
     } catch (error) {
       console.error("Failed to fetch system report:", error);
     } finally {
