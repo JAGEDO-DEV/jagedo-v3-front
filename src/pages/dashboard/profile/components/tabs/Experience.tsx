@@ -78,7 +78,7 @@ const resolveSpecialization = (user: any) => {
   return "";
 };
 
-const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
+const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
@@ -103,7 +103,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
 
-  
+
   const [fundiSkills, setFundiSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
@@ -119,25 +119,25 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
-        
+
         let skillOrProfession = "";
         let userTypeForQuestions = userType;
-        
+
         const sourceData = userData?.userProfile || userData || {};
-        
+
         console.log("💾 userData keys:", Object.keys(userData || {}));
         console.log("💾 userData?.userProfile keys:", Object.keys(userData?.userProfile || {}));
         console.log("💾 sourceData:", sourceData);
-        
+
         switch (userType) {
           case "FUNDI":
-            
-            skillOrProfession = 
-              sourceData?.skill || 
-              sourceData?.skills || 
-              userData?.skill || 
+
+            skillOrProfession =
+              sourceData?.skill ||
+              sourceData?.skills ||
+              userData?.skill ||
               userData?.skills ||
-              editingFields?.skill || 
+              editingFields?.skill ||
               "";
             console.log("FUNDI skill sources - sourceData.skill:", sourceData?.skill, "sourceData.skills:", sourceData?.skills, "userData.skill:", userData?.skill, "userData.skills:", userData?.skills);
             break;
@@ -158,12 +158,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           isActive: true,
         });
 
-        
+
         const response = await getEvaluationQuestions(axiosInstance, {
           userType: userTypeForQuestions,
           skillName: skillOrProfession,
           isActive: true,
-          
+
         });
 
         console.log("📥 API Response:", response);
@@ -181,7 +181,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         setAvailableQuestions(extractedData);
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
-        
+
         setAvailableQuestions([]);
       } finally {
         setIsLoadingQuestions(false);
@@ -200,7 +200,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       if (evaluation) {
         prefillQuestionsFromData();
       } else {
-        
+
         const initial = availableQuestions.map((q: any) => ({
           id: q.id,
           text: q.text,
@@ -210,12 +210,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           score: 0,
           isEditing: false,
           isDraft: false,
-          isPreset: q.isPreset ?? true, 
+          isPreset: q.isPreset ?? true,
         }));
         setQuestions(initial);
       }
     } else if (availableQuestions.length === 0 && !isLoadingQuestions) {
-      
+
       setQuestions([]);
     }
   }, [
@@ -225,7 +225,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     isLoadingQuestions,
   ]);
 
-  
+
   useEffect(() => {
     if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       const loadSkillsAndMappings = async () => {
@@ -234,12 +234,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           const authAxios = axios.create({
             headers: { Authorization: getAuthHeaders() },
           });
-          
+
           const skillsRes = await getBuilderSkillsByType(authAxios, userType);
           const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
           setFundiSkills(activeSkills);
-          
-          
+
+
           const mappingsRes = await getSpecializationMappings(authAxios, userType);
           setSpecMappings(mappingsRes);
         } catch (error) {
@@ -248,19 +248,19 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           setSkillsLoading(false);
         }
       };
-      
+
       loadSkillsAndMappings();
     }
   }, [userType]);
 
-  
+
   useEffect(() => {
-    
-    
+
+
     const sourceData = isEditingFields ? editingFields : (userData?.userProfile || userData || {});
-    
+
     let triggerField: string | undefined;
-    
+
     switch (userType) {
       case 'FUNDI':
         triggerField = sourceData?.skill || sourceData?.fundiSpecialization;
@@ -277,13 +277,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       default:
         triggerField = undefined;
     }
-    
+
     if (!triggerField) {
       setSpecializations([]);
       return;
     }
 
-    
+
     if (!['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       setSpecializations([]);
       return;
@@ -294,19 +294,19 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         setSpecsLoading(true);
         const normalizedField = normalizeSkillName(triggerField);
         const specTypeCode = specMappings[normalizedField];
-        
+
         if (!specTypeCode) {
           console.warn(`No specialization mapping found for: ${normalizedField}`);
           setSpecializations([]);
           return;
         }
 
-        
-        const selectedSkill = fundiSkills.find((s: any) => 
+
+        const selectedSkill = fundiSkills.find((s: any) =>
           normalizeSkillName(s.skillName) === normalizedField
         );
-        
-        
+
+
         if (!selectedSkill) {
           console.warn(`Skill not found for: ${triggerField}, falling back to all master data`);
           const authAxios = axios.create({
@@ -318,9 +318,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           return;
         }
 
-        
-        const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
-          ? selectedSkill.specializations 
+
+        const assignedSpecCodes = Array.isArray(selectedSkill.specializations)
+          ? selectedSkill.specializations
           : [];
 
         if (assignedSpecCodes.length === 0) {
@@ -329,14 +329,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
           return;
         }
 
-        
+
         const authAxios = axios.create({
           headers: { Authorization: getAuthHeaders() },
         });
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
 
-        
+
         const filteredSpecs = allSpecs.filter((spec: any) => {
           const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
           return assignedSpecCodes.includes(specCode);
@@ -354,9 +354,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
     loadSpecializations();
   }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, userData?.skill, userData?.profession, userData?.category, userData?.hardwareType, userData?.fundiSpecialization, userData?.professionalSpecialization, userData?.contractorTypes, userData?.levelOrClass, specMappings, userType, isEditingFields, fundiSkills]);
 
-  
 
-  
+
+
   const prefillQuestionsFromData = () => {
     const evaluation =
       userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
@@ -401,7 +401,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         score,
         isEditing: false,
         isDraft: false,
-        isPreset: q.isPreset ?? true, 
+        isPreset: q.isPreset ?? true,
       };
     });
     setQuestions(prefilled);
@@ -422,12 +422,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
         break;
       case "PROFESSIONAL": {
         projectData = userData?.professionalProjects || [];
-        
+
         return projectData.map((project, index) => {
           const pName = project.projectName || `Professional Project ${index + 1}`;
           const files = [];
-          
-          
+
+
           if (Array.isArray(project.files) && project.files.length > 0) {
             project.files.forEach((fileUrl, fileIndex) => {
               if (fileUrl) {
@@ -438,7 +438,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               }
             });
           }
-          
+
           else if (project.files && typeof project.files === 'object') {
             Object.entries(project.files).forEach(([key, fileUrl]) => {
               if (fileUrl) {
@@ -449,7 +449,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               }
             });
           }
-          
+
           else if (project.fileUrl) {
             const url = typeof project.fileUrl === "string" ? project.fileUrl : project.fileUrl.url;
             if (url) {
@@ -459,11 +459,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
               });
             }
           }
-          
-          return { 
-            id: index + 1, 
-            projectName: pName, 
-            files: files.length > 0 ? files : [] 
+
+          return {
+            id: index + 1,
+            projectName: pName,
+            files: files.length > 0 ? files : []
           };
         });
       }
@@ -584,7 +584,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
       }));
     }
 
-    
+
     if (userData?.contractorTypes) {
       const types = userData.contractorTypes.split(",").map(t => t.trim()).filter(Boolean);
       if (types.length > 0) {
@@ -601,77 +601,77 @@ const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
   };
 
   const [categories, setCategories] = useState<ContractorCategory[]>(
-  getInitialCategories(),
-);
+    getInitialCategories(),
+  );
 
 
-useEffect(() => {
-  if (userType !== 'CONTRACTOR' || !categories.length) {
-    return;
-  }
-
-  const loadContractorSpecializations = async () => {
-    try {
-      const firstSelectedCategory = categories.find(c => c.category);
-      if (!firstSelectedCategory) {
-        setSpecializations([]);
-        return;
-      }
-
-      setSpecsLoading(true);
-      const normalizedField = normalizeSkillName(firstSelectedCategory.category);
-      const specTypeCode = specMappings[normalizedField];
-      
-      if (!specTypeCode) {
-        setSpecializations([]);
-        return;
-      }
-
-      
-      const selectedSkill = fundiSkills.find((s: any) => 
-        normalizeSkillName(s.skillName) === normalizedField
-      );
-      
-      if (!selectedSkill) {
-        setSpecializations([]);
-        return;
-      }
-
-      
-      const assignedSpecCodes = Array.isArray(selectedSkill.specializations) 
-        ? selectedSkill.specializations 
-        : [];
-
-      if (assignedSpecCodes.length === 0) {
-        setSpecializations([]);
-        return;
-      }
-
-      
-      const authAxios = axios.create({
-        headers: { Authorization: getAuthHeaders() },
-      });
-      
-      const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-      const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-      
-      
-      const filteredSpecs = allSpecs.filter((spec: any) => {
-        const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
-        return assignedSpecCodes.includes(specCode);
-      });
-
-      setSpecializations(filteredSpecs);
-    } catch (error) {
-      console.error('Failed to load contractor specializations:', error);
-      setSpecializations([]);
-    } finally {
-      setSpecsLoading(false);
+  useEffect(() => {
+    if (userType !== 'CONTRACTOR' || !categories.length) {
+      return;
     }
-  };
 
-  loadContractorSpecializations();
-}, [categories, specMappings, userType, fundiSkills]);
+    const loadContractorSpecializations = async () => {
+      try {
+        const firstSelectedCategory = categories.find(c => c.category);
+        if (!firstSelectedCategory) {
+          setSpecializations([]);
+          return;
+        }
+
+        setSpecsLoading(true);
+        const normalizedField = normalizeSkillName(firstSelectedCategory.category);
+        const specTypeCode = specMappings[normalizedField];
+
+        if (!specTypeCode) {
+          setSpecializations([]);
+          return;
+        }
+
+
+        const selectedSkill = fundiSkills.find((s: any) =>
+          normalizeSkillName(s.skillName) === normalizedField
+        );
+
+        if (!selectedSkill) {
+          setSpecializations([]);
+          return;
+        }
+
+
+        const assignedSpecCodes = Array.isArray(selectedSkill.specializations)
+          ? selectedSkill.specializations
+          : [];
+
+        if (assignedSpecCodes.length === 0) {
+          setSpecializations([]);
+          return;
+        }
+
+
+        const authAxios = axios.create({
+          headers: { Authorization: getAuthHeaders() },
+        });
+
+        const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+        const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+
+
+        const filteredSpecs = allSpecs.filter((spec: any) => {
+          const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+          return assignedSpecCodes.includes(specCode);
+        });
+
+        setSpecializations(filteredSpecs);
+      } catch (error) {
+        console.error('Failed to load contractor specializations:', error);
+        setSpecializations([]);
+      } finally {
+        setSpecsLoading(false);
+      }
+    };
+
+    loadContractorSpecializations();
+  }, [categories, specMappings, userType, fundiSkills]);
   type ContractorCategory = {
     category: string;
     specialization: string;
@@ -736,7 +736,7 @@ useEffect(() => {
         };
 
       case "CONTRACTOR": {
-        
+
         const firstExp = userData?.contractorExperiences?.[0];
         return {
           category: firstExp?.category || userData?.contractorType || userData?.contractorTypes || "",
@@ -777,21 +777,21 @@ useEffect(() => {
     setInfo(getInitialInfo());
     const initialCategories = getInitialCategories();
     setCategories(initialCategories);
-    
+
     let initialAttachments = getInitialAttachments();
-    
+
     if (userType === "CONTRACTOR") {
       const existingProjectNames = initialAttachments.map(a => a.projectName?.toLowerCase());
-      
+
       initialCategories.forEach(cat => {
         if (cat.category) {
           const expectedCategoryNameTokens = cat.category.toLowerCase().split(' ');
-          
+
           // Match loosely (e.g. "Building Works Project" vs "Building Works")
-          const projectExists = existingProjectNames.some(name => 
+          const projectExists = existingProjectNames.some(name =>
             expectedCategoryNameTokens.every(token => name?.includes(token))
           );
-          
+
           if (!projectExists) {
             initialAttachments.push({
               id: initialAttachments.length + 1,
@@ -804,7 +804,7 @@ useEffect(() => {
         }
       });
     }
-    
+
     setAttachments(initialAttachments);
   }, [userData, userType]);
 
@@ -831,9 +831,9 @@ useEffect(() => {
   useEffect(() => {
     if (userType === "FUNDI" && isAdmin && totalScore > 0) {
       const autoGrade = getGradeFromScore(totalScore);
-      
+
       const currentGrade = isEditingFields ? editingFields.grade : info.grade;
-      
+
       if (currentGrade !== autoGrade) {
         if (isEditingFields) {
           setEditingFields(prev => ({ ...prev, grade: autoGrade }));
@@ -853,7 +853,7 @@ useEffect(() => {
           {
             name: "skill",
             label: "Skill",
-            options: fundiSkills.length > 0 
+            options: fundiSkills.length > 0
               ? fundiSkills.map(s => s.skillName)
               : [
                 "Mason",
@@ -877,14 +877,14 @@ useEffect(() => {
           {
             name: "grade",
             label: "Grade",
-            options: totalScore > 0 
+            options: totalScore > 0
               ? getValidGradesForScore(totalScore)
               : [
-                  "G1: Master Fundi",
-                  "G2: Skilled",
-                  "G3: Semi-skilled",
-                  "G4: Unskilled",
-                ],
+                "G1: Master Fundi",
+                "G2: Skilled",
+                "G3: Semi-skilled",
+                "G4: Unskilled",
+              ],
           },
           {
             name: "experience",
@@ -917,9 +917,9 @@ useEffect(() => {
             label: "Specialization",
             options: specializations.length > 0
               ? specializations.map((spec: any) => {
-                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
-                  return specValue;
-                })
+                const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                return specValue;
+              })
               : [],
             dependsOn: "profession",
           },
@@ -963,9 +963,9 @@ useEffect(() => {
             label: "Specialization",
             options: specializations.length > 0
               ? specializations.map((spec: any) => {
-                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
-                  return specValue;
-                })
+                const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                return specValue;
+              })
               : [],
             dependsOn: "category",
           },
@@ -1020,9 +1020,9 @@ useEffect(() => {
             label: "Specialization",
             options: specializations.length > 0
               ? specializations.map((spec: any) => {
-                  const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
-                  return specValue;
-                })
+                const specValue = typeof spec === 'string' ? spec : (spec?.value || spec?.label || spec?.name || spec?.code || "");
+                return specValue;
+              })
               : [
                 "Cement & Concrete Products",
                 "Bricks & Blocks",
@@ -1121,7 +1121,7 @@ useEffect(() => {
         ...a,
         files: [...a.files],
       }));
-      const existingCount = newAttachments[rowIndex].files.length; 
+      const existingCount = newAttachments[rowIndex].files.length;
 
       selectedFiles.forEach((file, i) => {
         const slotIndex = existingCount + i;
@@ -1332,18 +1332,18 @@ useEffect(() => {
 
     setIsLoadingQuestions(true);
     try {
-      
+
       let skillName = "";
       const sourceData = userData?.userProfile || userData || {};
-      
+
       switch (userType) {
         case "FUNDI":
-          skillName = 
-            sourceData?.skill || 
-            sourceData?.skills || 
-            userData?.skill || 
+          skillName =
+            sourceData?.skill ||
+            sourceData?.skills ||
+            userData?.skill ||
             userData?.skills ||
-            editingFields?.skill || 
+            editingFields?.skill ||
             "";
           break;
         case "PROFESSIONAL":
@@ -1367,9 +1367,9 @@ useEffect(() => {
           : null,
         userType: userType,
         skillName: skillName,
-        category: userType, 
+        category: userType,
         isActive: true,
-        isPreset: false, 
+        isPreset: false,
       };
 
       const response = await createEvaluationQuestion(axiosInstance, payload);
@@ -1379,11 +1379,11 @@ useEffect(() => {
         (Array.isArray(prev) ? prev : []).map((q) =>
           q.id === draft.id
             ? {
-                ...q,
-                id: realQuestion.id,
-                isEditing: false,
-                isDraft: false,
-              }
+              ...q,
+              id: realQuestion.id,
+              isEditing: false,
+              isDraft: false,
+            }
             : q,
         ),
       );
@@ -2050,7 +2050,7 @@ useEffect(() => {
       } else if (userType === "PROFESSIONAL") {
         const professionalProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
-          files: project.files.map((f) => f.url).filter((url) => url), 
+          files: project.files.map((f) => f.url).filter((url) => url),
         }));
 
         const payload = {
@@ -2337,8 +2337,8 @@ useEffect(() => {
                           userData?.experienceStatus === "VERIFIED"
                             ? "Experience is already approved"
                             : !readyToApprove
-                            ? "All required fields and projects must be filled"
-                            : "Approve experience"
+                              ? "All required fields and projects must be filled"
+                              : "Approve experience"
                         }
                         onClick={async () => {
                           setShowGlobalActions(false);
@@ -2434,45 +2434,40 @@ useEffect(() => {
             userData?.experienceStatus === "RESUBMIT") &&
             userData?.experienceStatusReason && (
               <div
-                className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${
-                  userData.experienceStatus === "REJECTED"
-                    ? "bg-red-50 border-red-200"
-                    : "bg-blue-50 border-blue-200"
-                }`}
+                className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${userData.experienceStatus === "REJECTED"
+                  ? "bg-red-50 border-red-200"
+                  : "bg-blue-50 border-blue-200"
+                  }`}
               >
                 <div
-                  className={`p-2 rounded-lg ${
-                    userData.experienceStatus === "REJECTED"
-                      ? "bg-red-100"
-                      : "bg-blue-100"
-                  }`}
+                  className={`p-2 rounded-lg ${userData.experienceStatus === "REJECTED"
+                    ? "bg-red-100"
+                    : "bg-blue-100"
+                    }`}
                 >
                   <FiAlertCircle
-                    className={`w-5 h-5 ${
-                      userData.experienceStatus === "REJECTED"
-                        ? "text-red-600"
-                        : "text-blue-600"
-                    }`}
+                    className={`w-5 h-5 ${userData.experienceStatus === "REJECTED"
+                      ? "text-red-600"
+                      : "text-blue-600"
+                      }`}
                   />
                 </div>
                 <div>
                   <h3
-                    className={`font-semibold text-sm ${
-                      userData.experienceStatus === "REJECTED"
-                        ? "text-red-900"
-                        : "text-blue-900"
-                    }`}
+                    className={`font-semibold text-sm ${userData.experienceStatus === "REJECTED"
+                      ? "text-red-900"
+                      : "text-blue-900"
+                      }`}
                   >
                     {userData.experienceStatus === "REJECTED"
                       ? "Experience Rejected"
                       : "Resubmission Required"}
                   </h3>
                   <p
-                    className={`text-sm mt-1 ${
-                      userData.experienceStatus === "REJECTED"
-                        ? "text-red-700"
-                        : "text-blue-700"
-                    }`}
+                    className={`text-sm mt-1 ${userData.experienceStatus === "REJECTED"
+                      ? "text-red-700"
+                      : "text-blue-700"
+                      }`}
                   >
                     {userData.experienceStatusReason}
                   </p>
@@ -2529,17 +2524,17 @@ useEffect(() => {
                         {isEditingFields ? (
                           <>
                             {userType === "FUNDI" && field.name === "skill" ? (
-                              
+
                               <p className="text-blue-900 font-bold text-sm">
                                 {fieldValue || "N/A"}
                               </p>
                             ) : userType === "PROFESSIONAL" && field.name === "profession" ? (
-                              
+
                               <p className="text-blue-900 font-bold text-sm">
                                 {fieldValue || "N/A"}
                               </p>
                             ) : userType === "FUNDI" && field.name === "specialization" ? (
-                              
+
                               <select
                                 value={editingFields[field.name] ?? fieldValue ?? ""}
                                 onChange={(e) => {
@@ -2565,7 +2560,7 @@ useEffect(() => {
                                 })}
                               </select>
                             ) : (
-                              
+
                               <select
                                 value={
                                   editingFields[field.name] ?? fieldValue ?? ""
@@ -2630,7 +2625,7 @@ useEffect(() => {
                 </div>
               )}
 
-              
+
             </div>
 
             {/* Contractor Categories Section */}
@@ -2648,15 +2643,21 @@ useEffect(() => {
                       key={index}
                       className="bg-white p-4 rounded-lg border border-gray-200 relative"
                     >
-                  
+
                       {categories.length > 1 && (
                         <button
                           type="button"
                           onClick={() => {
+                            const categoryToDelete = cat.category;
+
+                            // 1. Remove the category
                             setCategories(categories.filter((_, i) => i !== index));
-                            if (cat.category) {
-                              setAttachments(attachments.filter(att => 
-                                !att.projectName?.toLowerCase().includes(cat.category.toLowerCase())
+
+                            // 2. Remove the EXACT corresponding project
+                            if (categoryToDelete) {
+                              setAttachments(prev => prev.filter(att =>
+                                att.category !== categoryToDelete &&
+                                att.projectName !== `${categoryToDelete} Project`
                               ));
                             }
                           }}
@@ -2677,51 +2678,67 @@ useEffect(() => {
                             disabled={isSavingInfo}
                             onChange={(e) => {
                               const newCategory = e.target.value;
-                              
-                              if (categories.some((c, i) => i !== index && c.category === newCategory)) {
+                              const oldCategory = cat.category;
+
+                              // Prevent duplicate categories
+                              if (newCategory && categories.some((c, i) => i !== index && c.category === newCategory)) {
                                 toast.error("You cannot select the same category twice.");
                                 return;
                               }
 
-                              const updated = [...categories];
-                              updated[index].category = newCategory;
-                              updated[index].specialization = "";
-                              setCategories(updated);
+                              // 1. Update category state
+                              const updatedCategories = [...categories];
+                              updatedCategories[index].category = newCategory;
+                              updatedCategories[index].specialization = "";
+                              setCategories(updatedCategories);
 
-                              if (newCategory) {
-                                const projectExists = attachments.some((att) =>
-                                  att.projectName
-                                    ?.toLowerCase()
-                                    .includes(newCategory.toLowerCase()),
+                              // 2. Sync the project attachment
+                              setAttachments((prev) => {
+                                const updatedAttachments = [...prev];
+
+                                // Find the project that matches the old category
+                                const existingProjectIndex = updatedAttachments.findIndex(
+                                  (att) => att.category === oldCategory || att.projectName === `${oldCategory} Project`
                                 );
-                                if (!projectExists) {
-                                  const newProject = {
-                                    id: attachments.length + 1,
+
+                                if (existingProjectIndex !== -1) {
+                                  if (newCategory) {
+                                    // Rename existing project to match the new category
+                                    updatedAttachments[existingProjectIndex].category = newCategory;
+                                    updatedAttachments[existingProjectIndex].projectName = `${newCategory} Project`;
+                                  } else {
+                                    // If they changed the dropdown back to "Select category", remove the project
+                                    updatedAttachments.splice(existingProjectIndex, 1);
+                                  }
+                                } else if (newCategory) {
+                                  // If no project existed and a new category is selected, create it
+                                  updatedAttachments.push({
+                                    id: updatedAttachments.length + 1,
                                     projectName: `${newCategory} Project`,
                                     files: [],
                                     category: newCategory,
-                                  };
-                                  setAttachments([...attachments, newProject]);
-                                  toast.info(
-                                    `Project row added for ${newCategory}`,
-                                  );
+                                  });
+                                  toast.info(`Project row added for ${newCategory}`);
                                 }
-                              }
+
+                                return updatedAttachments;
+                              });
                             }}
-                            className="w-full p-2 border border-gray-200 rounded-md text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                            // Removed the greyed-out cursor-not-allowed classes
+                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                           >
                             <option value="">Select category</option>
                             {fundiSkills.length > 0
                               ? fundiSkills.map((skill, i) => (
-                                  <option key={i} value={skill.skillName}>
-                                    {skill.skillName}
-                                  </option>
-                                ))
+                                <option key={i} value={skill.skillName}>
+                                  {skill.skillName}
+                                </option>
+                              ))
                               : Object.keys([]).map((cat, i) => (
-                                  <option key={i} value={cat}>
-                                    {cat}
-                                  </option>
-                                ))}
+                                <option key={i} value={cat}>
+                                  {cat}
+                                </option>
+                              ))}
                           </select>
                         </div>
 
@@ -2744,7 +2761,7 @@ useEffect(() => {
                             {Array.from(
                               new Set(
                                 [
-                                  ...(specializations || []).map((s: any) => 
+                                  ...(specializations || []).map((s: any) =>
                                     typeof s === 'string' ? s : (s?.name || s?.label || s?.code || "")
                                   ),
                                   cat.specialization,
@@ -2863,9 +2880,9 @@ useEffect(() => {
                 </div>
 
                 <div className="mt-4 flex justify-between items-center">
-                  <button 
-                    type="button" 
-                    onClick={addCategory} 
+                  <button
+                    type="button"
+                    onClick={addCategory}
                     className="flex items-center gap-1 text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors"
                   >
                     <PlusIcon className="w-4 h-4" /> Add Category
@@ -2874,8 +2891,8 @@ useEffect(() => {
 
                 {/* Save Categories Button */}
                 <div className="mt-4 flex justify-end">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleSaveChanges}
                     disabled={isSavingInfo}
                     className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold"
@@ -3055,7 +3072,7 @@ useEffect(() => {
                                       </div>
                                     )}
                                   </div>
-                                  
+
                                   {project.files.length > 0 && (
                                     <div className="space-y-2 mt-4 bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
                                       <h6 className="text-[10px] font-bold text-gray-400 uppercase mb-2">Selected Files</h6>
@@ -3130,7 +3147,7 @@ useEffect(() => {
                         <FiInfo className="w-4 h-4" />
                       </div>
                       <p className="max-w-md italic">
-                        {!canSaveChanges() 
+                        {!canSaveChanges()
                           ? "Please fill all required fields and add all required projects before saving."
                           : "Remember to save your changes to persist the updated project list."}
                       </p>
@@ -3710,8 +3727,8 @@ useEffect(() => {
 
                               {/* Input Field (Dynamic based on Question Type) */}
                               {q.type?.toUpperCase() === "RADIO" ||
-                              q.type?.toUpperCase() === "SELECT" ||
-                              q.type?.toUpperCase() === "MULTIPLE_CHOICE" ? (
+                                q.type?.toUpperCase() === "SELECT" ||
+                                q.type?.toUpperCase() === "MULTIPLE_CHOICE" ? (
                                 <select
                                   value={q.answer || ""}
                                   onChange={(e) =>
