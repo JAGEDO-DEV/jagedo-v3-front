@@ -2649,8 +2649,24 @@ useEffect(() => {
                       className="bg-white p-4 rounded-lg border border-gray-200 relative"
                     >
                   
+                      {categories.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategories(categories.filter((_, i) => i !== index));
+                            if (cat.category) {
+                              setAttachments(attachments.filter(att => 
+                                !att.projectName?.toLowerCase().includes(cat.category.toLowerCase())
+                              ));
+                            }
+                          }}
+                          className="absolute top-4 right-4 p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
                         {/* Category */}
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">
@@ -2658,9 +2674,15 @@ useEffect(() => {
                           </label>
                           <select
                             value={cat.category}
-                            disabled
+                            disabled={isSavingInfo}
                             onChange={(e) => {
                               const newCategory = e.target.value;
+                              
+                              if (categories.some((c, i) => i !== index && c.category === newCategory)) {
+                                toast.error("You cannot select the same category twice.");
+                                return;
+                              }
+
                               const updated = [...categories];
                               updated[index].category = newCategory;
                               updated[index].specialization = "";
@@ -2838,6 +2860,16 @@ useEffect(() => {
                       )}
                     </div>
                   ))}
+                </div>
+
+                <div className="mt-4 flex justify-between items-center">
+                  <button 
+                    type="button" 
+                    onClick={addCategory} 
+                    className="flex items-center gap-1 text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" /> Add Category
+                  </button>
                 </div>
 
                 {/* Save Categories Button */}
