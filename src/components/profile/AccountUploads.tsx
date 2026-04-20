@@ -278,7 +278,7 @@ const AccountUploads = ({ data, refreshData }) => {
     hardware: [
       { label: "Certificate of Incorporation", key: "certificateOfIncorporation" },
       { label: "KRA PIN", key: "krapin" },
-      { label: "Single Business Permit", key: "businessPermit" },
+      { label: "Single Business Permit", key: "singleBusinessPermit" },
       { label: "Company Profile", key: "companyProfile" },
     ],
   };
@@ -386,8 +386,6 @@ console.log("Approval Status Map:", totalApproved, totalPending);
     const backendToFrontendKey = {
       idFront: "idFrontUrl",
       idBack: "idBackUrl",
-      ownerIdFront: "idFrontUrl",
-      ownerIdBack: "idBackUrl",
       kraPIN: "krapin",
       krapin: "krapin",
       certificate: "certificateUrl",
@@ -396,6 +394,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
       cvUrl: "cvUrl",
       practiceLicense: "practiceLicense",
       businessPermit: "businessPermit",
+      singleBusinessPermit: "singleBusinessPermit",
       certificateOfIncorporation: "certificateOfIncorporation",
       businessRegistration: "businessRegistration",
       companyProfile: "companyProfile",
@@ -584,8 +583,8 @@ console.log("Approval Status Map:", totalApproved, totalPending);
       } else if (userType === "hardware") {
         const payload = {
           certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
-          businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
+          singleBusinessPermit: updatedUrls.singleBusinessPermit || null,
           companyProfile: updatedUrls.companyProfile || null,
         };
         response = await uploadHardwareDocuments(axiosInstance, payload);
