@@ -202,17 +202,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         }
 
         console.log("🔍 Fetching questions with filters:", {
-          userType: userTypeForQuestions,
+          userType: userType,
           skillName: skillOrProfession,
           isActive: true,
         });
 
 
         const response = await getEvaluationQuestions(axiosInstance, {
-          userType: userTypeForQuestions,
+          userType: userType,
           skillName: skillOrProfession,
           isActive: true,
-
         });
 
         console.log("📥 API Response:", response);
@@ -237,7 +236,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       }
     };
 
-    if (isAdmin && ['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
+    if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       fetchQuestions();
     }
   }, [userType, userData?.id, userData?.skill, userData?.profession, userData?.contractorTypes, userData?.hardwareType, editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType]);
@@ -1658,10 +1657,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const renderEvaluationResults = () => {
     const evaluation =
       userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-    if (!evaluation) return null;
+    if (!evaluation && questions.length === 0) return null;
 
     const displayQuestions =
-      questions.length > 0 ? questions : evaluation.responses || [];
+      questions.length > 0 ? questions : (evaluation?.responses || []);
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
@@ -1673,7 +1672,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 Evaluation Results
               </h3>
             </div>
-            {userType === "FUNDI" && evaluation.totalScore && (
+            {userType === "FUNDI" && evaluation?.totalScore && (
               <PerformanceClassificationBadge score={evaluation.totalScore} />
             )}
             {isAdmin && !isEditingEvaluation && (
@@ -1694,7 +1693,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             <span className="text-sm font-semibold text-white">
               Total Score:{" "}
               <span className="text-green-400 text-lg">
-                {evaluation.totalScore}%
+                {evaluation?.totalScore ?? Math.round(totalScore)}%
               </span>
             </span>
           </div>
@@ -1732,7 +1731,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             ))}
           </div>
 
-          {evaluation.audioUrl && (
+          {evaluation?.audioUrl && (
             <div className="mt-8 border-t pt-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <LucideInfoIcon className="w-4 h-4 text-blue-500" />
@@ -3557,7 +3556,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             {/* Evaluation Results Summary */}
             {userType.toLowerCase() === "fundi" &&
               (userData?.fundiEvaluation ||
-                userData?.userProfile?.fundiEvaluation) &&
+                userData?.userProfile?.fundiEvaluation ||
+                questions.length > 0) &&
               !isEditingEvaluation &&
               renderEvaluationResults()}
 
@@ -3567,7 +3567,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 userData?.fundiEvaluation ||
                 userData?.userProfile?.fundiEvaluation
               ) ||
-                isEditingEvaluation) && (
+                isEditingEvaluation ||
+                questions.length > 0) && (
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">
                   {userType} Evaluation{" "}
                   {isEditingEvaluation ? "Update" : "Guidelines"}
@@ -3580,7 +3581,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 userData?.fundiEvaluation ||
                 userData?.userProfile?.fundiEvaluation
               ) ||
-                isEditingEvaluation) && (
+                isEditingEvaluation ||
+                questions.length > 0) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <h3 className="font-semibold text-blue-900 text-sm mb-2">
                     Scoring Criteria:
@@ -3602,13 +3604,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 </div>
               )}
 
-            {/* Evaluation Criteria Instructions */}
+            {/* Evaluation Form */}
             {userType.toLowerCase() === "fundi" &&
               (!(
                 userData?.fundiEvaluation ||
                 userData?.userProfile?.fundiEvaluation
               ) ||
-                isEditingEvaluation) && (
+                isEditingEvaluation ||
+                questions.length > 0) && (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div>
