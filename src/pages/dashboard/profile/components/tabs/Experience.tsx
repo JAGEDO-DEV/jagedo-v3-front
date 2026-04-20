@@ -107,6 +107,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [fundiSkills, setFundiSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
+  const [specializationsByCategory, setSpecializationsByCategory] = useState<Record<string, any[]>>({});
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [specsLoading, setSpecsLoading] = useState(false);
 
@@ -115,13 +116,61 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
       : 0;
 
+  // Helper function to load specializations for a specific category
+  const loadSpecializationsForCategory = async (categoryName: string) => {
+    if (!categoryName || !specMappings || !fundiSkills) {
+      return [];
+    }
+
+    try {
+      const normalizedField = normalizeSkillName(categoryName);
+      const specTypeCode = specMappings[normalizedField];
+
+      if (!specTypeCode) {
+        return [];
+      }
+
+      const selectedSkill = fundiSkills.find((s: any) =>
+        normalizeSkillName(s.skillName) === normalizedField
+      );
+
+      if (!selectedSkill) {
+        return [];
+      }
+
+      const assignedSpecCodes = Array.isArray(selectedSkill.specializations)
+        ? selectedSkill.specializations
+        : [];
+
+      if (assignedSpecCodes.length === 0) {
+        return [];
+      }
+
+      const authAxios = axios.create({
+        headers: { Authorization: getAuthHeaders() },
+      });
+
+      const specsRes = await getMasterDataValues(authAxios, specTypeCode);
+      const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
+
+      const filteredSpecs = allSpecs.filter((spec: any) => {
+        const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
+        return assignedSpecCodes.includes(specCode);
+      });
+
+      return filteredSpecs;
+    } catch (error) {
+      console.error(`Failed to load specializations for ${categoryName}:`, error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
 
         let skillOrProfession = "";
-        let userTypeForQuestions = userType;
 
         const sourceData = userData?.userProfile || userData || {};
 
@@ -610,67 +659,35 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       return;
     }
 
-    const loadContractorSpecializations = async () => {
+    const loadAllContractorSpecializations = async () => {
       try {
-        const firstSelectedCategory = categories.find(c => c.category);
-        if (!firstSelectedCategory) {
-          setSpecializations([]);
-          return;
-        }
-
         setSpecsLoading(true);
-        const normalizedField = normalizeSkillName(firstSelectedCategory.category);
-        const specTypeCode = specMappings[normalizedField];
+        const specsByCategory: Record<string, any[]> = {};
 
-        if (!specTypeCode) {
-          setSpecializations([]);
-          return;
+        // Load specializations for each category
+        for (const cat of categories) {
+          if (cat.category) {
+            const specs = await loadSpecializationsForCategory(cat.category);
+            specsByCategory[cat.category] = specs;
+          }
         }
 
-
-        const selectedSkill = fundiSkills.find((s: any) =>
-          normalizeSkillName(s.skillName) === normalizedField
-        );
-
-        if (!selectedSkill) {
-          setSpecializations([]);
-          return;
+        setSpecializationsByCategory(specsByCategory);
+        
+        // Also update the global specializations for the first category (for backward compatibility if needed)
+        const firstCategory = categories.find(c => c.category);
+        if (firstCategory && specsByCategory[firstCategory.category]) {
+          setSpecializations(specsByCategory[firstCategory.category]);
         }
-
-
-        const assignedSpecCodes = Array.isArray(selectedSkill.specializations)
-          ? selectedSkill.specializations
-          : [];
-
-        if (assignedSpecCodes.length === 0) {
-          setSpecializations([]);
-          return;
-        }
-
-
-        const authAxios = axios.create({
-          headers: { Authorization: getAuthHeaders() },
-        });
-
-        const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-        const allSpecs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
-
-
-        const filteredSpecs = allSpecs.filter((spec: any) => {
-          const specCode = typeof spec === 'string' ? spec : (spec?.code || spec?.name || "");
-          return assignedSpecCodes.includes(specCode);
-        });
-
-        setSpecializations(filteredSpecs);
       } catch (error) {
         console.error('Failed to load contractor specializations:', error);
-        setSpecializations([]);
+        setSpecializationsByCategory({});
       } finally {
         setSpecsLoading(false);
       }
     };
 
-    loadContractorSpecializations();
+    loadAllContractorSpecializations();
   }, [categories, specMappings, userType, fundiSkills]);
   type ContractorCategory = {
     category: string;
@@ -2701,6 +2718,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               updatedCategories[index].specialization = "";
                               setCategories(updatedCategories);
 
+                              // Load specializations for the newly selected category
+                              if (newCategory) {
+                                loadSpecializationsForCategory(newCategory).then(specs => {
+                                  setSpecializationsByCategory(prev => ({
+                                    ...prev,
+                                    [newCategory]: specs,
+                                  }));
+                                });
+                              }
 
                               setAttachments((prev) => {
                                 const updatedAttachments = [...prev];
@@ -2770,7 +2796,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             {Array.from(
                               new Set(
                                 [
-                                  ...(specializations || []).map((s: any) =>
+                                  ...(specializationsByCategory[cat.category] || []).map((s: any) =>
                                     typeof s === 'string' ? s : (s?.name || s?.label || s?.code || "")
                                   ),
                                   cat.specialization,
