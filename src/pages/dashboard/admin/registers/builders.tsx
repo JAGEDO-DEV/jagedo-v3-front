@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
@@ -519,7 +520,7 @@ export default function BuildersAdmin() {
                       </td>
                       {activeTab !== "HARDWARE" && (
                         <td className="px-4 py-4 whitespace-nowrap">
-                          {row.specialization || "N/A"}
+                          {row.specialization || row.contractorExperiences?.map(e => e.specialization).filter(Boolean).join(", ") ||  "N/A"}
                         </td>
                       )}
                       <td className="px-3 py-4 whitespace-nowrap">
