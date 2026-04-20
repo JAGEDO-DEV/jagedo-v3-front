@@ -157,11 +157,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         }
       } else if (type === "hardware") {
         payload = {
-          businessRegistration: updatedDocs.businessRegistration?.url || "",
-          businessPermit: updatedDocs.businessPermit?.url || "",
-          krapin: updatedDocs.kraPIN?.url || updatedDocs.krapin?.url || "",
-          ownerIdFront: updatedDocs.ownerIdFront?.url || "",
-          ownerIdBack: updatedDocs.ownerIdBack?.url || "",
+          certificateOfIncorporation: updatedDocs.certificateOfIncorporation?.url || "",
+          krapin: updatedDocs.krapin?.url || updatedDocs.kraPIN?.url || "",
+          singleBusinessPermit: updatedDocs.singleBusinessPermit?.url || "",
+          companyProfile: updatedDocs.companyProfile?.url || "",
         };
       }
 
@@ -200,39 +199,34 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     };
 
     if (profile) {
-      if (profile.idFrontUrl) {
-        const key = userType === "hardware" ? "ownerIdFront" : "idFront";
-        initialDocs[key] = {
-          name:
-            userType === "hardware" ? "Owner ID - Front" : "National ID Front",
+      if (profile.idFrontUrl && userType !== "hardware") {
+        initialDocs.idFront = {
+          name: "National ID Front",
           url: profile.idFrontUrl,
-          type: key,
+          type: "idFront",
           uploadedAt: "Existing",
-          status: getStatus(key),
-          statusReason: getReason(key),
+          status: getStatus("idFront"),
+          statusReason: getReason("idFront"),
         };
       }
-      if (profile.idBackUrl) {
-        const key = userType === "hardware" ? "ownerIdBack" : "idBack";
-        initialDocs[key] = {
-          name:
-            userType === "hardware" ? "Owner ID - Back" : "National ID Back",
+      if (profile.idBackUrl && userType !== "hardware") {
+        initialDocs.idBack = {
+          name: "National ID Back",
           url: profile.idBackUrl,
-          type: key,
+          type: "idBack",
           uploadedAt: "Existing",
-          status: getStatus(key),
-          statusReason: getReason(key),
+          status: getStatus("idBack"),
+          statusReason: getReason("idBack"),
         };
       }
       if (profile.krapin || profile.kraPIN) {
-        const key = userType === "hardware" ? "krapin" : "kraPIN";
-        initialDocs[key] = {
+        initialDocs.krapin = {
           name: "KRA PIN Certificate",
           url: (profile.krapin || profile.kraPIN) as string,
-          type: key,
+          type: "krapin",
           uploadedAt: "Existing",
-          status: getStatus(key),
-          statusReason: getReason(key),
+          status: getStatus("krapin"),
+          statusReason: getReason("krapin"),
         };
       }
 
@@ -278,15 +272,25 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         };
       }
 
-      if (profile.businessPermit || profile.singleBusinessPermit) {
+      if (profile.businessPermit && userType !== "hardware") {
         initialDocs.businessPermit = {
           name: "Business Permit",
-          url: (profile.businessPermit ||
-            profile.singleBusinessPermit) as string,
+          url: profile.businessPermit as string,
           type: "businessPermit",
           uploadedAt: "Existing",
           status: getStatus("businessPermit"),
           statusReason: getReason("businessPermit"),
+        };
+      }
+
+      if (profile.singleBusinessPermit && userType === "hardware") {
+        initialDocs.singleBusinessPermit = {
+          name: "Single Business Permit",
+          url: profile.singleBusinessPermit as string,
+          type: "singleBusinessPermit",
+          uploadedAt: "Existing",
+          status: getStatus("singleBusinessPermit"),
+          statusReason: getReason("singleBusinessPermit"),
         };
       }
 
@@ -295,20 +299,13 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         profile.certificateOfIncorporation ||
         profile.registrationCertificateUrl;
       if (bizRegUrl) {
-        const key =
-          userType === "hardware"
-            ? "businessRegistration"
-            : "certificateOfIncorporation";
-        initialDocs[key] = {
-          name:
-            userType === "hardware"
-              ? "Business Registration"
-              : "Registration Document",
+        initialDocs.certificateOfIncorporation = {
+          name: "Certificate of Incorporation",
           url: bizRegUrl as string,
-          type: key,
+          type: "certificateOfIncorporation",
           uploadedAt: "Existing",
-          status: getStatus(key),
-          statusReason: getReason(key),
+          status: getStatus("certificateOfIncorporation"),
+          statusReason: getReason("certificateOfIncorporation"),
         };
       }
       if (profile.companyProfile) {
@@ -480,22 +477,25 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     if (userType === "hardware") {
       return [
         {
-          key: "businessRegistration",
-          name: "Business Registration",
-          category: "business",
-        },
-        {
-          key: "businessPermit",
-          name: "Business Permit",
+          key: "certificateOfIncorporation",
+          name: "Certificate of Incorporation",
           category: "business",
         },
         {
           key: "krapin",
           name: "KRA PIN Certificate",
-          category: "certification",
+          category: "business",
         },
-        { key: "ownerIdFront", name: "Owner ID - Front", category: "id" },
-        { key: "ownerIdBack", name: "Owner ID - Back", category: "id" },
+        {
+          key: "singleBusinessPermit",
+          name: "Single Business Permit",
+          category: "business",
+        },
+        {
+          key: "companyProfile",
+          name: "Company Profile",
+          category: "business",
+        },
       ];
     }
 

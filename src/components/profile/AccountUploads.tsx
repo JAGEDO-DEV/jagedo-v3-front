@@ -276,11 +276,10 @@ const AccountUploads = ({ data, refreshData }) => {
       { label: "KRA PIN", key: "krapin" },
     ],
     hardware: [
-      { label: "Business Registration", key: "businessRegistration" },
-      { label: "Business Permit", key: "businessPermit" },
+      { label: "Certificate of Incorporation", key: "certificateOfIncorporation" },
       { label: "KRA PIN", key: "krapin" },
-      { label: "Owner ID Front", key: "idFrontUrl" },
-      { label: "Owner ID Back", key: "idBackUrl" },
+      { label: "Single Business Permit", key: "singleBusinessPermit" },
+      { label: "Company Profile", key: "companyProfile" },
     ],
   };
 
@@ -387,8 +386,6 @@ console.log("Approval Status Map:", totalApproved, totalPending);
     const backendToFrontendKey = {
       idFront: "idFrontUrl",
       idBack: "idBackUrl",
-      ownerIdFront: "idFrontUrl",
-      ownerIdBack: "idBackUrl",
       kraPIN: "krapin",
       krapin: "krapin",
       certificate: "certificateUrl",
@@ -397,6 +394,7 @@ console.log("Approval Status Map:", totalApproved, totalPending);
       cvUrl: "cvUrl",
       practiceLicense: "practiceLicense",
       businessPermit: "businessPermit",
+      singleBusinessPermit: "singleBusinessPermit",
       certificateOfIncorporation: "certificateOfIncorporation",
       businessRegistration: "businessRegistration",
       companyProfile: "companyProfile",
@@ -584,11 +582,10 @@ console.log("Approval Status Map:", totalApproved, totalPending);
         response = await uploadContractorDocuments(axiosInstance, payload);
       } else if (userType === "hardware") {
         const payload = {
-          businessRegistration: updatedUrls.businessRegistration || null,
-          businessPermit: updatedUrls.businessPermit || null,
+          certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
           krapin: updatedUrls.krapin || null,
-          ownerIdFront: updatedUrls.idFrontUrl || null,
-          ownerIdBack: updatedUrls.idBackUrl || null,
+          singleBusinessPermit: updatedUrls.singleBusinessPermit || null,
+          companyProfile: updatedUrls.companyProfile || null,
         };
         response = await uploadHardwareDocuments(axiosInstance, payload);
         console.log("Hardware payload:", payload);
