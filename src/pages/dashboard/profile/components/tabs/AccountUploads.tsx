@@ -157,11 +157,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         }
       } else if (type === "hardware") {
         payload = {
-          businessRegistration: updatedDocs.businessRegistration?.url || "",
+          certificateOfIncorporation: updatedDocs.certificateOfIncorporation?.url || "",
           businessPermit: updatedDocs.businessPermit?.url || "",
           krapin: updatedDocs.kraPIN?.url || updatedDocs.krapin?.url || "",
-          ownerIdFront: updatedDocs.ownerIdFront?.url || "",
-          ownerIdBack: updatedDocs.ownerIdBack?.url || "",
+          companyProfile: updatedDocs.companyProfile?.url || "",
         };
       }
 
@@ -200,11 +199,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     };
 
     if (profile) {
-      if (profile.idFrontUrl) {
-        const key = userType === "hardware" ? "ownerIdFront" : "idFront";
+      if (profile.idFrontUrl && userType !== "hardware") {
+        const key = "idFront";
         initialDocs[key] = {
-          name:
-            userType === "hardware" ? "Owner ID - Front" : "National ID Front",
+          name: "National ID Front",
           url: profile.idFrontUrl,
           type: key,
           uploadedAt: "Existing",
@@ -212,11 +210,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           statusReason: getReason(key),
         };
       }
-      if (profile.idBackUrl) {
-        const key = userType === "hardware" ? "ownerIdBack" : "idBack";
+      if (profile.idBackUrl && userType !== "hardware") {
+        const key = "idBack";
         initialDocs[key] = {
-          name:
-            userType === "hardware" ? "Owner ID - Back" : "National ID Back",
+          name: "National ID Back",
           url: profile.idBackUrl,
           type: key,
           uploadedAt: "Existing",
@@ -295,15 +292,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         profile.certificateOfIncorporation ||
         profile.registrationCertificateUrl;
       if (bizRegUrl) {
-        const key =
-          userType === "hardware"
-            ? "businessRegistration"
-            : "certificateOfIncorporation";
+        const key = "certificateOfIncorporation";
         initialDocs[key] = {
-          name:
-            userType === "hardware"
-              ? "Business Registration"
-              : "Registration Document",
+          name: "Certificate of Incorporation",
           url: bizRegUrl as string,
           type: key,
           uploadedAt: "Existing",
@@ -480,13 +471,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     if (userType === "hardware") {
       return [
         {
-          key: "businessRegistration",
-          name: "Business Registration",
-          category: "business",
-        },
-        {
-          key: "businessPermit",
-          name: "Business Permit",
+          key: "certificateOfIncorporation",
+          name: "Certificate of Incorporation",
           category: "business",
         },
         {
@@ -494,8 +480,16 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           name: "KRA PIN Certificate",
           category: "certification",
         },
-        { key: "ownerIdFront", name: "Owner ID - Front", category: "id" },
-        { key: "ownerIdBack", name: "Owner ID - Back", category: "id" },
+        {
+          key: "businessPermit",
+          name: "Single Business Permit",
+          category: "business",
+        },
+        {
+          key: "companyProfile",
+          name: "Company Profile",
+          category: "business",
+        },
       ];
     }
 

@@ -38,6 +38,13 @@ interface ProfessionalDocuments {
     practiceLicense: string;
 }
 
+interface HardwareDocuments {
+    certificateOfIncorporation: string;
+    businessPermit: string;
+    krapin: string;
+    companyProfile: string;
+}
+
 // Customer uploads API
 export const uploadOrganizationCustomerDocuments = async (axiosInstance: any, documents: OrganizationCustomerUploads): Promise<any> => {
     try {
@@ -112,7 +119,7 @@ export const uploadProfessionalDocuments = async (axiosInstance: any, documents:
 };
 
 // Hardware uploads API
-export const uploadHardwareDocuments = async (axiosInstance: any, documents: any): Promise<any> => {
+export const uploadHardwareDocuments = async (axiosInstance: any, documents: HardwareDocuments): Promise<any> => {
     try {
         const response = await axiosInstance.put(`${import.meta.env.VITE_SERVER_URL}/api/profiles/hardware/documents`, documents, {
             headers: {
