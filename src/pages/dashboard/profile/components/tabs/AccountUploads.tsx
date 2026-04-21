@@ -98,7 +98,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           idFront: updatedDocs.idFront?.url || "",
           idBack: updatedDocs.idBack?.url || "",
           certificate: updatedDocs.certificate?.url || "",
-          krapin: updatedDocs.kraPIN?.url || "",
+          krapin: updatedDocs.krapin?.url || "",
         };
       } else if (type === "professional") {
         payload = {
@@ -106,7 +106,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           idBack: updatedDocs.idBack?.url || "",
           academicCertificate: updatedDocs.academicCertificate?.url || "",
           cvUrl: updatedDocs.cv?.url || updatedDocs.cvUrl?.url || "",
-          krapin: updatedDocs.kraPIN?.url || "",
+          krapin: updatedDocs.krapin?.url || "",
         };
       } else if (type === "contractor") {
         payload = {
@@ -115,7 +115,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             updatedDocs.businessRegistration?.url ||
             "",
           businessPermit: updatedDocs.businessPermit?.url || "",
-          krapin: updatedDocs.kraPIN?.url || "",
+          krapin: updatedDocs.krapin?.url || "",
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
 
@@ -144,21 +144,21 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           payload = {
             idFrontUrl: updatedDocs.idFront?.url || "",
             idBackUrl: updatedDocs.idBack?.url || "",
-            krapin: updatedDocs.kraPIN?.url || "",
+            krapin: updatedDocs.krapin?.url || "",
           };
         } else {
           payload = {
             businessPermit: updatedDocs.businessPermit?.url || "",
             certificateOfIncorporation:
               updatedDocs.certificateOfIncorporation?.url || "",
-            krapin: updatedDocs.kraPIN?.url || "",
+            krapin: updatedDocs.krapin?.url || "",
             companyProfile: updatedDocs.companyProfile?.url || "",
           };
         }
       } else if (type === "hardware") {
         payload = {
           certificateOfIncorporation: updatedDocs.certificateOfIncorporation?.url || "",
-          krapin: updatedDocs.krapin?.url || updatedDocs.kraPIN?.url || "",
+          krapin: updatedDocs.krapin?.url || updatedDocs.krapin?.url || "",
           singleBusinessPermit: updatedDocs.singleBusinessPermit?.url || "",
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
@@ -219,10 +219,10 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           statusReason: getReason("idBack"),
         };
       }
-      if (profile.krapin || profile.kraPIN) {
+      if (profile.krapin || profile.krapin) {
         initialDocs.krapin = {
           name: "KRA PIN Certificate",
-          url: (profile.krapin || profile.kraPIN) as string,
+          url: (profile.krapin || profile.krapin) as string,
           type: "krapin",
           uploadedAt: "Existing",
           status: getStatus("krapin"),
@@ -366,7 +366,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     const individualBaseDocs: DocumentItem[] = [
       { key: "idFront", name: "National ID - Front", category: "id" },
       { key: "idBack", name: "National ID - Back", category: "id" },
-      { key: "kraPIN", name: "KRA PIN Certificate", category: "certification" },
+      { key: "krapin", name: "KRA PIN Certificate", category: "certification" },
     ];
 
     if (accountType === "individual" && userType === "customer") {
@@ -411,7 +411,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         category: "business",
       },
       { key: "businessPermit", name: "Business Permit", category: "business" },
-      { key: "kraPIN", name: "KRA PIN Certificate", category: "business" },
+      { key: "krapin", name: "KRA PIN Certificate", category: "business" },
       {
         key: "companyProfile",
         name: "Company Profile",
@@ -435,7 +435,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           name: "Business Permit",
           category: "business",
         },
-        { key: "kraPIN", name: "KRA PIN Certificate", category: "business" },
+        { key: "krapin", name: "KRA PIN Certificate", category: "business" },
         {
           key: "companyProfile",
           name: "Company Profile",
