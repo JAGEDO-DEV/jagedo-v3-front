@@ -11,14 +11,14 @@ interface OrganizationCustomerUploads {
 interface IndividualCustomerUploads {
     idFrontUrl: string;
     idBackUrl: string;
-    kraPIN: string;
+    krapin: string;
 }
 
 interface ContractorDocuments {
     // businessRegistration: string;
     certificateOfIncorporation?: string;
     businessPermit: string;
-    kraPIN: string;
+    krapin: string;
     companyProfile: string;
 }
 
@@ -26,7 +26,7 @@ interface FundiUploads {
     idFront: string;
     idBack: string;
     certificate: string;
-    kraPIN: string;
+    krapin: string;
 }
 
 interface ProfessionalDocuments {
@@ -34,7 +34,7 @@ interface ProfessionalDocuments {
     idBack: string;
     academicCertificate: string;
     cvUrl: string;
-    kraPIN: string;
+    krapin: string;
     practiceLicense: string;
 }
 

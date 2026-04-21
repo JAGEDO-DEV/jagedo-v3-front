@@ -55,7 +55,7 @@
 
 // type HardwareProfile = {
 //     certificateOfIncorporation: string;
-//     kraPIN: string;
+//     krapin: string;
 //     singleBusinessPermit: string;
 //     county: string;
 //     state: string;
@@ -115,7 +115,7 @@
 
 // const hardwareFields: FieldDefinition[] = [
 //     { key: "certificateOfIncorporation", label: "Certificate of Incorporation", type: "file" },
-//     { key: "kraPIN", label: "KRA PIN", type: "text" },
+//     { key: "krapin", label: "KRA PIN", type: "text" },
 //     { key: "singleBusinessPermit", label: "Single Business Permit", type: "file" },
 //     { key: "county", label: "County", type: "text" },
 //     { key: "state", label: "State", type: "text" },

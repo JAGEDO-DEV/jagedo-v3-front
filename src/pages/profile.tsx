@@ -132,11 +132,10 @@ function ProfilePage() {
           "companyProfile",
         ],
         hardware: [
-          "businessRegistration",
-          "businessPermit",
+          "companyProfile",
+          "singleBusinessPermit",
           "krapin",
-          "idFrontUrl",
-          "idBackUrl",
+          "certificateOfIncorporation",
         ],
       };
       return docMap[userType] || [];
