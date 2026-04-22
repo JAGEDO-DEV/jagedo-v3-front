@@ -264,6 +264,11 @@ function AccountInfo({ data, refreshData }) {
             <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
               {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. To update these details, please contact JAGEDO Support." : "Your profile information has been verified. To update these details, please contact JAGEDO Support."}
             </p>
+            {data?.statusReason && (
+              <p className={`text-xs mt-2 font-medium italic ${data?.status === "BLACKLISTED" ? "text-red-800" : data?.status === "SUSPENDED" ? "text-yellow-800" : "text-blue-800"}`}>
+                Reason: {data?.statusReason}
+              </p>
+            )}
           </div>
         </div>
       )}

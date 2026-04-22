@@ -103,18 +103,23 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
   const [displayEmail, setDisplayEmail] = useState(userData?.email ?? "");
   const [displayPhone, setDisplayPhone] = useState(userData?.phone ?? "");
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [statusReason, setStatusReason] = useState("");
+  const [showReasonForm, setShowReasonForm] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"SUSPEND" | "BLACKLIST" | null>(null);
 
-  const handleStatusAction = async (action: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE") => {
+  const handleStatusAction = async (action: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE", reason?: string) => {
     if (isAdmin && (action === "VERIFY" || action === "UNVERIFY") && !prerequisitesMet) {
       toast.error(`Please ensure that ${needsExperience ? "Account Uploads and Experience" : "Account Uploads"} are verified first.`);
       return;
     }
+    setIsUpdating(true);
     try {
-      await updateAccountStatus(axiosInstance, userData.id, action);
+      await updateAccountStatus(axiosInstance, userData.id, action, reason);
       toast.success(`${action.charAt(0) + action.slice(1).toLowerCase()}${action.endsWith('Y') ? 'ied' : 'ed'} successfully`);
       setTimeout(() => window.location.reload(), 1000);
     } catch (err: any) {
       toast.error(err.message || `Failed to ${action.toLowerCase()} user`);
+      setIsUpdating(false);
     }
   };
 
@@ -365,52 +370,65 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                 userData.status === "DELETED" ? "bg-red-50 border-red-300" :
                 "bg-sky-50 border-sky-300"
               }`}>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, index) => (
-                      <StarIcon
-                        key={index}
-                        className={`${userData.status === "VERIFIED" ? "text-yellow-400" : "text-gray-300"} w-4 h-4`}
-                        fill="currentColor"
-                      />
-                    ))}
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, index) => (
+                        <StarIcon
+                          key={index}
+                          className={`${userData.status === "VERIFIED" ? "text-yellow-400" : "text-gray-300"} w-4 h-4`}
+                          fill="currentColor"
+                        />
+                      ))}
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      userData.status === "VERIFIED" ? "text-green-800" :
+                      userData.status === "SUSPENDED" ? "text-yellow-800" :
+                      userData.status === "BLACKLISTED" ? "text-orange-800" :
+                      userData.status === "DELETED" ? "text-red-800" :
+                      "text-sky-800"
+                    }`}>
+                      Status: {displayStatus.replace(/_/g, " ").toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    </span>
+                    
+                    {isAdmin && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleStatusAction(userData.status === "VERIFIED" ? "UNVERIFY" : "VERIFY")}
+                        disabled={!prerequisitesMet}
+                        title={!prerequisitesMet ? `Prerequisite sections (Account Uploads${needsExperience ? " or Experience" : ""}) must be verified first` : ""}
+                        className={`ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium bg-white border transition ${
+                          !prerequisitesMet 
+                            ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-400" 
+                            : userData.status === "VERIFIED" 
+                              ? "border-red-300 text-red-700 hover:bg-red-50" 
+                              : "border-green-300 text-green-700 hover:bg-green-50"
+                        }`}
+                      >
+                        {userData.status === "VERIFIED" ? (
+                          <>
+                            <ShieldOffIcon className="w-4 h-4" />
+                            Unverify
+                          </>
+                        ) : (
+                          <>
+                            <ShieldIcon className="w-4 h-4" />
+                            Verify
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
-                  <span className={`text-sm font-semibold ${
-                    userData.status === "VERIFIED" ? "text-green-800" :
-                    userData.status === "SUSPENDED" ? "text-yellow-800" :
-                    userData.status === "BLACKLISTED" ? "text-orange-800" :
-                    userData.status === "DELETED" ? "text-red-800" :
-                    "text-sky-800"
-                  }`}>
-                    Status: {displayStatus.replace(/_/g, " ").toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
-                  </span>
-                  
-                  {isAdmin && (
-                    <button 
-                      type="button" 
-                      onClick={() => handleStatusAction(userData.status === "VERIFIED" ? "UNVERIFY" : "VERIFY")}
-                      disabled={!prerequisitesMet}
-                      title={!prerequisitesMet ? `Prerequisite sections (Account Uploads${needsExperience ? " or Experience" : ""}) must be verified first` : ""}
-                      className={`ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium bg-white border transition ${
-                        !prerequisitesMet 
-                          ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-400" 
-                          : userData.status === "VERIFIED" 
-                            ? "border-red-300 text-red-700 hover:bg-red-50" 
-                            : "border-green-300 text-green-700 hover:bg-green-50"
-                      }`}
-                    >
-                      {userData.status === "VERIFIED" ? (
-                        <>
-                          <ShieldOffIcon className="w-4 h-4" />
-                          Unverify
-                        </>
-                      ) : (
-                        <>
-                          <ShieldIcon className="w-4 h-4" />
-                          Verify
-                        </>
-                      )}
-                    </button>
+                  {userData.statusReason && (
+                    <p className={`text-xs mt-1 font-medium italic ${
+                      userData.status === "VERIFIED" ? "text-green-700" :
+                      userData.status === "SUSPENDED" ? "text-yellow-700" :
+                      userData.status === "BLACKLISTED" ? "text-orange-700" :
+                      userData.status === "DELETED" ? "text-red-700" :
+                      "text-sky-700"
+                    }`}>
+                      Reason: {userData.statusReason}
+                    </p>
                   )}
                 </div>
               </div>
@@ -1007,15 +1025,17 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
               </div>
               
               {isAdmin && (
-                <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
+                <>
+                  <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
                   <div className="relative">
                     <button 
                       type="button" 
                       onClick={() => setIsActionsOpen(!isActionsOpen)}
-                      className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                      disabled={isUpdating}
+                      className={`bg-blue-800 text-white px-6 py-2 rounded transition flex items-center gap-2 ${isUpdating ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"}`}
                     >
-                      Actions
-                      <ChevronDown className={`w-4 h-4 transition-transform ${isActionsOpen ? "rotate-180" : ""}`} />
+                      {isUpdating ? "Processing..." : "Actions"}
+                      {!isUpdating && <ChevronDown className={`w-4 h-4 transition-transform ${isActionsOpen ? "rotate-180" : ""}`} />}
                     </button>
                     
                     {isActionsOpen && (
@@ -1032,8 +1052,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 handleStatusAction("VERIFY");
                                 setIsActionsOpen(false);
                               }}
-                              disabled={!prerequisitesMet}
-                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${!prerequisitesMet ? "text-gray-400 cursor-not-allowed" : "text-green-700"}`}
+                              disabled={!prerequisitesMet || isUpdating}
+                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${(!prerequisitesMet || isUpdating) ? "text-gray-400 cursor-not-allowed" : "text-green-700"}`}
                             >
                               <ShieldIcon className="w-4 h-4" />
                               Verify
@@ -1046,8 +1066,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                                 handleStatusAction("UNVERIFY");
                                 setIsActionsOpen(false);
                               }}
-                              disabled={!prerequisitesMet}
-                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${!prerequisitesMet ? "text-gray-400 cursor-not-allowed" : "text-gray-700"}`}
+                              disabled={!prerequisitesMet || isUpdating}
+                              className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 transition ${(!prerequisitesMet || isUpdating) ? "text-gray-400 cursor-not-allowed" : "text-gray-700"}`}
                             >
                               <ShieldOffIcon className="w-4 h-4" />
                               Unverify
@@ -1056,24 +1076,28 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                           <button 
                             type="button" 
                             onClick={() => {
-                              handleStatusAction("SUSPEND");
+                              setPendingAction("SUSPEND");
+                              setShowReasonForm(true);
                               setIsActionsOpen(false);
                             }}
-                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600 transition"
+                            disabled={userData.status === "SUSPENDED" || isUpdating}
+                            className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600 transition ${(userData.status === "SUSPENDED" || isUpdating) ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <TriangleAlert className="w-4 h-4" />
-                            Suspend
+                            Suspend {userData.status === "SUSPENDED" && "(Active)"}
                           </button>
                           <button 
                             type="button" 
                             onClick={() => {
-                              handleStatusAction("BLACKLIST");
+                              setPendingAction("BLACKLIST");
+                              setShowReasonForm(true);
                               setIsActionsOpen(false);
                             }}
-                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition"
+                            disabled={userData.status === "BLACKLISTED" || isUpdating}
+                            className={`flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition ${(userData.status === "BLACKLISTED" || isUpdating) ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <Ban className="w-4 h-4" />
-                            Blacklist
+                            Blacklist {userData.status === "BLACKLISTED" && "(Active)"}
                           </button>
                         </div>
                       </>
@@ -1087,13 +1111,55 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
                         handleStatusAction("DELETE");
                       }
                     }}
-                    className="flex items-center gap-2 bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
+                    disabled={isUpdating}
+                    className={`flex items-center gap-2 bg-red-600 text-white px-6 py-2 rounded transition ${isUpdating ? "opacity-70 cursor-not-allowed" : "hover:bg-red-700"}`}
                   >
                     <Trash2Icon className="w-4 h-4" />
-                    Delete
+                    {isUpdating ? "Processing..." : "Delete"}
                   </button>
                 </div>
-              )}
+
+                {showReasonForm && (
+                  <div className="bg-blue-50 border border-blue-300 text-blue-800 px-4 py-4 rounded mt-4">
+                    <p className="font-medium mb-2">Please provide a reason for {pendingAction === "SUSPEND" ? "suspending" : "blacklisting"} this user:</p>
+                    <textarea 
+                      value={statusReason}
+                      onChange={(e) => setStatusReason(e.target.value)}
+                      placeholder={`Enter reason for ${pendingAction?.toLowerCase()}...`} 
+                      className="w-full mt-2 p-3 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      rows={3}
+                    ></textarea>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          if (!statusReason.trim()) {
+                            toast.error("Please provide a reason");
+                            return;
+                          }
+                          handleStatusAction(pendingAction!, statusReason);
+                        }}
+                        disabled={isUpdating}
+                        className={`text-white px-4 py-2 rounded transition bg-blue-600 ${isUpdating ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"}`}
+                      >
+                        {isUpdating ? "Processing..." : `Confirm ${pendingAction === "SUSPEND" ? "Suspend" : "Blacklist"}`}
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setShowReasonForm(false);
+                          setPendingAction(null);
+                          setStatusReason("");
+                        }}
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
             </div>
           </section>
         </div>
