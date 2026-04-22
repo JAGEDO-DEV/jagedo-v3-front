@@ -120,7 +120,7 @@ export const useProfileCompletion = (
         case "idBack":
           return !!profile.idBackUrl;
         case "krapin":
-          return !!(profile.krapin || profile.kraPIN);
+          return !!(profile.krapin || profile.krapin);
         case "certificate":
           return !!profile.certificateUrl;
         case "academicCertificate":
