@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import { createContext, useContext, useEffect, useState, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronFirst,
   Users,
@@ -240,16 +240,63 @@ export const sidebarItems = [
 
 export function AdminSidebar({ expanded, setExpanded }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { userMenuPermissions, isLoadingPermissions } = useRolePermissions();
   const { user } = useGlobalContext();
+  const prevPathRef = useRef(null);
 
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("admin_active_tab") || "home";
+  });
+
+  
+  useEffect(() => {
+    const currentPath = location.pathname;
+    
+    
+    let foundId = "";
+    sidebarItems.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.href === currentPath) foundId = item.id;
+        if (item.submenu) {
+          const sub = item.submenu.find((s) => s.href === currentPath);
+          if (sub) foundId = sub.id;
+        }
+      });
+    });
+
+    if (foundId) {
+      setActiveTab(foundId);
+      localStorage.setItem("admin_active_tab", foundId);
+    }
+
+    
+    const isInitialLoad = prevPathRef.current === null;
+    const isFromOutside = prevPathRef.current && !prevPathRef.current.startsWith("/dashboard/admin");
+
+    
+    if (currentPath === "/dashboard/admin" && (isInitialLoad || isFromOutside)) {
+      const savedPath = localStorage.getItem("admin_last_visited_path");
+      if (savedPath && savedPath !== "/dashboard/admin") {
+        navigate(savedPath, { replace: true });
+        
+        prevPathRef.current = savedPath; 
+        return;
+      }
+    }
+
+    
+    if (currentPath.startsWith("/dashboard/admin") && currentPath !== "/dashboard/admin") {
+      localStorage.setItem("admin_last_visited_path", currentPath);
+    }
+
+    prevPathRef.current = currentPath;
+  }, [location.pathname, navigate]);
 
   const getAccessibleItems = () => {
-
     if (isLoadingPermissions) {
       return sidebarItems;
     }
-
 
     if (!userMenuPermissions || userMenuPermissions.length === 0) {
       return sidebarItems;
@@ -299,12 +346,6 @@ export function AdminSidebar({ expanded, setExpanded }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [setExpanded]);
-
-
-  useEffect(() => {
-    getAccessibleItems();
-
-  }, [userMenuPermissions, isLoadingPermissions]);
 
   const accessibleItems = getAccessibleItems();
 
