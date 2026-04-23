@@ -629,11 +629,11 @@ export function ProfileCompletion({
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label>City *</Label>
+                                <Label>City/Town *</Label>
                                 <Input
                                     value={location.city}
                                     onChange={(e) => setLocation(prev => ({ ...prev, city: e.target.value }))}
-                                    placeholder="Enter City"
+                                    placeholder="Enter City/Town"
                                     className="w-full border-gray-300 py-3"
                                 />
                             </div>

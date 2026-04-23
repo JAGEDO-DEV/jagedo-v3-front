@@ -608,44 +608,60 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
   const getInitialCategories = (): ContractorCategory[] => {
+    // 1. Check contractorTypes first (highest priority, matches AccountUploads.tsx)
+    if (userData?.contractorTypes) {
+      const types = userData.contractorTypes.split(",").map(t => t.trim()).filter(Boolean);
+      if (types.length > 0) {
+        return types.map(t => {
+          // Try to find matching metadata from other arrays if available
+          const catMeta = (userData.contractorCategories || []).find((c: any) => c.category === t);
+          const expMeta = (userData.contractorExperiences || []).find((e: any) => e.category === t);
+          
+          return {
+            category: t,
+            specialization: catMeta?.specialization || expMeta?.specialization || userData.specialization || "",
+            class: (catMeta?.class || catMeta?.categoryClass || expMeta?.categoryClass || expMeta?.class || userData.levelOrClass || "").replace(/\s+/g, ""),
+            years: catMeta?.years || catMeta?.yearsOfExperience || expMeta?.yearsOfExperience || expMeta?.years || userData.yearsOfExperience || "",
+            certificate: catMeta?.certificate || expMeta?.certificate || "",
+            license: catMeta?.license || expMeta?.license || "",
+          };
+        });
+      }
+    }
+
+    // 2. Check contractorCategories
     if (
       userData?.contractorCategories &&
-      Array.isArray(userData.contractorCategories)
+      Array.isArray(userData.contractorCategories) &&
+      userData.contractorCategories.length > 0
     ) {
       return userData.contractorCategories.map((cat: any) => ({
         category: cat.category || "",
         specialization: cat.specialization || "",
         class: (cat.class || cat.categoryClass || "").replace(/\s+/g, ""),
         years: cat.years || cat.yearsOfExperience || "",
+        certificate: cat.certificate || "",
+        license: cat.license || "",
       }));
     }
 
+    // 3. Check contractorExperiences
     if (
       userData?.contractorExperiences &&
-      Array.isArray(userData.contractorExperiences)
+      Array.isArray(userData.contractorExperiences) &&
+      userData.contractorExperiences.length > 0
     ) {
       return userData.contractorExperiences.map((exp: any) => ({
         category: exp.category || "",
         specialization: exp.specialization || "",
         class: (exp.categoryClass || exp.class || "").replace(/\s+/g, ""),
         years: exp.yearsOfExperience || exp.years || "",
+        certificate: exp.certificate || "",
+        license: exp.license || "",
       }));
     }
 
-
-    if (userData?.contractorTypes) {
-      const types = userData.contractorTypes.split(",").map(t => t.trim()).filter(Boolean);
-      if (types.length > 0) {
-        return types.map(t => ({
-          category: t,
-          specialization: userData.specialization || "",
-          class: userData.levelOrClass || "",
-          years: userData.yearsOfExperience || "",
-        }));
-      }
-    }
-
-    return [{ category: "", specialization: "", class: "", years: "" }];
+    return [{ category: "", specialization: "", class: "", years: "", certificate: "", license: "" }];
   };
 
   const [categories, setCategories] = useState<ContractorCategory[]>(
@@ -2109,11 +2125,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           specialization: c.specialization,
           categoryClass: c.class,
           yearsOfExperience: c.years,
+          certificate: c.certificate || "",
+          license: c.license || "",
         }));
+
+        const contractorTypes = validCategories.map(c => c.category).join(",");
 
         const payload = {
           projects: contractorProjects,
           contractorExperiences: contractorExperiences,
+          contractorTypes: contractorTypes,
         };
 
         response = await adminUpdateContractorExperience(
@@ -2168,7 +2189,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           attachments.length >= requiredCount &&
           requiredCount > 0 &&
           attachments.every((a) => a.files.length > 0);
-        return hasGrade && hasExperience && hasSkill && hasEnoughProjects;
+
+        const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+        const hasEvaluation = !!(evaluation && evaluation.responses && evaluation.responses.length > 0);
+
+        return hasGrade && hasExperience && hasSkill && hasEnoughProjects && hasEvaluation;
       }
       case "PROFESSIONAL": {
         const hasProfession = !!(isEditingFields
@@ -2219,6 +2244,18 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
   const readyToApprove = isExperienceReadyToApprove();
+
+  const isEvaluationFormValid =
+    questions.length > 0 &&
+    questions.every((q) => {
+      const answer = q.answer;
+      if (Array.isArray(answer)) return answer.length > 0;
+      return (
+        answer !== undefined &&
+        answer !== null &&
+        String(answer).trim() !== ""
+      );
+    });
 
   const canSaveChanges = (): boolean => {
     const requiredCount = getRequiredProjectCount();
@@ -3082,7 +3119,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                     <input
                                       type="file"
                                       multiple
-                                      accept="image/*,application/pdf,.pdf"
+                                      accept="image/*,application/pdf,.pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                       className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all cursor-pointer ${!project.name.trim() ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
                                       disabled={!project.name.trim()}
                                       onChange={(e) => {
@@ -3286,7 +3323,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               <div className="relative inline-block w-full">
                                 <input
                                   type="file"
-                                  accept="image/*,application/pdf,.pdf"
+                                  accept="image/*,application/pdf,.pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                   id={`file-upload-slot-${index}-${role}`}
                                   className="hidden"
                                   onChange={(e) => {
@@ -3445,7 +3482,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 {isAdmin && (
                                   <div className="mt-3 flex justify-end">
                                     <div className="relative inline-block">
-                                      <input type="file" multiple id={`file-upload-${index}`} onChange={(e) => handleFileUpload(e, index)} className="hidden" disabled={fileActionLoading[`add-${index}`]} />
+                                      <input type="file" multiple id={`file-upload-${index}`} accept="image/*,application/pdf,.pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => handleFileUpload(e, index)} className="hidden" disabled={fileActionLoading[`add-${index}`]} />
                                       <label htmlFor={`file-upload-${index}`} className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""}`}>
                                         {fileActionLoading[`add-${index}`] ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <PlusIcon className="w-3 h-3" />}
                                         Add File
@@ -3482,7 +3519,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                   <div className="space-y-2">
                                     <input
                                       type="file"
-                                      accept="image/*,application/pdf,.pdf"
+                                      accept="image/*,application/pdf,.pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                       multiple
                                       className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 ${!project.name.trim() ? "opacity-60 cursor-not-allowed" : ""}`}
                                       disabled={!project.name.trim()}
@@ -3933,7 +3970,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       )}
                       <button
                         type="submit"
-                        disabled={isSubmitting || isUploadingAudio}
+                        disabled={isSubmitting || isUploadingAudio || !isEvaluationFormValid}
+                        title={!isEvaluationFormValid ? "Please answer all evaluation questions before saving" : (isEditingEvaluation ? "Update Evaluation" : "Save Evaluation")}
                         className="w-full sm:w-auto bg-blue-800 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-medium"
                       >
                         {isSubmitting

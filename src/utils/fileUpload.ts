@@ -9,7 +9,7 @@ const createFileUploadAxios = () => {
         baseURL: import.meta.env.VITE_SERVER_URL || import.meta.env.VITE_STAGING_API
     });
 
-    // Add request interceptor to include token
+
     axiosInstance.interceptors.request.use(
         (config) => {
             const token = localStorage.getItem("token");
@@ -116,6 +116,8 @@ export async function uploadFileWithAxios(
             "image/webp",
             "application/pdf",
             "application/msword",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ];
 
