@@ -337,11 +337,9 @@ const AccountUploads = ({ data, refreshData }) => {
     })
     .map((f) => f.label);
 
-  const hasAllContractorDocs =
-    hasPendingFiles &&
-    allContractorDocs
-      .filter((f) => !!documents[f.key] || !!pendingFiles[f.key])
-      .every((f) => isSatisfied(f.key));
+  const hasAllContractorDocs = allContractorDocs.every(
+    (f) => !!documents[f.key] && isSatisfied(f.key),
+  );
 
   const isReadOnly = !["RESUBMIT", "INCOMPLETE", "REJECTED"].includes(
     data?.documentStatus,
