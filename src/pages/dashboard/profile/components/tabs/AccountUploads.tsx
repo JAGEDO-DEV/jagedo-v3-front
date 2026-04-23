@@ -119,16 +119,16 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           companyProfile: updatedDocs.companyProfile?.url || "",
         };
 
-        let contractorCategories =
-          userData?.contractorCategories ||
-          userData?.contractorExperiences ||
-          [];
-
-        if ((!contractorCategories || contractorCategories.length === 0) && userData?.contractorTypes) {
+        let contractorCategories = [];
+        if (userData?.contractorTypes) {
           contractorCategories = userData.contractorTypes.split(",").map(t => ({ category: t.trim() })).filter(c => c.category);
+        } else if (userData?.contractorCategories && Array.isArray(userData.contractorCategories) && userData.contractorCategories.length > 0) {
+          contractorCategories = userData.contractorCategories;
+        } else if (userData?.contractorExperiences && Array.isArray(userData.contractorExperiences) && userData.contractorExperiences.length > 0) {
+          contractorCategories = userData.contractorExperiences;
         }
 
-        if (Array.isArray(contractorCategories)) {
+        if (Array.isArray(contractorCategories) && contractorCategories.length > 0) {
           contractorCategories.forEach((cat: any) => {
             const categoryName = cat.category || "";
             const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
@@ -443,11 +443,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
         },
       ];
 
-      let contractorCategories =
-        userData?.contractorCategories || userData?.contractorExperiences;
+      let contractorCategories = [];
 
-      if ((!contractorCategories || contractorCategories.length === 0) && userData?.contractorTypes) {
+      if (userData?.contractorTypes) {
         contractorCategories = userData.contractorTypes.split(",").map(t => ({ category: t.trim() })).filter(c => c.category);
+      } else if (userData?.contractorCategories && Array.isArray(userData.contractorCategories) && userData.contractorCategories.length > 0) {
+        contractorCategories = userData.contractorCategories;
+      } else if (userData?.contractorExperiences && Array.isArray(userData.contractorExperiences) && userData.contractorExperiences.length > 0) {
+        contractorCategories = userData.contractorExperiences;
       }
 
       if (
@@ -894,8 +897,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     }
 
     const status = uploaded.status || "pending";
-    const isApproved = status === "approved" || status === "VERIFIED";
-    const isDisapproved = status === "rejected" || status === "REJECTED" || status === "reupload_requested" || status === "RESUBMIT";
+    const statusLower = (status || "").toLowerCase();
+    const isApproved = statusLower === "approved" || statusLower === "verified";
+    const isDisapproved = statusLower === "rejected" || statusLower === "reupload_requested" || statusLower === "resubmit";
     const iconBgColor =
       isApproved
         ? "bg-green-50"
@@ -998,9 +1002,9 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             <div className="flex gap-2 w-full mt-2 border-t pt-2">
               <button
                 onClick={() => openActionModal(doc.key, "approve")}
-                disabled={isDisapproved || hasChanges}
+                disabled={isApproved || isDisapproved || hasChanges}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-green-50 text-green-600 rounded-lg text-[10px] font-semibold hover:bg-green-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={hasChanges ? "Save changes first" : isDisapproved ? "Wait for user to resubmit" : "Approve"}
+                title={hasChanges ? "Save changes first" : isApproved ? "Already approved" : isDisapproved ? "Wait for user to resubmit" : "Approve"}
               >
                 <FiCheck className="w-3 h-3" />
                 Approve
