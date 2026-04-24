@@ -424,7 +424,11 @@ export function CustomerSignupForm({
                 <div className="flex-grow border-t border-gray-300"></div>
 
               </div>
-              <GoogleSignIn />
+              <GoogleSignIn 
+                  userType="CUSTOMER"
+                  isSignUp={true}
+                  accountType={formData.accountType || "INDIVIDUAL"}
+              />
               <p className="text-gray-500">By proceeding, you consent to receive calls, WhatsApp, or SMS messages, including automated means, from JaGedo and its affiliates to the provided number.</p>
 
             </div>

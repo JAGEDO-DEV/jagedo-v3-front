@@ -19,9 +19,20 @@ type TokenRequest = {
     credential: string;
     clientId: string;
     token?: string;
+    userType?: string;
+    isSignUp?: boolean;
+    accountType?: string;
+    providerData?: any;
 };
 
-export default function GoogleSignIn() {
+interface GoogleSignInProps {
+    userType?: string;
+    isSignUp?: boolean;
+    accountType?: string;
+    providerData?: any;
+}
+
+export default function GoogleSignIn({ userType, isSignUp, accountType, providerData }: GoogleSignInProps = {}) {
     const navigate = useNavigate();
     const { user: contextUser, setUser, setIsLoggedIn } = useGlobalContext();
 
@@ -169,7 +180,11 @@ export default function GoogleSignIn() {
         const payload: TokenRequest = {
             credential: idToken,
             clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID!,
-            token: idToken
+            token: idToken,
+            userType,
+            isSignUp,
+            accountType,
+            providerData
         };
 
         try {

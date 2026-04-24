@@ -969,7 +969,17 @@ export function ProviderSignupForm({
                 </span>
                 <div className="flex-grow border-t border-gray-300"></div>
               </div>
-              <GoogleSignIn />
+              <GoogleSignIn
+                userType={providerType}
+                isSignUp={true}
+                accountType={formData.accountType || "INDIVIDUAL"}
+                providerData={{
+                  skills: formData.skills,
+                  profession: formData.profession,
+                  contractorTypes: formData.contractorTypes,
+                  hardwareTypes: formData.hardwareTypes
+                }}
+              />
               <p className="text-gray-500">
                 By proceeding, you consent to receive calls, WhatsApp, or SMS
                 messages, including automated means, from JaGedo and its
