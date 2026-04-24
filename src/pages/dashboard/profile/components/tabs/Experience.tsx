@@ -71,7 +71,7 @@ const resolveSpecialization = (user: any) => {
 
   if (user.specialization) return user.specialization;
 
-  if (user.fundispecialization) return user.fundispecialization;
+  if (user.fundiSpecialization) return user.fundiSpecialization;
   if (user.professionalSpecialization) return user.professionalSpecialization;
   if (user.contractorSpecialization) return user.contractorSpecialization;
 
@@ -174,9 +174,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const sourceData = userData?.userProfile || userData || {};
 
-        console.log("💾 userData keys:", Object.keys(userData || {}));
-        console.log("💾 userData?.userProfile keys:", Object.keys(userData?.userProfile || {}));
-        console.log("💾 sourceData:", sourceData);
+
 
         switch (userType) {
           case "FUNDI":
@@ -751,9 +749,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           skill: userData.skill || userData.skills || "",
           specialization:
             userData.specialization ||
-            userData.fundispecialization || "",
+            userData.fundiSpecialization || "",
           grade: userData.grade || "",
-          experience: userData.experience || "",
+          experience: userData.experience || userData.yearsOfExperience || "",
         };
 
       case "PROFESSIONAL":
@@ -2187,13 +2185,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
+
+        const hasSpecialization = !!(isEditingFields ? editingFields.specialization : info.specialization);
 
         const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-        const hasEvaluation = !!(evaluation && evaluation.responses && evaluation.responses.length > 0);
+        const hasEvaluation = (questions.length === 0 && !isLoadingQuestions) || !!(evaluation && evaluation.responses && evaluation.responses.length > 0);
 
-        return hasGrade && hasExperience && hasSkill && hasEnoughProjects && hasEvaluation;
+        return hasGrade && hasExperience && hasSkill && hasSpecialization && hasEnoughProjects && hasEvaluation;
       }
       case "PROFESSIONAL": {
         const hasProfession = !!(isEditingFields
@@ -2205,20 +2204,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         const hasYears = !!(isEditingFields
           ? editingFields.yearsOfExperience
           : info.yearsOfExperience);
+        const hasSpecialization = !!(isEditingFields
+          ? editingFields.specialization
+          : info.specialization);
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
-        return hasProfession && hasLevel && hasYears && hasEnoughProjects;
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
+        return hasProfession && hasLevel && hasYears && hasSpecialization && hasEnoughProjects;
       }
       case "CONTRACTOR": {
         const hasValidCategories = categories.some(
-          (c) => c.category && c.class && c.years,
+          (c) => c.category && c.class && c.years && c.specialization,
         );
 
         const hasEnoughProjects =
-          attachments.length >= 1 &&
-          attachments.every((a) => a.files.length > 0);
+          attachments.length >= requiredCount &&
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
         return hasValidCategories && hasEnoughProjects;
       }
       case "HARDWARE": {
@@ -2232,11 +2233,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           ? editingFields.experience
           : info.experience);
 
+        const hasSpecialization = !!(isEditingFields
+          ? editingFields.specialization
+          : info.specialization);
+
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
-        return hasType && hasBusinessType && hasExperience && hasEnoughProjects;
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
+        return hasType && hasBusinessType && hasExperience && hasSpecialization && hasEnoughProjects;
       }
       default:
         return false;
@@ -2273,8 +2277,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
         return (
           hasGrade &&
           hasExperience &&
@@ -2299,8 +2302,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
         return (
           hasProfession &&
           hasLevel &&
@@ -2315,8 +2317,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         );
 
         const hasEnoughProjects =
-          attachments.length >= 1 &&
-          attachments.every((a) => a.files.length > 0);
+          attachments.length >= requiredCount &&
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
         return hasValidCategories && hasEnoughProjects;
       }
       case "HARDWARE": {
@@ -2335,8 +2337,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const hasEnoughProjects =
           attachments.length >= requiredCount &&
-          requiredCount > 0 &&
-          attachments.every((a) => a.files.length > 0);
+          (requiredCount === 0 || attachments.every((a) => a.files.length > 0));
         return (
           hasType &&
           hasBusinessType &&
