@@ -30,6 +30,10 @@ interface AttachmentRow {
 
 const GUIDELINES = PROFESSIONAL_USER.experience;
 
+const CATEGORIES = ["Architect", "Engineer", "Surveyor", "Project Manager"];
+const LEVELS = ["Senior", "Professional", "Graduate", "Student"];
+const EXPERIENCE_LEVELS = ["10+ years", "5-10 years", "3-5 years", "1-3 years"];
+
 const ProffExperience = ({ data, refreshData }: any) => {
     const [category, setCategory] = useState(GUIDELINES.categories[0]);
     const [specialization, setSpecialization] = useState("");
@@ -57,44 +61,41 @@ const ProffExperience = ({ data, refreshData }: any) => {
     /* ---------- LOAD FROM PROP ---------- */
     useEffect(() => {
         if (data) {
-            const up = data;
-            setCategory(up.profession || GUIDELINES.categories[0]);
-            setSpecialization(up.specialization || "");
-            setLevel(up.levelOrClass || GUIDELINES.levels[1]);
-            setExperience(up.yearsOfExperience || GUIDELINES.yearsOfExperience[0]);
+            const up = data.userProfile || data;
+            setCategory(up.profession || "Architect");
+            setSpecialization(up.specialization || up.profession || "Residential");
+            setLevel(up.professionalLevel || "Professional");
+            setExperience(up.yearsOfExperience || "10+ years");
 
             const rawProjects = up.previousJobPhotoUrls || up.professionalProjects || [];
 
             if (rawProjects.length > 0) {
-                
+                // Group by project name to fit the attachments structure (up to 3 files per project)
                 const grouped: { [key: string]: FileItem[] } = {};
 
                 rawProjects.forEach((p: any) => {
                     const name = p.projectName || "Unnamed Project";
                     if (!grouped[name]) grouped[name] = [];
 
-                    const addFile = (url: string, fileName: string = "Project File") => {
-                        if (url && grouped[name].length < 3) {
-                            grouped[name].push({ file: null, previewUrl: url, fileName });
-                        }
-                    };
+                    let url = "";
+                    let fileName = "Project File";
 
-                    
-                    if (Array.isArray(p.files)) {
-                        p.files.forEach((f: any) => {
-                            if (typeof f === 'string') addFile(f);
-                            else if (f?.url) addFile(f.url, f.displayName || f.originalName);
-                        });
-                    } else if (p.fileUrl && typeof p.fileUrl === 'object' && p.fileUrl.url) {
-                        addFile(p.fileUrl.url, p.fileUrl.displayName || p.fileUrl.originalName);
+                    // Handle various backend response structures
+                    if (p.fileUrl && typeof p.fileUrl === 'object' && p.fileUrl.url) {
+                        url = p.fileUrl.url;
+                        fileName = p.fileUrl.displayName || p.fileUrl.originalName || "Project File";
                     } else if (typeof p.fileUrl === 'string') {
-                        addFile(p.fileUrl);
+                        url = p.fileUrl;
                     } else if (p.url) {
-                        addFile(p.url);
+                        url = p.url;
                     } else if (p.projectFile) {
-                        addFile(p.projectFile);
+                        url = p.projectFile;
                     } else if (typeof p === 'string') {
-                        addFile(p);
+                        url = p;
+                    }
+
+                    if (url && grouped[name].length < 3) {
+                        grouped[name].push({ file: null, previewUrl: url, fileName });
                     }
                 });
 
@@ -104,7 +105,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     files: grouped[name]
                 }));
 
-                
+                // Pad with empty rows if needed
                 const totalRowsNeeded = Math.max(mapped.length, 5);
                 const finalAttachments = [...mapped];
                 for (let i = finalAttachments.length; i < totalRowsNeeded; i++) {
@@ -378,14 +379,17 @@ const ProffExperience = ({ data, refreshData }: any) => {
                         <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        className="w-full p-3 bg-gray-200 border rounded-lg"
-                                        value={category || ""}
-                                        title={category || "Not Selected"}
-                                    />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        disabled={isReadOnly}
+                                        className={inputStyles}
+                                    >
+                                        {CATEGORIES.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Specialization</label>
@@ -413,30 +417,28 @@ const ProffExperience = ({ data, refreshData }: any) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
                                     <select
                                         value={level}
                                         onChange={(e) => setLevel(e.target.value)}
                                         disabled={isReadOnly}
-                                        className="w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        className={inputStyles}
                                     >
-                                        <option value="">Select Level</option>
-                                        {GUIDELINES.levels.map(lvl => (
+                                        {LEVELS.map(lvl => (
                                             <option key={lvl} value={lvl}>{lvl}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
                                     <select
                                         value={experience}
                                         onChange={(e) => setExperience(e.target.value)}
                                         disabled={isReadOnly}
-                                        className="w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        className={inputStyles}
                                     >
-                                        <option value="">Select Years</option>
-                                        {GUIDELINES.yearsOfExperience.map(yr => (
-                                            <option key={yr} value={yr}>{yr}</option>
+                                        {EXPERIENCE_LEVELS.map(exp => (
+                                            <option key={exp} value={exp}>{exp}</option>
                                         ))}
                                     </select>
                                 </div>

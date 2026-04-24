@@ -141,77 +141,34 @@ const ContractorExperience = ({ data, refreshData }: any) => {
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      const up = data;
+      const up = data.userProfile || data;
 
       const exps = up.contractorExperiences || [];
-      const contractorTypes = up.contractorTypes || "";
+      let mappedCategories: ContractorCategory[] = [];
 
       if (exps.length > 0) {
-        
-        const mappedCategories = exps.map((exp: any) => ({
+        mappedCategories = exps.map((exp: any) => ({
           id: exp.id || crypto.randomUUID(),
           category: exp.category || "",
           specialization: exp.specialization || "",
-          categoryClass: (exp.categoryClass || exp.class || "").replace(/\s+/g, ""),
-          yearsOfExperience: exp.yearsOfExperience || exp.years || "",
-          certificate: exp.certificate || "",
-          license: exp.license || "",
-          isPersisted: true,
-          isPrePopulated: false,
+          categoryClass: exp.categoryClass || "",
+          yearsOfExperience: exp.yearsOfExperience || "",
         }));
         setCategories(mappedCategories);
-      } else if (contractorTypes) {
-        
-        const slugs = contractorTypes.split(',').map((s: string) => s.trim()).filter(Boolean);
-        const prePopulated = slugs.map(name => ({
-          id: crypto.randomUUID(),
-          category: name,
-          specialization: "",
-          categoryClass: "",
-          yearsOfExperience: "",
-          isPersisted: false,
-          isPrePopulated: true, 
-        }));
-
-        if (prePopulated.length > 0) {
-          setCategories(prePopulated);
-
-          const prePopProjects = prePopulated.map(cat => ({
-            id: crypto.randomUUID(),
-            categoryId: cat.id,
-            projectName: `${cat.category} Project`,
-            projectFile: null,
-            referenceLetterFile: null,
-            isPersisted: false,
-          }));
-          setProjects(prePopProjects);
-        } else {
-          setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "", isPersisted: false, isPrePopulated: false }]);
-        }
       } else {
         setCategories([{ id: crypto.randomUUID(), category: "", specialization: "", categoryClass: "", yearsOfExperience: "", isPersisted: false, isPrePopulated: false }]);
       }
 
       const projs = up.contractorProjects || [];
       if (projs.length > 0) {
-        setProjects(projs.map((proj: any) => {
-          let projectURL = proj.projectFile || null;
-          let referenceURL = proj.referenceLetterUrl || proj.referenceLetterFile || null;
-
-          if (Array.isArray(proj.files)) {
-            projectURL = proj.files[0] || projectURL;
-            referenceURL = proj.files[1] || referenceURL;
-          }
-
-          return {
-            id: proj.id || crypto.randomUUID(),
-            categoryId: proj.categoryId,
-            projectName: proj.projectName || "",
-            projectFile: projectURL,
-            referenceLetterFile: referenceURL,
-            isPersisted: true, 
-          };
-        }));
+        setProjects(projs.map((proj: any, index: number) => ({
+          id: proj.id || crypto.randomUUID(),
+          // Link to category by index if categoryId is missing in stored data
+          categoryId: proj.categoryId || (mappedCategories[index] ? mappedCategories[index].id : null),
+          projectName: proj.projectName || "",
+          projectFile: proj.projectFile || null,
+          referenceLetterFile: proj.referenceLetterUrl || proj.referenceLetterFile || null,
+        })));
       }
       setIsLoadingProfile(false);
     }
