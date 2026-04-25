@@ -2434,11 +2434,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       {/* Return for Correction */}
                       <button
                         type="button"
+                        disabled={userData?.experienceStatus === "RESUBMIT" || isPendingAction}
                         onClick={() => {
                           setShowGlobalActions(false);
                           setActionModal({ isOpen: true, action: "resubmit" });
                         }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 transition border-b border-gray-100"
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+                          ${userData?.experienceStatus === "RESUBMIT"
+                            ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                            : "text-blue-700 hover:bg-blue-50"
+                          }`}
                       >
                         <FiRefreshCw className="w-4 h-4" />
                         Return all
