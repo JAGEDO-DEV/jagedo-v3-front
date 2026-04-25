@@ -242,6 +242,10 @@ const ProffExperience = ({ data, refreshData }: any) => {
         e.preventDefault();
         if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
 
+        if (!specialization) return toast.error("Please select a specialization.");
+        if (!level) return toast.error("Please select your professional level.");
+        if (!experience) return toast.error("Please select your years of experience.");
+
         const required = rowsToShow;
         const valid = attachments.slice(0, required).filter(p => p.projectName.trim() !== "" && p.files.length > 0);
         if (valid.length < required) return toast.error(`Please provide all ${required} required projects with at least one file each.`);
