@@ -27,8 +27,8 @@ const Address = ({ data, refreshData }) => {
         country: data.country || "Kenya",
         county: data.county || "",
         subCounty: data.subCounty || "",
-        city: data.city || data.townCity || data.town || "",
-        estate: data.estate || data.estateVillage || "",
+        city: data.city || "",
+        estate: data.estate || "",
       });
       setLoading(false);
     }
@@ -183,14 +183,16 @@ const Address = ({ data, refreshData }) => {
 
         {/* City */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">City/Town</label>
+          <label className="block text-sm font-medium text-gray-700">
+            City
+          </label>
           {isEditing ? (
             <input
               type="text"
               value={address.city}
               onChange={(e) => setAddress({ ...address, city: e.target.value })}
-              placeholder="Enter City or Town"
               className="w-full px-4 py-2 border rounded-md"
+              placeholder="Enter city"
             />
           ) : (
             <input
@@ -228,12 +230,14 @@ const Address = ({ data, refreshData }) => {
         {/* Action Buttons */}
         <div className="pt-4 flex gap-4">
           {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-800 text-white px-8 py-2 rounded font-semibold transition hover:bg-blue-900"
-            >
-              Edit Address
-            </button>
+            !isReadOnly && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="bg-blue-800 text-white px-8 py-2 rounded font-semibold transition hover:bg-blue-900"
+              >
+                Edit Address
+              </button>
+            )
           ) : (
             <>
               <button
