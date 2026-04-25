@@ -251,23 +251,21 @@ const ProffExperience = ({ data, refreshData }: any) => {
 
         try {
             
-            const processedProjects = await Promise.all(valid.map(async (row) => {
-                const uploadedUrls: string[] = [];
-
-                for (const fItem of row.files) {
+            const processedProjects = (await Promise.all(valid.map(async (row) => {
+                return Promise.all(row.files.map(async (fItem) => {
+                    let url = "";
                     if (fItem.file) {
                         const uploaded = await uploadFile(fItem.file);
-                        uploadedUrls.push(uploaded.url);
+                        url = uploaded.url;
                     } else {
-                        uploadedUrls.push(fItem.previewUrl);
+                        url = fItem.previewUrl;
                     }
-                }
-
-                return {
-                    projectName: row.projectName,
-                    fileUrl: uploadedUrls[0] || ""
-                };
-            }));
+                    return {
+                        projectName: row.projectName,
+                        fileUrl: url
+                    };
+                }));
+            }))).flat();
 
             
             const payload = {
