@@ -151,7 +151,6 @@ function ProfilePage() {
 ) {
   uploadsComplete = false;
 } else {
-  // PENDING or no status — run the granular field check
   if (userType === "contractor") {
     const hasBusinessReg =
       up?.businessRegistration || up?.certificateOfIncorporation;
@@ -209,7 +208,7 @@ function ProfilePage() {
 
     const userTypeUpper = (up?.userType || "").toUpperCase();
 
-    // Helper: required projects based on grade/level
+
     const getRequiredProjectCount = () => {
       if (userTypeUpper === "FUNDI") {
         const grade = up?.grade;
@@ -232,7 +231,7 @@ function ProfilePage() {
 
     const requiredProjects = getRequiredProjectCount();
 
-    // Get projects array based on user type
+
     const getProjectsArray = () => {
       switch (userTypeUpper) {
         case "FUNDI":
@@ -258,10 +257,10 @@ function ProfilePage() {
     });
     const hasEnoughProjects = projects.length >= requiredProjects;
 
-    // Check other required fields per user type
+
     let fieldsComplete = false;
     if (userTypeUpper === "CUSTOMER") {
-      fieldsComplete = true; // No experience section for customers
+      fieldsComplete = true; 
     } else if (userTypeUpper === "FUNDI") {
       const hasGrade = !!up?.grade;
       const hasExperience = !!up?.experience;
