@@ -367,22 +367,99 @@ const AccountUploads = ({ data, refreshData }) => {
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      // Use userProfile if it exists, otherwise use data itself (for customers)
-      const up = data.userProfile || data;
-      const mapped = { ...up };
+      const docsMap = { ...data };
+      docsMap.krapin = data.krapin;
+      if (data.certificateOfIncorporation && !data.businessRegistration)
+        docsMap.businessRegistration = data.certificateOfIncorporation;
+      if (data.businessRegistration && !data.certificateOfIncorporation)
+        docsMap.certificateOfIncorporation = data.businessRegistration;
 
-      // Map potential backend keys to frontend state keys for consistency
-      if (up.idFront && !up.idFrontUrl) mapped.idFrontUrl = up.idFront;
-      if (up.idBack && !up.idBackUrl) mapped.idBackUrl = up.idBack;
-      if (up.certificate && !up.certificateUrl) mapped.certificateUrl = up.certificate;
-      if (up.academicCertificate && !up.academicCertificateUrl) mapped.academicCertificateUrl = up.academicCertificate;
-      if (up.krapin && !up.kraPIN) mapped.kraPIN = up.krapin;
+      const catNames = [];
+      const statusMap = {};
 
-      setDocuments(mapped);
 
-      if (userType === 'contractor' && up.contractorExperiences) {
-        const catNames = up.contractorExperiences.map(exp => exp.category);
-        setCategories(catNames);
+      const backendToFrontendKey = {
+        idFront: "idFrontUrl",
+        idBack: "idBackUrl",
+        krapin: "krapin",
+        krapin: "krapin",
+        certificate: "certificateUrl",
+        academicCertificate: "academicCertificateUrl",
+        cv: "cvUrl",
+        cvUrl: "cvUrl",
+        practiceLicense: "practiceLicense",
+        businessPermit: "businessPermit",
+        singleBusinessPermit: "singleBusinessPermit",
+        certificateOfIncorporation: "certificateOfIncorporation",
+        businessRegistration: "businessRegistration",
+        companyProfile: "companyProfile",
+      };
+
+      if (data.documentDetails) {
+        Object.keys(data.documentDetails).forEach((backendKey) => {
+          const detail = data.documentDetails[backendKey];
+          const actualStatus = detail?.status || detail;
+          const reason = detail?.reason || "";
+
+          let status = "pending";
+          if (actualStatus === "VERIFIED") status = "approved";
+          else if (actualStatus === "RESUBMIT") status = "resubmit";
+          else if (actualStatus === "REJECTED") status = "rejected";
+          else if (actualStatus === "REPLACED") status = "pending";
+
+          const fieldKey = backendToFrontendKey[backendKey] || backendKey;
+          statusMap[fieldKey] = { status, reason };
+
+          if (
+            backendKey.endsWith("_CERTIFICATE") ||
+            backendKey.endsWith("_LICENSE")
+          ) {
+            statusMap[backendKey] = { status, reason };
+          }
+        });
+
+        if (statusMap["certificateOfIncorporation"] && !statusMap["businessRegistration"]) {
+          statusMap["businessRegistration"] = statusMap["certificateOfIncorporation"];
+        }
+        if (statusMap["businessRegistration"] && !statusMap["certificateOfIncorporation"]) {
+          statusMap["certificateOfIncorporation"] = statusMap["businessRegistration"];
+        }
+      }
+
+      const globalStatus =
+        data.documentStatus === "VERIFIED"
+          ? "approved"
+          : data.documentStatus === "REJECTED"
+            ? "rejected"
+            : data.documentStatus === "RESUBMIT"
+              ? "resubmit"
+              : "pending";
+      const baseFields = defaultFields[userType] || [];
+      baseFields.forEach((field) => {
+        if (!statusMap[field.key]) {
+          statusMap[field.key] = globalStatus;
+        }
+      });
+
+      if (userType === "contractor") {
+        const contractorExperiences = data.contractorExperiences || [];
+        if (contractorExperiences.length > 0) {
+          contractorExperiences.forEach((exp) => {
+            catNames.push(exp.category);
+            const categoryKey = exp.category.toUpperCase().replace(/\s+/g, "_");
+            const certKey = `${categoryKey}_CERTIFICATE`;
+            const licenseKey = `${categoryKey}_LICENSE`;
+            if (exp.certificate) docsMap[certKey] = exp.certificate;
+            if (exp.license) docsMap[licenseKey] = exp.license;
+            if (!docsMap[certKey] && data[certKey]) docsMap[certKey] = data[certKey];
+            if (!docsMap[licenseKey] && data[licenseKey]) docsMap[licenseKey] = data[licenseKey];
+          });
+        } else if (data.contractorTypes) {
+          data.contractorTypes.split(",").forEach((t) => {
+            const name = t.trim();
+            if (name) catNames.push(name);
+          });
+        }
       }
 
       setDocuments(docsMap);
@@ -470,7 +547,7 @@ const AccountUploads = ({ data, refreshData }) => {
           idFront: updatedUrls.idFrontUrl || null,
           idBack: updatedUrls.idBackUrl || null,
           certificate: updatedUrls.certificateUrl || null,
-          krapin: updatedUrls.kraPIN || null
+          krapin: updatedUrls.krapin || null,
         };
         response = await uploadFundiDocuments(axiosInstance, payload);
       } else if (userType === "professional") {
