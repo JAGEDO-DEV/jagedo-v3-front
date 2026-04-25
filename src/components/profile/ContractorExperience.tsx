@@ -543,6 +543,9 @@ const ContractorExperience = ({ data, refreshData }: any) => {
                         const specName = typeof s === 'string' ? s : (s?.label || s?.name || s?.code || "");
                         return <option key={specName} value={specName}>{specName}</option>;
                       })}
+                      {cat.specialization && !(categorySpecsMap[cat.category] || []).some((s: any) => (typeof s === 'string' ? s : (s?.label || s?.name || s?.code || "")) === cat.specialization) && (
+                        <option value={cat.specialization}>{cat.specialization}</option>
+                      )}
                     </select>
 
                     <select
