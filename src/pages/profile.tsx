@@ -14,105 +14,26 @@ import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getProviderProfile } from "@/api/provider.api";
 
 function ProfilePage() {
-    const [activeComponent, setActiveComponent] = useState("Account Info");
-    const { user, logout } = useGlobalContext();
-    const [rerender, setRerender] = useState(0);
-    const [providerData, setProviderData] = useState(null); // State for API Data
-    const [loadingData, setLoadingData] = useState(true);
+  const [activeComponent, setActiveComponent] = useState("Account Info");
+  const { user, logout } = useGlobalContext();
+  const [rerender, setRerender] = useState(0);
+  const [providerData, setProviderData] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
 
-    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-    // 1. Fetch Data Once Here
-    useEffect(() => {
-        const fetchProviderProfile = async () => {
-            if (!user?.id) {
-                setLoadingData(false);
-                return;
-            }
+  useEffect(() => {
+    const fetchProviderProfile = async () => {
+      if (!user?.id) {
+        setLoadingData(false);
+        return;
+      }
 
-            try {
-                setLoadingData(true);
-                const response = await getProviderProfile(axiosInstance, user.id);
-                if (response.success) {
-                    setProviderData(response.data);
-                }
-            } catch (error) {
-                console.error("Error fetching provider profile:", error);
-            } finally {
-                setLoadingData(false);
-            }
-        };
-
-        fetchProviderProfile();
-    }, [user?.id, rerender]); // Added rerender to dependencies to allow refetching
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            setRerender(prev => prev + 1);
-        };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    useEffect(() => {
-        if (!user) return;
-        const userType = user?.userType?.toUpperCase();
-        const serviceProviderTypes = ["FUNDI", "CONTRACTOR", "PROFESSIONAL", "HARDWARE"];
-
-        if (serviceProviderTypes.includes(userType) && !user?.profileComplete) {
-            setActiveComponent("Account Info");
-        }
-    }, [user]);
-
-    const completionStatus = useMemo(() => {
-        const userType = user?.userType?.toLowerCase() || '';
-        // Prioritize providerData from API, fallback to user.userProfile
-        const up = providerData ? (providerData.userProfile || providerData) : user?.userProfile;
-
-        const getRequiredDocuments = () => {
-            const accountType = user?.accountType?.toLowerCase() || '';
-            // If it's a customer and individual, they need ID docs
-            if (userType === 'customer' && accountType === 'individual') {
-                return ['idFrontUrl', 'idBackUrl', 'krapin'];
-            }
-
-            const docMap: Record<string, string[]> = {
-                customer: ['businessPermit', 'certificateOfIncorporation', 'krapin'],
-                fundi: ['idFrontUrl', 'idBackUrl', 'certificateUrl', 'krapin'],
-                professional: ['idFrontUrl', 'idBackUrl', 'academicCertificateUrl', 'cvUrl', 'krapin', 'practiceLicense'],
-                contractor: ['businessRegistration', 'businessPermit', 'krapin', 'companyProfile'],
-                hardware: ['businessRegistration', 'krapin', 'singleBusinessPermit', 'companyProfile'],
-            };
-            return docMap[userType] || [];
-        };
-
-        const requiredDocs = getRequiredDocuments();
-        let uploadsComplete = false;
-
-        if (up) {
-            // Priority 1: Check the 'complete' flag from backend
-            if (up.profileComplete === true) {
-                uploadsComplete = true;
-            } else {
-                // Priority 2: Manual check of required documents
-                uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
-                    const value = up[key];
-                    if (value !== null && value !== undefined && value !== '') return true;
-
-                    // Fallback for backend naming inconsistencies (e.g. idFront vs idFrontUrl)
-                    const altKey = key.endsWith('Url') ? key.replace('Url', '') : `${key}Url`;
-                    const altValue = up[altKey];
-                    if (altValue !== null && altValue !== undefined && altValue !== '') return true;
-
-                    // Fallback for kraPIN/krapin inconsistency
-                    if (key === 'kraPIN' && up['krapin']) return true;
-
-                    return false;
-                });
-
-                // If there are no required docs for this type (shouldn't happen for providers), mark as complete
-                if (requiredDocs.length === 0) uploadsComplete = true;
-            }
+      try {
+        setLoadingData(true);
+        const response = await getProviderProfile(axiosInstance, user.id);
+        if (response.success) {
+          setProviderData(response.data);
         }
       } catch (error) {
         console.error("Error fetching provider profile:", error);
@@ -230,7 +151,6 @@ function ProfilePage() {
 ) {
   uploadsComplete = false;
 } else {
-  // PENDING or no status — run the granular field check
   if (userType === "contractor") {
     const hasBusinessReg =
       up?.businessRegistration || up?.certificateOfIncorporation;
@@ -288,7 +208,7 @@ function ProfilePage() {
 
     const userTypeUpper = (up?.userType || "").toUpperCase();
 
-    // Helper: required projects based on grade/level
+
     const getRequiredProjectCount = () => {
       if (userTypeUpper === "FUNDI") {
         const grade = up?.grade;
@@ -311,7 +231,7 @@ function ProfilePage() {
 
     const requiredProjects = getRequiredProjectCount();
 
-    // Get projects array based on user type
+
     const getProjectsArray = () => {
       switch (userTypeUpper) {
         case "FUNDI":
@@ -337,10 +257,10 @@ function ProfilePage() {
     });
     const hasEnoughProjects = projects.length >= requiredProjects;
 
-    // Check other required fields per user type
+
     let fieldsComplete = false;
     if (userTypeUpper === "CUSTOMER") {
-      fieldsComplete = true; // No experience section for customers
+      fieldsComplete = true; 
     } else if (userTypeUpper === "FUNDI") {
       const hasGrade = !!up?.grade;
       const hasExperience = !!up?.experience;
