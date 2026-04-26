@@ -2978,7 +2978,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           </h4>
                           <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                             <span>{cat.specialization}</span>
-                            <span className="text-blue-600 font-semibold">({cat.specialization})</span>
                           </div>
                         </div>
                       )}
