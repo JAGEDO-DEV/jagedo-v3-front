@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import React from 'react';
 import AccountInfo from './tabs/AccountInfo';
 import Address from './tabs/Address';
