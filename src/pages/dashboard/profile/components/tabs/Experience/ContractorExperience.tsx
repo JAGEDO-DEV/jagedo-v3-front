@@ -36,8 +36,8 @@ const CONTRACTOR_CATEGORY_OPTIONS = [
   "Water Works",
   "Electrical Works",
   "Mechanical Works",
-  "Roads & Infrastructure",
-  "Landscaping & External Works"
+  "Road Works",
+  "Landscaping External Works"
 ];
 
 const ContractorExperience = ({
@@ -689,10 +689,7 @@ const ContractorExperience = ({
         {/* Header with Approve Button */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
-
-
             {"Contractor Experience"}
-
           </h1>
           <div className="flex items-center gap-3">
             <StatusBadge status={userData?.experienceStatus || "pending"} />
@@ -778,15 +775,7 @@ const ContractorExperience = ({
         <form className="space-y-8">
           {/* Skills Section - Card Based Design */}
           <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-              <LucideInfoIcon className="w-5 h-5 text-blue-600" />
-
-
-              {"Contractor Experience"}
-
-            </h2>
-
-            {userType.toLowerCase() !== "contractor" && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {fields.map((field, index) => {
                 const isGradeField = field.name === "grade" || field.name === "professionalLevel";
                 const fieldValue = typeof info[field.name] === "string" ? info[field.name] : "";
@@ -834,7 +823,7 @@ const ContractorExperience = ({
                   </p>}
                 </div>;
               })}
-            </div>}
+            </div>
 
             {isEditingFields && <div className="mt-6 flex flex-col sm:sm:flex-row justify-end gap-3 border-t pt-4">
               <button type="button" className="w-full sm:w-auto px-6 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium text-sm" onClick={() => setIsEditingFields(false)} disabled={isSavingInfo}>
@@ -981,7 +970,6 @@ const ContractorExperience = ({
                     Selected Specialization
                   </h4>
                   <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    <span>{cat.specialization}</span>
                     <span className="text-blue-600 font-semibold">({cat.specialization})</span>
                   </div>
                 </div>}
