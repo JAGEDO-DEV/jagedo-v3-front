@@ -4,7 +4,7 @@ import AccountInfo from './tabs/AccountInfo';
 import Address from './tabs/Address';
 import Marketing from './tabs/Marketing';
 import AccountUploads from './tabs/AccountUploads';
-import Experience from './tabs/Experience';
+import Experience from './tabs/Experience/index';
 import Products from './tabs/Products';
 
 interface MainContentProps {

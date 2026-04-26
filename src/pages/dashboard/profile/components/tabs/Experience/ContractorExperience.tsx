@@ -4,16 +4,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import { useState, useEffect } from "react";
-import { ArrowDownTrayIcon, XMarkIcon, PencilIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, PencilIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { UploadCloud, FileText, CheckCircle, XCircle, EyeIcon, InfoIcon as LucideInfoIcon } from "lucide-react";
 import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle, FiInfo } from "react-icons/fi";
-import { SquarePen, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
-import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio, updateEvaluation } from "@/api/experience.api";
+import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience,  adminUpdateContractorExperience } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
-import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
+import { getSpecializationMappings } from "@/api/builderSkillsApi.api";
 import { getMasterDataValues } from "@/api/masterData";
 import { normalizeSkillName } from "@/utils/skillNameUtils";
 import axios from "axios";
@@ -31,14 +30,16 @@ const deepMerge = (target: any, source: any): any => {
   }
   return result;
 };
-const resolveSpecialization = (user: any) => {
-  if (!user) return "";
-  if (user.specialization) return user.specialization;
-  if (user.fundispecialization) return user.fundispecialization;
-  if (user.professionalSpecialization) return user.professionalSpecialization;
-  if (user.contractorSpecialization) return user.contractorSpecialization;
-  return "";
-};
+
+const CONTRACTOR_CATEGORY_OPTIONS = [
+  "Building Works",
+  "Water Works",
+  "Electrical Works",
+  "Mechanical Works",
+  "Roads & Infrastructure",
+  "Landscaping & External Works"
+];
+
 const ContractorExperience = ({
   userData,
   isAdmin = false,
@@ -62,11 +63,7 @@ const ContractorExperience = ({
   const [actionReason, setActionReason] = useState("");
   const userType = "CONTRACTOR";
   const status = userData?.experienceStatus;
-  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
-  const [isEditingEvaluation, setIsEditingEvaluation] = useState(false);
-  const [fundiSkills, setFundiSkills] = useState<any[]>([]);
   const [specMappings, setSpecMappings] = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
   const [specializationsByCategory, setSpecializationsByCategory] = useState<Record<string, any[]>>({});
@@ -76,21 +73,13 @@ const ContractorExperience = ({
 
   // Helper function to load specializations for a specific category
   const loadSpecializationsForCategory = async (categoryName: string) => {
-    if (!categoryName || !specMappings || !fundiSkills) {
+    if (!categoryName || !specMappings) {
       return [];
     }
     try {
       const normalizedField = normalizeSkillName(categoryName);
       const specTypeCode = specMappings[normalizedField];
       if (!specTypeCode) {
-        return [];
-      }
-      const selectedSkill = fundiSkills.find((s: any) => normalizeSkillName(s.skillName) === normalizedField);
-      if (!selectedSkill) {
-        return [];
-      }
-      const assignedSpecCodes = Array.isArray(selectedSkill.specializations) ? selectedSkill.specializations : [];
-      if (assignedSpecCodes.length === 0) {
         return [];
       }
       const authAxios = axios.create({
@@ -100,107 +89,38 @@ const ContractorExperience = ({
       });
       const specsRes = await getMasterDataValues(authAxios, specTypeCode);
       const allSpecs = Array.isArray(specsRes) ? specsRes : specsRes?.data || specsRes?.values || [];
-      const filteredSpecs = allSpecs.filter((spec: any) => {
-        const specCode = typeof spec === 'string' ? spec : spec?.code || spec?.name || "";
-        return assignedSpecCodes.includes(specCode);
-      });
-      return filteredSpecs;
+      return allSpecs;
     } catch (error) {
       console.error(`Failed to load specializations for ${categoryName}:`, error);
       return [];
     }
   };
+
   useEffect(() => {
-    const fetchQuestions = async () => {
-      setIsLoadingQuestions(true);
+    const loadMappings = async () => {
       try {
-        let skillOrProfession = "";
-        const sourceData = userData?.userProfile || userData || {};
-        console.log("💾 userData keys:", Object.keys(userData || {}));
-        console.log("💾 userData?.userProfile keys:", Object.keys(userData?.userProfile || {}));
-        console.log("💾 sourceData:", sourceData);
-        skillOrProfession = sourceData?.contractorTypes || sourceData?.category || editingFields?.category || "";
-        console.log("🔍 Fetching questions with filters:", {
-          userType: userType,
-          skillName: skillOrProfession,
-          isActive: true
+        setSkillsLoading(true);
+        const authAxios = axios.create({
+          headers: {
+            Authorization: getAuthHeaders()
+          }
         });
-        const response = await getEvaluationQuestions(axiosInstance, {
-          userType: userType,
-          skillName: skillOrProfession,
-          isActive: true
-        });
-        console.log("📥 API Response:", response);
-        const extractedData = Array.isArray(response) ? response : response?.data && Array.isArray(response.data) ? response.data : Array.isArray(response?.result) ? response.result : [];
-        console.log(`✅ Extracted ${extractedData.length} questions for ${skillOrProfession}`);
-        setAvailableQuestions(extractedData);
-      } catch (error: any) {
-        console.error("Failed to fetch questions:", error);
-        setAvailableQuestions([]);
+        const mappingsRes = await getSpecializationMappings(authAxios, userType);
+        setSpecMappings(mappingsRes);
+      } catch (error) {
+        console.error(`Failed to load ${userType} spec mappings:`, error);
       } finally {
-        setIsLoadingQuestions(false);
+        setSkillsLoading(false);
       }
     };
-    if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
-      fetchQuestions();
-    }
-  }, [userType, userData?.id, userData?.skill, userData?.profession, userData?.contractorTypes, userData?.hardwareType, editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType]);
-  useEffect(() => {
-    if (availableQuestions.length > 0) {
-      const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-      if (evaluation) {
-        prefillQuestionsFromData();
-      } else {
-        const initial = availableQuestions.map((q: any) => ({
-          id: q.id,
-          text: q.text,
-          type: q.type,
-          options: q.options || [],
-          answer: "",
-          score: 0,
-          isEditing: false,
-          isDraft: false,
-          isPreset: q.isPreset ?? true
-        }));
-        setQuestions(initial);
-      }
-    } else if (availableQuestions.length === 0 && !isLoadingQuestions) {
-      setQuestions([]);
-    }
-  }, [availableQuestions, userData?.fundiEvaluation, userData?.userProfile?.fundiEvaluation, isLoadingQuestions]);
-  useEffect(() => {
-    if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
-      const loadSkillsAndMappings = async () => {
-        try {
-          setSkillsLoading(true);
-          const authAxios = axios.create({
-            headers: {
-              Authorization: getAuthHeaders()
-            }
-          });
-          const skillsRes = await getBuilderSkillsByType(authAxios, userType);
-          const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
-          setFundiSkills(activeSkills);
-          const mappingsRes = await getSpecializationMappings(authAxios, userType);
-          setSpecMappings(mappingsRes);
-        } catch (error) {
-          console.error(`Failed to load ${userType} skills:`, error);
-        } finally {
-          setSkillsLoading(false);
-        }
-      };
-      loadSkillsAndMappings();
-    }
+    loadMappings();
   }, [userType]);
+
   useEffect(() => {
     const sourceData = isEditingFields ? editingFields : userData?.userProfile || userData || {};
     let triggerField: string | undefined;
     triggerField = sourceData?.category || sourceData?.contractorTypes;
     if (!triggerField) {
-      setSpecializations([]);
-      return;
-    }
-    if (!['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       setSpecializations([]);
       return;
     }
@@ -214,25 +134,6 @@ const ContractorExperience = ({
           setSpecializations([]);
           return;
         }
-        const selectedSkill = fundiSkills.find((s: any) => normalizeSkillName(s.skillName) === normalizedField);
-        if (!selectedSkill) {
-          console.warn(`Skill not found for: ${triggerField}, falling back to all master data`);
-          const authAxios = axios.create({
-            headers: {
-              Authorization: getAuthHeaders()
-            }
-          });
-          const specsRes = await getMasterDataValues(authAxios, specTypeCode);
-          const specs = Array.isArray(specsRes) ? specsRes : specsRes?.data || specsRes?.values || [];
-          setSpecializations(specs);
-          return;
-        }
-        const assignedSpecCodes = Array.isArray(selectedSkill.specializations) ? selectedSkill.specializations : [];
-        if (assignedSpecCodes.length === 0) {
-          console.info(`No specializations assigned to skill: ${selectedSkill.skillName}`);
-          setSpecializations([]);
-          return;
-        }
         const authAxios = axios.create({
           headers: {
             Authorization: getAuthHeaders()
@@ -240,11 +141,7 @@ const ContractorExperience = ({
         });
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         const allSpecs = Array.isArray(specsRes) ? specsRes : specsRes?.data || specsRes?.values || [];
-        const filteredSpecs = allSpecs.filter((spec: any) => {
-          const specCode = typeof spec === 'string' ? spec : spec?.code || spec?.name || "";
-          return assignedSpecCodes.includes(specCode);
-        });
-        setSpecializations(filteredSpecs);
+        setSpecializations(allSpecs);
       } catch (error) {
         console.error('Failed to load specializations:', error);
         setSpecializations([]);
@@ -253,51 +150,8 @@ const ContractorExperience = ({
       }
     };
     loadSpecializations();
-  }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, userData?.skill, userData?.profession, userData?.category, userData?.hardwareType, userData?.fundiSpecialization, userData?.professionalSpecialization, userData?.contractorTypes, userData?.levelOrClass, specMappings, userType, isEditingFields, fundiSkills]);
-  const prefillQuestionsFromData = () => {
-    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-    if (!evaluation || !availableQuestions.length) return;
-    const prefilled = availableQuestions.map((q: any, index: number) => {
-      let answer = "";
-      let score = 0;
-      const savedResponse = evaluation.responses?.find((r: any) => r.questionId === q.id || r.text === q.text);
-      if (savedResponse) {
-        answer = savedResponse.answer;
-        score = savedResponse.score;
-      } else if (index < 4) {
-        const legacyFields = [{
-          ans: evaluation.hasMajorWorks,
-          sc: evaluation.majorWorksScore
-        }, {
-          ans: evaluation.materialsUsed,
-          sc: evaluation.materialsUsedScore
-        }, {
-          ans: evaluation.essentialEquipment,
-          sc: evaluation.essentialEquipmentScore
-        }, {
-          ans: evaluation.quotationFormulation,
-          sc: evaluation.quotationFormulaScore
-        }];
-        if (legacyFields[index]) {
-          answer = legacyFields[index].ans || "";
-          score = legacyFields[index].sc || 0;
-        }
-      }
-      return {
-        id: q.id,
-        text: q.text,
-        type: q.type,
-        options: q.options || [],
-        answer,
-        score,
-        isEditing: false,
-        isDraft: false,
-        isPreset: q.isPreset ?? true
-      };
-    });
-    setQuestions(prefilled);
-  };
-  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
+  }, [editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType, userData?.skill, userData?.profession, userData?.category, userData?.hardwareType, userData?.fundiSpecialization, userData?.professionalSpecialization, userData?.contractorTypes, userData?.levelOrClass, specMappings, userType, isEditingFields]);
+
   const getInitialAttachments = () => {
     if (!userData) {
       return [];
@@ -323,20 +177,6 @@ const ContractorExperience = ({
         files
       };
     });
-  };
-  const profileUploaded = userData => {
-    switch (userData?.userType) {
-      case "FUNDI":
-        return userData?.previousJobPhotoUrls && userData?.previousJobPhotoUrls.length > 0;
-      case "PROFESSIONAL":
-        return userData?.userProfile?.specialization.professionalLevel;
-      case "CONTRACTOR":
-        return userData?.contractorProjects && userData?.contractorProjects.length > 0;
-      case "HARDWARE":
-        return userData?.hardwareProjects && userData?.hardwareProjects.length > 0;
-      default:
-        return false;
-    }
   };
   const getProjectFieldName = () => {
     return "Contractor Projects";
@@ -395,7 +235,7 @@ const ContractorExperience = ({
         }
         setSpecializationsByCategory(specsByCategory);
 
-        // Also update the global specializations for the first category (for backward compatibility if needed)
+        // Also update the global specializations for the first category
         const firstCategory = categories.find(c => c.category);
         if (firstCategory && specsByCategory[firstCategory.category]) {
           setSpecializations(specsByCategory[firstCategory.category]);
@@ -408,7 +248,8 @@ const ContractorExperience = ({
       }
     };
     loadAllContractorSpecializations();
-  }, [categories, specMappings, userType, fundiSkills]);
+  }, [categories, specMappings, userType]);
+
   type ContractorCategory = {
     category: string;
     specialization: string;
@@ -417,7 +258,6 @@ const ContractorExperience = ({
     projectFile?: File;
     referenceFile?: File;
   };
-  const CATEGORY_OPTIONS = ["Building Works", "Water Works", "Electrical Works", "Mechanical Works"];
   const [attachments, setAttachments] = useState(getInitialAttachments());
   const [uploadingProjects, setUploadingProjects] = useState<{
     [key: string]: boolean;
@@ -486,11 +326,10 @@ const ContractorExperience = ({
 
   useEffect(() => { }, [totalScore, userType, isAdmin, isEditingFields, info.grade, editingFields.grade]);
   const getFieldsConfig = () => {
-    const currentData = isEditingFields ? editingFields : info;
     return [{
       name: "category",
       label: "Category",
-      options: fundiSkills.length > 0 ? fundiSkills.map(s => s.skillName) : ["Building Works", "Water Works", "Electrical Works", "Mechanical Works", "Roads & Infrastructure", "Landscaping & External Works"]
+      options: CONTRACTOR_CATEGORY_OPTIONS
     }, {
       name: "specialization",
       label: "Specialization",
@@ -510,45 +349,8 @@ const ContractorExperience = ({
     }];
   };
   const fields = getFieldsConfig();
-  const handleFileUpload = (e, rowIndex) => {
-    const selectedFiles = Array.from(e.target.files);
-    if (selectedFiles.length === 0) return;
-    const loadingKey = `add-${rowIndex}`;
-    setFileActionLoading(prev => ({
-      ...prev,
-      [loadingKey]: true
-    }));
-    const toastId = toast.loading("Processing files...");
-    setAttachments(prev => {
-      const newAttachments = prev.map((a, i) => ({
-        ...a,
-        files: [...a.files]
-      }));
-      const existingCount = newAttachments[rowIndex].files.length;
-      selectedFiles.forEach((file, i) => {
-        const slotIndex = existingCount + i;
-        newAttachments[rowIndex].files.push({
-          name: file.name,
-          url: URL.createObjectURL(file),
-          rawFile: file,
-          role: slotIndex === 0 ? "projectFile" : "referenceLetterUrl"
-        });
-      });
-      return newAttachments;
-    });
-    toast.success("Files added to project locally.", {
-      id: toastId
-    });
-    setFileActionLoading(prev => ({
-      ...prev,
-      [loadingKey]: false
-    }));
-  };
   const getRequiredProjectCount = () => {
-    const currentGrade = isEditingFields ? editingFields.grade : info.grade;
-    const currentLevel = isEditingFields ? editingFields.professionalLevel : info.professionalLevel;
     return categories.filter(c => c.category).length;
-    ;
   };
   const requiredProjectCount = getRequiredProjectCount();
   const missingProjectCount = Math.max(0, requiredProjectCount - attachments.length);
@@ -598,56 +400,6 @@ const ContractorExperience = ({
       [projectId]: false
     }));
   };
-  const updateUserProjects = updatedAttachments => {
-    try {
-      const profile = userData?.userProfile || {};
-      const cleanAttachments = updatedAttachments.filter(project => project && project.projectName).map(project => ({
-        id: project.id,
-        projectName: project.projectName.trim(),
-        files: project.files.filter(file => file && file.url && file.url.trim())
-      })).filter(project => project.files.length > 0);
-      const projectData = cleanAttachments.flatMap(project => project.files.map(file => ({
-        projectName: project.projectName,
-        fileUrl: file.url,
-        projectFile: file.url
-      })));
-      const profileKey = "contractorProjects";
-      const updatedProfile = {
-        ...profile,
-        [profileKey]: projectData
-      };
-      userData.userProfile = updatedProfile;
-    } catch (error) {
-      console.error("Update projects error:", error);
-      throw error;
-    }
-  };
-  const handleReplaceFile = (e, rowIndex, fileIndex) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const toastId = toast.loading("Replacing file...");
-    let updatedAttachments;
-    setAttachments(prev => {
-      const newAttachments = [...prev];
-      if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
-        newAttachments[rowIndex].files[fileIndex] = {
-          name: file.name,
-          url: URL.createObjectURL(file),
-          rawFile: file
-        };
-      }
-      updatedAttachments = newAttachments;
-      return newAttachments;
-    });
-    e.target.value = "";
-    toast.success("File replaced locally.", {
-      id: toastId
-    });
-    setFileActionLoading(prev => ({
-      ...prev,
-      [loadingKey]: false
-    }));
-  };
   const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
     setFileActionLoading(prev => ({
@@ -675,91 +427,6 @@ const ContractorExperience = ({
       [loadingKey]: false
     }));
   };
-  const addNewQuestion = () => {
-    if (!isAdmin) return;
-    const tempId = `draft-${Date.now()}`;
-    const newQuestion = {
-      id: tempId,
-      text: "New evaluation question",
-      type: "open",
-      answer: "",
-      score: 0,
-      isEditing: true,
-      isDraft: true
-    };
-    setQuestions(prev => [...prev, newQuestion]);
-  };
-  const handleSaveNewQuestion = async (draft: any) => {
-    if (!draft.isDraft) return;
-    setIsLoadingQuestions(true);
-    try {
-      let skillName = "";
-      const sourceData = userData?.userProfile || userData || {};
-      skillName = sourceData?.contractorTypes || sourceData?.category || editingFields?.category || "";
-      const payload = {
-        text: draft.text,
-        type: (draft.type || "OPEN").toUpperCase(),
-        options: draft.options ? Array.isArray(draft.options) ? JSON.stringify(draft.options) : draft.options : null,
-        userType: userType,
-        skillName: skillName,
-        category: userType,
-        isActive: true,
-        isPreset: false
-      };
-      const response = await createEvaluationQuestion(axiosInstance, payload);
-      const realQuestion = response?.data || response;
-      setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === draft.id ? {
-        ...q,
-        id: realQuestion.id,
-        isEditing: false,
-        isDraft: false
-      } : q));
-      setAvailableQuestions(prev => [...(Array.isArray(prev) ? prev : []), realQuestion]);
-      toast.success("Question created and synced");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save question");
-    } finally {
-      setIsLoadingQuestions(false);
-    }
-  };
-  const handleDeleteQuestion = async (questionId: any) => {
-    const q = questions.find(item => item.id === questionId);
-    if (!q) return;
-    if (!isAdmin || !window.confirm("Are you sure you want to delete this question?")) return;
-    if (q.isDraft) {
-      setQuestions(prev => prev.filter(item => item.id !== questionId));
-      return;
-    }
-    setIsLoadingQuestions(true);
-    try {
-      await deleteEvaluationQuestion(axiosInstance, questionId);
-      setAvailableQuestions(prev => (Array.isArray(prev) ? prev : []).filter(q => q.id !== questionId));
-      setQuestions(prev => (Array.isArray(prev) ? prev : []).filter(q => q.id !== questionId));
-      toast.success("Question deleted");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete question");
-    } finally {
-      setIsLoadingQuestions(false);
-    }
-  };
-  const handleUpdateTemplate = async (questionId: any, text: string, type: string, options?: string[]) => {
-    if (!isAdmin) return;
-    const q = questions.find(item => item.id === questionId);
-    if (!q || q.isDraft) return;
-    try {
-      const payload = {
-        text,
-        type: type.toUpperCase(),
-        options
-      };
-      const response = await updateEvaluationQuestion(axiosInstance, questionId, payload);
-      const updated = response?.data || response;
-      setAvailableQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === questionId ? updated : q));
-      toast.success("Question updated successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update question");
-    }
-  };
   useEffect(() => {
     setNewProjects(prev => {
       const updated = {
@@ -780,39 +447,6 @@ const ContractorExperience = ({
       return changed ? updated : prev;
     });
   }, [missingProjectCount]);
-  const handleTextChange = (id, value) => {
-    setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === id ? {
-      ...q,
-      answer: value
-    } : q));
-  };
-  const handleScoreChange = (id, value) => {
-    const num = parseFloat(value) || 0;
-    if (num > 100) return;
-    setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === id ? {
-      ...q,
-      score: num
-    } : q));
-  };
-  const handleEditToggle = id => {
-    setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === id ? {
-      ...q,
-      isEditing: !q.isEditing
-    } : q));
-  };
-  const handleQuestionEdit = async (id, newText) => {
-    setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === id ? {
-      ...q,
-      text: newText,
-      isEditing: false
-    } : q));
-    if (isAdmin) {
-      const q = questions.find(item => item.id === id);
-      if (q && !q.isDraft) {
-        handleUpdateTemplate(id, newText, q.type, q.options);
-      }
-    }
-  };
   const closeActionModal = () => {
     setActionModal({
       isOpen: false,
@@ -964,30 +598,6 @@ const ContractorExperience = ({
       setShowVerificationMessage(true);
     }
   }, [userData]);
-  const handleVerify = async () => {
-    setIsVerifying(true);
-    const userId = userData.id;
-    if (!userId) {
-      toast.error("User ID not found.");
-      setIsVerifying(false);
-      return;
-    }
-    try {
-      await handleVerifyUser(axiosInstance, userId);
-      toast.success("User verified successfully!");
-      localStorage.setItem("showVerificationMessage", "true");
-      setShowVerificationMessage(true);
-      window.location.reload();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to verify user");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-  const handleClose = () => {
-    localStorage.removeItem("showVerificationMessage");
-    setShowVerificationMessage(false);
-  };
 
   const handleSaveChanges = async () => {
     setIsSavingInfo(true);
@@ -1057,7 +667,6 @@ const ContractorExperience = ({
     }
   };
   const isExperienceReadyToApprove = (): boolean => {
-    const requiredCount = getRequiredProjectCount();
     {
       const hasValidCategories = categories.some(c => c.category && c.class && c.years);
       const hasEnoughProjects = attachments.length >= 1 && attachments.every(a => a.files.length > 0);
@@ -1066,7 +675,6 @@ const ContractorExperience = ({
   };
   const readyToApprove = isExperienceReadyToApprove();
   const canSaveChanges = (): boolean => {
-    const requiredCount = getRequiredProjectCount();
     {
       const hasValidCategories = categories.some(c => c.category && c.class && c.years && c.specialization);
       const hasEnoughProjects = attachments.length >= 1 && attachments.every(a => a.files.length > 0);
@@ -1309,11 +917,9 @@ const ContractorExperience = ({
                       });
                     }} className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                       <option value="">Select category</option>
-                      {fundiSkills.length > 0 ? fundiSkills.map((skill, i) => <option key={i} value={skill.skillName}>
-                        {skill.skillName}
-                      </option>) : Object.keys([]).map((cat, i) => <option key={i} value={cat}>
-                        {cat}
-                      </option>)}
+                      {CONTRACTOR_CATEGORY_OPTIONS.map((option, i) => (
+                        <option key={i} value={option}>{option}</option>
+                      ))}
                     </select>
                   </div>
 

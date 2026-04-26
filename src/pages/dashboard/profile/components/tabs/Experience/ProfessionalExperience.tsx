@@ -9,8 +9,8 @@ import { UploadCloud, FileText, CheckCircle, XCircle, EyeIcon, InfoIcon as Lucid
 import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle, FiInfo } from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
-import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio, updateEvaluation } from "@/api/experience.api";
+import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
+import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateProfessionalExperience } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
 import { getBuilderSkillsByType, getSpecializationMappings } from "@/api/builderSkillsApi.api";
@@ -110,64 +110,6 @@ const ProfessionalExperience = ({
       return [];
     }
   };
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      setIsLoadingQuestions(true);
-      try {
-        let skillOrProfession = "";
-        const sourceData = userData?.userProfile || userData || {};
-        console.log("💾 userData keys:", Object.keys(userData || {}));
-        console.log("💾 userData?.userProfile keys:", Object.keys(userData?.userProfile || {}));
-        console.log("💾 sourceData:", sourceData);
-        skillOrProfession = sourceData?.profession || editingFields?.profession || "";
-        console.log("🔍 Fetching questions with filters:", {
-          userType: userType,
-          skillName: skillOrProfession,
-          isActive: true
-        });
-        const response = await getEvaluationQuestions(axiosInstance, {
-          userType: userType,
-          skillName: skillOrProfession,
-          isActive: true
-        });
-        console.log("📥 API Response:", response);
-        const extractedData = Array.isArray(response) ? response : response?.data && Array.isArray(response.data) ? response.data : Array.isArray(response?.result) ? response.result : [];
-        console.log(`✅ Extracted ${extractedData.length} questions for ${skillOrProfession}`);
-        setAvailableQuestions(extractedData);
-      } catch (error: any) {
-        console.error("Failed to fetch questions:", error);
-        setAvailableQuestions([]);
-      } finally {
-        setIsLoadingQuestions(false);
-      }
-    };
-    if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
-      fetchQuestions();
-    }
-  }, [userType, userData?.id, userData?.skill, userData?.profession, userData?.contractorTypes, userData?.hardwareType, editingFields?.skill, editingFields?.profession, editingFields?.category, editingFields?.hardwareType]);
-  useEffect(() => {
-    if (availableQuestions.length > 0) {
-      const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
-      if (evaluation) {
-        prefillQuestionsFromData();
-      } else {
-        const initial = availableQuestions.map((q: any) => ({
-          id: q.id,
-          text: q.text,
-          type: q.type,
-          options: q.options || [],
-          answer: "",
-          score: 0,
-          isEditing: false,
-          isDraft: false,
-          isPreset: q.isPreset ?? true
-        }));
-        setQuestions(initial);
-      }
-    } else if (availableQuestions.length === 0 && !isLoadingQuestions) {
-      setQuestions([]);
-    }
-  }, [availableQuestions, userData?.fundiEvaluation, userData?.userProfile?.fundiEvaluation, isLoadingQuestions]);
   useEffect(() => {
     if (['FUNDI', 'PROFESSIONAL', 'CONTRACTOR', 'HARDWARE'].includes(userType)) {
       const loadSkillsAndMappings = async () => {
@@ -600,58 +542,6 @@ const ProfessionalExperience = ({
     }));
   };
 
-  const handleSaveNewQuestion = async (draft: any) => {
-    if (!draft.isDraft) return;
-    setIsLoadingQuestions(true);
-    try {
-      let skillName = "";
-      const sourceData = userData?.userProfile || userData || {};
-      skillName = sourceData?.profession || editingFields?.profession || "";
-      const payload = {
-        text: draft.text,
-        type: (draft.type || "OPEN").toUpperCase(),
-        options: draft.options ? Array.isArray(draft.options) ? JSON.stringify(draft.options) : draft.options : null,
-        userType: userType,
-        skillName: skillName,
-        category: userType,
-        isActive: true,
-        isPreset: false
-      };
-      const response = await createEvaluationQuestion(axiosInstance, payload);
-      const realQuestion = response?.data || response;
-      setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === draft.id ? {
-        ...q,
-        id: realQuestion.id,
-        isEditing: false,
-        isDraft: false
-      } : q));
-      setAvailableQuestions(prev => [...(Array.isArray(prev) ? prev : []), realQuestion]);
-      toast.success("Question created and synced");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save question");
-    } finally {
-      setIsLoadingQuestions(false);
-    }
-  };
-
-  const handleUpdateTemplate = async (questionId: any, text: string, type: string, options?: string[]) => {
-    if (!isAdmin) return;
-    const q = questions.find(item => item.id === questionId);
-    if (!q || q.isDraft) return;
-    try {
-      const payload = {
-        text,
-        type: type.toUpperCase(),
-        options
-      };
-      const response = await updateEvaluationQuestion(axiosInstance, questionId, payload);
-      const updated = response?.data || response;
-      setAvailableQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === questionId ? updated : q));
-      toast.success("Question updated successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update question");
-    }
-  };
   useEffect(() => {
     setNewProjects(prev => {
       const updated = {
@@ -692,19 +582,7 @@ const ProfessionalExperience = ({
       isEditing: !q.isEditing
     } : q));
   };
-  const handleQuestionEdit = async (id, newText) => {
-    setQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === id ? {
-      ...q,
-      text: newText,
-      isEditing: false
-    } : q));
-    if (isAdmin) {
-      const q = questions.find(item => item.id === id);
-      if (q && !q.isDraft) {
-        handleUpdateTemplate(id, newText, q.type, q.options);
-      }
-    }
-  };
+
   const closeActionModal = () => {
     setActionModal({
       isOpen: false,
