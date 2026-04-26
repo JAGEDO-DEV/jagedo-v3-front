@@ -1135,7 +1135,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 rounded-xl">
       <Toaster position="top-center" />
       {renderActionModal()}
 
@@ -1475,7 +1475,7 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                         <FileText className="w-5 h-5" />
                         {categoryName} Credentials
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                         {catDocs.map((doc) => (
                           <DocumentCard key={doc.key} doc={doc} />
                         ))}
