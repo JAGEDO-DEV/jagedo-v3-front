@@ -116,7 +116,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
       : 0;
 
-  // Helper function to load specializations for a specific category
+  
   const loadSpecializationsForCategory = async (categoryName: string) => {
     if (!categoryName || !specMappings || !fundiSkills) {
       return [];
@@ -606,12 +606,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
   const getInitialCategories = (): ContractorCategory[] => {
-    // 1. Check contractorTypes first (highest priority, matches AccountUploads.tsx)
+    
     if (userData?.contractorTypes) {
       const types = userData.contractorTypes.split(",").map(t => t.trim()).filter(Boolean);
       if (types.length > 0) {
         return types.map(t => {
-          // Try to find matching metadata from other arrays if available
+          
           const catMeta = (userData.contractorCategories || []).find((c: any) => c.category === t);
           const expMeta = (userData.contractorExperiences || []).find((e: any) => e.category === t);
           
@@ -627,7 +627,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       }
     }
 
-    // 2. Check contractorCategories
+    
     if (
       userData?.contractorCategories &&
       Array.isArray(userData.contractorCategories) &&
@@ -643,7 +643,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       }));
     }
 
-    // 3. Check contractorExperiences
+    
     if (
       userData?.contractorExperiences &&
       Array.isArray(userData.contractorExperiences) &&
@@ -677,7 +677,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         setSpecsLoading(true);
         const specsByCategory: Record<string, any[]> = {};
 
-        // Load specializations for each category
+        
         for (const cat of categories) {
           if (cat.category) {
             const specs = await loadSpecializationsForCategory(cat.category);
@@ -687,7 +687,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         setSpecializationsByCategory(specsByCategory);
         
-        // Also update the global specializations for the first category (for backward compatibility if needed)
+        
         const firstCategory = categories.find(c => c.category);
         if (firstCategory && specsByCategory[firstCategory.category]) {
           setSpecializations(specsByCategory[firstCategory.category]);
@@ -817,7 +817,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         if (cat.category) {
           const expectedCategoryNameTokens = cat.category.toLowerCase().split(' ');
 
-          // Match loosely (e.g. "Building Works Project" vs "Building Works")
+          
           const projectExists = existingProjectNames.some(name =>
             expectedCategoryNameTokens.every(token => name?.includes(token))
           );
@@ -2261,6 +2261,51 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       );
     });
 
+  const hasAnyChanges = (): boolean => {
+    const initialInfo = getInitialInfo();
+    const initialAttachments = getInitialAttachments();
+    const initialCategories = getInitialCategories();
+
+    
+    const currentFields = isEditingFields ? editingFields : info;
+    const fieldsChanged = Object.keys(initialInfo).some(
+      (key) => currentFields[key] !== initialInfo[key]
+    );
+    if (fieldsChanged) return true;
+
+    
+    if (attachments.length !== initialAttachments.length) return true;
+    const attachmentsChanged = attachments.some((att, i) => {
+      const init = initialAttachments[i];
+      if (!init) return true;
+      if (att.projectName !== init.projectName) return true;
+      if (att.files.length !== init.files.length) return true;
+      return att.files.some((f, j) => {
+        const initFile = init.files[j];
+        return f.url !== initFile?.url || !!f.rawFile;
+      });
+    });
+    if (attachmentsChanged) return true;
+
+    
+    if (userType === "CONTRACTOR") {
+      if (categories.length !== initialCategories.length) return true;
+      const categoriesChanged = categories.some((cat, i) => {
+        const init = initialCategories[i];
+        if (!init) return true;
+        return (
+          cat.category !== init.category ||
+          cat.specialization !== init.specialization ||
+          cat.class !== init.class ||
+          cat.years !== init.years
+        );
+      });
+      if (categoriesChanged) return true;
+    }
+
+    return false;
+  };
+
   const canSaveChanges = (): boolean => {
     const requiredCount = getRequiredProjectCount();
 
@@ -2352,11 +2397,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
   return (
-    <div className="flex">
+    <div className="flex justify-center">
       <Toaster position="top-center" richColors />
-      <div className="bg-gray-50 min-h-screen w-full relative">
+      <div className="bg-gray-50 min-h-screen w-full p-5 relative rounded-xl">
         {renderActionModal()}
-        <div className="max-w-6xl bg-white rounded-xl shadow-lg p-8">
+        <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-8">
           {/* Header with Approve Button */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-800">
@@ -2760,7 +2805,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               updatedCategories[index].specialization = "";
                               setCategories(updatedCategories);
 
-                              // Load specializations for the newly selected category
+                              
                               if (newCategory) {
                                 loadSpecializationsForCategory(newCategory).then(specs => {
                                   setSpecializationsByCategory(prev => ({
@@ -2971,7 +3016,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                   <button
                     type="button"
                     onClick={handleSaveChanges}
-                    disabled={isSavingInfo}
+                    disabled={isSavingInfo || !hasAnyChanges()}
                     className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold"
                   >
                     {isSavingInfo ? "Saving..." : "Save Categories"}
@@ -3226,13 +3271,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       <p className="max-w-md italic">
                         {!canSaveChanges()
                           ? "Please fill all required fields and add all required projects before saving."
-                          : "Remember to save your changes to persist the updated project list."}
+                          : !hasAnyChanges()
+                            ? "No changes detected to save."
+                            : "Remember to save your changes to persist the updated project list."}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={handleSaveChanges}
-                      disabled={isSavingInfo || !canSaveChanges()}
+                      disabled={isSavingInfo || !canSaveChanges() || !hasAnyChanges()}
                       title={
                         !canSaveChanges()
                           ? "Please fill all required fields: Specialization, Grade/Level, Years of Experience, and add all required projects"
@@ -3580,12 +3627,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                   <div className="px-6 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-500 italic">
                       <FiInfo className="w-4 h-4 text-blue-500" />
-                      {!canSaveChanges() ? "Please fill all required fields and add all required projects before saving." : "Remember to save your changes to persist the updated project list."}
+                      {!canSaveChanges()
+                        ? "Please fill all required fields and add all required projects before saving."
+                        : !hasAnyChanges()
+                          ? "No changes detected to save."
+                          : "Remember to save your changes to persist the updated project list."}
                     </div>
                     <button
                       type="button"
                       onClick={handleSaveChanges}
-                      disabled={isSavingInfo || !canSaveChanges()}
+                      disabled={isSavingInfo || !canSaveChanges() || !hasAnyChanges()}
                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold text-sm shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       {isSavingInfo ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <FiCheck className="w-5 h-5" />}

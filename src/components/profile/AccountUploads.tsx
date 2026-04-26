@@ -341,9 +341,9 @@ const AccountUploads = ({ data, refreshData }) => {
     (f) => !!documents[f.key] && isSatisfied(f.key),
   );
 
-  const isReadOnly = !["RESUBMIT", "INCOMPLETE", "REJECTED"].includes(
-    data?.documentStatus,
-  ) || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isAccountRestricted = data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isSubmissionLocked = !["RESUBMIT", "INCOMPLETE", "REJECTED"].includes(data?.documentStatus);
+  const isReadOnly = isAccountRestricted; 
 
   const totalUploaded = fields.filter((f) => !!documents[f.key]).length;
   const totalApproved = fields.filter(
@@ -710,7 +710,7 @@ const AccountUploads = ({ data, refreshData }) => {
                   onReplace={(file) => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
                   isReplacing={!!replacingFiles[f.key]}
-                  disabled={isReadOnly || isSubmitting}
+                  disabled={isAccountRestricted || isSubmitting || (isSubmissionLocked && !!documents[f.key] && !pendingFiles[f.key] && approvalStatus[f.key]?.status !== 'rejected' && approvalStatus[f.key]?.status !== 'resubmit')}
                 />
               ))}
             </div>
@@ -721,7 +721,7 @@ const AccountUploads = ({ data, refreshData }) => {
                   Please upload all required documents before saving.
                 </p>
               )}
-              {!isReadOnly && (
+              {(!isSubmissionLocked || hasPendingFiles) && !isAccountRestricted && (
                 <button
                   onClick={handleSaveDocuments}
                   disabled={
@@ -867,7 +867,7 @@ const AccountUploads = ({ data, refreshData }) => {
                     onReplace={(file) => replaceDocument(file, f.key)}
                     isUploading={isSubmitting && !!pendingFiles[f.key]}
                     isReplacing={!!replacingFiles[f.key]}
-                    disabled={isReadOnly || isSubmitting}
+                    disabled={isAccountRestricted || isSubmitting || (isSubmissionLocked && !!documents[f.key] && !pendingFiles[f.key] && approvalStatus[f.key]?.status !== 'rejected' && approvalStatus[f.key]?.status !== 'resubmit')}
                   />
                 ))}
               </div>
@@ -905,7 +905,7 @@ const AccountUploads = ({ data, refreshData }) => {
                             onReplace={(file) => replaceDocument(file, certKey)}
                             isUploading={isSubmitting && !!pendingFiles[certKey]}
                             isReplacing={!!replacingFiles[certKey]}
-                            disabled={isReadOnly || isSubmitting}
+                            disabled={isAccountRestricted || isSubmitting || (isSubmissionLocked && !!documents[certKey] && !pendingFiles[certKey] && approvalStatus[certKey]?.status !== 'rejected' && approvalStatus[certKey]?.status !== 'resubmit')}
                           />
                           <DocumentCard
                             label={`${cat} Practice License`}
@@ -922,7 +922,7 @@ const AccountUploads = ({ data, refreshData }) => {
                               isSubmitting && !!pendingFiles[licenseKey]
                             }
                             isReplacing={!!replacingFiles[licenseKey]}
-                            disabled={isReadOnly || isSubmitting}
+                            disabled={isAccountRestricted || isSubmitting || (isSubmissionLocked && !!documents[licenseKey] && !pendingFiles[licenseKey] && approvalStatus[licenseKey]?.status !== 'rejected' && approvalStatus[licenseKey]?.status !== 'resubmit')}
                           />
                         </div>
                       </div>
@@ -938,7 +938,7 @@ const AccountUploads = ({ data, refreshData }) => {
                   Please upload all required documents before saving.
                 </p>
               )}
-              {!isReadOnly && (
+              {(!isSubmissionLocked || hasPendingFiles) && !isAccountRestricted && (
                 <button
                   onClick={handleSaveDocuments}
                   disabled={
