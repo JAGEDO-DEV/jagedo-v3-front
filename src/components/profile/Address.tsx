@@ -6,7 +6,7 @@ import { updateAddress } from "@/api/provider.api";
 import { counties } from "@/pages/data/counties";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
-// Accept data and refreshData props
+
 const Address = ({ data, refreshData }) => {
   const [address, setAddress] = useState({
     country: "Kenya",
@@ -60,7 +60,8 @@ const Address = ({ data, refreshData }) => {
 
   if (loading && !data) return <div className="p-8">Loading address...</div>;
 
-  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isComplete = !!(data?.country && data?.county && data?.subCounty && data?.city && data?.estate);
+  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED" || isComplete;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl">
@@ -78,7 +79,7 @@ const Address = ({ data, refreshData }) => {
               </svg>
             )}
             <span className="text-xs font-bold uppercase tracking-wider">
-              {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified"}
+              {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : data?.status === "VERIFIED" ? "Verified" : "Submitted"}
             </span>
           </div>
         )}
@@ -97,10 +98,14 @@ const Address = ({ data, refreshData }) => {
           )}
           <div>
             <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
-              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Address Verified"}
+              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : data?.status === "VERIFIED" ? "Address Verified" : "Address Submitted"}
             </p>
             <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
-              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. Profile updates are disabled." : "Your registered address has been verified. To update these details, please contact JAGEDO Support."}
+              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" 
+                ? "Your account has been restricted. Profile updates are disabled." 
+                : data?.status === "VERIFIED"
+                  ? "Your registered address has been verified. To update these details, please contact JAGEDO Support."
+                  : "You have already submitted your address details. To update these, please contact JAGEDO Support."}
             </p>
           </div>
         </div>

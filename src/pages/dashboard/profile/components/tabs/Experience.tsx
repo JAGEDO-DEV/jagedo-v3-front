@@ -839,9 +839,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   }, [userData, userType]);
 
   const getGradeFromScore = (score: number) => {
-    if (score >= 90) return "G1: Master Fundi";
-    if (score >= 80) return "G2: Skilled";
-    if (score >= 70) return "G3: Semi-skilled";
+    if (score >= 80) return "G1: Master Fundi";
+    if (score >= 60) return "G2: Skilled";
+    if (score >= 40) return "G3: Semi-skilled";
     return "G4: Unskilled";
   };
 
@@ -852,9 +852,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       "G3: Semi-skilled",
       "G4: Unskilled",
     ];
-    if (score >= 90) return grades;
-    if (score >= 80) return grades.slice(1);
-    if (score >= 70) return grades.slice(2);
+    if (score >= 80) return grades;
+    if (score >= 60) return grades.slice(1);
+    if (score >= 40) return grades.slice(2);
     return grades.slice(3);
   };
 
@@ -1876,9 +1876,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       },
     };
 
-    if (score >= 90) return classifications.master;
-    if (score >= 80) return classifications.skilled;
-    if (score >= 70) return classifications.semiSkilled;
+    if (score >= 80) return classifications.master;
+    if (score >= 60) return classifications.skilled;
+    if (score >= 40) return classifications.semiSkilled;
     return classifications.unskilled;
   };
 
@@ -2003,6 +2003,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       totalScore: totalScore,
       audioUrl: audioUrl || null,
       audioUploadUrl: audioUrl || null,
+      grade: getGradeFromScore(totalScore),
     };
 
     try {
