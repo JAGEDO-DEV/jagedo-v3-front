@@ -180,6 +180,7 @@ const PriceModal = ({
     }, []);
 
     const handleSave = () => {
+        if (modalFilteredRegions.length === 0) return;
         const priceArray = modalFilteredRegions.map(region => {
             const priceStr = priceMap[region.id];
             return {
@@ -218,15 +219,21 @@ const PriceModal = ({
                     <div className="space-y-3">
                         <h3 className="text-base font-semibold">Regional Prices</h3>
                         <div className="space-y-2">
-                            {modalFilteredRegions.map((region) => (
-                                <PriceInput 
-                                    key={region.id} 
-                                    regionId={region.id} 
-                                    regionName={region.name} 
-                                    initialValue={priceMap[region.id] || ""}
-                                    onChange={handleInputChange}
-                                />
-                            ))}
+                            {modalFilteredRegions.length > 0 ? (
+                                modalFilteredRegions.map((region) => (
+                                    <PriceInput 
+                                        key={region.id} 
+                                        regionId={region.id} 
+                                        regionName={region.name} 
+                                        initialValue={priceMap[region.id] || ""}
+                                        onChange={handleInputChange}
+                                    />
+                                ))
+                            ) : (
+                                <div className="p-8 border border-dashed rounded-xl text-center text-gray-500 bg-gray-50">
+                                    No regions found for {groupType.toLowerCase()} category.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -237,7 +244,7 @@ const PriceModal = ({
                     </Button>
                     <Button
                         onClick={handleSave}
-                        disabled={isSaving}
+                        disabled={isSaving || modalFilteredRegions.length === 0}
                         style={{
                             backgroundColor: "#00007A",
                             color: "white"
@@ -351,7 +358,10 @@ export default function ShopPrices() {
 
     
     const handleSavePrices = async (priceData: Price[]) => {
-        if (!selectedProduct) return;
+        if (!selectedProduct) {
+            toast.error("Please select a product first");
+            return;
+        }
 
         try {
             setSavingPrices(true);
@@ -404,6 +414,7 @@ export default function ShopPrices() {
                 </div>
                 <Button
                     onClick={handleGlobalAddPrices}
+                    disabled={!availableProductsForGlobalAdd || availableProductsForGlobalAdd.length === 0}
                     style={{
                         backgroundColor: "#00007A",
                         color: "white"

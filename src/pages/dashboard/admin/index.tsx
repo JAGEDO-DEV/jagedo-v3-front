@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'orders'>('jobs');
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-100 p-10 rounded-lg">
       <ChatWidgetWrapper />
       <div className="max-w-7xl mx-auto px-4 pb-8">
         <div className="flex space-x-4 mb-8 mt-8">
