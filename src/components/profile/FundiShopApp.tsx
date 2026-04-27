@@ -516,7 +516,9 @@ const ShopAppPage = ({ data: profileData }) => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                                 {parseFloat(
-                                  item.customPrice || item.basePrice || 0,
+                                  item.customPrice || 
+                                  item.basePrice || 
+                                  (item.prices && item.prices.length > 0 ? item.prices[0].price : 0)
                                 ).toLocaleString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">

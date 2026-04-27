@@ -67,290 +67,175 @@ interface UploadedImage {
 const ProductPreviewModal = ({
   formData,
   uploadedImages,
+  regions,
   onClose,
 }: {
   formData: ProductFormData;
   uploadedImages: UploadedImage[];
+  regions: any[];
   onClose: () => void;
 }) => {
   const [activeImage, setActiveImage] = useState(0);
+  const regionName = regions.find(r => String(r.id) === String(formData.region))?.name || "Global / Not Specified";
 
   return createPortal(
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-      }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        style={{
-          background: "white",
-          borderRadius: "12px",
-          border: "0.5px solid #e5e7eb",
-          width: "100%",
-          maxWidth: "700px",
-          overflow: "hidden",
-          maxHeight: "90vh",
-          overflowY: "auto",
-        }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300"
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "1rem 1.25rem",
-            borderBottom: "0.5px solid #e5e7eb",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: "16px", fontWeight: 500 }}>
-            Product preview
-          </span>
+        <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Product Preview</h2>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Draft Verification</p>
+          </div>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "20px",
-              lineHeight: 1,
-              color: "#6b7280",
-            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900"
           >
-            &#x2715;
+            <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ display: "grid", gridTemplateColumns: "200px 1fr" }}>
-          {/* Images */}
-          <div
-            style={{
-              background: "#f9fafb",
-              padding: "1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
-            {uploadedImages.length > 0 ? (
-              <>
-                <img
-                  src={uploadedImages[activeImage]?.url}
-                  alt="main"
-                  style={{
-                    width: "100%",
-                    aspectRatio: "1",
-                    objectFit: "cover",
-                    borderRadius: "8px",
-                  }}
-                />
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px",
-                  }}
-                >
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+            {/* Left Column: Images */}
+            <div className="lg:col-span-5 bg-gray-50/50 p-6 lg:p-8 space-y-6 border-r border-gray-100">
+              <div className="relative aspect-square rounded-2xl overflow-hidden shadow-lg bg-white border border-gray-100">
+                {uploadedImages.length > 0 ? (
+                  <img
+                    src={uploadedImages[activeImage]?.url}
+                    alt="main"
+                    className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-3">
+                    <Camera className="h-12 w-12 opacity-20" />
+                    <span className="text-sm font-medium">No images uploaded</span>
+                  </div>
+                )}
+              </div>
+              
+              {uploadedImages.length > 0 && (
+                <div className="grid grid-cols-4 gap-3">
                   {uploadedImages.map((img, i) => (
-                    <img
+                    <button
                       key={img.id}
-                      src={img.url}
-                      alt={`thumb-${i}`}
                       onClick={() => setActiveImage(i)}
-                      style={{
-                        width: "100%",
-                        aspectRatio: "1",
-                        objectFit: "cover",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        border:
-                          i === activeImage
-                            ? "2px solid #00007A"
-                            : "2px solid transparent",
-                      }}
-                    />
+                      className={cn(
+                        "aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 hover:opacity-80",
+                        i === activeImage ? "border-[#00007A] shadow-md ring-2 ring-[#00007A]/10" : "border-transparent opacity-60"
+                      )}
+                    >
+                      <img src={img.url} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                    </button>
                   ))}
                 </div>
-              </>
-            ) : (
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "1",
-                  background: "#e5e7eb",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#9ca3af",
-                  fontSize: "13px",
-                }}
-              >
-                No images
-              </div>
-            )}
-          </div>
-
-          {/* Details */}
-          <div
-            style={{
-              padding: "1.25rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  fontSize: "11px",
-                  color: "#9ca3af",
-                  margin: "0 0 2px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                {formData.group}
-              </p>
-              <p
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 500,
-                  margin: 0,
-                  color: "#111827",
-                }}
-              >
-                {formData.name}
-              </p>
-            </div>
-
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              {formData.type && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    padding: "3px 10px",
-                    borderRadius: "6px",
-                    background: "#eff6ff",
-                    color: "#1d4ed8",
-                  }}
-                >
-                  {formData.type}
-                </span>
               )}
             </div>
 
-            <div
-              style={{
-                borderTop: "0.5px solid #e5e7eb",
-                paddingTop: "10px",
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "8px",
-              }}
-            >
-              {Object.entries(formData)
-                .filter(
-                  ([key, value]) =>
-                    ![
-                      "name",
-                      "description",
-                      "type",
-                      "group",
-                      "subGroup",
-                      "images",
-                      "active",
-                      "id",
-                    ].includes(key) &&
-                    value &&
-                    (typeof value === "string" || Array.isArray(value)),
-                )
-                .map(([key, value]) => (
-                  <div key={key}>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "#9ca3af",
-                        margin: 0,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </p>
-                    <p
-                      style={{ fontSize: "13px", margin: 0, color: "#111827" }}
-                    >
-                      {Array.isArray(value) ? value.join(", ") : value}
-                    </p>
-                  </div>
-                ))}
-            </div>
+            {/* Right Column: Content */}
+            <div className="lg:col-span-7 p-8 lg:p-10 space-y-10">
+              {/* Basic Header */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 rounded-lg px-3 py-1 font-semibold uppercase text-[10px] tracking-widest">
+                    {formData.type}
+                  </Badge>
+                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-100 rounded-lg px-3 py-1 font-semibold uppercase text-[10px] tracking-widest">
+                    {formData.group}
+                  </Badge>
+                </div>
+                <h1 className="text-3xl font-black text-gray-900 leading-tight">
+                  {formData.name || "Untitled Product"}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    {formData.subGroup}
+                  </span>
+                  <span className="w-px h-3 bg-gray-200"></span>
+                  <span>SKU: {formData.sku || "N/A"}</span>
+                </div>
+              </div>
 
-            {formData.description && (
-              <div
-                style={{ borderTop: "0.5px solid #e5e7eb", paddingTop: "10px" }}
-              >
-                <p
-                  style={{
-                    fontSize: "11px",
-                    color: "#9ca3af",
-                    margin: "0 0 4px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Description
-                </p>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    color: "#6b7280",
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {formData.description}
+              {/* Description */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Description</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">
+                  {formData.description || "No description provided."}
                 </p>
               </div>
-            )}
+
+              {/* Meta Info Grid */}
+              <div className="grid grid-cols-2 gap-y-8 gap-x-6">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">Product Code</p>
+                  <p className="text-sm font-mono font-bold text-gray-800 bg-gray-50 px-2 py-1 rounded inline-block">
+                    {formData.productCode}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">Target Region</p>
+                  <p className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                    <span className="text-blue-600">📍</span> {regionName}
+                  </p>
+                </div>
+              </div>
+
+              {/* Attributes / Specs */}
+              <div className="space-y-5 pt-4 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Technical Specifications</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(formData)
+                    .filter(([key, value]) => 
+                      ![
+                        "name", "description", "type", "group", "subGroup", 
+                        "images", "active", "id", "sku", "productCode", "region"
+                      ].includes(key) && 
+                      value && (typeof value === "string" || Array.isArray(value))
+                    ).length > 0 ? (
+                      Object.entries(formData)
+                        .filter(([key, value]) => 
+                          ![
+                            "name", "description", "type", "group", "subGroup", 
+                            "images", "active", "id", "sku", "productCode", "region"
+                          ].includes(key) && 
+                          value && (typeof value === "string" || Array.isArray(value))
+                        ).map(([key, value]) => (
+                          <div key={key} className="bg-gray-50 p-3 rounded-2xl border border-gray-100/50">
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
+                            </p>
+                            <p className="text-xs font-bold text-gray-800">
+                              {Array.isArray(value) ? value.join(", ") : value}
+                            </p>
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic col-span-2">No specific attributes defined.</p>
+                    )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "1rem 1.25rem",
-            borderTop: "0.5px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <button
+        <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+          <Button
+            variant="outline"
             onClick={onClose}
-            style={{
-              padding: "8px 16px",
-              borderRadius: "8px",
-              border: "1px solid #00007A",
-              background: "transparent",
-              cursor: "pointer",
-              fontSize: "14px",
-              color: "#00007A",
-            }}
+            className="rounded-xl border-gray-200 hover:bg-white hover:border-[#00007A] hover:text-[#00007A] transition-all px-6"
           >
             Back to edit
-          </button>
+          </Button>
         </div>
       </div>
     </div>,
@@ -1406,6 +1291,7 @@ const ProductUploadForm = ({ onCancel, initialType, targetUser }: { onCancel?: (
         <ProductPreviewModal
           formData={formData}
           uploadedImages={uploadedImages}
+          regions={regions}
           onClose={() => setShowPreview(false)}
         />
       )}
