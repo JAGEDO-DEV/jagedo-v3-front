@@ -3,7 +3,7 @@
 //@ts-nocheck
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -17,6 +17,7 @@ import { getAuthHeaders } from "@/utils/auth";
 interface FileItem {
   file: File | null;
   previewUrl: string;
+  name: string;
 }
 
 interface FundiAttachment {
@@ -173,11 +174,18 @@ const FundiExperience = ({ data, refreshData }: any) => {
             url = p.fileUrl;
           } else if (p.url) {
             url = p.url;
-          } else if (Array.isArray(p.files)) {
-            p.files.forEach((f: string) => groupedMap.get(name)?.push({ file: null, previewUrl: f }));
+          }
+          if (Array.isArray(p.files)) {
+            p.files.forEach((f: string) => {
+              const fileName = f.split('/').pop()?.split('_').slice(1).join('_') || "File";
+              groupedMap.get(name)?.push({ file: null, previewUrl: f, name: fileName });
+            });
             return;
           }
-          if (url) groupedMap.get(name)?.push({ file: null, previewUrl: url });
+          if (url) {
+            const fileName = url.split('/').pop()?.split('_').slice(1).join('_') || "File";
+            groupedMap.get(name)?.push({ file: null, previewUrl: url, name: fileName });
+          }
         });
 
         const newAttachments = Array.from(groupedMap.entries()).map(([name, files], idx) => ({
@@ -199,7 +207,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     setAttachments(prev =>
       prev.map(item =>
         item.id === rowId && item.files.length < 3
-          ? { ...item, files: [...item.files, { file, previewUrl: preview }] }
+          ? { ...item, files: [...item.files, { file, previewUrl: preview, name: file.name }] }
           : item
       )
     );
@@ -210,6 +218,23 @@ const FundiExperience = ({ data, refreshData }: any) => {
       prev.map(item =>
         item.id === rowId
           ? { ...item, files: item.files.filter((_, i) => i !== fileIndex) }
+          : item
+      )
+    );
+  };
+
+  const replaceFile = (rowId: number, fileIndex: number, file: File | null) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setAttachments(prev =>
+      prev.map(item =>
+        item.id === rowId
+          ? {
+              ...item,
+              files: item.files.map((f, i) =>
+                i === fileIndex ? { file, previewUrl: preview, name: file.name } : f
+              )
+            }
           : item
       )
     );
@@ -510,17 +535,41 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
                           {/* File Previews */}
                           {row.files.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
+                            <div className="space-y-2 mt-3">
                               {row.files.map((fItem, i) => (
-                                <div key={i} className="relative group w-16 h-16">
-                                  <img src={fItem.previewUrl} alt="preview" className="w-full h-full object-cover rounded-xl border border-gray-200" />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded-xl">
-                                    <a href={fItem.previewUrl} target="_blank" rel="noreferrer" className="text-white hover:text-blue-200">
-                                      <EyeIcon className="w-5 h-5" />
+                                <div key={i} className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-md">
+                                  <span className="text-sm text-gray-700 truncate font-medium" title={fItem.name}>
+                                    {fItem.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={fItem.previewUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                      <EyeIcon className="w-4 h-4" />
                                     </a>
-                                    <button type="button" onClick={() => removeFile(row.id, i)} className="text-white hover:text-red-300">
-                                      <XMarkIcon className="w-5 h-5" />
-                                    </button>
+                                    {!isReadOnly && (
+                                      <label className="cursor-pointer text-blue-600 hover:text-blue-800 transition-colors">
+                                        <PencilIcon className="w-4 h-4" />
+                                        <input
+                                          type="file"
+                                          accept="image/*,application/pdf,.pdf"
+                                          className="hidden"
+                                          onChange={(e) => replaceFile(row.id, i, e.target.files?.[0] || null)}
+                                        />
+                                      </label>
+                                    )}
+                                    {!isReadOnly && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeFile(row.id, i)}
+                                        className="text-red-500 hover:text-red-700 transition-colors"
+                                      >
+                                        <XMarkIcon className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
