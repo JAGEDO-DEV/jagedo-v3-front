@@ -52,7 +52,22 @@ function AccountInfo({ data, refreshData }) {
   const [otpMethod, setOtpMethod] = useState<"email" | "phone" | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
+  const isOrgData = data?.accountType?.toLowerCase() === "organization" || 
+                    data?.accountType?.toLowerCase() === "business" || 
+                    data?.userType === "CONTRACTOR" || 
+                    data?.userType === "HARDWARE";
+
+  const showsContactName = data?.userType === "CUSTOMER" || 
+                           data?.userType === "CONTRACTOR" || 
+                           data?.userType === "HARDWARE";
+
+  const isComplete = isOrgData 
+    ? showsContactName
+      ? !!(data?.organizationName?.trim() && data?.contactFullName?.trim() && data?.phone?.trim() && data?.email?.trim())
+      : !!(data?.organizationName?.trim() && data?.phone?.trim() && data?.email?.trim())
+    : !!(data?.firstName?.trim() && data?.lastName?.trim() && data?.phone?.trim() && data?.email?.trim());
+
+  const isReadOnly = data?.status === "VERIFIED" || data?.status === "SUSPENDED" || data?.status === "BLACKLISTED" || isComplete;
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
@@ -239,7 +254,7 @@ function AccountInfo({ data, refreshData }) {
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-green-50 text-green-700 border-green-100"}`}>
               <Shield className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified Profile"}
+                {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : data?.status === "VERIFIED" ? "Verified Profile" : "Information Submitted"}
               </span>
             </div>
           )}
@@ -259,10 +274,14 @@ function AccountInfo({ data, refreshData }) {
           <Clock className={`w-5 h-5 mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-600" : data?.status === "SUSPENDED" ? "text-yellow-600" : "text-blue-600"}`} />
           <div>
             <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
-              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Profile Verified"}
+              {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : data?.status === "VERIFIED" ? "Profile Verified" : "Information Submitted"}
             </p>
             <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
-              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. To update these details, please contact JAGEDO Support." : "Your profile information has been verified. To update these details, please contact JAGEDO Support."}
+              {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" 
+                ? "Your account has been restricted. To update these details, please contact JAGEDO Support." 
+                : data?.status === "VERIFIED" 
+                  ? "Your profile information has been verified. To update these details, please contact JAGEDO Support."
+                  : "You have already submitted your information. To update these details, please contact JAGEDO Support."}
             </p>
             {data?.statusReason && (
               <p className={`text-xs mt-2 font-medium italic ${data?.status === "BLACKLISTED" ? "text-red-800" : data?.status === "SUSPENDED" ? "text-yellow-800" : "text-blue-800"}`}>
