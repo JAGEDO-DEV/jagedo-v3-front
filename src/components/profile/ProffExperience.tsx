@@ -50,7 +50,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
     const [specsLoading, setSpecsLoading] = useState(false);
 
     const isReadOnly = 
-        !['RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus) || 
+        (data?.experienceStatus && !['RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus)) || 
         data?.status === 'VERIFIED' || data?.accountStatus === 'VERIFIED' ||
         data?.status === "SUSPENDED" || data?.status === "BLACKLISTED";
 
@@ -304,25 +304,42 @@ const ProffExperience = ({ data, refreshData }: any) => {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Professional Experience</h1>
                     {isReadOnly && (
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-green-50 text-green-700 border-green-100"}`}>
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm ${
+                            data?.status === "BLACKLISTED" ? "bg-red-50 text-red-700 border-red-100" : 
+                            data?.status === "SUSPENDED" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : 
+                            data?.experienceStatus === "PENDING" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                            "bg-green-50 text-green-700 border-green-100"
+                        }`}>
                             {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
                                 <XMarkIcon className="w-4 h-4" />
+                            ) : data?.experienceStatus === "PENDING" ? (
+                                <EyeIcon className="w-4 h-4" />
                             ) : (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
                             )}
                             <span className="text-xs font-bold uppercase tracking-wider">
-                                {data?.status === "BLACKLISTED" ? "Blacklisted" : data?.status === "SUSPENDED" ? "Suspended" : "Verified"}
+                                {data?.status === "BLACKLISTED" ? "Blacklisted" : 
+                                 data?.status === "SUSPENDED" ? "Suspended" : 
+                                 data?.experienceStatus === "PENDING" ? "Under Review" : 
+                                 "Verified"}
                             </span>
                         </div>
                     )}
                 </div>
 
                 {isReadOnly && (
-                    <div className={`mb-8 p-4 border rounded-xl flex items-start gap-3 ${data?.status === "BLACKLISTED" ? "bg-red-50 border-red-200" : data?.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}`}>
+                    <div className={`mb-8 p-4 border rounded-xl flex items-start gap-3 ${
+                        data?.status === "BLACKLISTED" ? "bg-red-50 border-red-200" : 
+                        data?.status === "SUSPENDED" ? "bg-yellow-50 border-yellow-200" : 
+                        data?.experienceStatus === "PENDING" ? "bg-blue-50 border-blue-200" :
+                        "bg-blue-50 border-blue-200"
+                    }`}>
                         {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? (
                             <XMarkIcon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${data?.status === "BLACKLISTED" ? "text-red-600" : "text-yellow-600"}`} />
+                        ) : data?.experienceStatus === "PENDING" ? (
+                            <EyeIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                         ) : (
                             <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -330,10 +347,15 @@ const ProffExperience = ({ data, refreshData }: any) => {
                         )}
                         <div>
                             <p className={`text-sm font-semibold ${data?.status === "BLACKLISTED" ? "text-red-900" : data?.status === "SUSPENDED" ? "text-yellow-900" : "text-blue-900"}`}>
-                                {data?.status === "BLACKLISTED" ? "Account Blacklisted" : data?.status === "SUSPENDED" ? "Account Suspended" : "Experience Verified"}
+                                {data?.status === "BLACKLISTED" ? "Account Blacklisted" : 
+                                 data?.status === "SUSPENDED" ? "Account Suspended" : 
+                                 data?.experienceStatus === "PENDING" ? "Experience Under Review" : 
+                                 "Experience Verified"}
                             </p>
                             <p className={`text-xs mt-0.5 ${data?.status === "BLACKLISTED" ? "text-red-700" : data?.status === "SUSPENDED" ? "text-yellow-700" : "text-blue-700"}`}>
-                                {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. Profile updates are disabled." : "Your professional experience has been verified. To update these details, please contact JAGEDO Support."}
+                                {data?.status === "BLACKLISTED" || data?.status === "SUSPENDED" ? "Your account has been restricted. Profile updates are disabled." : 
+                                 data?.experienceStatus === "PENDING" ? "Your experience submission is currently locked while being reviewed by our team." :
+                                 "Your professional experience has been verified. To update these details, please contact JAGEDO Support."}
                             </p>
                         </div>
                     </div>

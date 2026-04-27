@@ -61,6 +61,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     data?.status === "SUSPENDED" ||
     data?.status === "BLACKLISTED" ||
     data?.status === "REJECTED";
+    
 
 
 
@@ -74,8 +75,9 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
 
         const skillsRes = await getBuilderSkillsByType(authAxios, 'FUNDI');
-        const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
-        setFundiSkills(activeSkills);
+        const activeSkills = (skillsRes || []).filter((s: any) => s.isActive !== false);
+        const sortedSkills = activeSkills.sort((a: any, b: any) => (a.skillName || "").localeCompare(b.skillName || ""));
+        setFundiSkills(sortedSkills);
 
 
         const mappingsRes = await getSpecializationMappings(authAxios, 'FUNDI');
@@ -111,7 +113,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
           headers: { Authorization: getAuthHeaders() },
         });
 
-        // Find the skill in fundiSkills to get its assigned specializations array
+        
         const selectedSkill = fundiSkills.find((s: any) =>
           normalizeSkillName(s.skillName) === normalizedSkill
         );
@@ -150,7 +152,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
-    if (data) {
+    if (data && isLoadingProfile) {
       setGrade(data.grade || "G1: Master Fundi");
       setExperience(data.experience || "10+ years");
 
@@ -187,7 +189,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       }
       setIsLoadingProfile(false);
     }
-  }, [data]);
+  }, [data, isLoadingProfile]);
 
   const visibleProjectRows = requiredProjectsByGrade[grade] || 0;
 
@@ -217,6 +219,22 @@ const FundiExperience = ({ data, refreshData }: any) => {
     setAttachments(prev =>
       prev.map(item => (item.id === rowId ? { ...item, projectName: name } : item))
     );
+  };
+
+  const hasChanges = () => {
+    if (!data) return false;
+    
+    const isGradeChanged = grade !== (data.grade || "G1: Master Fundi");
+    const isExpChanged = experience !== (data.experience || "10+ years");
+    const isSpecChanged = specialization !== (data.specialization?.trim() || "");
+    
+    const hasNewFiles = attachments.some(att => att.files.some(f => f.file !== null));
+    
+    return isGradeChanged || isExpChanged || isSpecChanged || hasNewFiles;
+  };
+
+  const handleCancel = () => {
+    window.location.reload();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -252,6 +270,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       });
 
       toast.success("Experience saved successfully!", { id: toastId });
+      setIsLoadingProfile(true);
       if (refreshData) refreshData();
     } catch (error: any) {
       console.error(error);
@@ -383,14 +402,16 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
         <form className="space-y-8" onSubmit={handleSubmit}>
           {/* Main Experience Selection Card */}
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-gray-50 p-6 rounded-xl border">
+            <div className="grid md:grid-cols-4 gap-6">
               {/* Skill */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Skill</label>
-                <div className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-600 font-medium">
-                  {skill ? skill.charAt(0).toUpperCase() + skill.slice(1) : "N/A"}
-                </div>
+                <input
+                  readOnly
+                  className="w-full p-3 bg-gray-200 rounded-lg font-medium text-gray-600 outline-none"
+                  value={skill ? skill.charAt(0).toUpperCase() + skill.slice(1) : "N/A"}
+                />
               </div>
 
               {/* Specialization */}
@@ -400,12 +421,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
                   disabled={isReadOnly || !skill || specsLoading}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm appearance-none bg-white font-medium"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
                 >
                   <option value="">
-                    {!skill ? "Select a skill first" : specsLoading ? "Loading…" : "Select Specialization"}
+                    {!skill ? "Select a skill first" : specsLoading ? "Loading…" : "Select"}
                   </option>
-                  {specializations.map(s => (
+                  {[...specializations].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(s => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
                   {specialization && !specializations.find(s => s.name === specialization) && (
@@ -421,10 +442,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   value={grade}
                   onChange={e => setGrade(e.target.value)}
                   disabled={isReadOnly}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
                 >
-                  {Object.keys(requiredProjectsByGrade).map(g => (
-                    <option key={g}>{g}</option>
+                  <option value="">Select Grade</option>
+                  {["G1: Master Fundi", "G2: Skilled", "G3: Semi-skilled", "G4: Unskilled"].map(g => (
+                    <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
               </div>
@@ -436,12 +458,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
                   value={experience}
                   onChange={e => setExperience(e.target.value)}
                   disabled={isReadOnly}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm bg-white font-medium"
                 >
+                  <option value="">Select Experience</option>
                   {["1-3 years", "3-5 years", "5-10 years", "10+ years"].map(exp => (
                     <option key={exp} value={exp}>{exp}</option>
                   ))}
-                  <option value="">Select Experience</option>
                 </select>
               </div>
             </div>
@@ -449,52 +471,42 @@ const FundiExperience = ({ data, refreshData }: any) => {
 
           {/* Project Upload Section */}
           {visibleProjectRows > 0 && (
-            <div className="bg-blue-50/50 p-8 rounded-2xl border border-blue-50 space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-blue-900">
+            <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-blue-50 px-6 py-4">
+                <h4 className="text-md font-semibold text-blue-900 mb-2">
                   Add Missing Projects ({visibleProjectRows - attachments.filter(a => a.projectName.trim() && a.files.length > 0).length} remaining)
-                </h2>
-                <p className="text-blue-700 text-sm">Add projects to complete your experience profile:</p>
+                </h4>
+                <p className="text-sm text-blue-700">Add projects to complete your experience profile:</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="px-6 py-4 bg-blue-50">
                 {attachments.slice(0, visibleProjectRows).map(row => (
-                  <div key={row.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                    <h3 className="text-blue-800 font-bold">Project {row.id}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div key={row.id} className="mb-6 p-4 bg-white rounded-lg border border-blue-200">
+                    <div className="mb-3 text-sm font-medium text-blue-900">Project {row.id}</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Project Name */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Project Name</label>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
                         <input
                           value={row.projectName}
                           onChange={e => handleProjectNameChange(row.id, e.target.value)}
                           disabled={isReadOnly || isSubmitting}
                           placeholder="Enter project name"
-                          className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         />
                       </div>
 
                       {/* Project Files */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Project Files</label>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-4">
-                            {!isReadOnly && (
-                              <label className={`cursor-pointer px-6 py-2 rounded-xl text-sm font-bold transition-all ${!row.projectName.trim() ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
-                                Choose File
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  disabled={!row.projectName.trim() || isSubmitting}
-                                  onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
-                                  className="hidden"
-                                />
-                              </label>
-                            )}
-                            <span className="text-gray-400 text-sm">
-                              {row.files.length > 0 ? `${row.files.length} files selected` : "No file chosen"}
-                            </span>
-                          </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Project Files</label>
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf,.pdf"
+                            disabled={!row.projectName.trim() || isSubmitting || isReadOnly}
+                            onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
+                            className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-all ${(!row.projectName.trim() || isReadOnly) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                          />
 
                           {/* File Previews */}
                           {row.files.length > 0 && (
@@ -516,7 +528,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                           )}
 
                           {!row.projectName.trim() && !isReadOnly && (
-                            <p className="text-orange-500 text-xs font-semibold">
+                            <p className="text-xs text-amber-700">
                               Enter project name first to unlock file upload.
                             </p>
                           )}
@@ -530,15 +542,25 @@ const FundiExperience = ({ data, refreshData }: any) => {
           )}
 
           {!isReadOnly && (
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end items-center gap-4 pt-4">
+              {hasChanges() && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              )}
               <button
-                disabled={isSubmitting}
-                className="bg-blue-800 hover:bg-blue-900 text-white px-10 py-4 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 flex items-center gap-3"
+                disabled={isSubmitting || !hasChanges()}
+                className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {isSubmitting && (
-                  <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {isSubmitting ? "Saving..." : "Save Experience"}
+                {isSubmitting ? "Saving..." : "Save"}
               </button>
             </div>
           )}
