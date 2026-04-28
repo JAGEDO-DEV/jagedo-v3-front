@@ -274,13 +274,7 @@ export default function ShopRegions() {
                         Manage regional availability and shipping zones.
                     </p>
                 </div>
-                <Button
-                    onClick={handleAddRegion}
-                    style={{ backgroundColor: "#00007A", color: "white" }}
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Region
-                </Button>
+                
             </div>
 
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
@@ -308,6 +302,14 @@ export default function ShopRegions() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+
+                <Button
+                    onClick={handleAddRegion}
+                    style={{ backgroundColor: "#00007A", color: "white" }}
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Region
+                </Button>
             </div>
 
             <Card>
