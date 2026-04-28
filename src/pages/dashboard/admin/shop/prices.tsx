@@ -93,29 +93,29 @@ interface Product {
 
 
 
-const PriceInput = React.memo(({ 
-    regionId, 
-    regionName, 
-    initialValue, 
-    onChange 
-}: { 
-    regionId: number; 
-    regionName: string; 
-    initialValue: string; 
-    onChange: (id: number, val: string) => void 
+const PriceInput = React.memo(({
+    regionId,
+    regionName,
+    initialValue,
+    onChange
+}: {
+    regionId: number;
+    regionName: string;
+    initialValue: string;
+    onChange: (id: number, val: string) => void
 }) => {
-    
-    
+
+
     const [value, setValue] = useState(initialValue);
 
-    
+
     useEffect(() => {
         setValue(initialValue);
     }, [initialValue]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
-        
+
         if (/^\d*\.?\d*$/.test(newValue) || newValue === '') {
             setValue(newValue);
             onChange(regionId, newValue);
@@ -157,13 +157,13 @@ const PriceModal = ({
     onSave: (prices: { regionId: number; regionName: string; price: number }[]) => void;
     isSaving: boolean;
 }) => {
-    
+
     const [priceMap, setPriceMap] = useState<Record<number, string>>({});
 
-    
+
     const modalFilteredRegions = regions.filter(region => region.type === groupType);
 
-    
+
     useEffect(() => {
         if (isOpen && product) {
             const initialMap: Record<number, string> = {};
@@ -173,7 +173,7 @@ const PriceModal = ({
             });
             setPriceMap(initialMap);
         }
-    }, [isOpen, product, regions, groupType]); 
+    }, [isOpen, product, regions, groupType]);
 
     const handleInputChange = useCallback((regionId: number, val: string) => {
         setPriceMap(prev => ({ ...prev, [regionId]: val }));
@@ -221,10 +221,10 @@ const PriceModal = ({
                         <div className="space-y-2">
                             {modalFilteredRegions.length > 0 ? (
                                 modalFilteredRegions.map((region) => (
-                                    <PriceInput 
-                                        key={region.id} 
-                                        regionId={region.id} 
-                                        regionName={region.name} 
+                                    <PriceInput
+                                        key={region.id}
+                                        regionId={region.id}
+                                        regionName={region.name}
                                         initialValue={priceMap[region.id] || ""}
                                         onChange={handleInputChange}
                                     />
@@ -285,7 +285,7 @@ export default function ShopPrices() {
         return p.type?.toUpperCase() === selectedType.toUpperCase();
     });
 
-    
+
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -293,7 +293,7 @@ export default function ShopPrices() {
                 getAllProducts(axiosInstance),
                 getAllRegions(axiosInstance)
             ]);
-            
+
             if (productsResponse.success) {
                 setProducts(productsResponse.hashSet);
             } else {
@@ -313,13 +313,13 @@ export default function ShopPrices() {
         }
     };
 
-    
+
     const selectedGroupType = groups.find(cat => cat.id === selectedGroup)?.type || "HARDWARE";
 
-    
+
     const filteredRegions = regions?.filter((region) => region.type?.toUpperCase() === selectedGroupType?.toUpperCase());
 
-    
+
     const filteredProducts = products?.filter((product) => {
         const matchesSearch =
             product?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
@@ -343,7 +343,7 @@ export default function ShopPrices() {
         }).format(price);
     };
 
-    
+
     const handleEditPrices = (product: Product) => {
         setSelectedProduct(product);
         setIsGlobalAdd(false);
@@ -356,7 +356,7 @@ export default function ShopPrices() {
         setShowPriceModal(true);
     };
 
-    
+
     const handleSavePrices = async (priceData: Price[]) => {
         if (!selectedProduct) {
             toast.error("Please select a product first");
@@ -365,10 +365,10 @@ export default function ShopPrices() {
 
         try {
             setSavingPrices(true);
-            
+
             const payload = {
                 productId: selectedProduct.id,
-                prices: priceData.filter(price => price.price > 0) 
+                prices: priceData.filter(price => price.price > 0)
             };
 
             const response = await axiosInstance.put(
@@ -394,7 +394,7 @@ export default function ShopPrices() {
         }
     };
 
-    
+
     const getPriceForRegion = (product: Product, regionId: number | string) => {
         const price = product.prices?.find(p => String(p.regionId) === String(regionId));
         return price ? formatPrice(price.price) : "-";
@@ -412,17 +412,7 @@ export default function ShopPrices() {
                         Manage regional pricing for all products.
                     </p>
                 </div>
-                <Button
-                    onClick={handleGlobalAddPrices}
-                    disabled={!availableProductsForGlobalAdd || availableProductsForGlobalAdd.length === 0}
-                    style={{
-                        backgroundColor: "#00007A",
-                        color: "white"
-                    }}
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Prices
-                </Button>
+
             </div>
 
             {/* Main Group Tabs */}
@@ -431,29 +421,44 @@ export default function ShopPrices() {
                     <button
                         key={group.id}
                         onClick={() => setSelectedGroup(group.id)}
-                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                            selectedGroup === group.id
-                                ? "bg-[#00007A] text-white"
-                                : "bg-transparent text-black hover:bg-blue-50"
-                        }`}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedGroup === group.id
+                            ? "bg-[#00007A] text-white"
+                            : "bg-transparent text-black hover:bg-blue-50"
+                            }`}
                     >
                         {group.label}
                     </button>
                 ))}
             </div>
 
-            {/* Search */}
-            <div className="flex items-center space-x-2 bg-white border-none">
-                <div className="relative flex-1 border-none">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search by Name, SKU, BID, Group"
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div className="block bg-white border-none p-2 rounded-lg">
+                <div className="flex justify-between items-center gap-6 w-full">
+                    {/* Search Section - Far Left */}
+                    <div className="relative w-full max-w-md border-none">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by Name, SKU, BID, Group"
+                            className="pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Button - Far Right */}
+                    <Button
+                        onClick={handleGlobalAddPrices}
+                        disabled={!availableProductsForGlobalAdd || availableProductsForGlobalAdd.length === 0}
+                        style={{
+                            backgroundColor: "#00007A",
+                            color: "white"
+                        }}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Prices
+                    </Button>
                 </div>
             </div>
+
 
             {/* Products Table */}
             <Card className="bg-white border-none shadow-md">
@@ -556,7 +561,7 @@ export default function ShopPrices() {
                 onSave={handleSavePrices}
                 isSaving={savingPrices}
             />
-            
+
             {/* Extended Modal logic for global add */}
             {isGlobalAdd && showPriceModal && (
                 <Dialog open={true} onOpenChange={() => setShowPriceModal(false)}>
